@@ -68,7 +68,7 @@ import type {
   PivotRow,
   PivotCountryMeta,
 } from "../services/api";
-import { cn, getFlagImageUrl } from "../lib/utils";
+import { cn, getApiBaseUrl } from "../lib/utils";
 
 // ============================================================================
 // CONSTANTS
@@ -267,7 +267,7 @@ function CountryPanel({ countries, selectedCountries, onSelectionChange }: Count
               {/* Flag */}
               <div className="flex-shrink-0 w-8 h-6 rounded overflow-hidden shadow-sm bg-slate-700">
                 {country.flag_url ? (
-                  <img src={getFlagImageUrl(country.flag_url) || undefined} alt="" className="w-full h-full object-cover" />
+                  <img src={`${getApiBaseUrl()}${country.flag_url}`} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Globe className="w-3 h-3 text-slate-500" />
@@ -529,7 +529,7 @@ function SortableColumnHeader({ country, isActive }: { country: PivotCountryMeta
           <GripHorizontal className="w-3 h-3 text-slate-400" />
         </button>
         {country.flag_url && (
-          <img src={getFlagImageUrl(country.flag_url) || undefined} alt="" className="w-8 h-5 object-cover rounded shadow mt-3" />
+          <img src={`${getApiBaseUrl()}${country.flag_url}`} alt="" className="w-8 h-5 object-cover rounded shadow mt-3" />
         )}
         <span className="font-medium truncate max-w-full text-[11px]">{country.name}</span>
       </div>

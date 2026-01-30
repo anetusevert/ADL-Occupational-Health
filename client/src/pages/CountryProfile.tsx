@@ -305,7 +305,7 @@ export function CountryProfile() {
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-white/40">{country.iso_code}</span>
-                {country.maturity_score !== null && (
+                {effectiveOHI !== null && (
                   <div className={cn(
                     "px-1.5 py-0.5 rounded text-[10px] font-semibold",
                     maturity.bgColor, maturity.color
