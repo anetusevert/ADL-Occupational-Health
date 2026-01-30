@@ -146,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    // Clear the framework intro flag so it shows again on next login
+    localStorage.removeItem("adl_framework_intro_shown");
     setToken(null);
     setUser(null);
   }, []);
