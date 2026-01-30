@@ -5,9 +5,8 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Temporarily disable healthcheck to debug startup issues
-healthcheckPath = "/"
+healthcheckPath = "/health"
 healthcheckTimeout = 120
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT}'"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
