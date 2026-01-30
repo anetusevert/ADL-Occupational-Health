@@ -6,7 +6,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ChevronRight, Globe, Check } from "lucide-react";
-import { cn, getFlagImageUrl } from "../../lib/utils";
+import { cn, getApiBaseUrl } from "../../lib/utils";
 import type { CountryDataSummary } from "../../services/api";
 
 interface CountrySelectionStepProps {

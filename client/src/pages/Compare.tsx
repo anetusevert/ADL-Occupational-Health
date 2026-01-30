@@ -29,7 +29,7 @@ import {
   Search,
 } from "lucide-react";
 import { fetchComparisonCountries } from "../services/api";
-import { cn, getCountryFlag, getFlagImageUrl, formatNumber } from "../lib/utils";
+import { cn, getCountryFlag, getApiBaseUrl, formatNumber } from "../lib/utils";
 import { MetricDetailModal } from "../components/compare/MetricDetailModal";
 import type { Country } from "../types/country";
 
@@ -411,7 +411,7 @@ interface CountryFlagImageProps {
 }
 
 function CountryFlagImage({ country, size = "md", className }: CountryFlagImageProps) {
-  const flagUrl = country?.flag_url ? getFlagImageUrl(country.flag_url) : null;
+  const flagUrl = country?.flag_url ? `${getApiBaseUrl()}${country.flag_url}` : null;
   
   const sizeClasses = {
     sm: "w-6 h-4",
