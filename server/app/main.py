@@ -27,11 +27,15 @@ app = FastAPI(
 
 # Configure CORS for frontend communication
 # Production origins from environment variable (comma-separated)
+# Strip trailing slashes to ensure origin matching works correctly
 production_origins = [
-    origin.strip() 
+    origin.strip().rstrip("/") 
     for origin in os.getenv("CORS_ORIGINS", "").split(",") 
     if origin.strip()
 ]
+
+# Debug: Print loaded origins at startup
+print(f"CORS Production Origins: {production_origins}")
 
 # Local development origins
 local_origins = [
