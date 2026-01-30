@@ -602,6 +602,45 @@ export function GenerationProgress() {
     },
   });
   
+  // Reorder queue mutation
+  const reorderMutation = useMutation({
+    mutationFn: (newOrder: string[]) => reorderQueue(newOrder),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generation-queue-status'] });
+    },
+    onError: (error: any) => {
+      setStatusMessage({ type: 'error', text: error.message || 'Failed to reorder queue' });
+      setTimeout(() => setStatusMessage(null), 3000);
+    },
+  });
+  
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+  
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+  
+  const handleDragEnd = useCallback(() => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      // Reorder the queue items
+      const pendingItems = queueItems.filter(item => item.status === 'pending');
+      const newOrder = [...pendingItems];
+      const [draggedItem] = newOrder.splice(draggedIndex, 1);
+      newOrder.splice(dragOverIndex, 0, draggedItem);
+      
+      // Get new order of IDs and call API
+      const newOrderIds = newOrder.map(item => item.id);
+      reorderMutation.mutate(newOrderIds);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, [draggedIndex, dragOverIndex, queueItems, reorderMutation]);
+  
   // Generate next report from queue
   const generateNext = useCallback(async () => {
     if (!queueStatus || queueStatus.queue_items.length === 0) {
@@ -829,12 +868,18 @@ export function GenerationProgress() {
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               <AnimatePresence>
                 {queueItems.length > 0 ? (
-                  queueItems.map(item => (
+                  queueItems.map((item, index) => (
                     <QueueItemRow
                       key={item.id}
                       item={item}
+                      index={index}
                       isActive={currentGeneration?.iso_code === item.iso_code && currentGeneration?.topic === item.topic}
                       onRemove={(id) => removeFromQueueMutation.mutate(id)}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDragEnd={handleDragEnd}
+                      isDragging={draggedIndex !== null}
+                      dragOverIndex={dragOverIndex}
                     />
                   ))
                 ) : (
