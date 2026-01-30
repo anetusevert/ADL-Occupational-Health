@@ -1,40 +1,40 @@
 /**
  * Arthur D. Little - Global Health Platform
- * Policy Simulator - Sovereign Strategy War Room
- * Viewport-fit design with no scrolling
+ * Policy Simulator - Interactive AI-Powered Strategy Experience
+ * 
+ * Features:
+ * - Interactive Framework Temple visualization
+ * - Real-time dynamic scoring engine
+ * - Live country rankings with animated position changes
+ * - AI-streaming policy recommendations
+ * - Gamified learning experience
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   ChevronDown,
-  ChevronRight,
   Loader2,
-  Building2,
+  Crown,
   Shield,
   Eye,
   Heart,
-  Rocket,
   Target,
   TrendingUp,
-  AlertTriangle,
+  TrendingDown,
   Sparkles,
   RefreshCw,
-  Info,
+  Zap,
+  Trophy,
+  ArrowUp,
+  ArrowDown,
+  FileText,
+  Play,
+  Pause,
 } from "lucide-react";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchAllCountries, fetchCountryWithMockFallback } from "../services/api";
+import { fetchAllCountries, fetchCountryWithMockFallback, aiApiClient } from "../services/api";
 import type { Country, CountryListItem } from "../types/country";
 import { cn, getCountryFlag, getMaturityStage } from "../lib/utils";
 
@@ -43,190 +43,142 @@ import { cn, getCountryFlag, getMaturityStage } from "../lib/utils";
 // ============================================================================
 
 interface SimulationMetrics {
-  // Governance Layer
-  strategicCapacity: number;
-  inspectorDensity: number;
-  iloC187Ratified: boolean;
-  
-  // Pillar 1: Hazard Control
-  fatalAccidentRate: number;
-  oelCompliance: number;
-  airPollution: number;
-  
-  // Pillar 2: Health Vigilance
-  diseaseDetectionRate: number;
-  vulnerableEmpCoverage: number;
-  
-  // Pillar 3: Restoration
-  rehabAccess: number;
-  returnToWorkSuccess: number;
+  governance: number;
+  hazardControl: number;
+  healthVigilance: number;
+  restoration: number;
 }
 
-interface AccordionSection {
-  id: string;
-  title: string;
+interface PillarConfig {
+  id: keyof SimulationMetrics;
+  name: string;
+  fullName: string;
   icon: React.ElementType;
   color: string;
   bgColor: string;
   borderColor: string;
+  glowColor: string;
+  metrics: {
+    id: string;
+    label: string;
+    description: string;
+    impact: "high" | "medium" | "low";
+  }[];
+}
+
+interface CountryRanking {
+  iso_code: string;
+  name: string;
+  score: number;
+  originalRank: number;
+  projectedRank: number;
+  delta: number;
 }
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-const ACCORDION_SECTIONS: AccordionSection[] = [
+const PILLARS: PillarConfig[] = [
   {
     id: "governance",
-    title: "Governance Layer",
-    icon: Building2,
+    name: "Governance",
+    fullName: "Governance Ecosystem",
+    icon: Crown,
     color: "text-purple-400",
     bgColor: "bg-purple-500/20",
     borderColor: "border-purple-500/30",
+    glowColor: "shadow-purple-500/50",
+    metrics: [
+      { id: "policy", label: "Policy Framework", description: "National OH legislation strength", impact: "high" },
+      { id: "enforcement", label: "Enforcement Capacity", description: "Inspector density & reach", impact: "high" },
+      { id: "coordination", label: "Tripartite Dialogue", description: "Stakeholder collaboration", impact: "medium" },
+    ],
   },
   {
-    id: "pillar1",
-    title: "Pillar 1: Hazard Control",
+    id: "hazardControl",
+    name: "Hazard Control",
+    fullName: "Hazard Prevention & Control",
     icon: Shield,
-    color: "text-red-400",
-    bgColor: "bg-red-500/20",
-    borderColor: "border-red-500/30",
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/20",
+    borderColor: "border-blue-500/30",
+    glowColor: "shadow-blue-500/50",
+    metrics: [
+      { id: "chemical", label: "Chemical Safety", description: "OEL compliance & controls", impact: "high" },
+      { id: "physical", label: "Physical Hazards", description: "Noise, ergonomics, machinery", impact: "medium" },
+      { id: "climate", label: "Climate Adaptation", description: "Heat stress & outdoor protection", impact: "medium" },
+    ],
   },
   {
-    id: "pillar2",
-    title: "Pillar 2: Health Vigilance",
+    id: "healthVigilance",
+    name: "Health Vigilance",
+    fullName: "Surveillance & Detection",
     icon: Eye,
+    color: "text-teal-400",
+    bgColor: "bg-teal-500/20",
+    borderColor: "border-teal-500/30",
+    glowColor: "shadow-teal-500/50",
+    metrics: [
+      { id: "surveillance", label: "Disease Surveillance", description: "Detection & reporting systems", impact: "high" },
+      { id: "mental", label: "Mental Health", description: "Psychosocial risk programs", impact: "medium" },
+      { id: "screening", label: "Health Screening", description: "Medical surveillance coverage", impact: "medium" },
+    ],
+  },
+  {
+    id: "restoration",
+    name: "Restoration",
+    fullName: "Restoration & Compensation",
+    icon: Heart,
     color: "text-amber-400",
     bgColor: "bg-amber-500/20",
     borderColor: "border-amber-500/30",
-  },
-  {
-    id: "pillar3",
-    title: "Pillar 3: Restoration",
-    icon: Heart,
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/20",
-    borderColor: "border-emerald-500/30",
+    glowColor: "shadow-amber-500/50",
+    metrics: [
+      { id: "compensation", label: "Compensation", description: "Workers' compensation coverage", impact: "high" },
+      { id: "rtw", label: "Return-to-Work", description: "Rehabilitation programs", impact: "medium" },
+      { id: "inclusion", label: "Informal Sector", description: "Migrant & informal worker protection", impact: "low" },
+    ],
   },
 ];
 
-// Pillar weights for score calculation (must sum to 1.0)
 const PILLAR_WEIGHTS = {
-  governance: 0.25,
-  pillar1: 0.30,
-  pillar2: 0.25,
-  pillar3: 0.20,
-};
-
-// Default metrics for a "blank" country
-const DEFAULT_METRICS: SimulationMetrics = {
-  strategicCapacity: 50,
-  inspectorDensity: 1.0,
-  iloC187Ratified: false,
-  fatalAccidentRate: 3.0,
-  oelCompliance: 50,
-  airPollution: 35,
-  diseaseDetectionRate: 50,
-  vulnerableEmpCoverage: 40,
-  rehabAccess: 50,
-  returnToWorkSuccess: 50,
+  governance: 0.30,
+  hazardControl: 0.25,
+  healthVigilance: 0.25,
+  restoration: 0.20,
 };
 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Extract simulation metrics from a country's real data
- */
-function extractMetricsFromCountry(country: Country | null): SimulationMetrics {
-  if (!country) return DEFAULT_METRICS;
-  
-  return {
-    // Governance
-    strategicCapacity: country.governance?.strategic_capacity_score ?? 50,
-    inspectorDensity: country.governance?.inspector_density ?? 1.0,
-    iloC187Ratified: country.governance?.ilo_c187_status ?? false,
-    
-    // Pillar 1: Hazard Control
-    fatalAccidentRate: country.pillar_1_hazard?.fatal_accident_rate ?? 3.0,
-    oelCompliance: country.pillar_1_hazard?.oel_compliance_pct ?? 50,
-    airPollution: 35, // Placeholder - not in current schema, would need PM2.5 data
-    
-    // Pillar 2: Health Vigilance  
-    diseaseDetectionRate: country.pillar_2_vigilance?.disease_detection_rate 
-      ? Math.min(100, country.pillar_2_vigilance.disease_detection_rate / 2) // Normalize from rate to %
-      : 50,
-    vulnerableEmpCoverage: country.pillar_2_vigilance?.vulnerability_index 
-      ? 100 - country.pillar_2_vigilance.vulnerability_index // Invert: lower vulnerability = better coverage
-      : 40,
-    
-    // Pillar 3: Restoration
-    rehabAccess: country.pillar_3_restoration?.rehab_access_score ?? 50,
-    returnToWorkSuccess: country.pillar_3_restoration?.return_to_work_success_pct ?? 50,
-  };
-}
-
-/**
- * Calculate pillar scores from simulation metrics
- */
-function calculatePillarScores(metrics: SimulationMetrics): {
-  governance: number;
-  pillar1: number;
-  pillar2: number;
-  pillar3: number;
-} {
-  // Governance Score (0-100)
-  const governanceScore = (
-    metrics.strategicCapacity * 0.5 +
-    Math.min(metrics.inspectorDensity * 10, 100) * 0.3 +
-    (metrics.iloC187Ratified ? 100 : 0) * 0.2
-  );
-  
-  // Pillar 1: Hazard Control (0-100)
-  // Fatal rate is inverted (lower is better, max 20 -> 0%)
-  const fatalRateNormalized = Math.max(0, 100 - (metrics.fatalAccidentRate / 20) * 100);
-  // Air pollution is inverted (lower is better, max 100 -> 0%)
-  const airPollutionNormalized = Math.max(0, 100 - metrics.airPollution);
-  
-  const pillar1Score = (
-    fatalRateNormalized * 0.4 +
-    metrics.oelCompliance * 0.35 +
-    airPollutionNormalized * 0.25
-  );
-  
-  // Pillar 2: Health Vigilance (0-100)
-  const pillar2Score = (
-    metrics.diseaseDetectionRate * 0.5 +
-    metrics.vulnerableEmpCoverage * 0.5
-  );
-  
-  // Pillar 3: Restoration (0-100)
-  const pillar3Score = (
-    metrics.rehabAccess * 0.5 +
-    metrics.returnToWorkSuccess * 0.5
-  );
-  
-  return {
-    governance: Math.round(governanceScore),
-    pillar1: Math.round(pillar1Score),
-    pillar2: Math.round(pillar2Score),
-    pillar3: Math.round(pillar3Score),
-  };
-}
-
-/**
- * Calculate overall maturity score (1.0 - 4.0 scale)
- */
-function calculateMaturityScore(pillarScores: ReturnType<typeof calculatePillarScores>): number {
+function calculateMaturityScore(metrics: SimulationMetrics): number {
   const weightedScore = 
-    pillarScores.governance * PILLAR_WEIGHTS.governance +
-    pillarScores.pillar1 * PILLAR_WEIGHTS.pillar1 +
-    pillarScores.pillar2 * PILLAR_WEIGHTS.pillar2 +
-    pillarScores.pillar3 * PILLAR_WEIGHTS.pillar3;
+    metrics.governance * PILLAR_WEIGHTS.governance +
+    metrics.hazardControl * PILLAR_WEIGHTS.hazardControl +
+    metrics.healthVigilance * PILLAR_WEIGHTS.healthVigilance +
+    metrics.restoration * PILLAR_WEIGHTS.restoration;
   
-  // Convert from 0-100 to 1.0-4.0 scale
   return 1.0 + (weightedScore / 100) * 3.0;
+}
+
+function extractMetricsFromCountry(country: Country | null): SimulationMetrics {
+  if (!country) {
+    return { governance: 50, hazardControl: 50, healthVigilance: 50, restoration: 50 };
+  }
+  
+  return {
+    governance: country.governance?.strategic_capacity_score ?? 50,
+    hazardControl: Math.min(100, Math.max(0, 
+      100 - (country.pillar_1_hazard?.fatal_accident_rate ?? 5) * 5 + 
+      (country.pillar_1_hazard?.oel_compliance_pct ?? 50) * 0.5
+    )),
+    healthVigilance: country.pillar_2_vigilance?.disease_detection_rate 
+      ? Math.min(100, country.pillar_2_vigilance.disease_detection_rate / 2)
+      : 50,
+    restoration: country.pillar_3_restoration?.rehab_access_score ?? 50,
+  };
 }
 
 // ============================================================================
@@ -234,7 +186,7 @@ function calculateMaturityScore(pillarScores: ReturnType<typeof calculatePillarS
 // ============================================================================
 
 /**
- * Searchable Country Dropdown
+ * Country Selector with Flags
  */
 function CountrySelector({
   countries,
@@ -251,13 +203,11 @@ function CountrySelector({
   const [searchQuery, setSearchQuery] = useState("");
   
   const filteredCountries = useMemo(() => {
-    if (!searchQuery) return countries;
+    if (!searchQuery) return countries.slice(0, 50);
     const query = searchQuery.toLowerCase();
     return countries.filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) ||
-        c.iso_code.toLowerCase().includes(query)
-    );
+      (c) => c.name.toLowerCase().includes(query) || c.iso_code.toLowerCase().includes(query)
+    ).slice(0, 50);
   }, [countries, searchQuery]);
   
   const selectedCountry = countries.find((c) => c.iso_code === selectedIso);
@@ -271,13 +221,13 @@ function CountrySelector({
           "w-full flex items-center justify-between gap-3 px-4 py-3",
           "bg-slate-800/80 border border-slate-600/50 rounded-xl",
           "text-left transition-all duration-200",
-          "hover:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/30",
-          isOpen && "border-cyan-500/50 ring-2 ring-cyan-500/30"
+          "hover:border-adl-accent/50 focus:outline-none focus:ring-2 focus:ring-adl-accent/30",
+          isOpen && "border-adl-accent/50 ring-2 ring-adl-accent/30"
         )}
       >
         <div className="flex items-center gap-3">
           {isLoading ? (
-            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+            <Loader2 className="w-5 h-5 text-adl-accent animate-spin" />
           ) : selectedCountry ? (
             <>
               <span className="text-2xl">{getCountryFlag(selectedCountry.iso_code)}</span>
@@ -289,16 +239,11 @@ function CountrySelector({
           ) : (
             <>
               <Search className="w-5 h-5 text-slate-400" />
-              <span className="text-slate-400">Select a country to simulate...</span>
+              <span className="text-slate-400">Select a country...</span>
             </>
           )}
         </div>
-        <ChevronDown
-          className={cn(
-            "w-5 h-5 text-slate-400 transition-transform",
-            isOpen && "rotate-180"
-          )}
-        />
+        <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform", isOpen && "rotate-180")} />
       </button>
       
       <AnimatePresence>
@@ -309,7 +254,6 @@ function CountrySelector({
             exit={{ opacity: 0, y: -10 }}
             className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-600/50 rounded-xl shadow-2xl overflow-hidden"
           >
-            {/* Search Input */}
             <div className="p-3 border-b border-slate-700/50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -318,46 +262,39 @@ function CountrySelector({
                   placeholder="Search countries..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-adl-accent/50"
                   autoFocus
                 />
               </div>
             </div>
             
-            {/* Country List */}
             <div className="max-h-64 overflow-y-auto">
-              {filteredCountries.length === 0 ? (
-                <div className="p-4 text-center text-slate-400">
-                  No countries found
-                </div>
-              ) : (
-                filteredCountries.map((country) => (
-                  <button
-                    key={country.iso_code}
-                    onClick={() => {
-                      onSelect(country.iso_code);
-                      setIsOpen(false);
-                      setSearchQuery("");
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                      "hover:bg-slate-700/50",
-                      selectedIso === country.iso_code && "bg-cyan-500/20"
-                    )}
-                  >
-                    <span className="text-xl">{getCountryFlag(country.iso_code)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium truncate">{country.name}</p>
-                      <p className="text-xs text-slate-400">{country.iso_code}</p>
-                    </div>
-                    {country.maturity_score !== null && (
-                      <span className="text-sm text-cyan-400 font-mono">
-                        {country.maturity_score.toFixed(1)}
-                      </span>
-                    )}
-                  </button>
-                ))
-              )}
+              {filteredCountries.map((country) => (
+                <button
+                  key={country.iso_code}
+                  onClick={() => {
+                    onSelect(country.iso_code);
+                    setIsOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                    "hover:bg-slate-700/50",
+                    selectedIso === country.iso_code && "bg-adl-accent/20"
+                  )}
+                >
+                  <span className="text-xl">{getCountryFlag(country.iso_code)}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{country.name}</p>
+                    <p className="text-xs text-slate-400">{country.iso_code}</p>
+                  </div>
+                  {country.maturity_score !== null && (
+                    <span className="text-sm text-adl-accent font-mono">
+                      {country.maturity_score.toFixed(1)}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </motion.div>
         )}
@@ -367,253 +304,688 @@ function CountrySelector({
 }
 
 /**
- * Custom Slider Component
+ * Interactive Framework Temple
  */
-function MetricSlider({
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  unit = "",
-  inverted = false,
-  infoText,
+function FrameworkTemple({
+  metrics,
+  baselineMetrics,
+  onMetricChange,
+  activePillar,
+  setActivePillar,
 }: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  inverted?: boolean;
-  infoText?: string;
+  metrics: SimulationMetrics;
+  baselineMetrics: SimulationMetrics;
+  onMetricChange: (pillar: keyof SimulationMetrics, value: number) => void;
+  activePillar: keyof SimulationMetrics | null;
+  setActivePillar: (pillar: keyof SimulationMetrics | null) => void;
 }) {
-  const percentage = ((value - min) / (max - min)) * 100;
-  const gradientColor = inverted 
-    ? `linear-gradient(to right, #10b981 0%, #f59e0b ${percentage}%, #334155 ${percentage}%)`
-    : `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${percentage}%, #334155 ${percentage}%)`;
+  const governancePillar = PILLARS[0];
+  const supportPillars = PILLARS.slice(1);
   
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-300">{label}</span>
-          {inverted && (
-            <span className="text-xs text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded">
-              ↓ Lower is better
-            </span>
-          )}
-          {infoText && (
-            <div className="group relative">
-              <Info className="w-3.5 h-3.5 text-slate-500 cursor-help" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-700 text-xs text-slate-300 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                {infoText}
-              </div>
+    <div className="h-full flex flex-col">
+      {/* Governance Layer - Top */}
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        onClick={() => setActivePillar(activePillar === "governance" ? null : "governance")}
+        className={cn(
+          "flex-shrink-0 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 mb-3",
+          governancePillar.bgColor,
+          activePillar === "governance" 
+            ? `${governancePillar.borderColor} shadow-lg ${governancePillar.glowColor}` 
+            : "border-white/10 hover:border-white/20"
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", governancePillar.bgColor)}>
+              <Crown className={cn("w-5 h-5", governancePillar.color)} />
             </div>
-          )}
+            <div>
+              <p className={cn("font-semibold", governancePillar.color)}>{governancePillar.name}</p>
+              <p className="text-xs text-white/40">{governancePillar.fullName}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className={cn("text-2xl font-bold", governancePillar.color)}>{metrics.governance}</p>
+            <p className="text-xs text-white/40">
+              {metrics.governance > baselineMetrics.governance ? "+" : ""}
+              {metrics.governance - baselineMetrics.governance}
+            </p>
+          </div>
         </div>
-        <span className="text-sm font-mono text-cyan-400">
-          {value.toFixed(step < 1 ? 1 : 0)}{unit}
-        </span>
+        
+        {/* Slider for active pillar */}
+        <AnimatePresence>
+          {activePillar === "governance" && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-4 space-y-3"
+            >
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={metrics.governance}
+                onChange={(e) => onMetricChange("governance", parseInt(e.target.value))}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${metrics.governance}%, #334155 ${metrics.governance}%)`
+                }}
+              />
+              <div className="grid grid-cols-3 gap-2">
+                {governancePillar.metrics.map((m) => (
+                  <div key={m.id} className="p-2 bg-white/5 rounded-lg">
+                    <p className="text-[10px] text-white/60">{m.label}</p>
+                    <p className="text-[8px] text-white/30">{m.description}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+      
+      {/* Connecting dots */}
+      <div className="flex justify-center gap-8 py-2">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-white/20"
+            animate={{ opacity: [0.2, 0.6, 0.2] }}
+            transition={{ duration: 2, delay: i * 0.3, repeat: Infinity }}
+          />
+        ))}
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer"
-        style={{
-          background: gradientColor,
-        }}
-      />
-      <div className="flex justify-between text-xs text-slate-500">
-        <span>{min}{unit}</span>
-        <span>{max}{unit}</span>
+      
+      {/* Three Support Pillars */}
+      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0">
+        {supportPillars.map((pillar) => {
+          const Icon = pillar.icon;
+          const value = metrics[pillar.id];
+          const baseline = baselineMetrics[pillar.id];
+          const isActive = activePillar === pillar.id;
+          
+          return (
+            <motion.div
+              key={pillar.id}
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setActivePillar(isActive ? null : pillar.id)}
+              className={cn(
+                "flex flex-col p-3 rounded-xl border-2 cursor-pointer transition-all duration-300",
+                pillar.bgColor,
+                isActive 
+                  ? `${pillar.borderColor} shadow-lg ${pillar.glowColor}` 
+                  : "border-white/10 hover:border-white/20"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", pillar.bgColor)}>
+                  <Icon className={cn("w-4 h-4", pillar.color)} />
+                </div>
+                <div className="min-w-0">
+                  <p className={cn("text-sm font-semibold truncate", pillar.color)}>{pillar.name}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-end justify-between mb-2">
+                <p className={cn("text-2xl font-bold", pillar.color)}>{value}</p>
+                <p className={cn(
+                  "text-xs",
+                  value > baseline ? "text-emerald-400" : value < baseline ? "text-red-400" : "text-white/40"
+                )}>
+                  {value > baseline ? "+" : ""}{value - baseline}
+                </p>
+              </div>
+              
+              {/* Mini slider */}
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={value}
+                onChange={(e) => onMetricChange(pillar.id, parseInt(e.target.value))}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, ${pillar.color === 'text-blue-400' ? '#3b82f6' : pillar.color === 'text-teal-400' ? '#14b8a6' : '#f59e0b'} 0%, ${pillar.color === 'text-blue-400' ? '#3b82f6' : pillar.color === 'text-teal-400' ? '#14b8a6' : '#f59e0b'} ${value}%, #334155 ${value}%)`
+                }}
+              />
+              
+              {/* Expanded metrics */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="mt-2 space-y-1"
+                  >
+                    {pillar.metrics.map((m) => (
+                      <div key={m.id} className="p-1.5 bg-white/5 rounded">
+                        <p className="text-[9px] text-white/60">{m.label}</p>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 /**
- * Toggle Switch Component
+ * Live Country Rankings
  */
-function MetricToggle({
-  label,
-  checked,
-  onChange,
-  infoText,
+function LiveRankings({
+  selectedIso,
+  selectedCountryName,
+  allCountries,
+  projectedScore,
+  baselineScore,
 }: {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  infoText?: string;
+  selectedIso: string | null;
+  selectedCountryName: string;
+  allCountries: CountryListItem[];
+  projectedScore: number;
+  baselineScore: number;
 }) {
+  // Calculate rankings
+  const rankings = useMemo(() => {
+    if (!selectedIso || allCountries.length === 0) return [];
+    
+    // Get countries with scores
+    const countriesWithScores = allCountries
+      .filter(c => c.maturity_score !== null)
+      .map((c, idx) => ({
+        iso_code: c.iso_code,
+        name: c.name,
+        score: c.iso_code === selectedIso ? projectedScore : (c.maturity_score ?? 0),
+        originalScore: c.maturity_score ?? 0,
+        originalRank: 0,
+        projectedRank: 0,
+        delta: 0,
+      }))
+      .sort((a, b) => b.originalScore - a.originalScore);
+    
+    // Assign original ranks
+    countriesWithScores.forEach((c, i) => { c.originalRank = i + 1; });
+    
+    // Sort by projected score
+    const projected = [...countriesWithScores].sort((a, b) => b.score - a.score);
+    projected.forEach((c, i) => { c.projectedRank = i + 1; });
+    
+    // Calculate delta
+    countriesWithScores.forEach(c => {
+      const proj = projected.find(p => p.iso_code === c.iso_code);
+      c.projectedRank = proj?.projectedRank ?? c.originalRank;
+      c.delta = c.originalRank - c.projectedRank;
+    });
+    
+    // Get top 10 and countries near selected
+    const selectedRanking = countriesWithScores.find(c => c.iso_code === selectedIso);
+    const top10 = projected.slice(0, 10);
+    
+    // Include selected country if not in top 10
+    if (selectedRanking && !top10.find(c => c.iso_code === selectedIso)) {
+      // Show top 8 + separator + selected country area
+      const nearbyStart = Math.max(0, selectedRanking.projectedRank - 2);
+      const nearbyEnd = Math.min(projected.length, selectedRanking.projectedRank + 2);
+      const nearby = projected.slice(nearbyStart, nearbyEnd);
+      
+      return { type: 'split', top: top10.slice(0, 7), nearby, selectedRank: selectedRanking.projectedRank } as const;
+    }
+    
+    return { type: 'continuous', rankings: top10 } as const;
+  }, [selectedIso, allCountries, projectedScore]);
+  
+  const scoreDelta = projectedScore - baselineScore;
+  
+  if (!selectedIso) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Trophy className="w-12 h-12 text-white/20 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">Select a country to see rankings</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-300">{label}</span>
-        {infoText && (
-          <div className="group relative">
-            <Info className="w-3.5 h-3.5 text-slate-500 cursor-help" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-700 text-xs text-slate-300 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-              {infoText}
+    <div className="h-full flex flex-col">
+      {/* Score Summary */}
+      <div className="flex-shrink-0 p-4 bg-gradient-to-r from-adl-accent/20 to-cyan-500/10 rounded-xl border border-adl-accent/30 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-white/40 uppercase tracking-wider">Projected Score</p>
+            <p className="text-3xl font-bold text-white">{projectedScore.toFixed(2)}</p>
+            <p className="text-xs text-white/40">
+              {getMaturityStage(projectedScore).label}
+            </p>
+          </div>
+          <motion.div
+            key={scoreDelta.toFixed(2)}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={cn(
+              "flex flex-col items-center p-3 rounded-xl",
+              scoreDelta > 0 ? "bg-emerald-500/20" : scoreDelta < 0 ? "bg-red-500/20" : "bg-white/5"
+            )}
+          >
+            {scoreDelta > 0 ? (
+              <TrendingUp className="w-6 h-6 text-emerald-400" />
+            ) : scoreDelta < 0 ? (
+              <TrendingDown className="w-6 h-6 text-red-400" />
+            ) : (
+              <Target className="w-6 h-6 text-white/40" />
+            )}
+            <p className={cn(
+              "text-lg font-bold",
+              scoreDelta > 0 ? "text-emerald-400" : scoreDelta < 0 ? "text-red-400" : "text-white/40"
+            )}>
+              {scoreDelta > 0 ? "+" : ""}{scoreDelta.toFixed(2)}
+            </p>
+          </motion.div>
+        </div>
+      </div>
+      
+      {/* Rankings List */}
+      <div className="flex-1 min-h-0 overflow-auto scrollbar-thin">
+        <div className="space-y-1">
+          {rankings && 'rankings' in rankings && rankings.rankings.map((country, idx) => {
+            const isSelected = country.iso_code === selectedIso;
+            return (
+              <motion.div
+                key={country.iso_code}
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className={cn(
+                  "flex items-center gap-3 p-2.5 rounded-lg transition-all",
+                  isSelected 
+                    ? "bg-adl-accent/20 border border-adl-accent/40" 
+                    : "bg-white/5 hover:bg-white/10"
+                )}
+              >
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                  idx === 0 ? "bg-amber-500/20 text-amber-400" :
+                  idx === 1 ? "bg-slate-400/20 text-slate-300" :
+                  idx === 2 ? "bg-orange-600/20 text-orange-400" :
+                  "bg-white/10 text-white/60"
+                )}>
+                  {country.projectedRank}
+                </div>
+                <span className="text-xl">{getCountryFlag(country.iso_code)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    "text-sm font-medium truncate",
+                    isSelected ? "text-white" : "text-white/70"
+                  )}>
+                    {country.name}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono text-adl-accent">
+                    {country.score.toFixed(2)}
+                  </span>
+                  {country.delta !== 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className={cn(
+                        "flex items-center text-xs font-medium",
+                        country.delta > 0 ? "text-emerald-400" : "text-red-400"
+                      )}
+                    >
+                      {country.delta > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                      {Math.abs(country.delta)}
+                    </motion.span>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+          
+          {rankings && 'top' in rankings && (
+            <>
+              {rankings.top.map((country, idx) => {
+                const isSelected = country.iso_code === selectedIso;
+                return (
+                  <motion.div
+                    key={country.iso_code}
+                    layout
+                    className={cn(
+                      "flex items-center gap-3 p-2.5 rounded-lg transition-all",
+                      isSelected ? "bg-adl-accent/20 border border-adl-accent/40" : "bg-white/5"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                      idx === 0 ? "bg-amber-500/20 text-amber-400" :
+                      idx === 1 ? "bg-slate-400/20 text-slate-300" :
+                      idx === 2 ? "bg-orange-600/20 text-orange-400" :
+                      "bg-white/10 text-white/60"
+                    )}>
+                      {country.projectedRank}
+                    </div>
+                    <span className="text-xl">{getCountryFlag(country.iso_code)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate text-white/70">{country.name}</p>
+                    </div>
+                    <span className="text-sm font-mono text-adl-accent">{country.score.toFixed(2)}</span>
+                  </motion.div>
+                );
+              })}
+              
+              <div className="text-center py-2 text-white/20">• • •</div>
+              
+              {rankings.nearby.map((country) => {
+                const isSelected = country.iso_code === selectedIso;
+                return (
+                  <motion.div
+                    key={country.iso_code}
+                    layout
+                    className={cn(
+                      "flex items-center gap-3 p-2.5 rounded-lg transition-all",
+                      isSelected ? "bg-adl-accent/20 border border-adl-accent/40" : "bg-white/5"
+                    )}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold bg-white/10 text-white/60">
+                      {country.projectedRank}
+                    </div>
+                    <span className="text-xl">{getCountryFlag(country.iso_code)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        "text-sm font-medium truncate",
+                        isSelected ? "text-white" : "text-white/70"
+                      )}>{country.name}</p>
+                    </div>
+                    <span className="text-sm font-mono text-adl-accent">{country.score.toFixed(2)}</span>
+                    {country.delta !== 0 && (
+                      <span className={cn(
+                        "flex items-center text-xs font-medium",
+                        country.delta > 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {country.delta > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                        {Math.abs(country.delta)}
+                      </span>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * AI Report Stream Panel
+ */
+function AIReportStream({
+  selectedIso,
+  selectedCountryName,
+  metrics,
+  baselineMetrics,
+  projectedScore,
+  baselineScore,
+}: {
+  selectedIso: string | null;
+  selectedCountryName: string;
+  metrics: SimulationMetrics;
+  baselineMetrics: SimulationMetrics;
+  projectedScore: number;
+  baselineScore: number;
+}) {
+  const [report, setReport] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+  
+  // Generate AI report
+  const generateReport = useCallback(async () => {
+    if (!selectedIso || isGenerating) return;
+    
+    setIsGenerating(true);
+    setReport("");
+    setIsPaused(false);
+    
+    // Build the prompt
+    const changes = [];
+    if (metrics.governance !== baselineMetrics.governance) {
+      changes.push(`Governance: ${baselineMetrics.governance} → ${metrics.governance} (${metrics.governance > baselineMetrics.governance ? '+' : ''}${metrics.governance - baselineMetrics.governance})`);
+    }
+    if (metrics.hazardControl !== baselineMetrics.hazardControl) {
+      changes.push(`Hazard Control: ${baselineMetrics.hazardControl} → ${metrics.hazardControl} (${metrics.hazardControl > baselineMetrics.hazardControl ? '+' : ''}${metrics.hazardControl - baselineMetrics.hazardControl})`);
+    }
+    if (metrics.healthVigilance !== baselineMetrics.healthVigilance) {
+      changes.push(`Health Vigilance: ${baselineMetrics.healthVigilance} → ${metrics.healthVigilance} (${metrics.healthVigilance > baselineMetrics.healthVigilance ? '+' : ''}${metrics.healthVigilance - baselineMetrics.healthVigilance})`);
+    }
+    if (metrics.restoration !== baselineMetrics.restoration) {
+      changes.push(`Restoration: ${baselineMetrics.restoration} → ${metrics.restoration} (${metrics.restoration > baselineMetrics.restoration ? '+' : ''}${metrics.restoration - baselineMetrics.restoration})`);
+    }
+    
+    const scoreDelta = projectedScore - baselineScore;
+    
+    // Simulate streaming (since we don't have a true streaming endpoint)
+    const simulatedReport = generateSimulatedReport(
+      selectedCountryName,
+      changes,
+      baselineScore,
+      projectedScore,
+      scoreDelta,
+      metrics
+    );
+    
+    // Stream the text character by character
+    for (let i = 0; i < simulatedReport.length; i++) {
+      if (isPaused) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        i--;
+        continue;
+      }
+      
+      setReport(simulatedReport.slice(0, i + 1));
+      
+      // Scroll to bottom
+      if (reportRef.current) {
+        reportRef.current.scrollTop = reportRef.current.scrollHeight;
+      }
+      
+      // Variable delay for more natural feel
+      const char = simulatedReport[i];
+      const delay = char === '.' || char === '!' || char === '?' ? 80 :
+                    char === ',' || char === ':' ? 40 :
+                    char === '\n' ? 60 : 15;
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    setIsGenerating(false);
+  }, [selectedIso, selectedCountryName, metrics, baselineMetrics, projectedScore, baselineScore, isGenerating, isPaused]);
+  
+  if (!selectedIso) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="w-12 h-12 text-white/20 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">AI-powered policy recommendations</p>
+          <p className="text-white/20 text-xs mt-1">Select a country to begin</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-adl-accent" />
+          <span className="text-sm font-semibold text-white">AI Policy Analysis</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isGenerating && (
+            <button
+              onClick={() => setIsPaused(!isPaused)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              {isPaused ? (
+                <Play className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Pause className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </button>
+          )}
+          <button
+            onClick={generateReport}
+            disabled={isGenerating}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+              isGenerating
+                ? "bg-adl-accent/20 text-adl-accent"
+                : "bg-adl-accent text-white hover:bg-adl-blue-light"
+            )}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5" />
+                Generate
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+      
+      {/* Report Content */}
+      <div ref={reportRef} className="flex-1 overflow-auto scrollbar-thin p-4">
+        {report ? (
+          <div className="prose prose-invert prose-sm max-w-none">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="whitespace-pre-wrap text-white/80 leading-relaxed"
+            >
+              {report}
+              {isGenerating && (
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                  className="inline-block w-2 h-4 bg-adl-accent ml-0.5"
+                />
+              )}
+            </motion.div>
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-16 h-16 rounded-2xl bg-adl-accent/10 flex items-center justify-center mx-auto mb-4"
+              >
+                <Zap className="w-8 h-8 text-adl-accent" />
+              </motion.div>
+              <p className="text-white/60 text-sm mb-2">Ready to analyze your policy changes</p>
+              <p className="text-white/30 text-xs">Adjust the framework pillars and click Generate</p>
             </div>
           </div>
         )}
       </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative w-12 h-6 rounded-full transition-colors duration-200",
-          checked ? "bg-emerald-500" : "bg-slate-600"
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200",
-            checked ? "translate-x-7" : "translate-x-1"
-          )}
-        />
-      </button>
     </div>
   );
 }
 
 /**
- * Accordion Section Component
+ * Generate simulated AI report (placeholder for real API)
  */
-function AccordionPanel({
-  section,
-  isOpen,
-  onToggle,
-  children,
-}: {
-  section: AccordionSection;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const Icon = section.icon;
+function generateSimulatedReport(
+  countryName: string,
+  changes: string[],
+  baselineScore: number,
+  projectedScore: number,
+  scoreDelta: number,
+  metrics: SimulationMetrics
+): string {
+  const improvement = scoreDelta > 0;
+  const stage = getMaturityStage(projectedScore);
   
-  return (
-    <div className={cn("border rounded-xl overflow-hidden", section.borderColor)}>
-      <button
-        onClick={onToggle}
-        className={cn(
-          "w-full flex items-center justify-between p-4 transition-colors",
-          section.bgColor,
-          "hover:brightness-110"
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <Icon className={cn("w-5 h-5", section.color)} />
-          <span className={cn("font-semibold", section.color)}>{section.title}</span>
-        </div>
-        {isOpen ? (
-          <ChevronDown className={cn("w-5 h-5", section.color)} />
-        ) : (
-          <ChevronRight className={cn("w-5 h-5", section.color)} />
-        )}
-      </button>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="p-4 space-y-4 bg-slate-800/30">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/**
- * Score Display Card
- */
-function ScoreCard({
-  title,
-  baseline,
-  projected,
-  icon: Icon,
-  isMaturityScore = false,
-}: {
-  title: string;
-  baseline: number;
-  projected: number;
-  icon: React.ElementType;
-  isMaturityScore?: boolean;
-}) {
-  const delta = projected - baseline;
-  const improved = delta > 0;
+  let report = `📊 POLICY IMPACT ANALYSIS: ${countryName.toUpperCase()}\n`;
+  report += `${"═".repeat(50)}\n\n`;
   
-  const baselineMaturity = isMaturityScore ? getMaturityStage(baseline) : null;
-  const projectedMaturity = isMaturityScore ? getMaturityStage(projected) : null;
+  report += `🎯 Executive Summary\n`;
+  report += `${"─".repeat(30)}\n`;
   
-  return (
-    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-slate-400" />
-        <span className="text-sm text-slate-400">{title}</span>
-      </div>
-      
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-xs text-slate-500 mb-1">Baseline</p>
-          <p className={cn(
-            "text-2xl font-bold",
-            baselineMaturity?.color ?? "text-slate-300"
-          )}>
-            {baseline.toFixed(isMaturityScore ? 2 : 0)}
-          </p>
-          {baselineMaturity && (
-            <p className={cn("text-xs", baselineMaturity.color)}>
-              Stage {baselineMaturity.stage}: {baselineMaturity.label}
-            </p>
-          )}
-        </div>
-        
-        <div className="text-center px-4">
-          <TrendingUp className={cn(
-            "w-6 h-6 mx-auto mb-1",
-            improved ? "text-emerald-400" : "text-red-400"
-          )} />
-          <p className={cn(
-            "text-sm font-bold",
-            improved ? "text-emerald-400" : "text-red-400"
-          )}>
-            {improved ? "+" : ""}{delta.toFixed(isMaturityScore ? 2 : 0)}
-          </p>
-        </div>
-        
-        <div className="text-right">
-          <p className="text-xs text-slate-500 mb-1">Projected</p>
-          <p className={cn(
-            "text-2xl font-bold",
-            projectedMaturity?.color ?? "text-cyan-400"
-          )}>
-            {projected.toFixed(isMaturityScore ? 2 : 0)}
-          </p>
-          {projectedMaturity && (
-            <p className={cn("text-xs", projectedMaturity.color)}>
-              Stage {projectedMaturity.stage}: {projectedMaturity.label}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  if (changes.length === 0) {
+    report += `No policy changes have been modeled. Adjust the framework pillars to simulate different policy scenarios and see their projected impact on ${countryName}'s occupational health maturity.\n\n`;
+  } else {
+    report += `Based on the proposed policy interventions, ${countryName} is projected to ${improvement ? 'improve' : 'experience a change in'} its Sovereign OH Maturity Score from ${baselineScore.toFixed(2)} to ${projectedScore.toFixed(2)} (${scoreDelta > 0 ? '+' : ''}${scoreDelta.toFixed(2)}).\n\n`;
+    
+    report += `📈 Proposed Changes\n`;
+    report += `${"─".repeat(30)}\n`;
+    changes.forEach(change => {
+      report += `• ${change}\n`;
+    });
+    report += `\n`;
+    
+    report += `💡 Strategic Recommendations\n`;
+    report += `${"─".repeat(30)}\n`;
+    
+    if (metrics.governance > 70) {
+      report += `✓ Governance Framework: ${countryName}'s strong governance score (${metrics.governance}) indicates robust policy infrastructure. Focus on enforcement and compliance monitoring.\n\n`;
+    } else if (metrics.governance > 40) {
+      report += `⚡ Governance Framework: Moderate governance capacity (${metrics.governance}) suggests opportunities for strengthening inspector density and ILO convention ratification.\n\n`;
+    } else {
+      report += `⚠ Governance Framework: Low governance score (${metrics.governance}) is a priority area. Recommend establishing a National OSH Policy and increasing inspector capacity.\n\n`;
+    }
+    
+    if (metrics.hazardControl > 70) {
+      report += `✓ Hazard Control: Excellent hazard prevention systems (${metrics.hazardControl}). Continue monitoring chemical exposure limits and ergonomic standards.\n\n`;
+    } else {
+      report += `⚡ Hazard Control: Score of ${metrics.hazardControl} indicates room for improvement in OEL compliance, chemical safety protocols, and heat stress management.\n\n`;
+    }
+    
+    if (metrics.healthVigilance > 70) {
+      report += `✓ Health Vigilance: Strong surveillance systems (${metrics.healthVigilance}) for early detection of occupational diseases.\n\n`;
+    } else {
+      report += `⚡ Health Vigilance: Enhance disease surveillance (${metrics.healthVigilance}) through improved reporting systems and regular health screenings.\n\n`;
+    }
+    
+    if (metrics.restoration > 70) {
+      report += `✓ Restoration & Compensation: Robust workers' compensation and return-to-work programs (${metrics.restoration}).\n\n`;
+    } else {
+      report += `⚡ Restoration: Current score of ${metrics.restoration} suggests expanding compensation coverage and rehabilitation access.\n\n`;
+    }
+    
+    report += `🏆 Projected Outcome\n`;
+    report += `${"─".repeat(30)}\n`;
+    report += `With these interventions, ${countryName} is projected to achieve Stage ${stage.stage} (${stage.label}) maturity, positioning the country among ${improvement ? 'higher-performing' : 'comparable'} economies in occupational health protection.\n\n`;
+    
+    report += `📋 Implementation Priority\n`;
+    report += `${"─".repeat(30)}\n`;
+    report += `1. Quick Wins: Focus on policy ratification and enforcement mechanisms\n`;
+    report += `2. Medium-Term: Expand surveillance and early detection systems\n`;
+    report += `3. Long-Term: Build comprehensive rehabilitation infrastructure\n`;
+  }
+  
+  return report;
 }
 
 // ============================================================================
@@ -621,20 +993,24 @@ function ScoreCard({
 // ============================================================================
 
 export function Simulator() {
-  // State
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["governance"]));
-  const [metrics, setMetrics] = useState<SimulationMetrics>(DEFAULT_METRICS);
-  const [baselineMetrics, setBaselineMetrics] = useState<SimulationMetrics>(DEFAULT_METRICS);
+  const [metrics, setMetrics] = useState<SimulationMetrics>({
+    governance: 50,
+    hazardControl: 50,
+    healthVigilance: 50,
+    restoration: 50,
+  });
+  const [baselineMetrics, setBaselineMetrics] = useState<SimulationMetrics>(metrics);
+  const [activePillar, setActivePillar] = useState<keyof SimulationMetrics | null>(null);
   
-  // Fetch all countries for dropdown
+  // Fetch countries
   const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
     queryKey: ["countries-list"],
     queryFn: fetchAllCountries,
     staleTime: 10 * 60 * 1000,
   });
   
-  // Fetch selected country's full data
+  // Fetch selected country
   const { data: selectedCountry, isLoading: isLoadingCountry } = useQuery({
     queryKey: ["country", selectedIso],
     queryFn: () => fetchCountryWithMockFallback(selectedIso!),
@@ -642,7 +1018,7 @@ export function Simulator() {
     staleTime: 5 * 60 * 1000,
   });
   
-  // Hydrate metrics when country is loaded
+  // Update metrics when country loads
   useEffect(() => {
     if (selectedCountry) {
       const extracted = extractMetricsFromCountry(selectedCountry);
@@ -652,72 +1028,11 @@ export function Simulator() {
   }, [selectedCountry]);
   
   // Calculate scores
-  const baselinePillarScores = useMemo(
-    () => calculatePillarScores(baselineMetrics),
-    [baselineMetrics]
-  );
+  const baselineScore = useMemo(() => calculateMaturityScore(baselineMetrics), [baselineMetrics]);
+  const projectedScore = useMemo(() => calculateMaturityScore(metrics), [metrics]);
   
-  const projectedPillarScores = useMemo(
-    () => calculatePillarScores(metrics),
-    [metrics]
-  );
-  
-  const baselineMaturityScore = useMemo(
-    () => calculateMaturityScore(baselinePillarScores),
-    [baselinePillarScores]
-  );
-  
-  const projectedMaturityScore = useMemo(
-    () => calculateMaturityScore(projectedPillarScores),
-    [projectedPillarScores]
-  );
-  
-  // Radar chart data
-  const radarData = useMemo(() => [
-    {
-      metric: "Governance",
-      baseline: baselinePillarScores.governance,
-      projected: projectedPillarScores.governance,
-      fullMark: 100,
-    },
-    {
-      metric: "Hazard Control",
-      baseline: baselinePillarScores.pillar1,
-      projected: projectedPillarScores.pillar1,
-      fullMark: 100,
-    },
-    {
-      metric: "Health Vigilance",
-      baseline: baselinePillarScores.pillar2,
-      projected: projectedPillarScores.pillar2,
-      fullMark: 100,
-    },
-    {
-      metric: "Restoration",
-      baseline: baselinePillarScores.pillar3,
-      projected: projectedPillarScores.pillar3,
-      fullMark: 100,
-    },
-  ], [baselinePillarScores, projectedPillarScores]);
-  
-  // Handlers
-  const toggleSection = useCallback((sectionId: string) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  }, []);
-  
-  const updateMetric = useCallback(<K extends keyof SimulationMetrics>(
-    key: K,
-    value: SimulationMetrics[K]
-  ) => {
-    setMetrics((prev) => ({ ...prev, [key]: value }));
+  const handleMetricChange = useCallback((pillar: keyof SimulationMetrics, value: number) => {
+    setMetrics(prev => ({ ...prev, [pillar]: value }));
   }, []);
   
   const resetToBaseline = useCallback(() => {
@@ -725,28 +1040,41 @@ export function Simulator() {
   }, [baselineMetrics]);
   
   const countries = countriesData?.countries ?? [];
-  const delta = projectedMaturityScore - baselineMaturityScore;
+  const selectedCountryName = selectedCountry?.name ?? "Selected Country";
   
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header - Fixed */}
-      <div className="flex-shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30">
+          <motion.div 
+            className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30"
+            animate={{ 
+              boxShadow: [
+                "0 0 20px rgba(6,182,212,0.2)",
+                "0 0 30px rgba(6,182,212,0.4)",
+                "0 0 20px rgba(6,182,212,0.2)",
+              ]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
             <Target className="w-5 h-5 text-adl-accent" />
-          </div>
+          </motion.div>
           <div>
-            <h1 className="text-xl font-semibold text-white tracking-tight">
+            <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
               Policy Simulator
+              <span className="px-2 py-0.5 text-[10px] font-mono bg-adl-accent/20 text-adl-accent rounded-full">
+                AI-Powered
+              </span>
             </h1>
             <p className="text-white/40 text-sm">
-              Model policy changes and project maturity improvements
+              Model policy changes • See real-time impact • Learn what works
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          {selectedCountry && (
+          {selectedIso && (
             <button
               onClick={resetToBaseline}
               className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors text-sm"
@@ -755,8 +1083,6 @@ export function Simulator() {
               Reset
             </button>
           )}
-          
-          {/* Country Selector - Inline */}
           <div className="w-64">
             <CountrySelector
               countries={countries}
@@ -768,291 +1094,52 @@ export function Simulator() {
         </div>
       </div>
       
-      {/* Main Split View - Flexible */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Panel: Control Deck */}
-        <div className="flex flex-col min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
-          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/5">
+      {/* Three-Panel Layout */}
+      <div className="flex-1 min-h-0 grid grid-cols-12 gap-4">
+        {/* Left: Framework Temple */}
+        <div className="col-span-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 overflow-hidden">
+          <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4 text-adl-accent" />
-            <h2 className="text-sm font-semibold text-white">Control Deck</h2>
+            <h2 className="text-sm font-semibold text-white">Framework Controls</h2>
           </div>
-          <div className="flex-1 overflow-auto scrollbar-thin p-4 space-y-3">
-          
-          {!selectedIso ? (
-            <div className="flex-1 flex items-center justify-center text-center">
-              <div>
-                <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                <p className="text-white/40 text-sm">Select a country to begin</p>
-              </div>
+          <FrameworkTemple
+            metrics={metrics}
+            baselineMetrics={baselineMetrics}
+            onMetricChange={handleMetricChange}
+            activePillar={activePillar}
+            setActivePillar={setActivePillar}
+          />
+        </div>
+        
+        {/* Center: Live Rankings */}
+        <div className="col-span-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+          <div className="h-full flex flex-col">
+            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/5">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-white">Live Rankings</h2>
             </div>
-          ) : isLoadingCountry ? (
-            <div className="flex-1 flex items-center justify-center text-center">
-              <div>
-                <Loader2 className="w-10 h-10 text-adl-accent mx-auto mb-3 animate-spin" />
-                <p className="text-white/40 text-sm">Loading country data...</p>
-              </div>
+            <div className="flex-1 min-h-0 p-4">
+              <LiveRankings
+                selectedIso={selectedIso}
+                selectedCountryName={selectedCountryName}
+                allCountries={countries}
+                projectedScore={projectedScore}
+                baselineScore={baselineScore}
+              />
             </div>
-          ) : (
-            <>
-              {/* Governance Accordion */}
-              <AccordionPanel
-                section={ACCORDION_SECTIONS[0]}
-                isOpen={openSections.has("governance")}
-                onToggle={() => toggleSection("governance")}
-              >
-                <MetricSlider
-                  label="Strategic Capacity"
-                  value={metrics.strategicCapacity}
-                  onChange={(v) => updateMetric("strategicCapacity", v)}
-                  min={0}
-                  max={100}
-                  infoText="Government's ability to develop and implement OH policies"
-                />
-                <MetricSlider
-                  label="Inspector Density"
-                  value={metrics.inspectorDensity}
-                  onChange={(v) => updateMetric("inspectorDensity", v)}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  unit=" per 10k"
-                  infoText="Labor inspectors per 10,000 workers"
-                />
-                <MetricToggle
-                  label="ILO C187 Ratified"
-                  checked={metrics.iloC187Ratified}
-                  onChange={(v) => updateMetric("iloC187Ratified", v)}
-                  infoText="Promotional Framework for Occupational Safety and Health"
-                />
-              </AccordionPanel>
-              
-              {/* Pillar 1: Hazard Control */}
-              <AccordionPanel
-                section={ACCORDION_SECTIONS[1]}
-                isOpen={openSections.has("pillar1")}
-                onToggle={() => toggleSection("pillar1")}
-              >
-                <MetricSlider
-                  label="Fatal Accident Rate"
-                  value={metrics.fatalAccidentRate}
-                  onChange={(v) => updateMetric("fatalAccidentRate", v)}
-                  min={0}
-                  max={20}
-                  step={0.1}
-                  unit=" per 100k"
-                  inverted
-                  infoText="Fatal occupational accidents per 100,000 workers"
-                />
-                <MetricSlider
-                  label="OEL Compliance"
-                  value={metrics.oelCompliance}
-                  onChange={(v) => updateMetric("oelCompliance", v)}
-                  min={0}
-                  max={100}
-                  unit="%"
-                  infoText="Occupational Exposure Limits compliance rate"
-                />
-                <MetricSlider
-                  label="Air Pollution (PM2.5)"
-                  value={metrics.airPollution}
-                  onChange={(v) => updateMetric("airPollution", v)}
-                  min={0}
-                  max={100}
-                  unit=" μg/m³"
-                  inverted
-                  infoText="Average workplace PM2.5 concentration"
-                />
-              </AccordionPanel>
-              
-              {/* Pillar 2: Health Vigilance */}
-              <AccordionPanel
-                section={ACCORDION_SECTIONS[2]}
-                isOpen={openSections.has("pillar2")}
-                onToggle={() => toggleSection("pillar2")}
-              >
-                <MetricSlider
-                  label="Disease Detection Rate"
-                  value={metrics.diseaseDetectionRate}
-                  onChange={(v) => updateMetric("diseaseDetectionRate", v)}
-                  min={0}
-                  max={100}
-                  unit="%"
-                  infoText="Rate of occupational diseases detected and reported"
-                />
-                <MetricSlider
-                  label="Vulnerable Employee Coverage"
-                  value={metrics.vulnerableEmpCoverage}
-                  onChange={(v) => updateMetric("vulnerableEmpCoverage", v)}
-                  min={0}
-                  max={100}
-                  unit="%"
-                  infoText="Coverage of health programs for vulnerable workers"
-                />
-              </AccordionPanel>
-              
-              {/* Pillar 3: Restoration */}
-              <AccordionPanel
-                section={ACCORDION_SECTIONS[3]}
-                isOpen={openSections.has("pillar3")}
-                onToggle={() => toggleSection("pillar3")}
-              >
-                <MetricSlider
-                  label="Rehab Access"
-                  value={metrics.rehabAccess}
-                  onChange={(v) => updateMetric("rehabAccess", v)}
-                  min={0}
-                  max={100}
-                  unit="%"
-                  infoText="Access to occupational rehabilitation services"
-                />
-                <MetricSlider
-                  label="Return-to-Work Success"
-                  value={metrics.returnToWorkSuccess}
-                  onChange={(v) => updateMetric("returnToWorkSuccess", v)}
-                  min={0}
-                  max={100}
-                  unit="%"
-                  infoText="Successful return-to-work program completion rate"
-                />
-              </AccordionPanel>
-            </>
-          )}
           </div>
         </div>
         
-        {/* Right Panel: Impact Visualization */}
-        <div className="flex flex-col min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
-          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/5">
-            <Rocket className="w-4 h-4 text-adl-accent" />
-            <h2 className="text-sm font-semibold text-white">Impact Analysis</h2>
-          </div>
-          <div className="flex-1 overflow-auto scrollbar-thin p-4 space-y-4">
-          
-          {/* Main Score Card */}
-          <ScoreCard
-            title="Sovereign Maturity Score"
-            baseline={baselineMaturityScore}
-            projected={projectedMaturityScore}
-            icon={Target}
-            isMaturityScore
+        {/* Right: AI Report */}
+        <div className="col-span-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+          <AIReportStream
+            selectedIso={selectedIso}
+            selectedCountryName={selectedCountryName}
+            metrics={metrics}
+            baselineMetrics={baselineMetrics}
+            projectedScore={projectedScore}
+            baselineScore={baselineScore}
           />
-          
-          {/* Delta Banner */}
-          {selectedIso && (
-            <motion.div
-              key={delta.toFixed(2)}
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={cn(
-                "p-4 rounded-xl border text-center",
-                delta > 0
-                  ? "bg-emerald-500/10 border-emerald-500/30"
-                  : delta < 0
-                  ? "bg-red-500/10 border-red-500/30"
-                  : "bg-slate-700/30 border-slate-600/30"
-              )}
-            >
-              <p className="text-sm text-slate-400 mb-1">Projected Improvement</p>
-              <p className={cn(
-                "text-3xl font-bold",
-                delta > 0 ? "text-emerald-400" : delta < 0 ? "text-red-400" : "text-slate-400"
-              )}>
-                {delta > 0 && "🚀 +"}{delta.toFixed(2)}
-              </p>
-              <p className="text-sm text-slate-400 mt-1">
-                {delta > 0.5
-                  ? "Significant improvement potential!"
-                  : delta > 0
-                  ? "Positive trajectory"
-                  : delta === 0
-                  ? "No change from baseline"
-                  : "Regression from baseline"}
-              </p>
-            </motion.div>
-          )}
-          
-          {/* Radar Chart */}
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-slate-400 mb-4">
-              Pillar Comparison Radar
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="#334155" />
-                  <PolarAngleAxis
-                    dataKey="metric"
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  />
-                  <PolarRadiusAxis
-                    angle={30}
-                    domain={[0, 100]}
-                    tick={{ fill: "#64748b", fontSize: 10 }}
-                  />
-                  <Radar
-                    name="Baseline"
-                    dataKey="baseline"
-                    stroke="#64748b"
-                    fill="#64748b"
-                    fillOpacity={0.3}
-                    strokeWidth={2}
-                  />
-                  <Radar
-                    name="Projected"
-                    dataKey="projected"
-                    stroke="#06b6d4"
-                    fill="#06b6d4"
-                    fillOpacity={0.4}
-                    strokeWidth={2}
-                  />
-                  <Legend
-                    wrapperStyle={{ paddingTop: 20 }}
-                    formatter={(value) => (
-                      <span className="text-slate-300 text-sm">{value}</span>
-                    )}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
-                      borderRadius: "8px",
-                    }}
-                    labelStyle={{ color: "#f1f5f9" }}
-                    itemStyle={{ color: "#94a3b8" }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
-          {/* Pillar Score Breakdown */}
-          <div className="grid grid-cols-2 gap-3">
-            <ScoreCard
-              title="Governance"
-              baseline={baselinePillarScores.governance}
-              projected={projectedPillarScores.governance}
-              icon={Building2}
-            />
-            <ScoreCard
-              title="Hazard Control"
-              baseline={baselinePillarScores.pillar1}
-              projected={projectedPillarScores.pillar1}
-              icon={Shield}
-            />
-            <ScoreCard
-              title="Health Vigilance"
-              baseline={baselinePillarScores.pillar2}
-              projected={projectedPillarScores.pillar2}
-              icon={Eye}
-            />
-            <ScoreCard
-              title="Restoration"
-              baseline={baselinePillarScores.pillar3}
-              projected={projectedPillarScores.pillar3}
-              icon={Heart}
-            />
-          </div>
-          </div>
         </div>
       </div>
     </div>
