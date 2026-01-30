@@ -14,8 +14,8 @@
  * - Persistent report storage
  */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -45,18 +45,14 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  PlayCircle,
-  Users,
   X,
-  Check,
   FileDown,
-  Layers,
+  Search,
+  Activity,
 } from "lucide-react";
 import {
   getStrategicDeepDiveCountries,
   getStrategicDeepDiveReport,
-  generateStrategicDeepDive,
-  generateAllTopicsForCountry,
   getCountryTopicStatuses,
   deleteStrategicDeepDive,
   type CountryDeepDiveItem,
@@ -65,7 +61,6 @@ import {
   type SWOTItem,
   type StrategicRecommendation,
   type TopicStatus,
-  type GenerateAllTopicsResponse,
 } from "../../services/api";
 import { cn, getApiBaseUrl } from "../../lib/utils";
 
@@ -94,15 +89,17 @@ const CONTINENT_MAP: Record<string, string> = {
   HND: "Americas", JAM: "Americas", MEX: "Americas", NIC: "Americas", PAN: "Americas",
   PRY: "Americas", PER: "Americas", KNA: "Americas", LCA: "Americas", VCT: "Americas",
   SUR: "Americas", TTO: "Americas", USA: "Americas", URY: "Americas", VEN: "Americas",
-  // Asia
-  AFG: "Asia", ARM: "Asia", AZE: "Asia", BHR: "Asia", BGD: "Asia", BTN: "Asia",
+  // Asia (excluding GCC countries which have their own region)
+  AFG: "Asia", ARM: "Asia", AZE: "Asia", BGD: "Asia", BTN: "Asia",
   BRN: "Asia", KHM: "Asia", CHN: "Asia", CYP: "Asia", GEO: "Asia", IND: "Asia",
   IDN: "Asia", IRN: "Asia", IRQ: "Asia", ISR: "Asia", JPN: "Asia", JOR: "Asia",
-  KAZ: "Asia", KWT: "Asia", KGZ: "Asia", LAO: "Asia", LBN: "Asia", MYS: "Asia",
-  MDV: "Asia", MNG: "Asia", MMR: "Asia", NPL: "Asia", PRK: "Asia", OMN: "Asia",
-  PAK: "Asia", PHL: "Asia", QAT: "Asia", SAU: "Asia", SGP: "Asia", KOR: "Asia",
+  KAZ: "Asia", KGZ: "Asia", LAO: "Asia", LBN: "Asia", MYS: "Asia",
+  MDV: "Asia", MNG: "Asia", MMR: "Asia", NPL: "Asia", PRK: "Asia",
+  PAK: "Asia", PHL: "Asia", SGP: "Asia", KOR: "Asia",
   LKA: "Asia", SYR: "Asia", TJK: "Asia", THA: "Asia", TLS: "Asia", TKM: "Asia",
-  ARE: "Asia", UZB: "Asia", VNM: "Asia", YEM: "Asia", PSE: "Asia", TWN: "Asia",
+  UZB: "Asia", VNM: "Asia", YEM: "Asia", PSE: "Asia", TWN: "Asia",
+  // GCC Countries (separate region)
+  BHR: "GCC", KWT: "GCC", OMN: "GCC", QAT: "GCC", SAU: "GCC", ARE: "GCC",
   // Europe
   ALB: "Europe", AND: "Europe", AUT: "Europe", BLR: "Europe", BEL: "Europe",
   BIH: "Europe", BGR: "Europe", HRV: "Europe", CZE: "Europe", DNK: "Europe",
@@ -119,7 +116,10 @@ const CONTINENT_MAP: Record<string, string> = {
   SLB: "Oceania", TON: "Oceania", TUV: "Oceania", VUT: "Oceania",
 };
 
-const CONTINENTS = ["Africa", "Americas", "Asia", "Europe", "Oceania"] as const;
+// GCC countries - shown as separate region
+const GCC_COUNTRIES = ["BHR", "KWT", "OMN", "QAT", "SAU", "ARE"];
+
+const CONTINENTS = ["Africa", "Americas", "Asia", "Europe", "GCC", "Oceania"] as const;
 
 // Framework layers with 3 topics each
 const FRAMEWORK_LAYERS = [
@@ -509,25 +509,24 @@ function CountryTile({ country, isSelected, onClick }: CountryTileProps) {
 interface ContinentSectionProps {
   continent: string;
   countries: CountryDeepDiveItem[];
-  selectedCountries: Set<string>;
-  onCountryToggle: (iso: string) => void;
+  selectedCountry: string | null;
+  onCountrySelect: (iso: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
-  selectionMode: boolean;
 }
 
 function ContinentSection({
   continent,
   countries,
-  selectedCountries,
-  onCountryToggle,
+  selectedCountry,
+  onCountrySelect,
   isExpanded,
   onToggle,
-  selectionMode,
 }: ContinentSectionProps) {
   // Count countries with at least one completed report
   const countriesWithReports = countries.filter(c => (c.completed_reports || 0) > 0).length;
-  const selectedInContinent = countries.filter(c => selectedCountries.has(c.iso_code)).length;
+  // Count countries currently generating (processing status)
+  const generatingCount = countries.filter(c => c.deep_dive_status === "processing").length;
   
   return (
     <div className="border-b border-slate-700/30 last:border-b-0">
@@ -547,9 +546,11 @@ function ContinentSection({
           <span className="text-sm font-medium text-white">{continent}</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          {selectionMode && selectedInContinent > 0 && (
-            <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded">
-              {selectedInContinent} selected
+          {/* Show generating indicator if any countries in this continent are generating */}
+          {generatingCount > 0 && (
+            <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full flex items-center gap-1 animate-pulse">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              {generatingCount}
             </span>
           )}
           {countriesWithReports > 0 ? (
@@ -575,28 +576,12 @@ function ContinentSection({
           >
             <div className="px-3 pb-3 space-y-1">
               {countries.map((country) => (
-                <div key={country.iso_code} className="flex items-center gap-1.5">
-                  {selectionMode && (
-                    <button
-                      onClick={() => onCountryToggle(country.iso_code)}
-                      className={cn(
-                        "w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                        selectedCountries.has(country.iso_code)
-                          ? "bg-purple-500 border-purple-500"
-                          : "border-slate-600 hover:border-purple-400"
-                      )}
-                    >
-                      {selectedCountries.has(country.iso_code) && (
-                        <Check className="w-3 h-3 text-white" />
-                      )}
-                    </button>
-                  )}
-                  <CountryTile
-                    country={country}
-                    isSelected={!selectionMode && selectedCountries.has(country.iso_code)}
-                    onClick={() => onCountryToggle(country.iso_code)}
-                  />
-                </div>
+                <CountryTile
+                  key={country.iso_code}
+                  country={country}
+                  isSelected={selectedCountry === country.iso_code}
+                  onClick={() => onCountrySelect(country.iso_code)}
+                />
               ))}
             </div>
           </motion.div>
@@ -731,42 +716,26 @@ function AdminMenu({ onEdit, onDelete, onExportPDF, hasReport }: AdminMenuProps)
 interface ReportPanelProps {
   report: StrategicDeepDiveReport | null;
   isLoading: boolean;
-  isGenerating: boolean;
-  isGeneratingAll: boolean;
-  generateAllProgress: string | null;
-  completedReportsCount: number;
   countryName: string | null;
   selectedTopic: string;
-  onGenerate: () => void;
-  onRegenerate: () => void;
-  onGenerateAll: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onExportPDF: () => void;
-  generationError: string | null;
 }
 
 function ReportPanel({
   report,
   isLoading,
-  isGenerating,
-  isGeneratingAll,
-  generateAllProgress,
-  completedReportsCount,
   countryName,
   selectedTopic,
-  onGenerate,
-  onRegenerate,
-  onGenerateAll,
   onEdit,
   onDelete,
   onExportPDF,
-  generationError,
 }: ReportPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Loading state
-  if (isLoading || isGenerating || isGeneratingAll) {
+  if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
@@ -774,58 +743,7 @@ function ReportPanel({
             <div className="w-16 h-16 border-4 border-purple-500/20 rounded-full animate-pulse" />
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-          <p className="text-slate-400 text-sm mt-4">
-            {isGeneratingAll 
-              ? "Generating all 13 topic reports..." 
-              : isGenerating 
-                ? "Generating strategic analysis..." 
-                : "Loading report..."}
-          </p>
-          {(isGenerating || isGeneratingAll) && countryName && (
-            <p className="text-purple-400/70 text-xs mt-2">
-              AI agents analyzing {countryName}
-            </p>
-          )}
-          {isGeneratingAll && (
-            <>
-              {/* Progress indicator */}
-              <div className="mt-4 w-64 mx-auto">
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Progress</span>
-                  <span className="text-cyan-400 font-medium">{completedReportsCount} / 13</span>
-                </div>
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
-                    style={{ width: `${(completedReportsCount / 13) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-amber-400/60 text-[10px] mt-4">
-                This may take 15-30 minutes. Please keep this page open.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-  
-  // Error state
-  if (generationError) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md px-6">
-          <AlertCircle className="w-12 h-12 text-red-400/70 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Generation Failed</h3>
-          <p className="text-sm text-slate-400 mb-4">{generationError}</p>
-          <button
-            onClick={onGenerate}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Try Again
-          </button>
+          <p className="text-slate-400 text-sm mt-4">Loading report...</p>
         </div>
       </div>
     );
@@ -850,74 +768,37 @@ function ReportPanel({
     );
   }
   
-  // Ready to generate (country selected but no report)
+  // No report found for this country/topic
   if (!report) {
     return (
       <div className="h-full flex flex-col">
-        {/* Header with Admin Actions */}
+        {/* Header */}
         <div className="flex-shrink-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50 px-5 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium text-white">{countryName}</span>
-              <span className="text-xs text-slate-500">• No reports yet</span>
-            </div>
-            <button
-              onClick={onGenerateAll}
-              disabled={isGeneratingAll}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-amber-500/50 disabled:to-orange-500/50 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:cursor-not-allowed"
-              title="Generate all 13 topic reports for this country"
-            >
-              {isGeneratingAll ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating {completedReportsCount}/13...
-                </>
-              ) : (
-                <>
-                  <Layers className="w-4 h-4" />
-                  Generate All 13 Reports
-                </>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-white">{countryName}</span>
+            <span className="text-xs text-slate-500">• No report for this topic</span>
           </div>
         </div>
         
         {/* Content */}
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
-              <Sparkles className="w-10 h-10 text-cyan-400/50" />
+            <div className="w-20 h-20 bg-gradient-to-br from-slate-700/30 to-slate-800/30 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700/30">
+              <FileText className="w-10 h-10 text-slate-500" />
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
-              Ready to Analyze {countryName}
+              No Report Available
             </h3>
             <p className="text-sm text-slate-400 mb-2">
               Topic: <span className="text-purple-300">{selectedTopic}</span>
             </p>
-            <p className="text-xs text-slate-500 mb-6">
-              No existing report found. Generate a new analysis.
+            <p className="text-xs text-slate-500 mb-4">
+              This topic has not been generated yet for {countryName}.
             </p>
-            <div className="flex flex-col gap-3 items-center">
-              <button
-                onClick={onGenerate}
-                disabled={isGenerating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-purple-500/20 disabled:cursor-not-allowed"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle className="w-4 h-4" />
-                    Generate This Topic
-                  </>
-                )}
-              </button>
-              <p className="text-[10px] text-slate-500 mt-2">
-                Or use "Generate All 13 Reports" above to create all topic analyses (~30 min)
+            <div className="bg-slate-800/50 border border-slate-700/40 rounded-lg p-4">
+              <p className="text-xs text-slate-400">
+                To generate reports, go to the <span className="text-cyan-400 font-medium">Generation Progress</span> tab in the Administration menu and select countries to generate.
               </p>
             </div>
           </div>
@@ -956,7 +837,7 @@ function ReportPanel({
             </div>
           </div>
           
-          {/* Admin Actions */}
+          {/* Admin Actions - PDF export and admin menu only */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={onExportPDF}
@@ -964,31 +845,6 @@ function ReportPanel({
             >
               <Download className="w-3.5 h-3.5" />
               PDF
-            </button>
-            <button
-              onClick={onRegenerate}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Regenerate
-            </button>
-            <button
-              onClick={onGenerateAll}
-              disabled={isGeneratingAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/80 to-orange-500/80 hover:from-amber-500 hover:to-orange-500 disabled:from-amber-500/40 disabled:to-orange-500/40 border border-amber-500/30 rounded-lg text-white text-xs font-medium transition-all disabled:cursor-not-allowed"
-              title="Generate all 13 topic reports for this country"
-            >
-              {isGeneratingAll ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  {completedReportsCount}/13
-                </>
-              ) : (
-                <>
-                  <Layers className="w-3.5 h-3.5" />
-                  All 13
-                </>
-              )}
             </button>
             <AdminMenu
               onEdit={onEdit}
@@ -1180,104 +1036,6 @@ function ReportPanel({
   );
 }
 
-// =============================================================================
-// BATCH GENERATION MODAL
-// =============================================================================
-
-interface BatchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedCountries: Set<string>;
-  countriesData: CountryDeepDiveItem[];
-  selectedTopic: string;
-  onGenerate: () => void;
-  isGenerating: boolean;
-}
-
-function BatchModal({
-  isOpen,
-  onClose,
-  selectedCountries,
-  countriesData,
-  selectedTopic,
-  onGenerate,
-  isGenerating,
-}: BatchModalProps) {
-  if (!isOpen) return null;
-  
-  const selectedList = countriesData.filter(c => selectedCountries.has(c.iso_code));
-  
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="relative bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
-      >
-        <div className="px-5 py-4 border-b border-slate-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-400" />
-              Batch Generation
-            </h3>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-slate-400" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-5">
-          <p className="text-sm text-slate-400 mb-4">
-            Generate reports for <span className="text-purple-300 font-medium">{selectedCountries.size} countries</span> using:
-          </p>
-          <div className="bg-slate-700/30 rounded-lg p-3 mb-4">
-            <p className="text-xs text-slate-500">Topic:</p>
-            <p className="text-sm text-white font-medium">{selectedTopic}</p>
-          </div>
-          
-          <div className="max-h-48 overflow-y-auto mb-4 space-y-1">
-            {selectedList.map(country => (
-              <div key={country.iso_code} className="flex items-center gap-2 text-xs text-slate-300 py-1">
-                <CheckCircle2 className="w-3 h-3 text-purple-400" />
-                {country.name}
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onGenerate}
-              disabled={isGenerating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <PlayCircle className="w-4 h-4" />
-                  Generate All
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 // =============================================================================
 // MAIN COMPONENT
@@ -1289,42 +1047,45 @@ export function StrategicDeepDive() {
   const [selectedTopic, setSelectedTopic] = useState<string>("Comprehensive Occupational Health Assessment");
   const [expandedContinents, setExpandedContinents] = useState<Set<string>>(new Set(["Europe"]));
   const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set()); // Collapsible framework layers
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [batchMode, setBatchMode] = useState(false);
-  const [showBatchModal, setShowBatchModal] = useState(false);
-  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   
   // Get first selected country for single view
   const selectedCountry = useMemo(() => {
-    if (batchMode || selectedCountries.size !== 1) return null;
+    if (selectedCountries.size !== 1) return null;
     return Array.from(selectedCountries)[0];
-  }, [selectedCountries, batchMode]);
+  }, [selectedCountries]);
   
-  // Fetch countries
+  // Fetch countries with auto-refresh for real-time generation status
   const { data: countriesData, isLoading: isLoadingCountries, error: countriesError, refetch: refetchCountries } = useQuery({
     queryKey: ["strategic-deep-dive-countries"],
     queryFn: getStrategicDeepDiveCountries,
-    staleTime: 30 * 1000,
+    staleTime: 10 * 1000,
+    refetchInterval: 15 * 1000, // Auto-refresh every 15s to show real-time generation status
     retry: 2,
   });
   
+  // Count countries currently being generated (for status display)
+  const processingCountriesCount = useMemo(() => {
+    if (!countriesData?.countries) return 0;
+    return countriesData.countries.filter(c => c.deep_dive_status === "processing").length;
+  }, [countriesData]);
+  
   // Fetch report for selected country AND topic
-  const { data: report, isLoading: isLoadingReport, refetch: refetchReport } = useQuery({
+  const { data: report, isLoading: isLoadingReport } = useQuery({
     queryKey: ["strategic-deep-dive-report", selectedCountry, selectedTopic],
     queryFn: () => selectedCountry ? getStrategicDeepDiveReport(selectedCountry, selectedTopic) : null,
-    enabled: !!selectedCountry && !batchMode,
+    enabled: !!selectedCountry,
     staleTime: 60 * 1000,
     retry: false,
   });
   
   // Fetch topic statuses for selected country (to show which topics have reports)
-  // When isGeneratingAll is true, poll every 10 seconds to track progress
   const { data: topicStatuses } = useQuery({
     queryKey: ["strategic-deep-dive-topic-statuses", selectedCountry],
     queryFn: () => selectedCountry ? getCountryTopicStatuses(selectedCountry) : null,
-    enabled: !!selectedCountry && !batchMode,
-    staleTime: isGeneratingAll ? 5 * 1000 : 30 * 1000,
-    refetchInterval: isGeneratingAll ? 10 * 1000 : false, // Poll every 10s when generating
+    enabled: !!selectedCountry,
+    staleTime: 30 * 1000,
+    refetchInterval: 15 * 1000, // Auto-refresh to track generation progress
   });
   
   // Build a map of topic name -> status for quick lookup
@@ -1338,91 +1099,25 @@ export function StrategicDeepDive() {
     return map;
   }, [topicStatuses]);
   
-  // Count completed reports (for progress tracking)
-  const completedReportsCount = useMemo(() => {
-    if (!topicStatuses?.topics) return 0;
-    return topicStatuses.topics.filter(t => t.has_report).length;
-  }, [topicStatuses]);
-  
-  // Effect: Stop polling when all 13 reports are complete
-  useEffect(() => {
-    if (isGeneratingAll && completedReportsCount >= 13) {
-      setIsGeneratingAll(false);
-      setGenerateAllProgress(null);
-      // Refresh all data
-      queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-countries"] });
-      queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-report"] });
-    }
-  }, [isGeneratingAll, completedReportsCount, queryClient]);
-  
-  // Effect: Auto-refetch report when polling detects new completed topics
-  // This ensures the report panel updates as reports are generated
-  const prevCompletedCount = useRef(completedReportsCount);
-  useEffect(() => {
-    if (isGeneratingAll && completedReportsCount > prevCompletedCount.current) {
-      // A new report was completed, refetch current topic's report
-      refetchReport();
-      // Update progress message
-      setGenerateAllProgress(`Generating reports... (${completedReportsCount}/13 complete)`);
-    }
-    prevCompletedCount.current = completedReportsCount;
-  }, [completedReportsCount, isGeneratingAll, refetchReport]);
-  
-  // Generate mutation
-  const generateMutation = useMutation({
-    mutationFn: ({ iso_code, topic }: { iso_code: string; topic: string }) =>
-      generateStrategicDeepDive(iso_code, topic),
-    onSuccess: async () => {
-      setGenerationError(null);
-      queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-countries"] });
-      queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-topic-statuses", selectedCountry] });
-      
-      // Retry fetching report with delay to handle race condition
-      // The report might not be immediately available after generation completes
-      let attempts = 0;
-      while (attempts < 5) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const result = await refetchReport();
-        if (result.data) break;
-        attempts++;
-      }
-    },
-    onError: (error: Error) => {
-      setGenerationError(error.message || "Failed to generate analysis");
-    },
-  });
-  
-  // Generate ALL topics mutation (queues 13 reports for background generation)
-  const [generateAllProgress, setGenerateAllProgress] = useState<string | null>(null);
-  const generateAllMutation = useMutation({
-    mutationFn: (iso_code: string) => generateAllTopicsForCountry(iso_code),
-    onMutate: () => {
-      setGenerateAllProgress("Queuing all 13 reports for generation...");
-    },
-    onSuccess: (data: GenerateAllTopicsResponse) => {
-      // Start polling mode - the background tasks are now running
-      setIsGeneratingAll(true);
-      setGenerateAllProgress(`Generating reports for ${data.country_name}...`);
-      setGenerationError(null);
-      // Immediately refetch to start showing progress
-      queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-topic-statuses", selectedCountry] });
-    },
-    onError: (error: Error) => {
-      setGenerateAllProgress(null);
-      setIsGeneratingAll(false);
-      setGenerationError(error.message || "Failed to queue reports for generation");
-    },
-  });
-  
-  // Organize countries by continent
+  // Organize countries by continent (filtered by search query)
   const countriesByContinent = useMemo(() => {
-    const countries = countriesData?.countries || [];
+    let countries = countriesData?.countries || [];
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      countries = countries.filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.iso_code.toLowerCase().includes(query)
+      );
+    }
+    
     const grouped: Record<string, CountryDeepDiveItem[]> = {};
     CONTINENTS.forEach(continent => {
       grouped[continent] = countries.filter(c => CONTINENT_MAP[c.iso_code] === continent);
     });
     return grouped;
-  }, [countriesData]);
+  }, [countriesData, searchQuery]);
   
   // Get selected country data
   const selectedCountryData = useMemo(() => {
@@ -1450,49 +1145,14 @@ export function StrategicDeepDive() {
     });
   };
   
-  // Handle country selection
+  // Handle country selection (single select only)
   const handleCountryToggle = useCallback((isoCode: string) => {
-    setGenerationError(null);
     setSelectedCountries(prev => {
-      const next = new Set(prev);
-      if (batchMode) {
-        if (next.has(isoCode)) next.delete(isoCode);
-        else next.add(isoCode);
-      } else {
-        next.clear();
-        next.add(isoCode);
-      }
+      const next = new Set<string>();
+      next.add(isoCode);
       return next;
     });
-  }, [batchMode]);
-  
-  // Handle generate single
-  const handleGenerate = () => {
-    if (selectedCountry) {
-      setGenerationError(null);
-      generateMutation.mutate({ iso_code: selectedCountry, topic: selectedTopic });
-    }
-  };
-  
-  // Handle generate ALL 13 topics at once
-  const handleGenerateAll = () => {
-    if (!selectedCountry) return;
-    
-    const countryName = selectedCountryData?.name || selectedCountry;
-    if (confirm(`Generate ALL 13 topic reports for ${countryName}?\n\nThis will take approximately 15-30 minutes. The process will run in the background.`)) {
-      generateAllMutation.mutate(selectedCountry);
-    }
-  };
-  
-  // Handle batch generate
-  const handleBatchGenerate = async () => {
-    const countries = Array.from(selectedCountries);
-    for (const iso of countries) {
-      await generateMutation.mutateAsync({ iso_code: iso, topic: selectedTopic });
-    }
-    setShowBatchModal(false);
-    setBatchMode(false);
-  };
+  }, []);
   
   // Handle PDF export
   const handleExportPDF = () => {
@@ -1564,16 +1224,41 @@ export function StrategicDeepDive() {
       <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
         {/* Column 1: Country Selection */}
         <div className="w-[260px] flex-shrink-0 flex flex-col min-h-0 bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
-          <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40">
-            <h2 className="text-xs font-semibold text-white flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-purple-400" />
-              Select Country
-              {batchMode && (
-                <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px]">
-                  Multi-select
-                </span>
+          <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40 space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-white flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-purple-400" />
+                Select Country
+              </h2>
+              {/* Real-time generation indicator */}
+              {processingCountriesCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/30 rounded-full animate-pulse">
+                  <Activity className="w-3 h-3 text-cyan-400" />
+                  <span className="text-[10px] text-cyan-300 font-medium">
+                    {processingCountriesCount} generating
+                  </span>
+                </div>
               )}
-            </h2>
+            </div>
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search countries..."
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -1599,11 +1284,10 @@ export function StrategicDeepDive() {
                   key={continent}
                   continent={continent}
                   countries={countriesByContinent[continent] || []}
-                  selectedCountries={selectedCountries}
-                  onCountryToggle={handleCountryToggle}
+                  selectedCountry={selectedCountry}
+                  onCountrySelect={handleCountryToggle}
                   isExpanded={expandedContinents.has(continent)}
                   onToggle={() => toggleContinent(continent)}
-                  selectionMode={batchMode}
                 />
               ))
             )}
@@ -1765,38 +1449,19 @@ export function StrategicDeepDive() {
           <ReportPanel
             report={report || null}
             isLoading={isLoadingReport}
-            isGenerating={generateMutation.isPending}
-            isGeneratingAll={isGeneratingAll}
-            generateAllProgress={generateAllProgress}
-            completedReportsCount={completedReportsCount}
             countryName={selectedCountryData?.name || null}
             selectedTopic={selectedTopic}
-            onGenerate={handleGenerate}
-            onRegenerate={handleGenerate}
-            onGenerateAll={handleGenerateAll}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onExportPDF={handleExportPDF}
-            generationError={generationError}
           />
         </div>
       </div>
       
       {/* Footer */}
       <div className="flex-shrink-0 mt-3 text-[10px] text-slate-500 text-center">
-        Powered by Strategic Deep Dive Agent • AI Orchestration Layer • Phase 27
+        Powered by Strategic Deep Dive Agent • AI Orchestration Layer
       </div>
-      
-      {/* Batch Modal */}
-      <BatchModal
-        isOpen={showBatchModal}
-        onClose={() => setShowBatchModal(false)}
-        selectedCountries={selectedCountries}
-        countriesData={countriesData?.countries || []}
-        selectedTopic={selectedTopic}
-        onGenerate={handleBatchGenerate}
-        isGenerating={generateMutation.isPending}
-      />
     </div>
   );
 }
