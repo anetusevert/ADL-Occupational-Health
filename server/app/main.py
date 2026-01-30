@@ -51,8 +51,14 @@ local_origins = [
     "http://127.0.0.1:3000",
 ]
 
-# Combine production and local origins
-CORS_ORIGINS = production_origins + local_origins
+# Known Railway deployment origins (fallback if not in env)
+railway_origins = [
+    "https://front-end-production-79cb.up.railway.app",
+    "https://adl-occupational-health-production.up.railway.app",
+]
+
+# Combine production, railway, and local origins
+CORS_ORIGINS = production_origins + railway_origins + local_origins
 
 app.add_middleware(
     CORSMiddleware,
