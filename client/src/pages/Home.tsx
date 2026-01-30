@@ -32,7 +32,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlobalMap } from "../components";
 import { ADLIcon } from "../components/ADLLogo";
 import { apiClient } from "../services/api";
-import { cn, getApiBaseUrl } from "../lib/utils";
+import { cn, getApiBaseUrl, getEffectiveOHIScore } from "../lib/utils";
 import type { MapCountryData, MapMetric, GeoJSONMetadataResponse } from "../types/country";
 
 // =============================================================================
@@ -135,11 +135,19 @@ export function Home() {
   });
 
   // Transform GeoJSON metadata to MapCountryData format (Framework-Aligned)
+  // Uses calculated OHI score from pillar scores for consistency
   const mapCountries: MapCountryData[] = useMemo(() => 
     (data?.countries || []).map((c) => ({
       iso_code: c.iso_code,
       name: c.name,
-      maturity_score: c.maturity_score,
+      // Calculate OHI score from pillar scores for accuracy
+      maturity_score: getEffectiveOHIScore(
+        c.maturity_score,
+        c.governance_score,
+        c.pillar1_score,
+        c.pillar2_score,
+        c.pillar3_score
+      ),
       governance_score: c.governance_score,
       pillar1_score: c.pillar1_score,
       pillar2_score: c.pillar2_score,

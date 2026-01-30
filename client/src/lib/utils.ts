@@ -118,6 +118,94 @@ export function getCountryFlag(isoCode: string): string {
 }
 
 /**
+ * Pillar weights for ADL OHI Score calculation
+ * Based on WHO/ILO occupational health framework priorities
+ */
+export const OHI_PILLAR_WEIGHTS = {
+  governance: 0.30,      // 30% - Regulatory foundation
+  hazardControl: 0.25,   // 25% - Prevention (Pillar 1)
+  healthVigilance: 0.25, // 25% - Detection (Pillar 2)
+  restoration: 0.20,     // 20% - Recovery (Pillar 3)
+} as const;
+
+/**
+ * Calculate ADL OHI Score from pillar scores (0-100 scale each)
+ * Returns a score on 1.0-4.0 scale
+ * 
+ * Formula: 1.0 + (weighted_average_of_pillars / 100) * 3.0
+ * 
+ * @param governance - Governance score (0-100)
+ * @param pillar1 - Hazard Control score (0-100)
+ * @param pillar2 - Health Vigilance score (0-100)
+ * @param pillar3 - Restoration score (0-100)
+ * @returns ADL OHI Score (1.0-4.0) or null if insufficient data
+ */
+export function calculateOHIScore(
+  governance: number | null | undefined,
+  pillar1: number | null | undefined,
+  pillar2: number | null | undefined,
+  pillar3: number | null | undefined
+): number | null {
+  // Require at least governance and one pillar to calculate
+  const validScores: { key: keyof typeof OHI_PILLAR_WEIGHTS; value: number }[] = [];
+  
+  if (governance !== null && governance !== undefined) {
+    validScores.push({ key: 'governance', value: governance });
+  }
+  if (pillar1 !== null && pillar1 !== undefined) {
+    validScores.push({ key: 'hazardControl', value: pillar1 });
+  }
+  if (pillar2 !== null && pillar2 !== undefined) {
+    validScores.push({ key: 'healthVigilance', value: pillar2 });
+  }
+  if (pillar3 !== null && pillar3 !== undefined) {
+    validScores.push({ key: 'restoration', value: pillar3 });
+  }
+  
+  // Need at least 2 pillars to calculate meaningful score
+  if (validScores.length < 2) {
+    return null;
+  }
+  
+  // Calculate weighted average, normalizing weights for available pillars
+  const totalWeight = validScores.reduce((sum, s) => sum + OHI_PILLAR_WEIGHTS[s.key], 0);
+  const weightedSum = validScores.reduce(
+    (sum, s) => sum + (s.value * OHI_PILLAR_WEIGHTS[s.key]), 
+    0
+  );
+  
+  const normalizedAverage = weightedSum / totalWeight;
+  
+  // Convert to 1.0-4.0 scale
+  const ohiScore = 1.0 + (normalizedAverage / 100) * 3.0;
+  
+  // Round to 1 decimal place and clamp to valid range
+  return Math.round(Math.min(Math.max(ohiScore, 1.0), 4.0) * 10) / 10;
+}
+
+/**
+ * Get the best available OHI score - calculated from pillars if available,
+ * otherwise fall back to stored maturity_score
+ */
+export function getEffectiveOHIScore(
+  storedScore: number | null | undefined,
+  governance: number | null | undefined,
+  pillar1: number | null | undefined,
+  pillar2: number | null | undefined,
+  pillar3: number | null | undefined
+): number | null {
+  // Try to calculate from pillar scores first (more accurate)
+  const calculatedScore = calculateOHIScore(governance, pillar1, pillar2, pillar3);
+  
+  if (calculatedScore !== null) {
+    return calculatedScore;
+  }
+  
+  // Fall back to stored score
+  return storedScore ?? null;
+}
+
+/**
  * Get maturity stage label and color based on score
  * @param score - Maturity score (1.0-4.0 scale)
  * 

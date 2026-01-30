@@ -54,7 +54,7 @@ const analyticsSuiteItems: NavItem[] = [
 const toolSuiteItems: NavItem[] = [
   { path: "/simulator", label: "Policy Simulator", icon: Target },
   { path: "/data-engine", label: "Data Engine", icon: Database },
-  { path: "/metric-calculator", label: "Metric Calculator", icon: Calculator },
+  { path: "/metric-calculator", label: "Scoring", icon: Calculator },
 ];
 
 // Administration - Admin only features

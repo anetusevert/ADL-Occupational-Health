@@ -28,7 +28,7 @@ import {
   ArrowDown
 } from "lucide-react";
 import { fetchComparisonCountries } from "../services/api";
-import { cn, getMaturityStage } from "../lib/utils";
+import { cn, getMaturityStage, getEffectiveOHIScore } from "../lib/utils";
 import { calculateDataCoverage } from "../lib/dataCoverage";
 import { CountryFlag } from "../components";
 import type { Country } from "../types/country";
@@ -265,10 +265,19 @@ export function Leaderboard() {
         : null;
       const pillar3Score = country.pillar_3_restoration?.rehab_access_score ?? null;
       
+      // Calculate OHI score from pillar scores for accuracy
+      const calculatedOHI = getEffectiveOHIScore(
+        country.maturity_score,
+        governanceScore,
+        pillar1Score,
+        pillar2Score,
+        pillar3Score
+      );
+      
       return {
         iso_code: country.iso_code,
         name: country.name,
-        maturity_score: country.maturity_score,
+        maturity_score: calculatedOHI,
         flag_url: country.flag_url ?? null,
         data_coverage: dataCoverage,
         governance_score: governanceScore,

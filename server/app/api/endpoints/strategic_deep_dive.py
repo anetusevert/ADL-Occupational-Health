@@ -1067,13 +1067,17 @@ async def generate_controlled(
 
 class AddToQueueRequest(BaseModel):
     """Request to add topics to queue."""
-    topics: Optional[List[str]] = None
+    topics: Optional[List[str]] = Field(default=None, description="Topics to add (defaults to all 13 topics)")
+    
+    class Config:
+        # Allow extra fields to be ignored
+        extra = "ignore"
 
 
 @router.post("/{iso_code}/add-to-queue")
 async def add_country_to_queue(
     iso_code: str,
-    request: AddToQueueRequest = None,
+    request: AddToQueueRequest = AddToQueueRequest(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
@@ -1082,6 +1086,8 @@ async def add_country_to_queue(
     
     Creates PENDING records for each topic that doesn't already have a report.
     Use this to build a queue before starting controlled generation.
+    
+    If no topics specified in request body, adds all 13 topics.
     """
     from app.services.strategic_deep_dive_agent import StrategicDeepDiveAgent
     
@@ -1097,8 +1103,7 @@ async def add_country_to_queue(
         )
     
     # Default to all topics if not specified
-    topics = request.topics if request and request.topics else None
-    topics_to_add = topics if topics else ALL_TOPICS
+    topics_to_add = request.topics if request.topics else ALL_TOPICS
     
     added_count = 0
     skipped_count = 0

@@ -24,7 +24,7 @@ import { CountryMiniMap } from "../components/CountryMiniMap";
 import { CountryStatsPanel } from "../components/CountryStatsPanel";
 import { FrameworkReportTiles } from "../components/FrameworkReportTiles";
 import { fetchCountryWithMockFallback } from "../services/api";
-import { cn, getMaturityStage } from "../lib/utils";
+import { cn, getMaturityStage, getEffectiveOHIScore } from "../lib/utils";
 import { calculateDataCoverage } from "../lib/dataCoverage";
 
 /**
@@ -196,8 +196,23 @@ export function CountryProfile() {
     );
   }
 
-  const maturity = getMaturityStage(country.maturity_score);
   const dataCoverage = calculateDataCoverage(country);
+
+  // Extract pillar scores for OHI calculation
+  const governanceScore = country.governance?.strategic_capacity_score ?? null;
+  const pillar1Score = country.pillar_1_hazard?.control_maturity_score ?? null;
+  const pillar2Score = country.pillar_2_vigilance?.disease_detection_rate ?? null;
+  const pillar3Score = country.pillar_3_restoration?.rehab_access_score ?? null;
+
+  // Calculate effective OHI score from pillar scores
+  const effectiveOHI = getEffectiveOHIScore(
+    country.maturity_score,
+    governanceScore,
+    pillar1Score,
+    pillar2Score,
+    pillar3Score
+  );
+  const maturity = getMaturityStage(effectiveOHI);
 
   // Prepare pillar data
   const pillars = [
