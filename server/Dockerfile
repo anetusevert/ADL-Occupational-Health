@@ -16,7 +16,7 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (cache bust: v2)
 COPY . .
 
 # Note: Railway assigns PORT dynamically, no need to EXPOSE a fixed port
