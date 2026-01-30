@@ -24,17 +24,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/gohip_db"
 
-    # CORS - Allow all common dev ports
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:3000",
-    ]
+    # CORS - Production origins (comma-separated string from env var)
+    # Local dev origins are added in main.py
+    CORS_ORIGINS: str = ""
 
     # API Keys (for future external data sourcing)
     EXTERNAL_API_KEY: str = ""
