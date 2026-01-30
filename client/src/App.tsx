@@ -242,18 +242,26 @@ function AppContent() {
             }
           />
 
-          {/* Admin Routes */}
+          {/* Tool Suite Routes - Available to all users */}
           <Route
-            path="/admin/data-engine"
+            path="/data-engine"
             element={
               <ProtectedRoute>
-                <AdminRoute>
-                  <DataEngine />
-                </AdminRoute>
+                <DataEngine />
               </ProtectedRoute>
             }
           />
 
+          <Route
+            path="/metric-calculator"
+            element={
+              <ProtectedRoute>
+                <MetricCalculator />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes */}
           <Route
             path="/admin/users"
             element={
@@ -293,17 +301,6 @@ function AppContent() {
               <ProtectedRoute>
                 <AdminRoute>
                   <StrategicDeepDive />
-                </AdminRoute>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin/metric-calculator"
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <MetricCalculator />
                 </AdminRoute>
               </ProtectedRoute>
             }

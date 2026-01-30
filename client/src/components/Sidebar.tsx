@@ -46,21 +46,21 @@ const analyticsSuiteItems: NavItem[] = [
   { path: "/", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Country Deep Dive", icon: Brain },
+  { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { path: "/compare", label: "Compare", icon: GitCompare },
 ];
 
 // Tool Suite - Interactive tools for users
 const toolSuiteItems: NavItem[] = [
-  { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { path: "/compare", label: "Compare", icon: GitCompare },
   { path: "/simulator", label: "Policy Simulator", icon: Target },
-  { path: "/admin/metric-calculator", label: "Metric Calculator", icon: Calculator },
+  { path: "/data-engine", label: "Data Engine", icon: Database },
+  { path: "/metric-calculator", label: "Metric Calculator", icon: Calculator },
 ];
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
   { path: "/admin/strategic-deep-dive", label: "Strategic Deep Dive", icon: Brain, adminOnly: true },
   { path: "/admin/generation-progress", label: "Generation Progress", icon: Activity, adminOnly: true },
-  { path: "/admin/data-engine", label: "Data Engine", icon: Database, adminOnly: true },
   { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
