@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="2000"
+   height="1000"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="1947 Proposed Flag of the People's Republic of Bosnia and Herzegovina.svg"
+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.75383214"
+     inkscape:cx="539.90799"
+     inkscape:cy="346.8942"
+     inkscape:window-width="1826"
+     inkscape:window-height="1046"
+     inkscape:window-x="83"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#de0000;fill-opacity:1;stroke:#fcc600;stroke-width:0;stroke-linejoin:bevel;paint-order:markers fill stroke"
+       id="rect846"
+       height="297"
+       x="-192"
+       y="5e-07"
+       width="594" />
+    <path
+       d="m -174.91269,17.39859 h 297 v 148.5 h -297 z"
+       fill="#003893"
+       id="path3555"
+       style="stroke-width:3.861;stroke:#fcfffa;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-linejoin:miter;stroke-linecap:square;paint-order:stroke markers fill" />
+    <path
+       d="M -175.14146,66.898691 H 122.68131 V 165.89859 H -175.14146 Z"
+       fill="#ffffff"
+       id="path3557"
+       style="stroke:#ffffff;stroke-width:0.0743528;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <g
+       fill="#de0000"
+       id="g3563"
+       transform="matrix(0.297,0,0,0.297,-174.91269,17.39859)">
+      <path
+         d="M 0,333.333 H 1000 V 500 H 0 Z"
+         id="path3559" />
+      <path
+         d="m 500,97.716 34.193,105.222 110.638,0.005 -89.506,65.035 34.185,105.225 -89.51,-65.03 -89.511,65.029 34.185,-105.225 -89.506,-65.035 110.638,-0.005 z"
+         fill-rule="evenodd"
+         stroke="#fcd115"
+         stroke-width="8.89"
+         id="path3561" />
+    </g>
+  </g>
+</svg>

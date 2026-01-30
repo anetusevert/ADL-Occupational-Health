@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* Arthur D. Little - Brand Theme Configuration */
+@theme {
+  /* ADL Brand Colors */
+  --color-adl-navy: #1a1a4e;
+  --color-adl-navy-light: #252569;
+  --color-adl-navy-dark: #12123a;
+  --color-adl-blue: #2d4a8c;
+  --color-adl-blue-light: #3d5fa8;
+  --color-adl-accent: #4a6bb5;
+  --color-adl-slate: #f4f6f9;
+  --color-adl-slate-dark: #e8ecf2;
+  --color-adl-white: #ffffff;
+  --color-adl-text: #2d3748;
+  --color-adl-text-muted: #64748b;
+  
+  /* Custom shadows */
+  --shadow-adl: 0 4px 20px -2px rgba(26, 26, 78, 0.25);
+  --shadow-adl-lg: 0 10px 40px -4px rgba(26, 26, 78, 0.3);
+  --shadow-adl-glow: 0 0 30px rgba(74, 107, 181, 0.15);
+}
+
+/* Arthur D. Little - Professional Corporate Styling */
+
+/* Base styles */
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* Viewport-fit: No scrolling on main pages */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbars but allow scrolling where needed */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Professional thin scrollbars where needed */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 107, 181, 0.3) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(74, 107, 181, 0.3);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 107, 181, 0.5);
+}
+
+/* Text utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* ADL Gradient Background */
+.bg-adl-gradient {
+  background: linear-gradient(135deg, #1a1a4e 0%, #12123a 100%);
+}
