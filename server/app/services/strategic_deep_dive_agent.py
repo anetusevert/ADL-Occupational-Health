@@ -49,6 +49,8 @@ from app.services.ai_orchestrator import (
     AgentLogEntry,
     get_detailed_error_info,
     format_error_for_user,
+    call_openai_with_web_search,
+    get_openai_api_key_from_config,
 )
 
 # Configure logging
@@ -59,96 +61,131 @@ logger = logging.getLogger(__name__)
 # STRATEGIC DEEP DIVE AGENT PROMPTS
 # =============================================================================
 
-STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT = """You are a Senior Partner at McKinsey & Company specializing in Global Health Policy and Occupational Health Strategy.
+STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT = """You are a Senior Principal at Arthur D. Little's Global Business Unit for Health & Life Sciences, specializing in occupational health policy advisory and strategic intelligence.
 
-You write in the distinctive McKinsey Partner style: succinct, authoritative, insight-driven, and action-oriented.
+You are preparing a CLIENT-READY Strategic Intelligence Briefing for a Ministry of Labor or Health Minister. This is a real consulting deliverable that will be used to inform policy decisions.
 
-## McKinsey Writing Principles:
-1. **Lead with the "So What"** - Start every section with the key insight or implication, not background
-2. **Pyramid Structure** - Conclusion first, then supporting evidence
-3. **Quantify Everything** - Use specific numbers, percentages, and benchmarks
-4. **Action-Oriented** - Every finding must link to a clear recommendation
-5. **Confident Authority** - Write with conviction; avoid hedging language
-6. **Brevity is Power** - One idea per sentence. Short paragraphs. No filler.
+## Consulting Standards:
+1. **Authoritative Voice** - Write as a trusted advisor with deep domain expertise. You know this field better than anyone.
+2. **Evidence-Based** - Every assertion must be backed by data or cited sources. No unsupported claims.
+3. **Actionable Insights** - Move beyond description to prescription. "So what" and "now what" are essential.
+4. **Executive-Ready** - Respect the reader's time. Lead with conclusions. Use the pyramid principle.
+5. **Global Context** - Position every finding against international benchmarks (OECD, ILO standards, regional peers).
+6. **Quantified Impact** - Recommendations must include expected outcomes (e.g., "reducing fatalities by 35% within 3 years").
 
-## Your Expertise:
-- Occupational health and safety regulations (ILO C187, C155, C161)
-- Workers' compensation and social protection mechanisms
-- Return-to-work programs and rehabilitation systems
-- Health surveillance and disease detection systems
-- Climate-related occupational health risks (heat stress, air quality)
-- Migrant worker protections and informal economy coverage
+## Web Research Requirements:
+You MUST actively search the web to gather the latest information on:
+- Country-specific occupational health legislation, recent reforms, and policy announcements
+- ILO/WHO reports, assessments, or technical guidance mentioning this country
+- Recent workplace incidents, enforcement actions, or labor disputes
+- Official government statistics and ministry press releases
+- Academic research and expert commentary on the country's OSH system
+- Regional comparisons and peer country performance data
+
+When citing web sources, use the format: [Source: URL] inline with the relevant statement.
+
+## Domain Expertise:
+- ILO Conventions: C155 (OSH), C187 (Promotional Framework), C161 (Occupational Health Services)
+- Workers' compensation systems and social protection mechanisms
+- Return-to-work programs and workplace rehabilitation
+- Occupational disease surveillance and health vigilance systems
+- Climate-related risks: heat stress (WBGT thresholds), air quality, emerging hazards
+- Vulnerable worker protections: migrant workers, informal economy, gig workers
+- Global benchmarks: OECD fatal injury rates, EU Framework Directive compliance, ILO ratification patterns
+
+## Report Structure:
+Your output must follow the classic consulting "Situation-Complication-Resolution" framework:
+- **Situation**: Current state with quantified metrics
+- **Complication**: Critical gaps, risks, and urgency drivers
+- **Resolution**: Prioritized recommendations with implementation roadmap
 
 ## Communication Style:
-- Use McKinsey's signature "verb-forward" recommendations: "Implement...", "Accelerate...", "Transform..."
-- Reference specific metrics with global benchmarks (e.g., "Fatal rate of 2.1 vs. OECD average of 0.8")
-- Be direct: "The country faces three critical gaps..." not "There appear to be some areas..."
-- Use the "rule of three" for key points
-- End recommendations with expected impact: "...reducing fatalities by 40% within 3 years"
+- Verb-forward recommendations: "Implement...", "Accelerate...", "Transform...", "Establish..."
+- Specific metrics with benchmarks: "Fatal rate of 2.1 vs. OECD average of 0.8" not "higher than average"
+- Direct language: "The country faces three critical gaps" not "There appear to be some challenges"
+- Rule of three for key points
+- Impact statements: "...reducing fatalities by 40% within 3 years" not "improving safety"
 
 ## Output Requirements:
-Generate valid JSON only. No markdown, no explanations outside the JSON structure."""
+Generate valid JSON only. No markdown, no explanations outside the JSON structure.
+Include source URLs for major claims in the external_research_summary or as inline citations."""
 
-STRATEGIC_DEEP_DIVE_USER_PROMPT = """Generate a McKinsey-style Strategic Deep Dive for {country_name} ({iso_code}).
+STRATEGIC_DEEP_DIVE_USER_PROMPT = """Prepare a Strategic Intelligence Briefing for {country_name} ({iso_code}).
 
-=== QUANTITATIVE DATA ===
+## INTERNAL DATABASE - GOHIP Framework Metrics:
 {metrics_text}
 
-=== INTELLIGENCE INDICATORS ===
+## MULTI-SOURCE INTELLIGENCE INDICATORS:
 {intelligence_text}
 
-=== EXTERNAL RESEARCH ===
+## PRELIMINARY WEB RESEARCH:
 {research_text}
 
-=== ANALYSIS FOCUS ===
+## ANALYSIS FOCUS:
 {topic}
 
-Apply McKinsey writing standards:
-- Executive Summary: Lead with the verdict. 3 punchy sentences. Quantify the gap and opportunity.
-- Key Findings: Start each with "So what" - the implication, not the observation
-- SWOT: Be specific and actionable. No generic statements.
-- Recommendations: Verb-forward imperatives with expected impact and timeline
-- Benchmarking: Name specific comparator countries with metrics
+## YOUR TASK:
 
-Generate valid JSON:
+1. **SEARCH THE WEB** for the latest developments on "{country_name}" and "{topic}":
+   - Recent legislation, policy reforms, or government announcements (2024-2026)
+   - ILO/WHO reports, technical assessments, or country profiles
+   - Official statistics from national labor/health ministries
+   - Workplace incident reports, enforcement actions, or court cases
+   - Academic research, think tank publications, or expert analysis
+   - Regional comparisons with peer countries
+
+2. **SYNTHESIZE** the internal database metrics with your web research to produce an authoritative, evidence-based assessment that could be presented to a government minister.
+
+3. **STRUCTURE** your response as a professional consultant deliverable:
+   - Executive Summary: 3 sentences (verdict, evidence, implication)
+   - Situation Analysis: Current state with quantified metrics
+   - Gap Analysis: Comparing to OECD, regional, or aspirational benchmarks
+   - Strategic Recommendations: Verb-forward, with expected impact and timeline
+   - Implementation Roadmap: Immediate, short, medium, and long-term actions
+   - Sources: Include URLs for key claims
+
+4. **CITE YOUR SOURCES**: For major claims from web research, include [Source: URL] inline.
+
+## OUTPUT FORMAT (Valid JSON only):
 
 {{
-    "strategy_name": "Punchy 4-6 word strategic title (e.g., 'Closing the Enforcement Gap' or 'From Reactive to Resilient')",
-    "executive_summary": "3 sentences max. Start with verdict. Include key metric. End with strategic implication.",
-    "strategic_narrative": "2 paragraphs. Para 1: Current state with data. Para 2: Strategic imperative and path forward.",
-    "health_profile": "One paragraph. Key occupational health stats with regional/global comparisons.",
-    "workforce_insights": "One paragraph. Labor force composition, risk exposure, protection gaps.",
+    "strategy_name": "Compelling 4-6 word strategic title (e.g., 'Closing the Enforcement Gap', 'From Compliance to Excellence')",
+    "executive_summary": "3 sentences max. Verdict first. Key metric. Strategic implication. This is the 'elevator pitch.'",
+    "strategic_narrative": "2-3 paragraphs. Para 1: Situation (current state with data). Para 2: Complication (gaps and urgency). Para 3: Resolution (strategic path forward). Include source citations.",
+    "health_profile": "One paragraph. Key occupational health statistics with regional/global comparisons. Cite sources.",
+    "workforce_insights": "One paragraph. Labor force composition, sector risk exposure, protection gaps. Include data.",
     "key_findings": [
-        {{"title": "Insight-driven title", "description": "Start with implication. Support with data. Max 2 sentences.", "impact_level": "high|medium|low"}}
+        {{"title": "Insight-driven headline", "description": "Lead with implication, support with data. Max 2 sentences. Cite source if from web.", "impact_level": "high|medium|low"}}
     ],
     "strengths": [
-        {{"title": "Specific strength", "description": "Quantified where possible. How to leverage."}}
+        {{"title": "Specific, quantifiable strength", "description": "Evidence-based. How to leverage for competitive advantage."}}
     ],
     "weaknesses": [
-        {{"title": "Critical gap", "description": "Impact quantified. Urgency clear."}}
+        {{"title": "Critical gap or deficiency", "description": "Impact quantified. Urgency and risk articulated."}}
     ],
     "opportunities": [
-        {{"title": "Actionable opportunity", "description": "Specific intervention. Expected ROI."}}
+        {{"title": "Actionable opportunity", "description": "Specific intervention with expected ROI or impact."}}
     ],
     "threats": [
-        {{"title": "Risk factor", "description": "Probability and impact. Mitigation approach."}}
+        {{"title": "Risk factor or external threat", "description": "Probability, impact, and mitigation approach."}}
     ],
     "strategic_recommendations": [
-        {{"title": "Verb-forward imperative (e.g., 'Implement risk-based inspections')", "description": "Specific actions with expected outcome", "priority": "critical|high|medium|low", "timeline": "immediate|short-term|medium-term|long-term"}}
+        {{"title": "Verb-forward imperative (e.g., 'Establish national heat stress protocol')", "description": "Specific actions with expected outcome and evidence basis", "priority": "critical|high|medium|low", "timeline": "immediate|short-term|medium-term|long-term"}}
     ],
     "action_items": [
-        {{"action": "Concrete next step", "responsible_party": "Ministry/Agency", "timeline": "Q1 2026"}}
+        {{"action": "Concrete next step", "responsible_party": "Ministry/Agency/Stakeholder", "timeline": "Specific timeframe (e.g., Q2 2026)"}}
     ],
-    "priority_interventions": ["Three", "Most", "Critical"],
-    "peer_comparison": "Compare to 2-3 named countries with specific metrics.",
-    "global_ranking_context": "Position vs OECD/regional averages with percentile.",
+    "priority_interventions": ["First priority", "Second priority", "Third priority"],
+    "peer_comparison": "Compare to 2-3 named peer countries with specific metrics. Cite sources.",
+    "global_ranking_context": "Position vs OECD/EU/regional averages with percentile or ranking. Include source.",
     "benchmark_countries": [
-        {{"iso_code": "XXX", "name": "Country", "reason": "Specific metric comparison"}}
+        {{"iso_code": "XXX", "name": "Country Name", "reason": "Specific metric or practice worth emulating"}}
     ],
-    "data_quality_notes": "Coverage gaps. Confidence level. Data recency."
+    "external_research_summary": "Summary of key web research findings with source URLs. List the most relevant sources consulted.",
+    "data_quality_notes": "Data coverage gaps, confidence level, recency issues. Be transparent about limitations."
 }}
 
-Output ONLY valid JSON."""
+Output ONLY valid JSON. Include source URLs inline or in external_research_summary."""
 
 
 # =============================================================================
@@ -362,38 +399,95 @@ class StrategicDeepDiveAgent:
                           "No intelligence data available (using framework data only)", "⚠️")
             
             # =========================================================
-            # STEP 3: ResearchAgent - Extended Web Research (Google)
+            # STEP 3 & 4: Research + Synthesis
+            # For OpenAI: Use native web_search tool (integrated approach)
+            # For other providers: Use Tavily/SerpAPI + LangChain (separate approach)
             # =========================================================
-            self._log("ResearchAgent", AgentStatus.RESEARCHING,
-                      f"Performing extended Google research for {country.name}...", "🔍")
             
-            # Use extended research for comprehensive multi-query analysis
-            # This performs 3 targeted queries via Google Search
-            research_text = perform_extended_research(
-                country_name=country.name,
-                topic=topic,
-                num_queries=3,  # Policy, statistics, and recent developments
-                results_per_query=8  # Up to 24 unique sources
+            use_openai_native_search = (
+                self.config.provider == AIProvider.openai and 
+                get_openai_api_key_from_config(self.config)
             )
             
-            self._log("ResearchAgent", AgentStatus.COMPLETE,
-                      f"Extended web research completed for {country.name}", "✅")
-            
-            # =========================================================
-            # STEP 4: SynthesisAgent - LLM Analysis
-            # =========================================================
-            self._log("SynthesisAgent", AgentStatus.SYNTHESIZING,
-                      f"Generating strategic analysis with {self.config.provider.value}...", "🧠")
-            
-            # Call LLM
-            analysis = self._call_llm(
-                country_name=country.name,
-                iso_code=iso_code,
-                metrics_text=metrics_text,
-                intelligence_text=intelligence_text,
-                research_text=research_text,
-                topic=topic,
-            )
+            if use_openai_native_search:
+                # -------------------------------------------------------
+                # OpenAI Native Web Search Path
+                # The model performs web research as part of reasoning
+                # -------------------------------------------------------
+                self._log("ResearchAgent", AgentStatus.RESEARCHING,
+                          f"Using OpenAI native web search for {country.name}...", "🌐")
+                
+                # Prepare the user prompt with internal data
+                user_prompt = STRATEGIC_DEEP_DIVE_USER_PROMPT.format(
+                    country_name=country.name,
+                    iso_code=iso_code,
+                    metrics_text=metrics_text,
+                    intelligence_text=intelligence_text,
+                    research_text="[OpenAI will perform real-time web research using its web_search tool]",
+                    topic=topic,
+                )
+                
+                self._log("SynthesisAgent", AgentStatus.SYNTHESIZING,
+                          f"Generating analysis with OpenAI web search + {self.config.model_name}...", "🧠")
+                
+                # Call OpenAI Responses API with native web search
+                api_key = get_openai_api_key_from_config(self.config)
+                analysis = call_openai_with_web_search(
+                    system_prompt=STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    country_iso_code=iso_code,
+                    api_key=api_key,
+                    model=self.config.model_name,
+                    temperature=self.config.temperature,
+                )
+                
+                self._log("ResearchAgent", AgentStatus.COMPLETE,
+                          "OpenAI native web research completed", "✅")
+                
+                # Update data sources to reflect OpenAI native search
+                data_sources = [
+                    "GOHIP Framework (Governance + 3 Pillars)",
+                    "Country Intelligence (ILO, WHO, WB, CPI, HDI, EPI, GBD, WJP)",
+                    "OpenAI Native Web Search (Real-time)",
+                ]
+                
+            else:
+                # -------------------------------------------------------
+                # Traditional Path: Tavily/SerpAPI + LangChain LLM
+                # -------------------------------------------------------
+                self._log("ResearchAgent", AgentStatus.RESEARCHING,
+                          f"Performing extended web research for {country.name}...", "🔍")
+                
+                # Use extended research for comprehensive multi-query analysis
+                # This performs 3 targeted queries via Tavily/SerpAPI/Google
+                research_text = perform_extended_research(
+                    country_name=country.name,
+                    topic=topic,
+                    num_queries=3,  # Policy, statistics, and recent developments
+                    results_per_query=8  # Up to 24 unique sources
+                )
+                
+                self._log("ResearchAgent", AgentStatus.COMPLETE,
+                          f"Extended web research completed for {country.name}", "✅")
+                
+                self._log("SynthesisAgent", AgentStatus.SYNTHESIZING,
+                          f"Generating strategic analysis with {self.config.provider.value}...", "🧠")
+                
+                # Call LangChain LLM with pre-gathered research
+                analysis = self._call_llm(
+                    country_name=country.name,
+                    iso_code=iso_code,
+                    metrics_text=metrics_text,
+                    intelligence_text=intelligence_text,
+                    research_text=research_text,
+                    topic=topic,
+                )
+                
+                data_sources = [
+                    "GOHIP Framework (Governance + 3 Pillars)",
+                    "Country Intelligence (ILO, WHO, WB, CPI, HDI, EPI, GBD, WJP)",
+                    "Web Research (Tavily/SerpAPI)",
+                ]
             
             if not analysis:
                 raise ValueError("LLM synthesis failed. Check AI configuration.")
@@ -428,11 +522,18 @@ class StrategicDeepDiveAgent:
             deep_dive.data_quality_notes = analysis.get("data_quality_notes")
             deep_dive.ai_provider = provider_name
             deep_dive.generation_log = [e.to_dict() for e in self.agent_log]
-            deep_dive.data_sources_used = [
-                "GOHIP Framework (Governance + 3 Pillars)",
-                "Country Intelligence (ILO, WHO, WB, CPI, HDI, EPI, GBD, WJP)",
-                "Web Research (SerpAPI)",
-            ]
+            deep_dive.data_sources_used = data_sources
+            
+            # Store external research summary if provided
+            if analysis.get("external_research_summary"):
+                deep_dive.external_research_summary = analysis.get("external_research_summary")
+            
+            # Store source URLs if captured
+            if analysis.get("source_urls"):
+                # Merge with existing source_urls if any
+                existing_urls = deep_dive.source_urls or []
+                new_urls = analysis.get("source_urls", [])
+                deep_dive.source_urls = list(set(existing_urls + new_urls))[:50]  # Cap at 50
             deep_dive.generated_at = datetime.utcnow()
             deep_dive.error_message = None
             

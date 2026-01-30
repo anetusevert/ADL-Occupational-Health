@@ -1237,6 +1237,198 @@ Output ONLY valid JSON matching the required schema."""
 
 
 # =============================================================================
+# OPENAI RESPONSES API WITH NATIVE WEB SEARCH
+# =============================================================================
+
+def call_openai_with_web_search(
+    system_prompt: str,
+    user_prompt: str,
+    country_iso_code: str,
+    api_key: str,
+    model: str = "gpt-4o",
+    temperature: float = 0.7,
+) -> Optional[Dict[str, Any]]:
+    """
+    Use OpenAI Responses API with native web_search tool.
+    
+    The model decides when to search the web and synthesizes results automatically.
+    This provides more integrated and contextual web research compared to 
+    separate Tavily/SerpAPI calls.
+    
+    Args:
+        system_prompt: System instructions for the AI
+        user_prompt: User prompt with data and analysis requirements
+        country_iso_code: ISO 3166-1 alpha-3 code (e.g., 'USA', 'GBR')
+        api_key: OpenAI API key
+        model: Model to use (default: gpt-4o)
+        temperature: Temperature for generation (default: 0.7)
+        
+    Returns:
+        Parsed JSON response or None on failure
+    """
+    import time
+    
+    MAX_RETRIES = 3
+    BASE_DELAY = 5
+    
+    try:
+        from openai import OpenAI
+        
+        logger.info(f"[OpenAI Web Search] Initializing with model: {model}")
+        
+        client = OpenAI(api_key=api_key)
+        
+        # Map ISO-3 to ISO-2 country code for location hint
+        # Common mappings (OpenAI expects 2-letter codes)
+        iso3_to_iso2 = {
+            "USA": "US", "GBR": "GB", "DEU": "DE", "FRA": "FR", "JPN": "JP",
+            "CHN": "CN", "IND": "IN", "BRA": "BR", "CAN": "CA", "AUS": "AU",
+            "MEX": "MX", "KOR": "KR", "ESP": "ES", "ITA": "IT", "NLD": "NL",
+            "CHE": "CH", "SAU": "SA", "ARE": "AE", "SGP": "SG", "ZAF": "ZA",
+            "NGA": "NG", "EGY": "EG", "TUR": "TR", "POL": "PL", "SWE": "SE",
+            "NOR": "NO", "DNK": "DK", "FIN": "FI", "BEL": "BE", "AUT": "AT",
+            "PRT": "PT", "GRC": "GR", "CZE": "CZ", "ROU": "RO", "HUN": "HU",
+            "ISR": "IL", "THA": "TH", "MYS": "MY", "IDN": "ID", "PHL": "PH",
+            "VNM": "VN", "PAK": "PK", "BGD": "BD", "ARG": "AR", "CHL": "CL",
+            "COL": "CO", "PER": "PE", "VEN": "VE", "KEN": "KE", "ETH": "ET",
+            "TZA": "TZ", "GHA": "GH", "UGA": "UG", "MAR": "MA", "DZA": "DZ",
+            "RUS": "RU", "UKR": "UA", "KAZ": "KZ", "UZB": "UZ", "IRN": "IR",
+            "IRQ": "IQ", "QAT": "QA", "KWT": "KW", "OMN": "OM", "BHR": "BH",
+            "JOR": "JO", "LBN": "LB", "NZL": "NZ", "IRL": "IE", "LUX": "LU",
+        }
+        
+        iso2_code = iso3_to_iso2.get(country_iso_code.upper(), country_iso_code[:2].upper())
+        
+        logger.info(f"[OpenAI Web Search] Using location hint: {iso2_code} (from {country_iso_code})")
+        
+        # Prepare the request with web_search tool
+        response = None
+        last_error = None
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                logger.info(f"[OpenAI Web Search] API call attempt {attempt + 1}/{MAX_RETRIES}")
+                
+                response = client.responses.create(
+                    model=model,
+                    tools=[{
+                        "type": "web_search",
+                        "user_location": {
+                            "type": "approximate",
+                            "country": iso2_code
+                        }
+                    }],
+                    input=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=temperature,
+                )
+                
+                break  # Success
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                is_rate_limit = any(x in error_str for x in ['rate', '429', 'quota', 'limit'])
+                
+                if is_rate_limit and attempt < MAX_RETRIES - 1:
+                    delay = BASE_DELAY * (2 ** attempt)
+                    logger.warning(f"[OpenAI Web Search] Rate limit hit, waiting {delay}s...")
+                    time.sleep(delay)
+                    last_error = e
+                else:
+                    raise e
+        
+        if response is None:
+            if last_error:
+                raise last_error
+            logger.error("[OpenAI Web Search] No response after retries")
+            return None
+        
+        # Extract the output text
+        output_text = response.output_text
+        
+        if not output_text:
+            logger.error("[OpenAI Web Search] Empty response from API")
+            return None
+        
+        logger.info(f"[OpenAI Web Search] Response received: {len(output_text)} chars")
+        
+        # Extract citations/sources from the response if available
+        sources = []
+        if hasattr(response, 'output') and response.output:
+            for item in response.output:
+                if hasattr(item, 'type') and item.type == 'web_search_call':
+                    if hasattr(item, 'action') and hasattr(item.action, 'sources'):
+                        sources.extend(item.action.sources)
+                elif hasattr(item, 'content'):
+                    for content_item in item.content:
+                        if hasattr(content_item, 'annotations'):
+                            for annotation in content_item.annotations:
+                                if hasattr(annotation, 'url'):
+                                    sources.append({
+                                        'url': annotation.url,
+                                        'title': getattr(annotation, 'title', '')
+                                    })
+        
+        if sources:
+            logger.info(f"[OpenAI Web Search] Found {len(sources)} source citations")
+        
+        # Parse JSON from the response
+        content = output_text.strip()
+        
+        # Handle markdown code blocks
+        if content.startswith("```"):
+            parts = content.split("```")
+            if len(parts) >= 2:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+        
+        # Parse JSON
+        result = json.loads(content)
+        
+        # Add sources to result if not already present
+        if sources and 'source_urls' not in result:
+            result['source_urls'] = [s.get('url', s) if isinstance(s, dict) else s for s in sources[:20]]
+        
+        logger.info(f"[OpenAI Web Search] Successfully parsed response with {len(result)} keys")
+        return result
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"[OpenAI Web Search] JSON parse error: {e}")
+        logger.error(f"[OpenAI Web Search] Content: {content[:500] if content else 'EMPTY'}")
+        return None
+    except ImportError as e:
+        logger.error(f"[OpenAI Web Search] OpenAI package not installed or outdated: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"[OpenAI Web Search] API call failed: {type(e).__name__}: {e}")
+        return None
+
+
+def get_openai_api_key_from_config(config: AIConfig) -> Optional[str]:
+    """
+    Extract and decrypt OpenAI API key from config.
+    
+    Args:
+        config: AIConfig object
+        
+    Returns:
+        Decrypted API key or None
+    """
+    if not config or not config.api_key_encrypted:
+        return None
+    
+    try:
+        return decrypt_api_key(config.api_key_encrypted)
+    except Exception as e:
+        logger.error(f"[OpenAI Web Search] Failed to decrypt API key: {e}")
+        return None
+
+
+# =============================================================================
 # DEEP DIVE ORCHESTRATOR CLASS
 # =============================================================================
 

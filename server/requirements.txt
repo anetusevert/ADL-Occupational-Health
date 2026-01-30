@@ -31,7 +31,7 @@ langchain-openai>=0.0.5
 langchain-anthropic>=0.1.0
 langchain-google-genai>=1.0.0
 langchain-core>=0.1.0
-openai>=1.10.0
+openai>=1.30.0  # Responses API with web_search tool support
 anthropic>=0.18.0
 google-generativeai>=0.4.0
 
