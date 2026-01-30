@@ -3,6 +3,7 @@ GOHIP - Global Occupational Health Intelligence Platform
 Main FastAPI Application Entry Point
 """
 
+import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +26,15 @@ app = FastAPI(
 )
 
 # Configure CORS for frontend communication
-CORS_ORIGINS = [
+# Production origins from environment variable (comma-separated)
+production_origins = [
+    origin.strip() 
+    for origin in os.getenv("CORS_ORIGINS", "").split(",") 
+    if origin.strip()
+]
+
+# Local development origins
+local_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
@@ -37,6 +46,9 @@ CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# Combine production and local origins
+CORS_ORIGINS = production_origins + local_origins
 
 app.add_middleware(
     CORSMiddleware,
