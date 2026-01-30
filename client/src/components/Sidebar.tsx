@@ -26,6 +26,7 @@ import {
   Bot,
   Table2,
   Calculator,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -37,21 +38,29 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-const mainNavItems: NavItem[] = [
-  { path: "/framework", label: "Framework", icon: Layers },
+// Framework - Standalone at top
+const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: Layers };
+
+// Analytics Suite - Data exploration and analysis
+const analyticsSuiteItems: NavItem[] = [
   { path: "/", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Country Deep Dive", icon: Brain },
-  { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { path: "/compare", label: "Compare", icon: GitCompare },
 ];
 
+// Tool Suite - Interactive tools for users
+const toolSuiteItems: NavItem[] = [
+  { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { path: "/compare", label: "Compare", icon: GitCompare },
+  { path: "/simulator", label: "Policy Simulator", icon: Target },
+  { path: "/admin/metric-calculator", label: "Metric Calculator", icon: Calculator },
+];
+
+// Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/strategic-deep-dive", label: "Country Deep Dive", icon: Brain, adminOnly: true },
+  { path: "/admin/strategic-deep-dive", label: "Strategic Deep Dive", icon: Brain, adminOnly: true },
   { path: "/admin/generation-progress", label: "Generation Progress", icon: Activity, adminOnly: true },
-  { path: "/simulator", label: "Policy Simulator", icon: Target, adminOnly: true },
   { path: "/admin/data-engine", label: "Data Engine", icon: Database, adminOnly: true },
-  { path: "/admin/metric-calculator", label: "Metric Calculator", icon: Calculator, adminOnly: true },
   { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
@@ -163,7 +172,17 @@ export function Sidebar() {
           </AnimatePresence>
         </div>
 
-        {/* Section: Analytics */}
+        {/* Framework - Standalone Top Item */}
+        <div className="mb-4">
+          <NavLink
+            item={frameworkItem}
+            isActive={location.pathname === frameworkItem.path}
+            isCollapsed={isCollapsed}
+            isHighlight
+          />
+        </div>
+
+        {/* Section: Analytics Suite */}
         <AnimatePresence>
           {!isCollapsed && (
             <motion.div
@@ -180,8 +199,36 @@ export function Sidebar() {
           )}
         </AnimatePresence>
 
+        <div className="space-y-1 mb-4">
+          {analyticsSuiteItems.map((item) => (
+            <NavLink
+              key={item.path}
+              item={item}
+              isActive={location.pathname === item.path}
+              isCollapsed={isCollapsed}
+            />
+          ))}
+        </div>
+
+        {/* Section: Tool Suite */}
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="px-3 mb-2 flex items-center gap-2"
+            >
+              <Wrench className="w-3 h-3 text-white/30" />
+              <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+                Tool Suite
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="space-y-1">
-          {mainNavItems.map((item) => (
+          {toolSuiteItems.map((item) => (
             <NavLink
               key={item.path}
               item={item}
@@ -306,11 +353,13 @@ function NavLink({
   isActive,
   isCollapsed,
   isAdmin = false,
+  isHighlight = false,
 }: {
   item: NavItem;
   isActive: boolean;
   isCollapsed: boolean;
   isAdmin?: boolean;
+  isHighlight?: boolean;
 }) {
   const Icon = item.icon;
 
@@ -322,14 +371,19 @@ function NavLink({
         isActive
           ? isAdmin
             ? "bg-amber-500/15 text-amber-400 shadow-lg shadow-amber-500/5"
-            : "bg-adl-accent/15 text-adl-accent shadow-lg shadow-adl-accent/5"
-          : "text-white/50 hover:text-white hover:bg-white/5",
+            : isHighlight
+              ? "bg-adl-accent/20 text-adl-accent shadow-lg shadow-adl-accent/10 border border-adl-accent/30"
+              : "bg-adl-accent/15 text-adl-accent shadow-lg shadow-adl-accent/5"
+          : isHighlight
+            ? "text-white/70 hover:text-adl-accent hover:bg-adl-accent/10 border border-transparent hover:border-adl-accent/20"
+            : "text-white/50 hover:text-white hover:bg-white/5",
         isCollapsed && "justify-center"
       )}
     >
       <Icon className={cn(
         "w-5 h-5 flex-shrink-0", 
-        isActive && (isAdmin ? "text-amber-400" : "text-adl-accent")
+        isActive && (isAdmin ? "text-amber-400" : "text-adl-accent"),
+        isHighlight && !isActive && "text-adl-accent/60"
       )} />
       <AnimatePresence>
         {!isCollapsed && (
@@ -338,7 +392,10 @@ function NavLink({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.15 }}
-            className="text-sm font-medium whitespace-nowrap"
+            className={cn(
+              "text-sm font-medium whitespace-nowrap",
+              isHighlight && "font-semibold"
+            )}
           >
             {item.label}
           </motion.span>

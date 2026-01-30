@@ -327,8 +327,8 @@ async def get_available_categories() -> AvailableCategoriesResponse:
     Generate a pivot table for selected countries and categories.
     
     **Constraints:**
-    - Maximum 10 countries can be selected
     - At least 1 country and 1 category required
+    - No upper limit on countries (all countries supported)
     
     **Response:**
     - Rows: Metrics from selected categories
@@ -337,19 +337,12 @@ async def get_available_categories() -> AvailableCategoriesResponse:
     """
 )
 async def generate_pivot_table(
-    countries: List[str] = Query(..., description="List of ISO codes (max 10)", max_length=10),
+    countries: List[str] = Query(..., description="List of ISO codes"),
     categories: List[str] = Query(..., description="List of category IDs"),
     db: Session = Depends(get_db)
 ) -> PivotTableResponse:
     """Generate a pivot table for the specified countries and categories."""
     from datetime import datetime
-    
-    # Validate country count
-    if len(countries) > 10:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum 10 countries allowed"
-        )
     
     if len(countries) == 0:
         raise HTTPException(

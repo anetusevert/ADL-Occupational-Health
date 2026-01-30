@@ -563,6 +563,224 @@ function DataSourceTabs({ items, onSourceClick }: DataSourceTabsProps) {
 }
 
 // =============================================================================
+// DATA SOURCE PANEL COMPONENT (Left Panel)
+// =============================================================================
+
+interface DataSourcePanelProps {
+  sources: DataSourceDefinition[];
+  items: SourceRegistryItem[];
+  activeSourceIds: Set<string>;
+  onToggleSource: (sourceId: string) => void;
+  onSourceClick: (source: DataSourceDefinition) => void;
+}
+
+function DataSourcePanel({ sources, items, activeSourceIds, onToggleSource, onSourceClick }: DataSourcePanelProps) {
+  return (
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 p-4 border-b border-white/5 bg-white/5">
+        <div className="flex items-center gap-2">
+          <Server className="w-4 h-4 text-emerald-400" />
+          <h2 className="text-sm font-semibold text-white">Data Sources</h2>
+        </div>
+        <p className="text-xs text-white/40 mt-1">Toggle sources on/off</p>
+      </div>
+      
+      {/* Source List */}
+      <div className="flex-1 overflow-auto scrollbar-thin p-3 space-y-2">
+        {sources.map(source => {
+          const count = items.filter(item => matchesSource(item, source)).length;
+          const isActive = activeSourceIds.has(source.id);
+          
+          return (
+            <motion.div
+              key={source.id}
+              className={cn(
+                "p-3 rounded-lg border transition-all cursor-pointer",
+                isActive
+                  ? cn(source.bgColor, source.borderColor)
+                  : "bg-slate-800/30 border-slate-700/50 opacity-50"
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div 
+                  className="flex items-center gap-2 flex-1"
+                  onClick={() => isActive && onSourceClick(source)}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    isActive ? source.bgColor : "bg-slate-700/50"
+                  )}>
+                    <Database className={cn("w-4 h-4", isActive ? source.color : "text-slate-500")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      "text-xs font-medium truncate",
+                      isActive ? "text-white" : "text-slate-400"
+                    )}>
+                      {source.shortName}
+                    </p>
+                    <p className="text-[10px] text-white/30 truncate">{source.name}</p>
+                  </div>
+                </div>
+                
+                {/* Toggle Switch */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSource(source.id);
+                  }}
+                  className={cn(
+                    "w-10 h-5 rounded-full relative transition-colors",
+                    isActive ? "bg-emerald-500" : "bg-slate-600"
+                  )}
+                >
+                  <motion.div
+                    className="w-4 h-4 bg-white rounded-full absolute top-0.5"
+                    animate={{ left: isActive ? "1.25rem" : "0.125rem" }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                </button>
+              </div>
+              
+              {/* Stats */}
+              <div className="flex items-center justify-between text-[10px]">
+                <span className={isActive ? source.color : "text-slate-500"}>
+                  {count} records
+                </span>
+                {isActive && count > 0 && (
+                  <button
+                    onClick={() => onSourceClick(source)}
+                    className="text-white/40 hover:text-white/70 flex items-center gap-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Details
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+      
+      {/* Footer Stats */}
+      <div className="flex-shrink-0 p-3 border-t border-white/5 bg-white/5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-white/40">Active Sources</span>
+          <span className="text-emerald-400 font-medium">{activeSourceIds.size} / {sources.length}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// LIVE OPS PANEL COMPONENT (Right Panel - Inline)
+// =============================================================================
+
+interface LiveOpsPanelProps {
+  onOpenFullConsole: () => void;
+  lastSync: string | null;
+  totalMetrics: number;
+  countriesCount: number;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+}
+
+function LiveOpsPanel({ onOpenFullConsole, lastSync, totalMetrics, countriesCount, onRefresh, isRefreshing }: LiveOpsPanelProps) {
+  const formatDate = (isoString: string | null) => {
+    if (!isoString) return "Never";
+    return new Date(isoString).toLocaleString();
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 p-4 border-b border-white/5 bg-gradient-to-r from-adl-accent/20 to-cyan-500/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-adl-accent/20 rounded-lg flex items-center justify-center border border-adl-accent/30">
+              <Globe className="w-4 h-4 text-adl-accent" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-white">Live Ops Center</h2>
+              <p className="text-[10px] text-white/40">Real-time data updates</p>
+            </div>
+          </div>
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+        </div>
+      </div>
+      
+      {/* Quick Stats */}
+      <div className="flex-shrink-0 p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 bg-slate-800/50 rounded-lg">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Total Metrics</p>
+            <p className="text-lg font-bold text-white">{totalMetrics || "—"}</p>
+          </div>
+          <div className="p-2.5 bg-slate-800/50 rounded-lg">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Countries</p>
+            <p className="text-lg font-bold text-white">{countriesCount}</p>
+          </div>
+        </div>
+        
+        <div className="p-2.5 bg-slate-800/50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Last Sync</p>
+              <p className="text-xs text-white font-medium">{formatDate(lastSync)}</p>
+            </div>
+            <CheckCircle2 className={cn(
+              "w-4 h-4",
+              lastSync ? "text-emerald-400" : "text-slate-500"
+            )} />
+          </div>
+        </div>
+      </div>
+      
+      {/* Actions */}
+      <div className="flex-1 p-3 space-y-2">
+        <button
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all",
+            "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+            "hover:bg-emerald-500/30 hover:border-emerald-500/50",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
+          )}
+        >
+          <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+          {isRefreshing ? "Refreshing..." : "Refresh Data"}
+        </button>
+        
+        <button
+          onClick={onOpenFullConsole}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all",
+            "bg-adl-accent text-white",
+            "hover:bg-adl-blue-light"
+          )}
+        >
+          <Activity className="w-4 h-4" />
+          Open Full Console
+        </button>
+      </div>
+      
+      {/* Status Footer */}
+      <div className="flex-shrink-0 p-3 border-t border-white/5 bg-white/5">
+        <div className="flex items-center gap-2 text-xs text-white/40">
+          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+          <span>System Online</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -572,6 +790,9 @@ export function DataEngine() {
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSource, setSelectedSource] = useState<DataSourceDefinition | null>(null);
+  const [activeSourceIds, setActiveSourceIds] = useState<Set<string>>(() => 
+    new Set(DATA_SOURCES.map(s => s.id))
+  );
 
   // Fetch source registry data
   const { 
@@ -579,6 +800,7 @@ export function DataEngine() {
     isLoading, 
     isError,
     refetch,
+    isFetching,
     dataUpdatedAt 
   } = useQuery({
     queryKey: ["source-registry"],
@@ -589,6 +811,19 @@ export function DataEngine() {
     staleTime: 30000,
   });
 
+  // Toggle source active state
+  const handleToggleSource = (sourceId: string) => {
+    setActiveSourceIds(prev => {
+      const next = new Set(prev);
+      if (next.has(sourceId)) {
+        next.delete(sourceId);
+      } else {
+        next.add(sourceId);
+      }
+      return next;
+    });
+  };
+
   // Get unique countries for filter dropdown
   const countries = useMemo(() => {
     if (!registry?.items) return [];
@@ -596,19 +831,17 @@ export function DataEngine() {
     return unique.sort();
   }, [registry]);
 
-  // Count active data sources
-  const activeSourcesCount = useMemo(() => {
-    if (!registry?.items) return 0;
-    return DATA_SOURCES.filter(source => 
-      registry.items.some(item => matchesSource(item, source))
-    ).length;
-  }, [registry]);
-
-  // Filter and search items
+  // Filter items by active sources, country filter, and search
   const filteredItems = useMemo(() => {
     if (!registry?.items) return [];
     
     return registry.items.filter(item => {
+      // Check if any active source matches
+      const matchesActiveSource = DATA_SOURCES.some(source => 
+        activeSourceIds.has(source.id) && matchesSource(item, source)
+      );
+      if (!matchesActiveSource) return false;
+      
       if (countryFilter !== "all" && item.country_iso !== countryFilter) return false;
       
       if (searchTerm) {
@@ -622,7 +855,7 @@ export function DataEngine() {
       
       return true;
     });
-  }, [registry, countryFilter, searchTerm]);
+  }, [registry, activeSourceIds, countryFilter, searchTerm]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredItems.length / ROWS_PER_PAGE);
@@ -640,12 +873,6 @@ export function DataEngine() {
     setCurrentPage(1);
   };
 
-  const formatLastUpdated = (isoString: string | null) => {
-    if (!isoString) return "Never";
-    const date = new Date(isoString);
-    return date.toLocaleString();
-  };
-
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
@@ -653,7 +880,7 @@ export function DataEngine() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Page Header */}
-      <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
             <Database className="w-5 h-5 text-emerald-400" />
@@ -662,7 +889,7 @@ export function DataEngine() {
             <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
               Data Engine
               <span className="px-2 py-0.5 text-[10px] font-mono bg-emerald-500/20 text-emerald-400 rounded-full">
-                v2.0
+                v3.0
               </span>
             </h1>
             <p className="text-white/40 text-sm">
@@ -670,101 +897,49 @@ export function DataEngine() {
             </p>
           </div>
         </div>
-        
-        <button
-          onClick={() => setIsConsoleOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-adl-accent hover:bg-adl-blue-light text-white font-medium rounded-lg transition-all duration-200 text-sm"
-        >
-          <Globe className="w-4 h-4" />
-          <span>Live Ops Center</span>
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Data Source Tabs - Clickable */}
-      <div className="flex-shrink-0 mb-4 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Server className="w-4 h-4 text-emerald-400" />
-            Data Sources
-            <span className="text-xs text-slate-500 font-normal ml-2">
-              Click to view details
-            </span>
-          </h2>
-          <span className="text-xs text-emerald-400">
-            {activeSourcesCount} Active Sources
-          </span>
+      {/* Three-Panel Layout */}
+      <div className="flex-1 min-h-0 grid grid-cols-12 gap-4">
+        {/* Left Panel: Data Sources (1/3) */}
+        <div className="col-span-3">
+          <DataSourcePanel
+            sources={DATA_SOURCES}
+            items={registry?.items || []}
+            activeSourceIds={activeSourceIds}
+            onToggleSource={handleToggleSource}
+            onSourceClick={setSelectedSource}
+          />
         </div>
-        <DataSourceTabs 
-          items={registry?.items || []} 
-          onSourceClick={setSelectedSource}
-        />
-      </div>
-
-      {/* Status Bar */}
-      <div className="flex-shrink-0 grid grid-cols-4 gap-3 mb-4">
-        <StatusCard
-          icon={Server}
-          label="Data Sources"
-          value={`${activeSourcesCount} Active`}
-          subtext="Click tabs above for details"
-          color="cyan"
-        />
-        <StatusCard
-          icon={Activity}
-          label="Total Metrics"
-          value={registry?.total?.toString() || "—"}
-          subtext="Across all countries"
-          color="emerald"
-        />
-        <StatusCard
-          icon={Clock}
-          label="Last Sync"
-          value={registry?.last_updated ? "Synced" : "Never"}
-          subtext={formatLastUpdated(registry?.last_updated || null)}
-          color="amber"
-        />
-        <StatusCard
-          icon={CheckCircle2}
-          label="Countries"
-          value={countries.length.toString()}
-          subtext="In registry"
-          color="purple"
-        />
-      </div>
-
-      {/* Main Content: Source Registry */}
-      <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex flex-col">
-        {/* Table Header */}
-        <div className="flex-shrink-0 p-4 border-b border-white/5 bg-white/5">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-semibold text-white">Source Registry</h2>
-              <span className="text-white/30 text-xs ml-2">
-                {filteredItems.length} records
-              </span>
-            </div>
-            
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search metrics..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-64 pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
-                />
+        
+        {/* Middle Panel: Data Registry (1/3) */}
+        <div className="col-span-6 flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+          {/* Table Header */}
+          <div className="flex-shrink-0 p-3 border-b border-white/5 bg-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-white">Source Registry</h2>
+                <span className="text-white/30 text-xs">{filteredItems.length} records</span>
               </div>
               
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              {/* Compact Filters */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-40 pl-8 pr-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                
                 <select
                   value={countryFilter}
                   onChange={(e) => handleCountryFilterChange(e.target.value)}
-                  className="pl-10 pr-8 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-emerald-500/50"
+                  className="px-2 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-xs text-white appearance-none cursor-pointer focus:outline-none focus:border-emerald-500/50"
                 >
                   <option value="all">All Countries</option>
                   {countries.map(iso => (
@@ -772,233 +947,150 @@ export function DataEngine() {
                   ))}
                 </select>
               </div>
-              
-              <button
-                onClick={() => refetch()}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                title="Refresh data"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
             </div>
           </div>
-        </div>
 
-        {/* Table Content */}
-        <div className="flex-1 overflow-auto scrollbar-thin">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-              <span className="ml-3 text-slate-400">Loading registry...</span>
-            </div>
-          ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertTriangle className="w-12 h-12 text-amber-400 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Connection Error</h3>
-              <p className="text-slate-400 mb-4">Unable to fetch source registry data.</p>
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Database className="w-12 h-12 text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No Data Found</h3>
-              <p className="text-slate-400 mb-4">
-                {searchTerm || countryFilter !== "all" 
-                  ? "No metrics match your filters." 
-                  : "Run the ETL pipeline to populate the registry."
-                }
-              </p>
-              <button
-                onClick={() => setIsConsoleOpen(true)}
-                className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors"
-              >
-                <Globe className="w-4 h-4 inline mr-2" />
-                Open Live Ops Center
-              </button>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-700/50 bg-slate-800/20">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Country
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Metric
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Value
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Source
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/30">
-                {paginatedItems.map((item, index) => (
-                  <tr 
-                    key={`${item.country_iso}-${item.metric}-${index}`}
-                    className="hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded">
-                          {item.country_iso}
+          {/* Table Content */}
+          <div className="flex-1 overflow-auto scrollbar-thin">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
+                <span className="ml-2 text-slate-400 text-sm">Loading...</span>
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <AlertTriangle className="w-10 h-10 text-amber-400 mb-3" />
+                <h3 className="text-sm font-medium text-white mb-1">Connection Error</h3>
+                <button
+                  onClick={() => refetch()}
+                  className="px-3 py-1.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Database className="w-10 h-10 text-slate-600 mb-3" />
+                <h3 className="text-sm font-medium text-white mb-1">No Data Found</h3>
+                <p className="text-slate-400 text-xs">
+                  {searchTerm || countryFilter !== "all" 
+                    ? "No metrics match your filters." 
+                    : "Enable sources or run ETL."
+                  }
+                </p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-700/50 bg-slate-800/20">
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-slate-400 uppercase">Country</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-slate-400 uppercase">Metric</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-slate-400 uppercase">Value</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-slate-400 uppercase">Source</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/30">
+                  {paginatedItems.map((item, index) => (
+                    <tr 
+                      key={`${item.country_iso}-${item.metric}-${index}`}
+                      className="hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-slate-700/50 text-slate-300 rounded">
+                            {item.country_iso}
+                          </span>
+                          <span className="text-white text-xs truncate max-w-[80px]" title={item.country_name}>
+                            {item.country_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-slate-300 text-xs truncate block max-w-[150px]" title={item.metric}>
+                          {item.metric}
                         </span>
-                        <span className="text-white text-sm">
-                          {item.country_name}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="font-mono text-emerald-400 text-xs">
+                          {item.value || "—"}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-slate-300 text-sm">
-                        {item.metric}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {item.value ? (
-                        <span className="font-mono text-emerald-400 text-sm">
-                          {item.value}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 text-sm italic">
-                          No data
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {item.source_url ? (
-                        isValidUrl(item.source_url) ? (
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.source_url && isValidUrl(item.source_url) ? (
                           <a
                             href={ensureAbsoluteUrl(item.source_url)!}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg hover:bg-cyan-500/20 transition-colors group"
+                            className="inline-flex items-center gap-1 text-cyan-400 text-[10px] hover:underline"
                           >
-                            <ExternalLink className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                            <span className="font-mono truncate max-w-[200px]">
-                              {getUrlHostname(item.source_url)}
-                            </span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                            {getUrlHostname(item.source_url)}
                           </a>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700/50 text-slate-300 text-xs rounded-lg">
-                            <Database className="w-3 h-3 text-slate-400" />
-                            <span className="truncate max-w-[200px]" title={item.source_url}>
-                              {item.source_url}
-                            </span>
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-slate-600 text-xs italic">
-                          Internal / Calculated
-                        </span>
+                          <span className="text-slate-600 text-[10px]">Internal</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          
+          {/* Pagination Footer */}
+          {filteredItems.length > 0 && (
+            <div className="flex-shrink-0 px-3 py-2 border-t border-white/5 bg-white/5">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] text-slate-500">
+                  {startIndex + 1}-{Math.min(endIndex, filteredItems.length)} of {filteredItems.length}
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={cn(
+                        "p-1 rounded transition-colors",
+                        currentPage === 1 ? "text-slate-600" : "text-slate-400 hover:text-white"
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] text-slate-400 px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={cn(
+                        "p-1 rounded transition-colors",
+                        currentPage === totalPages ? "text-slate-600" : "text-slate-400 hover:text-white"
+                      )}
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
         
-        {/* Pagination Footer */}
-        {filteredItems.length > 0 && (
-          <div className="flex-shrink-0 px-4 py-2.5 border-t border-white/5 bg-white/5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="text-xs text-slate-500">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredItems.length)} of {filteredItems.length} metrics
-                {dataUpdatedAt && (
-                  <span className="ml-4">
-                    Cache: {new Date(dataUpdatedAt).toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-              
-              {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => goToPage(1)}
-                    disabled={currentPage === 1}
-                    className={cn(
-                      "p-1.5 rounded-lg transition-colors",
-                      currentPage === 1
-                        ? "text-slate-600 cursor-not-allowed"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    )}
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={cn(
-                      "p-1.5 rounded-lg transition-colors",
-                      currentPage === 1
-                        ? "text-slate-600 cursor-not-allowed"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    )}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNum = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
-                      if (pageNum < 1 || pageNum > totalPages) return null;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => goToPage(pageNum)}
-                          className={cn(
-                            "w-8 h-8 text-xs rounded-lg transition-colors",
-                            pageNum === currentPage
-                              ? "bg-emerald-500/20 text-emerald-400 font-medium"
-                              : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                          )}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={cn(
-                      "p-1.5 rounded-lg transition-colors",
-                      currentPage === totalPages
-                        ? "text-slate-600 cursor-not-allowed"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    )}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => goToPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className={cn(
-                      "p-1.5 rounded-lg transition-colors",
-                      currentPage === totalPages
-                        ? "text-slate-600 cursor-not-allowed"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    )}
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Right Panel: Live Ops Center (1/3) */}
+        <div className="col-span-3">
+          <LiveOpsPanel
+            onOpenFullConsole={() => setIsConsoleOpen(true)}
+            lastSync={registry?.last_updated || null}
+            totalMetrics={registry?.total || 0}
+            countriesCount={countries.length}
+            onRefresh={() => refetch()}
+            isRefreshing={isFetching}
+          />
+        </div>
       </div>
 
-      {/* Live Operations Center Modal */}
+      {/* Live Operations Center Modal (Full Console) */}
       <VisualSyncConsole 
         isOpen={isConsoleOpen} 
         onClose={() => setIsConsoleOpen(false)} 
