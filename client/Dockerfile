@@ -9,8 +9,8 @@ WORKDIR /app
 # Copy package files first for better layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (using legacy-peer-deps for React 19 compatibility)
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
