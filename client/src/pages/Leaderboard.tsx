@@ -114,6 +114,7 @@ interface LeaderboardCountry {
   iso_code: string;
   name: string;
   maturity_score: number | null;
+  flag_url: string | null;
   data_coverage: number;
   governance_score: number | null;
   pillar1_score: number | null;
@@ -268,6 +269,7 @@ export function Leaderboard() {
         iso_code: country.iso_code,
         name: country.name,
         maturity_score: country.maturity_score,
+        flag_url: country.flag_url ?? null,
         data_coverage: dataCoverage,
         governance_score: governanceScore,
         pillar1_score: pillar1Score,
@@ -502,8 +504,8 @@ export function Leaderboard() {
             </div>
           ) : (
             <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-700/50 bg-slate-800/20">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-slate-700/50 bg-slate-800 backdrop-blur-sm">
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-20">
                     Rank
                   </th>

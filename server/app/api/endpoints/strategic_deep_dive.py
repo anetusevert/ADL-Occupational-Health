@@ -1065,10 +1065,15 @@ async def generate_controlled(
         )
 
 
+class AddToQueueRequest(BaseModel):
+    """Request to add topics to queue."""
+    topics: Optional[List[str]] = None
+
+
 @router.post("/{iso_code}/add-to-queue")
 async def add_country_to_queue(
     iso_code: str,
-    topics: List[str] = None,
+    request: AddToQueueRequest = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
@@ -1092,6 +1097,7 @@ async def add_country_to_queue(
         )
     
     # Default to all topics if not specified
+    topics = request.topics if request and request.topics else None
     topics_to_add = topics if topics else ALL_TOPICS
     
     added_count = 0
