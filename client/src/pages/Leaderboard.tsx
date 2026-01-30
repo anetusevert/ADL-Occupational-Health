@@ -27,10 +27,11 @@ import {
   ArrowUp,
   ArrowDown
 } from "lucide-react";
-import { fetchAllCountries, MOCK_COUNTRY_DATA } from "../services/api";
+import { fetchComparisonCountries } from "../services/api";
 import { cn, getMaturityStage } from "../lib/utils";
+import { calculateDataCoverage } from "../lib/dataCoverage";
 import { CountryFlag } from "../components";
-import type { CountryListItem } from "../types/country";
+import type { Country } from "../types/country";
 
 // G20 ISO codes (Alpha-3)
 const G20_COUNTRIES = [
@@ -108,13 +109,17 @@ const SORT_FIELD_LABELS: Record<SortField, string> = {
   data_coverage: "Data Confidence",
 };
 
-// Extended country data with mock enrichment
-interface LeaderboardCountry extends CountryListItem {
-  data_coverage: number | null;
+// Extended country data with calculated coverage
+interface LeaderboardCountry {
+  iso_code: string;
+  name: string;
+  maturity_score: number | null;
+  data_coverage: number;
   governance_score: number | null;
   pillar1_score: number | null;
   pillar2_score: number | null;
   pillar3_score: number | null;
+  country: Country; // Keep full country data for reference
 }
 
 /**
@@ -180,16 +185,7 @@ function SortableHeader({
 /**
  * Get confidence shield based on data coverage
  */
-function getConfidenceShield(coverage: number | null) {
-  if (coverage === null) {
-    return {
-      icon: ShieldQuestion,
-      color: "text-slate-500",
-      bgColor: "bg-slate-500/10",
-      label: "Unknown"
-    };
-  }
-  
+function getConfidenceShield(coverage: number) {
   if (coverage >= 80) {
     return {
       icon: ShieldCheck,
@@ -202,19 +198,29 @@ function getConfidenceShield(coverage: number | null) {
   if (coverage >= 50) {
     return {
       icon: Shield,
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
       label: "Medium"
     };
   }
   
+  if (coverage > 0) {
+    return {
+      icon: ShieldAlert,
+      color: "text-red-400",
+      bgColor: "bg-red-500/10",
+      label: "Low"
+    };
+  }
+  
   return {
-    icon: ShieldAlert,
-    color: "text-red-400",
-    bgColor: "bg-red-500/10",
-    label: "Low"
+    icon: ShieldQuestion,
+    color: "text-slate-500",
+    bgColor: "bg-slate-500/10",
+    label: "Unknown"
   };
 }
+
 
 export function Leaderboard() {
   const navigate = useNavigate();
@@ -234,51 +240,40 @@ export function Leaderboard() {
     }
   };
 
-  // Fetch countries data
+  // Fetch full countries data for accurate coverage calculation
   const { data, isLoading, error } = useQuery({
-    queryKey: ["countries"],
-    queryFn: fetchAllCountries,
+    queryKey: ["countries-comparison"],
+    queryFn: fetchComparisonCountries,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 
-  // Enrich countries with mock data for fatality rate, data coverage, and pillar scores
+  // Process countries with calculated data coverage from actual data
   const enrichedCountries: LeaderboardCountry[] = useMemo(() => {
     if (!data?.countries) return [];
     
     return data.countries.map((country) => {
-      const mockData = MOCK_COUNTRY_DATA[country.iso_code];
-      const score = country.maturity_score;
+      // Calculate actual data coverage from populated fields
+      const dataCoverage = calculateDataCoverage(country);
       
-      // Generate simulated data coverage based on maturity score
-      // Higher maturity countries tend to have better data systems
-      const simulatedCoverage = score 
-        ? Math.min(100, Math.max(30, score + Math.random() * 20 - 10))
+      // Extract pillar scores from actual data
+      const governanceScore = country.governance?.strategic_capacity_score ?? null;
+      const pillar1Score = country.pillar_1_hazard?.control_maturity_score ?? null;
+      const pillar2Score = country.pillar_2_vigilance?.vulnerability_index 
+        ? Math.round(100 - country.pillar_2_vigilance.vulnerability_index) // Invert: lower vulnerability = higher score
         : null;
-      
-      // Generate simulated pillar scores based on maturity score (0-100 scale)
-      // Each pillar varies slightly around the base maturity score
-      const baseScore = score ? (score / 4) * 100 : null; // Convert 1-4 scale to 0-100
-      const governanceScore = baseScore !== null 
-        ? Math.min(100, Math.max(0, baseScore + (Math.random() * 15 - 7.5)))
-        : null;
-      const pillar1Score = baseScore !== null 
-        ? Math.min(100, Math.max(0, baseScore + (Math.random() * 15 - 7.5)))
-        : null;
-      const pillar2Score = baseScore !== null 
-        ? Math.min(100, Math.max(0, baseScore + (Math.random() * 15 - 7.5)))
-        : null;
-      const pillar3Score = baseScore !== null 
-        ? Math.min(100, Math.max(0, baseScore + (Math.random() * 15 - 7.5)))
-        : null;
+      const pillar3Score = country.pillar_3_restoration?.rehab_access_score ?? null;
       
       return {
-        ...country,
-        data_coverage: mockData?.data_coverage_score ?? simulatedCoverage,
+        iso_code: country.iso_code,
+        name: country.name,
+        maturity_score: country.maturity_score,
+        data_coverage: dataCoverage,
         governance_score: governanceScore,
         pillar1_score: pillar1Score,
         pillar2_score: pillar2Score,
         pillar3_score: pillar3Score,
+        country: country,
       };
     });
   }, [data]);
@@ -314,7 +309,7 @@ export function Leaderboard() {
         filtered = filtered.filter((c) => CONTINENT_MAP[c.iso_code] === "Oceania");
         break;
       case "high_confidence":
-        filtered = filtered.filter((c) => c.data_coverage !== null && c.data_coverage > 80);
+        filtered = filtered.filter((c) => c.data_coverage >= 80);
         break;
       default:
         // "global" - show all
@@ -717,11 +712,9 @@ export function Leaderboard() {
                           <span className={cn("text-xs font-medium", confidence.color)}>
                             {confidence.label}
                           </span>
-                          {country.data_coverage !== null && (
-                            <span className="text-slate-500 text-xs ml-1">
-                              ({country.data_coverage.toFixed(0)}%)
-                            </span>
-                          )}
+                          <span className="text-slate-500 text-xs ml-1">
+                            ({country.data_coverage}%)
+                          </span>
                         </div>
                       </td>
 

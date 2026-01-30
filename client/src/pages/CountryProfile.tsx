@@ -25,46 +25,7 @@ import { CountryStatsPanel } from "../components/CountryStatsPanel";
 import { FrameworkReportTiles } from "../components/FrameworkReportTiles";
 import { fetchCountryWithMockFallback } from "../services/api";
 import { cn, getMaturityStage } from "../lib/utils";
-
-/**
- * Calculate data coverage score for a country
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function calculateDataCoverage(country: any): number {
-  const governanceFields = [
-    'ilo_c187_status', 'ilo_c155_status', 'inspector_density',
-    'mental_health_policy', 'strategic_capacity_score'
-  ];
-  const pillar1Fields = [
-    'fatal_accident_rate', 'carcinogen_exposure_pct', 'heat_stress_reg_type',
-    'oel_compliance_pct', 'noise_induced_hearing_loss_rate', 'safety_training_hours_avg',
-    'control_maturity_score'
-  ];
-  const pillar2Fields = [
-    'surveillance_logic', 'disease_detection_rate', 'vulnerability_index',
-    'migrant_worker_pct', 'lead_exposure_screening_rate', 'occupational_disease_reporting_rate'
-  ];
-  const pillar3Fields = [
-    'payer_mechanism', 'reintegration_law', 'sickness_absence_days', 'rehab_access_score',
-    'return_to_work_success_pct', 'avg_claim_settlement_days', 'rehab_participation_rate'
-  ];
-
-  const totalFields = governanceFields.length + pillar1Fields.length + pillar2Fields.length + pillar3Fields.length;
-  let populatedFields = 0;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const countFields = (obj: any, fields: string[]) => {
-    if (!obj) return 0;
-    return fields.filter(f => obj[f] !== null && obj[f] !== undefined).length;
-  };
-
-  populatedFields += countFields(country.governance, governanceFields);
-  populatedFields += countFields(country.pillar_1_hazard, pillar1Fields);
-  populatedFields += countFields(country.pillar_2_vigilance, pillar2Fields);
-  populatedFields += countFields(country.pillar_3_restoration, pillar3Fields);
-
-  return Math.round((populatedFields / totalFields) * 100);
-}
+import { calculateDataCoverage } from "../lib/dataCoverage";
 
 /**
  * Data Confidence Badge Component
