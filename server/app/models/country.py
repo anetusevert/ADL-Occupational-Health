@@ -31,6 +31,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -672,6 +673,15 @@ class CountryDeepDive(Base):
         default=DeepDiveStatus.PENDING,
         nullable=False,
         comment="Current status of the deep dive analysis"
+    )
+    
+    # Queue position for ordering in the generation queue
+    queue_position = Column(
+        Integer,
+        nullable=True,
+        default=None,
+        index=True,
+        comment="Position in generation queue (lower = higher priority)"
     )
     
     # =========================================================================

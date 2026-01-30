@@ -698,6 +698,7 @@ export interface QueueItem {
   country_name: string;
   topic: string;
   status: string;
+  queue_position?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -773,6 +774,19 @@ export async function removeFromQueue(
 ): Promise<{ success: boolean; message: string }> {
   const response = await apiClient.delete(
     `/api/v1/strategic-deep-dive/queue/${reportId}`
+  );
+  return response.data;
+}
+
+/**
+ * Reorder items in the generation queue
+ */
+export async function reorderQueue(
+  order: string[]
+): Promise<{ success: boolean; message: string }> {
+  const response = await apiClient.post(
+    "/api/v1/strategic-deep-dive/queue/reorder",
+    { order }
   );
   return response.data;
 }

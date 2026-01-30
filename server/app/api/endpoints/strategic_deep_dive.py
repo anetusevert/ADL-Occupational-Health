@@ -656,6 +656,7 @@ class QueueItem(BaseModel):
     country_name: str
     topic: str
     status: str
+    queue_position: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -753,15 +754,22 @@ async def get_queue_status(
     """
     Get current generation queue status.
     
-    Returns all reports that are PROCESSING or PENDING, sorted by status
-    (processing first) then by creation date.
+    Returns all reports that are PROCESSING or PENDING, sorted by:
+    1. Status (processing first)
+    2. Queue position (if set)
+    3. Creation date (fallback)
     """
+    from sqlalchemy import nullslast
+    
     # Get all processing and pending reports
     queue_reports = db.query(CountryDeepDive).filter(
         CountryDeepDive.status.in_([DeepDiveStatus.PROCESSING, DeepDiveStatus.PENDING])
     ).order_by(
         # Processing first, then pending
         CountryDeepDive.status.desc(),
+        # Then by queue position (nulls last)
+        nullslast(CountryDeepDive.queue_position.asc()),
+        # Then by creation date
         CountryDeepDive.created_at.asc()
     ).all()
     
@@ -787,6 +795,7 @@ async def get_queue_status(
             country_name=country_names.get(report.country_iso_code, report.country_iso_code),
             topic=report.topic,
             status=report.status.value if hasattr(report.status, 'value') else str(report.status),
+            queue_position=report.queue_position,
             created_at=report.created_at.isoformat() if report.created_at else None,
             updated_at=report.updated_at.isoformat() if report.updated_at else None,
         ))
@@ -796,6 +805,44 @@ async def get_queue_status(
         pending_count=pending_count,
         queue_items=queue_items
     )
+
+
+class ReorderQueueRequest(BaseModel):
+    """Request to reorder queue items."""
+    order: List[str] = Field(..., description="List of report IDs in desired order")
+
+
+@router.post("/queue/reorder")
+async def reorder_queue(
+    request: ReorderQueueRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Reorder items in the generation queue.
+    
+    Accepts a list of report IDs in the desired order.
+    Updates the queue_position field for each report.
+    """
+    logger = logging.getLogger(__name__)
+    
+    try:
+        for position, report_id in enumerate(request.order):
+            db.query(CountryDeepDive).filter(
+                CountryDeepDive.id == report_id
+            ).update({"queue_position": position})
+        
+        db.commit()
+        logger.info(f"[ReorderQueue] Reordered {len(request.order)} items")
+        
+        return {
+            "success": True,
+            "message": f"Reordered {len(request.order)} items in queue"
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[ReorderQueue] Failed to reorder: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to reorder queue: {str(e)}")
 
 
 @router.delete("/queue/{report_id}")
@@ -812,13 +859,15 @@ async def remove_from_queue(
     """
     import uuid
     
+    # Validate UUID format but keep as string for comparison
     try:
-        report_uuid = uuid.UUID(report_id)
+        uuid.UUID(report_id)  # Validate format only
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid report ID format")
     
+    # Compare as strings since CountryDeepDive.id is String(36)
     report = db.query(CountryDeepDive).filter(
-        CountryDeepDive.id == report_uuid
+        CountryDeepDive.id == report_id
     ).first()
     
     if not report:
@@ -830,8 +879,14 @@ async def remove_from_queue(
             detail=f"Cannot remove report with status {report.status}. Only PENDING reports can be removed."
         )
     
-    db.delete(report)
-    db.commit()
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger = logging.getLogger(__name__)
+        logger.error(f"[DeleteQueue] Failed to delete {report_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete report: {str(e)}")
     
     return {
         "success": True,

@@ -59,7 +59,6 @@ const toolSuiteItems: NavItem[] = [
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/strategic-deep-dive", label: "Strategic Deep Dive", icon: Brain, adminOnly: true },
   { path: "/admin/generation-progress", label: "Generation Progress", icon: Activity, adminOnly: true },
   { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },

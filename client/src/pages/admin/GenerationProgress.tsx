@@ -39,6 +39,7 @@ import {
   Brain,
   Search,
   Filter,
+  GripVertical,
 } from 'lucide-react';
 import {
   apiClient,
@@ -48,6 +49,7 @@ import {
   cancelAllGeneration,
   addCountryToQueue,
   removeFromQueue,
+  reorderQueue,
   generateControlled,
   type QueueItem,
   type QueueStatusResponse,
@@ -166,28 +168,64 @@ function ProcessingDialog({ processingCount, pendingCount, onResetAndStart, onCo
 
 interface QueueItemRowProps {
   item: QueueItem;
+  index: number;
   isActive: boolean;
   onRemove: (id: string) => void;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDragEnd: () => void;
+  isDragging: boolean;
+  dragOverIndex: number | null;
 }
 
-function QueueItemRow({ item, isActive, onRemove }: QueueItemRowProps) {
+function QueueItemRow({ 
+  item, 
+  index,
+  isActive, 
+  onRemove,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragging,
+  dragOverIndex,
+}: QueueItemRowProps) {
+  const isPending = item.status === 'pending';
+  const isDragTarget = dragOverIndex === index;
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
-        isActive
+      draggable={isPending}
+      onDragStart={(e) => isPending && onDragStart(e as any, index)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (isPending) onDragOver(e as any, index);
+      }}
+      onDragEnd={onDragEnd}
+      className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
+        isDragging && isDragTarget
+          ? 'border-cyan-400 border-dashed bg-cyan-500/20'
+          : isActive
           ? 'bg-cyan-500/10 border-cyan-500/30'
           : item.status === 'processing'
           ? 'bg-amber-500/10 border-amber-500/30'
           : 'bg-slate-800/50 border-slate-700/30'
-      }`}
+      } ${isPending ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
+      {/* Drag Handle */}
+      {isPending && (
+        <div className="flex-shrink-0 text-slate-600 hover:text-slate-400 cursor-grab">
+          <GripVertical className="w-4 h-4" />
+        </div>
+      )}
+      
+      {/* Status Icon */}
       {item.status === 'processing' && (
         <Loader2 className="w-4 h-4 text-amber-400 animate-spin flex-shrink-0" />
       )}
-      {item.status === 'pending' && (
+      {isPending && !isDragging && (
         <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
       )}
       
@@ -199,9 +237,12 @@ function QueueItemRow({ item, isActive, onRemove }: QueueItemRowProps) {
         <p className="text-[10px] text-slate-500 truncate">{item.topic}</p>
       </div>
       
-      {item.status === 'pending' && (
+      {isPending && (
         <button
-          onClick={() => onRemove(item.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(item.id);
+          }}
           className="p-1 text-slate-500 hover:text-red-400 transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -500,6 +541,10 @@ export function GenerationProgress() {
   const [lastGeneratedReport, setLastGeneratedReport] = useState<StrategicDeepDiveReport | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [autoGenerateNext, setAutoGenerateNext] = useState(false);
+  
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
   // Queries
   const { data: queueStatus, refetch: refetchQueue } = useQuery({

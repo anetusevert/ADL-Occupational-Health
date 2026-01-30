@@ -114,7 +114,7 @@ export function CountrySelectionStep({
                   >
                     {country.flag_url && (
                       <img
-                        src={getFlagImageUrl(country.flag_url) || undefined}
+                        src={`${getApiBaseUrl()}${country.flag_url}`}
                         alt=""
                         className="w-5 h-3 object-cover rounded shadow-sm"
                       />
@@ -194,7 +194,7 @@ export function CountrySelectionStep({
                 <div className="flex justify-center mb-2">
                   {country.flag_url ? (
                     <img
-                      src={getFlagImageUrl(country.flag_url) || undefined}
+                      src={`${getApiBaseUrl()}${country.flag_url}`}
                       alt=""
                       className="w-10 h-7 object-cover rounded shadow-md"
                     />

@@ -83,7 +83,7 @@ function SortableColumnHeader({ country, isActive }: SortableColumnHeaderProps) 
 
         {country.flag_url && (
           <img
-            src={getFlagImageUrl(country.flag_url) || undefined}
+            src={`${getApiBaseUrl()}${country.flag_url}`}
             alt=""
             className="w-10 h-6 object-cover rounded shadow-md mt-4"
           />
@@ -102,7 +102,7 @@ function ColumnHeaderOverlay({ country }: { country: PivotCountryMeta }) {
       <div className="flex flex-col items-center gap-1">
         {country.flag_url && (
           <img
-            src={getFlagImageUrl(country.flag_url) || undefined}
+            src={`${getApiBaseUrl()}${country.flag_url}`}
             alt=""
             className="w-10 h-6 object-cover rounded shadow-md"
           />

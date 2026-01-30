@@ -60,9 +60,17 @@ railway_origins = [
 # Combine production, railway, and local origins
 CORS_ORIGINS = production_origins + railway_origins + local_origins
 
+# Railway subdomain regex pattern for dynamic matching
+# Matches any *.up.railway.app subdomain
+RAILWAY_ORIGIN_REGEX = r"https://.*\.up\.railway\.app"
+
+print(f"CORS Origins List: {CORS_ORIGINS}")
+print(f"CORS Origin Regex: {RAILWAY_ORIGIN_REGEX}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=RAILWAY_ORIGIN_REGEX,  # Allow any Railway subdomain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

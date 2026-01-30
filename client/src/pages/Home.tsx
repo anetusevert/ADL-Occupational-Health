@@ -165,11 +165,6 @@ export function Home() {
     return validScores.reduce((sum, c) => sum + (c.maturity_score || 0), 0) / validScores.length;
   }, [mapCountries]);
   
-  const countriesWithData = useMemo(() => 
-    mapCountries.filter((c) => c[selectedMetric] !== null && c[selectedMetric] !== undefined).length,
-    [mapCountries, selectedMetric]
-  );
-
   // Maturity breakdown
   const maturityBreakdown = useMemo(() => {
     const breakdown = { resilient: 0, proactive: 0, compliant: 0, reactive: 0, noData: 0 };
@@ -299,54 +294,36 @@ export function Home() {
 
         {/* Right Panel - Stats & Quick Access */}
         <div className="lg:w-72 xl:w-80 flex flex-col gap-4 lg:h-full">
-          {/* Stats Cards - Clickable */}
-          <div className="grid grid-cols-3 lg:grid-cols-1 gap-3">
+          {/* Stats Cards - Compact Row */}
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setActiveModal("countries")}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-adl-accent/30 transition-all text-left group"
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 hover:border-adl-accent/30 transition-all text-left group"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-adl-accent/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Database className="w-5 h-5 text-adl-accent" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-adl-accent/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Database className="w-4 h-4 text-adl-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{totalCountries}</p>
-                  <p className="text-xs text-white/40">Countries Tracked</p>
+                  <p className="text-xl font-bold text-white">{totalCountries}</p>
+                  <p className="text-[10px] text-white/40">Countries</p>
                 </div>
               </div>
             </button>
             
             <button
               onClick={() => setActiveModal("maturity")}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-emerald-500/30 transition-all text-left group"
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 hover:bg-white/10 hover:border-emerald-500/30 transition-all text-left group"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ADLIcon size="xs" animate={false} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-xl font-bold text-white">
                     {avgMaturity > 0 ? avgMaturity.toFixed(1) : "—"}
                   </p>
-                  <p className="text-xs text-white/40 flex items-center gap-1">
-                    <ADLIcon size="xs" animate={false} className="opacity-60" />
-                    OHI Score
-                  </p>
-                </div>
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveModal("data")}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-amber-500/30 transition-all text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Globe2 className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{countriesWithData}</p>
-                  <p className="text-xs text-white/40">With Data</p>
+                  <p className="text-[10px] text-white/40">OHI Score</p>
                 </div>
               </div>
             </button>
