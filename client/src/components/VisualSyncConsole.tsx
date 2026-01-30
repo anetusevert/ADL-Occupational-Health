@@ -558,7 +558,7 @@ export function VisualSyncConsole({ isOpen, onClose }: VisualSyncConsoleProps) {
   
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Group countries by region - all 195 UN countries
+  // Group countries by region - all countries in database
   const countryGroups = useMemo(() => COUNTRY_REGIONS, []);
 
   // Toggle single country selection

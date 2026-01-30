@@ -676,15 +676,21 @@ async def get_global_progress(
     
     Shows overall progress and per-country breakdown for EU and GCC countries.
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, case
     
-    # Get all deep dives grouped by country
+    # Get all countries and include those with 0 reports
     countries_data = db.query(
-        CountryDeepDive.country_iso_code,
-        func.count().label('total'),
-        func.sum(func.cast(CountryDeepDive.status == DeepDiveStatus.COMPLETED, Integer)).label('completed'),
-        func.sum(func.cast(CountryDeepDive.status == DeepDiveStatus.FAILED, Integer)).label('failed'),
-    ).group_by(CountryDeepDive.country_iso_code).all()
+        Country.iso_code,
+        Country.name,
+        func.sum(
+            case((CountryDeepDive.status == DeepDiveStatus.COMPLETED, 1), else_=0)
+        ).label('completed'),
+        func.sum(
+            case((CountryDeepDive.status == DeepDiveStatus.FAILED, 1), else_=0)
+        ).label('failed'),
+    ).outerjoin(
+        CountryDeepDive, Country.iso_code == CountryDeepDive.country_iso_code
+    ).group_by(Country.iso_code, Country.name).all()
     
     countries_progress = []
     total_completed = 0
@@ -692,19 +698,17 @@ async def get_global_progress(
     total_pending = 0
     
     for row in countries_data:
-        country = db.query(Country).filter(Country.iso_code == row.country_iso_code).first()
         completed = row.completed or 0
         failed = row.failed or 0
-        total = row.total or 0
-        pending = total - completed - failed
+        pending = max(13 - completed - failed, 0)
         
         total_completed += completed
         total_failed += failed
         total_pending += pending
         
         countries_progress.append(CountryProgress(
-            iso_code=row.country_iso_code,
-            name=country.name if country else row.country_iso_code,
+            iso_code=row.iso_code,
+            name=row.name or row.iso_code,
             completed=completed,
             failed=failed,
             pending=pending,
