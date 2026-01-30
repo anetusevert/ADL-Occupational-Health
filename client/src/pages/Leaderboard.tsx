@@ -22,7 +22,10 @@ import {
   Users,
   ShieldQuestion,
   Building2,
-  MapPin
+  MapPin,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { fetchAllCountries, MOCK_COUNTRY_DATA } from "../services/api";
 import { cn, getMaturityStage } from "../lib/utils";
@@ -90,9 +93,23 @@ const CONTINENT_MAP: Record<string, string> = {
 // Filter types
 type FilterType = "global" | "g20" | "gcc" | "europe" | "asia" | "africa" | "north_america" | "latin_america" | "oceania" | "high_confidence";
 
+// Sort types
+type SortField = "name" | "maturity_score" | "governance_score" | "pillar1_score" | "pillar2_score" | "pillar3_score" | "data_coverage";
+type SortDirection = "asc" | "desc";
+
+// Sort field display names
+const SORT_FIELD_LABELS: Record<SortField, string> = {
+  name: "Country",
+  maturity_score: "Maturity Score",
+  governance_score: "Governance Layer",
+  pillar1_score: "P1: Hazard Control",
+  pillar2_score: "P2: Health Vigilance",
+  pillar3_score: "P3: Restoration",
+  data_coverage: "Data Confidence",
+};
+
 // Extended country data with mock enrichment
 interface LeaderboardCountry extends CountryListItem {
-  fatal_accident_rate: number | null;
   data_coverage: number | null;
   governance_score: number | null;
   pillar1_score: number | null;
@@ -114,6 +131,50 @@ function getRankIcon(rank: number) {
     default:
       return null;
   }
+}
+
+/**
+ * Sortable table header component
+ */
+function SortableHeader({
+  field,
+  label,
+  currentField,
+  direction,
+  onSort,
+  align = "left",
+}: {
+  field: SortField;
+  label: string;
+  currentField: SortField;
+  direction: SortDirection;
+  onSort: (field: SortField) => void;
+  align?: "left" | "right";
+}) {
+  const isActive = currentField === field;
+  const Icon = isActive ? (direction === "desc" ? ArrowDown : ArrowUp) : ArrowUpDown;
+  
+  return (
+    <th
+      className={cn(
+        "px-4 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-white/5",
+        align === "right" ? "text-right" : "text-left",
+        isActive ? "text-amber-400" : "text-slate-400"
+      )}
+      onClick={() => onSort(field)}
+    >
+      <div className={cn(
+        "flex items-center gap-1.5",
+        align === "right" && "justify-end"
+      )}>
+        <span>{label}</span>
+        <Icon className={cn(
+          "w-3.5 h-3.5",
+          isActive ? "text-amber-400" : "text-slate-500"
+        )} />
+      </div>
+    </th>
+  );
 }
 
 /**
@@ -158,6 +219,20 @@ function getConfidenceShield(coverage: number | null) {
 export function Leaderboard() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterType>("global");
+  const [sortField, setSortField] = useState<SortField>("maturity_score");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Handle column header click for sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc");
+    } else {
+      // New field, default to descending
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
 
   // Fetch countries data
   const { data, isLoading, error } = useQuery({
@@ -181,11 +256,6 @@ export function Leaderboard() {
         ? Math.min(100, Math.max(30, score + Math.random() * 20 - 10))
         : null;
       
-      // Generate simulated fatality rate inversely related to maturity score
-      const simulatedFatalityRate = score
-        ? Math.max(0.2, 5.0 - (score / 100) * 4.5 + (Math.random() * 0.5 - 0.25))
-        : null;
-      
       // Generate simulated pillar scores based on maturity score (0-100 scale)
       // Each pillar varies slightly around the base maturity score
       const baseScore = score ? (score / 4) * 100 : null; // Convert 1-4 scale to 0-100
@@ -204,7 +274,6 @@ export function Leaderboard() {
       
       return {
         ...country,
-        fatal_accident_rate: mockData?.pillar_1_hazard?.fatal_accident_rate ?? simulatedFatalityRate,
         data_coverage: mockData?.data_coverage_score ?? simulatedCoverage,
         governance_score: governanceScore,
         pillar1_score: pillar1Score,
@@ -252,16 +321,65 @@ export function Leaderboard() {
         break;
     }
     
-    // Sort by maturity score (high to low), nulls at bottom
+    // Sort by selected field and direction
     filtered.sort((a, b) => {
-      if (a.maturity_score === null && b.maturity_score === null) return 0;
-      if (a.maturity_score === null) return 1;
-      if (b.maturity_score === null) return -1;
-      return b.maturity_score - a.maturity_score;
+      let aVal: string | number | null;
+      let bVal: string | number | null;
+      
+      // Get values based on sort field
+      switch (sortField) {
+        case "name":
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case "maturity_score":
+          aVal = a.maturity_score;
+          bVal = b.maturity_score;
+          break;
+        case "governance_score":
+          aVal = a.governance_score;
+          bVal = b.governance_score;
+          break;
+        case "pillar1_score":
+          aVal = a.pillar1_score;
+          bVal = b.pillar1_score;
+          break;
+        case "pillar2_score":
+          aVal = a.pillar2_score;
+          bVal = b.pillar2_score;
+          break;
+        case "pillar3_score":
+          aVal = a.pillar3_score;
+          bVal = b.pillar3_score;
+          break;
+        case "data_coverage":
+          aVal = a.data_coverage;
+          bVal = b.data_coverage;
+          break;
+        default:
+          aVal = a.maturity_score;
+          bVal = b.maturity_score;
+      }
+      
+      // Handle nulls - always push to bottom regardless of direction
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      
+      // Compare values
+      let comparison: number;
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        comparison = aVal.localeCompare(bVal);
+      } else {
+        comparison = (aVal as number) - (bVal as number);
+      }
+      
+      // Apply direction
+      return sortDirection === "desc" ? -comparison : comparison;
     });
     
     return filtered;
-  }, [enrichedCountries, activeFilter]);
+  }, [enrichedCountries, activeFilter, sortField, sortDirection]);
 
   // Calculate top score for gap calculation
   const topScore = useMemo(() => {
@@ -354,7 +472,9 @@ export function Leaderboard() {
               <Trophy className="w-4 h-4 text-amber-400" />
               <h2 className="text-sm font-semibold text-white">Ranking Engine</h2>
             </div>
-            <span className="text-white/30 text-xs">Sorted by Maturity Score</span>
+            <span className="text-white/30 text-xs">
+              Sorted by {SORT_FIELD_LABELS[sortField]} ({sortDirection === "desc" ? "High to Low" : "Low to High"})
+            </span>
           </div>
         </div>
 
@@ -392,30 +512,55 @@ export function Leaderboard() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-20">
                     Rank
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Country
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Maturity Score
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Governance
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Hazard Control
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Health Vigilance
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Restoration
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Fatality Rate
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Data Confidence
-                  </th>
+                  <SortableHeader
+                    field="name"
+                    label="Country"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="maturity_score"
+                    label="Maturity Score"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="governance_score"
+                    label="Governance Layer"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="pillar1_score"
+                    label="P1: Hazard Control"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="pillar2_score"
+                    label="P2: Health Vigilance"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="pillar3_score"
+                    label="P3: Restoration"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    field="data_coverage"
+                    label="Data Confidence"
+                    currentField={sortField}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
                   <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Gap to #1
                   </th>
@@ -494,7 +639,7 @@ export function Leaderboard() {
                         )}
                       </td>
 
-                      {/* Governance Score */}
+                      {/* Governance Layer */}
                       <td className="px-4 py-3">
                         {country.governance_score !== null ? (
                           <span className={cn(
@@ -556,24 +701,6 @@ export function Leaderboard() {
                             "text-red-400"
                           )}>
                             {country.pillar3_score.toFixed(0)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500 italic">—</span>
-                        )}
-                      </td>
-
-                      {/* Fatality Rate */}
-                      <td className="px-4 py-3">
-                        {country.fatal_accident_rate !== null ? (
-                          <span className={cn(
-                            "font-mono text-sm",
-                            country.fatal_accident_rate < 1.0 ? "text-emerald-400" :
-                            country.fatal_accident_rate < 2.0 ? "text-yellow-400" :
-                            country.fatal_accident_rate < 3.0 ? "text-orange-400" :
-                            "text-red-400"
-                          )}>
-                            {country.fatal_accident_rate.toFixed(2)}
-                            <span className="text-slate-500 text-xs ml-1">per 100k</span>
                           </span>
                         ) : (
                           <span className="text-slate-500 italic">—</span>

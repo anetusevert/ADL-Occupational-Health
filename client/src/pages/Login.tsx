@@ -105,22 +105,25 @@ export function Login() {
           </p>
           
           {/* Feature highlights */}
-          <div className="mt-10 grid grid-cols-2 gap-6">
+          <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { label: "Countries Analyzed", value: "195+" },
-              { label: "Framework Metrics", value: "25+" },
-              { label: "Data Sources", value: "ILO, WHO, WB" },
-              { label: "AI-Powered", value: "Insights" },
+              { label: "Countries", value: "195+", desc: "Global Coverage" },
+              { label: "Framework Pillars", value: "4", desc: "OH Assessment" },
+              { label: "Key Metrics", value: "50+", desc: "Data Points" },
+              { label: "Data Sources", value: "WB, ILO", desc: "WHO & More" },
+              { label: "Deep Dive", value: "AI", desc: "Strategic Reports" },
+              { label: "Comparisons", value: "Live", desc: "Country Rankings" },
             ].map((item, index) => (
               <motion.div 
                 key={item.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-                className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10"
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.08 }}
+                className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/8 hover:border-white/20 transition-all duration-300"
               >
-                <p className="text-2xl font-bold text-white">{item.value}</p>
-                <p className="text-white/40 text-sm">{item.label}</p>
+                <p className="text-xl font-bold text-white">{item.value}</p>
+                <p className="text-adl-accent text-xs font-medium">{item.label}</p>
+                <p className="text-white/30 text-[10px] mt-0.5">{item.desc}</p>
               </motion.div>
             ))}
           </div>
