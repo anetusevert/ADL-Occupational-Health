@@ -133,7 +133,7 @@ export interface AssessmentResponse {
 export interface MapCountryData {
   iso_code: string;
   name: string;
-  // Overall Maturity (1.0-4.0 scale)
+  // ADL OHI Score (1.0-4.0 scale)
   maturity_score: number | null;
   // Governance Index (0-100)
   governance_score: number | null;
@@ -148,7 +148,7 @@ export interface MapCountryData {
 
 // Framework-Aligned Map Metrics
 export type MapMetric = 
-  | "maturity_score"      // Overall Maturity (1-4)
+  | "maturity_score"      // ADL OHI Score (1-4)
   | "governance_score"    // Governance Index (0-100)
   | "pillar1_score"       // Hazard Control (0-100)
   | "pillar2_score"       // Health Vigilance (0-100)

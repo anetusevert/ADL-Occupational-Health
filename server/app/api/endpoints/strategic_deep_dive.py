@@ -639,6 +639,207 @@ async def generate_all_for_multiple_countries(
 
 
 # =============================================================================
+# GENERATION CONTROL ENDPOINTS (Cancel, Reset, Queue Status)
+# =============================================================================
+
+class ResetProcessingResponse(BaseModel):
+    """Response for reset processing endpoint."""
+    success: bool
+    reset_count: int
+    message: str
+
+
+class QueueItem(BaseModel):
+    """Single item in generation queue."""
+    id: str
+    iso_code: str
+    country_name: str
+    topic: str
+    status: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class QueueStatusResponse(BaseModel):
+    """Response for queue status endpoint."""
+    processing_count: int
+    pending_count: int
+    queue_items: List[QueueItem]
+
+
+@router.post("/reset-processing", response_model=ResetProcessingResponse)
+async def reset_processing_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Reset all PROCESSING reports to PENDING status.
+    
+    Use this to recover from stuck generations or to start fresh.
+    This allows the admin to cleanly restart the generation process.
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Count and reset all processing reports
+    processing_reports = db.query(CountryDeepDive).filter(
+        CountryDeepDive.status == DeepDiveStatus.PROCESSING
+    ).all()
+    
+    reset_count = len(processing_reports)
+    
+    for report in processing_reports:
+        report.status = DeepDiveStatus.PENDING
+        logger.info(f"[ResetProcessing] Reset {report.country_iso_code} - {report.topic}")
+    
+    db.commit()
+    
+    return ResetProcessingResponse(
+        success=True,
+        reset_count=reset_count,
+        message=f"Reset {reset_count} processing reports to pending status"
+    )
+
+
+@router.post("/cancel-all", response_model=ResetProcessingResponse)
+async def cancel_all_generation(
+    delete_pending: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Cancel all pending/processing generation tasks.
+    
+    - Resets PROCESSING reports to PENDING
+    - Optionally deletes all PENDING reports if delete_pending=True
+    
+    Note: This cannot stop already-running AI calls, but it prevents
+    new reports from starting and clears the queue.
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Reset processing to pending
+    processing_count = db.query(CountryDeepDive).filter(
+        CountryDeepDive.status == DeepDiveStatus.PROCESSING
+    ).update({"status": DeepDiveStatus.PENDING})
+    
+    deleted_count = 0
+    if delete_pending:
+        # Delete all pending reports
+        deleted_count = db.query(CountryDeepDive).filter(
+            CountryDeepDive.status == DeepDiveStatus.PENDING
+        ).delete()
+    
+    db.commit()
+    
+    total = processing_count + deleted_count
+    message = f"Reset {processing_count} processing reports"
+    if delete_pending:
+        message += f", deleted {deleted_count} pending reports"
+    
+    logger.info(f"[CancelAll] {message}")
+    
+    return ResetProcessingResponse(
+        success=True,
+        reset_count=total,
+        message=message
+    )
+
+
+@router.get("/queue/status", response_model=QueueStatusResponse)
+async def get_queue_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Get current generation queue status.
+    
+    Returns all reports that are PROCESSING or PENDING, sorted by status
+    (processing first) then by creation date.
+    """
+    # Get all processing and pending reports
+    queue_reports = db.query(CountryDeepDive).filter(
+        CountryDeepDive.status.in_([DeepDiveStatus.PROCESSING, DeepDiveStatus.PENDING])
+    ).order_by(
+        # Processing first, then pending
+        CountryDeepDive.status.desc(),
+        CountryDeepDive.created_at.asc()
+    ).all()
+    
+    # Get country names
+    country_names = {}
+    countries = db.query(Country).all()
+    for c in countries:
+        country_names[c.iso_code] = c.name
+    
+    processing_count = 0
+    pending_count = 0
+    queue_items = []
+    
+    for report in queue_reports:
+        if report.status == DeepDiveStatus.PROCESSING:
+            processing_count += 1
+        else:
+            pending_count += 1
+        
+        queue_items.append(QueueItem(
+            id=str(report.id),
+            iso_code=report.country_iso_code,
+            country_name=country_names.get(report.country_iso_code, report.country_iso_code),
+            topic=report.topic,
+            status=report.status.value if hasattr(report.status, 'value') else str(report.status),
+            created_at=report.created_at.isoformat() if report.created_at else None,
+            updated_at=report.updated_at.isoformat() if report.updated_at else None,
+        ))
+    
+    return QueueStatusResponse(
+        processing_count=processing_count,
+        pending_count=pending_count,
+        queue_items=queue_items
+    )
+
+
+@router.delete("/queue/{report_id}")
+async def remove_from_queue(
+    report_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Remove a pending report from the queue.
+    
+    Only PENDING reports can be removed. PROCESSING reports must be
+    reset first using /reset-processing.
+    """
+    import uuid
+    
+    try:
+        report_uuid = uuid.UUID(report_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid report ID format")
+    
+    report = db.query(CountryDeepDive).filter(
+        CountryDeepDive.id == report_uuid
+    ).first()
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    if report.status != DeepDiveStatus.PENDING:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot remove report with status {report.status}. Only PENDING reports can be removed."
+        )
+    
+    db.delete(report)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": f"Removed {report.country_iso_code} - {report.topic} from queue"
+    }
+
+
+# =============================================================================
 # PROGRESS MONITORING ENDPOINTS
 # =============================================================================
 
@@ -753,6 +954,183 @@ async def get_global_progress(
 # =============================================================================
 # SINGLE COUNTRY ENDPOINTS
 # =============================================================================
+
+class ControlledGenerateRequest(BaseModel):
+    """Request for controlled single report generation."""
+    topic: str = Field(
+        default="Comprehensive Occupational Health Assessment",
+        description="Analysis focus topic"
+    )
+
+
+class ControlledGenerateResponse(BaseModel):
+    """Response for controlled generation - returns full report."""
+    success: bool
+    iso_code: str
+    country_name: str
+    topic: str
+    report: Optional[DeepDiveReport] = None
+    error: Optional[str] = None
+    generation_time_seconds: float
+
+
+@router.post("/{iso_code}/generate-controlled", response_model=ControlledGenerateResponse)
+async def generate_controlled(
+    iso_code: str,
+    request: ControlledGenerateRequest = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Generate a single report synchronously with full response.
+    
+    This is the controlled generation endpoint for the Report Workshop.
+    Unlike background generation, this:
+    - Runs synchronously (blocks until complete)
+    - Returns the full report in the response
+    - Allows immediate preview and quality review
+    
+    Use this for one-by-one controlled generation where you want to
+    review each report before proceeding to the next.
+    """
+    import time
+    logger = logging.getLogger(__name__)
+    
+    start_time = time.time()
+    
+    # Verify country exists
+    country = db.query(Country).filter(
+        Country.iso_code == iso_code.upper()
+    ).first()
+    
+    if not country:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Country {iso_code} not found in database"
+        )
+    
+    topic = request.topic if request else "Comprehensive Occupational Health Assessment"
+    
+    logger.info(f"[ControlledGen] Starting controlled generation for {iso_code} - {topic}")
+    
+    try:
+        # Run generation synchronously
+        result = generate_strategic_deep_dive(
+            iso_code=iso_code.upper(),
+            topic=topic,
+            db=db,
+            user_id=str(current_user.id),
+        )
+        
+        generation_time = time.time() - start_time
+        
+        if not result["success"]:
+            logger.error(f"[ControlledGen] Failed: {iso_code} - {topic}: {result.get('error')}")
+            return ControlledGenerateResponse(
+                success=False,
+                iso_code=iso_code.upper(),
+                country_name=country.name,
+                topic=topic,
+                report=None,
+                error=result.get("error", "Generation failed"),
+                generation_time_seconds=round(generation_time, 2),
+            )
+        
+        # Fetch the completed report to return
+        report = get_deep_dive_report(iso_code.upper(), db, topic)
+        
+        logger.info(f"[ControlledGen] Completed: {iso_code} - {topic} in {generation_time:.1f}s")
+        
+        return ControlledGenerateResponse(
+            success=True,
+            iso_code=iso_code.upper(),
+            country_name=country.name,
+            topic=topic,
+            report=report,
+            error=None,
+            generation_time_seconds=round(generation_time, 2),
+        )
+        
+    except Exception as e:
+        generation_time = time.time() - start_time
+        logger.error(f"[ControlledGen] Exception: {iso_code} - {topic}: {str(e)}")
+        return ControlledGenerateResponse(
+            success=False,
+            iso_code=iso_code.upper(),
+            country_name=country.name,
+            topic=topic,
+            report=None,
+            error=str(e),
+            generation_time_seconds=round(generation_time, 2),
+        )
+
+
+@router.post("/{iso_code}/add-to-queue")
+async def add_country_to_queue(
+    iso_code: str,
+    topics: List[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Add a country's topics to the generation queue.
+    
+    Creates PENDING records for each topic that doesn't already have a report.
+    Use this to build a queue before starting controlled generation.
+    """
+    from app.services.strategic_deep_dive_agent import StrategicDeepDiveAgent
+    
+    # Verify country exists
+    country = db.query(Country).filter(
+        Country.iso_code == iso_code.upper()
+    ).first()
+    
+    if not country:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Country {iso_code} not found in database"
+        )
+    
+    # Default to all topics if not specified
+    topics_to_add = topics if topics else ALL_TOPICS
+    
+    added_count = 0
+    skipped_count = 0
+    
+    agent = StrategicDeepDiveAgent(db)
+    
+    for topic in topics_to_add:
+        if topic not in ALL_TOPICS:
+            continue
+        
+        # Check if a report already exists (completed or processing)
+        existing = db.query(CountryDeepDive).filter(
+            CountryDeepDive.country_iso_code == iso_code.upper(),
+            CountryDeepDive.topic == topic,
+            CountryDeepDive.status.in_([DeepDiveStatus.COMPLETED, DeepDiveStatus.PROCESSING])
+        ).first()
+        
+        if existing:
+            skipped_count += 1
+            continue
+        
+        # Create or get pending record
+        deep_dive = agent._get_or_create_deep_dive(iso_code.upper(), topic)
+        if deep_dive.status not in [DeepDiveStatus.COMPLETED, DeepDiveStatus.PROCESSING]:
+            deep_dive.status = DeepDiveStatus.PENDING
+            added_count += 1
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "iso_code": iso_code.upper(),
+        "country_name": country.name,
+        "added_to_queue": added_count,
+        "skipped_existing": skipped_count,
+        "message": f"Added {added_count} topics to queue, skipped {skipped_count} existing reports"
+    }
+
 
 @router.post("/{iso_code}/generate-all", response_model=GenerateAllTopicsResponse)
 async def generate_all_topics_for_country(

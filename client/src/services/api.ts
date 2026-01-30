@@ -686,6 +686,137 @@ export async function generateBatchCountries(
 }
 
 // ============================================================================
+// REPORT WORKSHOP - CONTROLLED GENERATION API
+// ============================================================================
+
+/**
+ * Queue item for generation tracking
+ */
+export interface QueueItem {
+  id: string;
+  iso_code: string;
+  country_name: string;
+  topic: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Response for queue status endpoint
+ */
+export interface QueueStatusResponse {
+  processing_count: number;
+  pending_count: number;
+  queue_items: QueueItem[];
+}
+
+/**
+ * Response for reset/cancel endpoints
+ */
+export interface ResetProcessingResponse {
+  success: boolean;
+  reset_count: number;
+  message: string;
+}
+
+/**
+ * Response for controlled generation
+ */
+export interface ControlledGenerateResponse {
+  success: boolean;
+  iso_code: string;
+  country_name: string;
+  topic: string;
+  report: StrategicDeepDiveReport | null;
+  error: string | null;
+  generation_time_seconds: number;
+}
+
+/**
+ * Reset all processing reports to pending status
+ */
+export async function resetProcessingReports(): Promise<ResetProcessingResponse> {
+  const response = await apiClient.post<ResetProcessingResponse>(
+    "/api/v1/strategic-deep-dive/reset-processing"
+  );
+  return response.data;
+}
+
+/**
+ * Cancel all generation (reset processing and optionally delete pending)
+ */
+export async function cancelAllGeneration(
+  deletePending: boolean = false
+): Promise<ResetProcessingResponse> {
+  const response = await apiClient.post<ResetProcessingResponse>(
+    `/api/v1/strategic-deep-dive/cancel-all?delete_pending=${deletePending}`
+  );
+  return response.data;
+}
+
+/**
+ * Get current generation queue status
+ */
+export async function getQueueStatus(): Promise<QueueStatusResponse> {
+  const response = await apiClient.get<QueueStatusResponse>(
+    "/api/v1/strategic-deep-dive/queue/status"
+  );
+  return response.data;
+}
+
+/**
+ * Remove a pending report from the queue
+ */
+export async function removeFromQueue(
+  reportId: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await apiClient.delete(
+    `/api/v1/strategic-deep-dive/queue/${reportId}`
+  );
+  return response.data;
+}
+
+/**
+ * Add a country to the generation queue
+ */
+export async function addCountryToQueue(
+  isoCode: string,
+  topics?: string[]
+): Promise<{
+  success: boolean;
+  iso_code: string;
+  country_name: string;
+  added_to_queue: number;
+  skipped_existing: number;
+  message: string;
+}> {
+  const response = await apiClient.post(
+    `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/add-to-queue`,
+    topics ? { topics } : {}
+  );
+  return response.data;
+}
+
+/**
+ * Generate a single report synchronously with full response
+ * 
+ * This is the controlled generation for the Report Workshop.
+ * Uses extended timeout as generation can take 1-2 minutes.
+ */
+export async function generateControlled(
+  isoCode: string,
+  topic: string
+): Promise<ControlledGenerateResponse> {
+  // Use AI client with extended timeout (3 minutes for generation)
+  const response = await aiApiClient.post<ControlledGenerateResponse>(
+    `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/generate-controlled`,
+    { topic }
+  );
+  return response.data;
+}
+
+// ============================================================================
 // MOCK DATA FOR DEVELOPMENT
 // When backend pillars endpoint is not available, use this data
 // ============================================================================

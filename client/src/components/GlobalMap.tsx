@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { cn, getApiBaseUrl } from "../lib/utils";
 import type { MapCountryData, MapMetric, MapMetricConfig } from "../types/country";
+import { ADLIcon } from "./ADLLogo";
 
 // TopoJSON world map (using Natural Earth data)
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -184,12 +185,12 @@ const COUNTRY_NAME_TO_ISO: Record<string, string> = {
 };
 
 // Framework-Aligned Metric Configurations
-// Based on Sovereign OH Framework: Governance + 3 Pillars + Overall Maturity
+// Based on Sovereign OH Framework: Governance + 3 Pillars + ADL OHI Score
 const METRIC_CONFIGS: Record<MapMetric, MapMetricConfig> = {
-  // Overall Maturity Score (1.0-4.0 scale)
+  // ADL OHI Score (1.0-4.0 scale) - The branded overall health index
   maturity_score: {
     key: "maturity_score",
-    label: "Overall Maturity",
+    label: "ADL OHI Score",
     unit: "1-4",
     higherIsBetter: true,
     ranges: [
@@ -256,6 +257,7 @@ const METRIC_CONFIGS: Record<MapMetric, MapMetricConfig> = {
 interface GlobalMapProps {
   countries: MapCountryData[];
   onCountryClick?: (isoCode: string) => void;
+  onHoverCountry?: (country: MapCountryData | null) => void;
   className?: string;
   showLabels?: boolean;
   selectedMetric?: MapMetric;
@@ -265,6 +267,7 @@ interface GlobalMapProps {
 function GlobalMapComponent({
   countries,
   onCountryClick,
+  onHoverCountry,
   className,
   showLabels = false,
   selectedMetric = "maturity_score",
@@ -370,10 +373,19 @@ function GlobalMapComponent({
       flagUrl: data?.flag_url,
     });
     setTooltipPosition({ x: event.clientX, y: event.clientY });
+    
+    // Notify parent about hover for dynamic Quick Access panel
+    if (onHoverCountry && data) {
+      onHoverCountry(data);
+    }
   };
 
   const handleMouseLeave = () => {
     setTooltipContent(null);
+    // Clear hover state
+    if (onHoverCountry) {
+      onHoverCountry(null);
+    }
   };
 
   const formatValue = (value: number | null | undefined): string => {
@@ -497,10 +509,14 @@ function GlobalMapComponent({
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between min-w-[180px] px-4 py-2.5 text-sm font-medium text-white bg-slate-800/95 backdrop-blur-sm border border-slate-600 hover:border-cyan-500/50 rounded-lg transition-all shadow-lg"
+            className="flex items-center justify-between min-w-[200px] px-4 py-2.5 text-sm font-medium text-white bg-slate-800/95 backdrop-blur-sm border border-slate-600 hover:border-cyan-500/50 rounded-lg transition-all shadow-lg"
           >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-cyan-400" />
+              {selectedMetric === "maturity_score" ? (
+                <ADLIcon size="xs" animate={false} className="opacity-90" />
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-cyan-400" />
+              )}
               <span>{metricConfig.label}</span>
             </div>
             <ChevronDown className={cn("w-4 h-4 ml-3 text-slate-400 transition-transform", isDropdownOpen && "rotate-180")} />
@@ -522,6 +538,7 @@ function GlobalMapComponent({
                 >
                   {selectedMetric === config.key && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
                   {selectedMetric !== config.key && <div className="w-1.5 h-1.5" />}
+                  {config.key === "maturity_score" && <ADLIcon size="xs" animate={false} className="opacity-80" />}
                   {config.label}
                 </button>
               ))}
@@ -532,9 +549,12 @@ function GlobalMapComponent({
 
       {/* Legend - Bottom Left */}
       <div className="absolute bottom-4 left-4 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-lg p-3 z-30">
-        <p className="text-xs font-medium text-slate-300 mb-2">
-          {metricConfig.label} ({metricConfig.unit})
-        </p>
+        <div className="flex items-center gap-2 mb-2">
+          {selectedMetric === "maturity_score" && <ADLIcon size="xs" animate={false} className="opacity-80" />}
+          <p className="text-xs font-medium text-slate-300">
+            {metricConfig.label} ({metricConfig.unit})
+          </p>
+        </div>
         <div className="space-y-1.5">
           {metricConfig.ranges.map((range, idx) => (
             <LegendItem key={idx} color={range.color} label={range.label} />

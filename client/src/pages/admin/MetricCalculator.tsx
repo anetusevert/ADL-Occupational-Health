@@ -200,10 +200,10 @@ const pillarConfig: Record<PillarKey, {
     color: "text-cyan-400",
     bgColor: "bg-cyan-500/20",
     borderColor: "border-cyan-500/30",
-    label: "Overall Maturity",
-    shortLabel: "MAT",
+    label: "ADL OHI Score",
+    shortLabel: "OHI",
     weight: 1.0,
-    description: "Combined maturity score across all pillars (1.0-4.0 scale)",
+    description: "Arthur D. Little Occupational Health Index (1.0-4.0 scale)",
   },
 };
 

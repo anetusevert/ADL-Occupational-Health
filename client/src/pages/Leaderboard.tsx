@@ -101,7 +101,7 @@ type SortDirection = "asc" | "desc";
 // Sort field display names
 const SORT_FIELD_LABELS: Record<SortField, string> = {
   name: "Country",
-  maturity_score: "Maturity Score",
+  maturity_score: "ADL OHI Score",
   governance_score: "Governance Layer",
   pillar1_score: "P1: Hazard Control",
   pillar2_score: "P2: Health Vigilance",
@@ -516,7 +516,7 @@ export function Leaderboard() {
                   />
                   <SortableHeader
                     field="maturity_score"
-                    label="Maturity Score"
+                    label="ADL OHI SCORE"
                     currentField={sortField}
                     direction={sortDirection}
                     onSort={handleSort}

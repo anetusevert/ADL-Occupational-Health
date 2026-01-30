@@ -21,12 +21,18 @@ import {
   Filter,
   ArrowUpDown,
   MapPin,
-  BarChart3
+  BarChart3,
+  ExternalLink,
+  Gauge,
+  Shield,
+  Eye,
+  HeartPulse
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalMap } from "../components";
+import { ADLIcon } from "../components/ADLLogo";
 import { apiClient } from "../services/api";
-import { cn } from "../lib/utils";
+import { cn, getApiBaseUrl } from "../lib/utils";
 import type { MapCountryData, MapMetric, GeoJSONMetadataResponse } from "../types/country";
 
 // =============================================================================
@@ -108,6 +114,7 @@ export function Home() {
   const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<MapMetric>("maturity_score");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [hoveredCountry, setHoveredCountry] = useState<MapCountryData | null>(null);
   
   // Quick Access Filters
   const [continentFilter, setContinentFilter] = useState<string>("All");
@@ -272,6 +279,7 @@ export function Home() {
               <GlobalMap
                 countries={mapCountries}
                 onCountryClick={(iso) => navigate(`/country/${iso}`)}
+                onHoverCountry={setHoveredCountry}
                 showLabels={false}
                 className="h-full"
                 selectedMetric={selectedMetric}
@@ -312,7 +320,10 @@ export function Home() {
                   <p className="text-2xl font-bold text-white">
                     {avgMaturity > 0 ? avgMaturity.toFixed(1) : "—"}
                   </p>
-                  <p className="text-xs text-white/40">Avg Maturity</p>
+                  <p className="text-xs text-white/40 flex items-center gap-1">
+                    <ADLIcon size="xs" animate={false} className="opacity-60" />
+                    OHI Score
+                  </p>
                 </div>
               </div>
             </button>
@@ -333,149 +344,269 @@ export function Home() {
             </button>
           </div>
 
-          {/* Quick Access - With Filters */}
+          {/* Quick Access - With Filters or Dynamic Country Profile */}
           {mapCountries.length > 0 && (
             <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex flex-col">
               {/* Header with Filter Toggle */}
               <div className="flex-shrink-0 px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white">Quick Access</h2>
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={cn(
-                    "p-1.5 rounded-lg transition-colors",
-                    showFilters ? "bg-adl-accent/20 text-adl-accent" : "text-white/40 hover:text-white hover:bg-white/10"
-                  )}
-                >
-                  <Filter className="w-4 h-4" />
-                </button>
+                <h2 className="text-sm font-semibold text-white">
+                  {hoveredCountry ? "Country Profile" : "Quick Access"}
+                </h2>
+                {!hoveredCountry && (
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      showFilters ? "bg-adl-accent/20 text-adl-accent" : "text-white/40 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <Filter className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               
-              {/* Filters Panel */}
-              <AnimatePresence>
-                {showFilters && (
+              {/* Dynamic Country Profile on Hover */}
+              <AnimatePresence mode="wait">
+                {hoveredCountry && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="flex-shrink-0 border-b border-white/5 overflow-hidden"
+                    key="country-profile"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex-1 overflow-auto p-4"
                   >
-                    <div className="p-3 space-y-3">
-                      {/* Continent Filter */}
-                      <div>
-                        <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Continent
-                        </label>
-                        <div className="flex flex-wrap gap-1">
-                          {CONTINENTS.map(c => (
-                            <button
-                              key={c}
-                              onClick={() => setContinentFilter(c)}
-                              className={cn(
-                                "px-2 py-1 text-[10px] rounded transition-colors",
-                                continentFilter === c
-                                  ? "bg-adl-accent text-white"
-                                  : "bg-white/5 text-white/60 hover:bg-white/10"
-                              )}
-                            >
-                              {c}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Maturity Filter */}
-                      <div>
-                        <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                          <BarChart3 className="w-3 h-3" /> Maturity Stage
-                        </label>
-                        <select
-                          value={maturityFilter}
-                          onChange={(e) => setMaturityFilter(e.target.value as MaturityFilter)}
-                          className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white appearance-none cursor-pointer"
-                        >
-                          {MATURITY_FILTERS.map(f => (
-                            <option key={f.value} value={f.value}>{f.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      {/* Sort */}
-                      <div>
-                        <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                          <ArrowUpDown className="w-3 h-3" /> Sort By
-                        </label>
-                        <select
-                          value={sortOption}
-                          onChange={(e) => setSortOption(e.target.value as SortOption)}
-                          className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white appearance-none cursor-pointer"
-                        >
-                          {SORT_OPTIONS.map(s => (
-                            <option key={s.value} value={s.value}>{s.label}</option>
-                          ))}
-                        </select>
+                    {/* Country Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      {hoveredCountry.flag_url && (
+                        <img 
+                          src={`${getApiBaseUrl()}${hoveredCountry.flag_url}`}
+                          alt={hoveredCountry.name}
+                          className="w-10 h-7 object-cover rounded shadow-lg border border-white/20"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold truncate">{hoveredCountry.name}</p>
+                        <p className="text-xs text-white/40">
+                          {hoveredCountry.iso_code} • {CONTINENT_MAP[hoveredCountry.iso_code] || "Unknown"}
+                        </p>
                       </div>
                     </div>
+                    
+                    {/* ADL OHI Score - Prominent */}
+                    <div className="bg-gradient-to-r from-adl-accent/20 to-cyan-500/10 rounded-lg p-3 mb-4 border border-adl-accent/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ADLIcon size="xs" animate={false} />
+                          <span className="text-xs text-white/60">OHI Score</span>
+                        </div>
+                        <span className={cn(
+                          "text-xl font-bold",
+                          hoveredCountry.maturity_score !== null && hoveredCountry.maturity_score >= 3.5 ? "text-emerald-400"
+                          : hoveredCountry.maturity_score !== null && hoveredCountry.maturity_score >= 3.0 ? "text-lime-400"
+                          : hoveredCountry.maturity_score !== null && hoveredCountry.maturity_score >= 2.0 ? "text-orange-400"
+                          : "text-red-400"
+                        )}>
+                          {hoveredCountry.maturity_score?.toFixed(1) || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Framework Pillar Scores */}
+                    <div className="space-y-2.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Framework Scores</p>
+                      
+                      {/* Governance */}
+                      <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                        <div className="w-7 h-7 bg-amber-500/20 rounded flex items-center justify-center">
+                          <Shield className="w-3.5 h-3.5 text-amber-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-white/80">Governance</p>
+                        </div>
+                        <span className="text-sm font-semibold text-amber-400">
+                          {hoveredCountry.governance_score?.toFixed(0) || "—"}
+                        </span>
+                      </div>
+                      
+                      {/* Pillar 1: Hazard Control */}
+                      <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                        <div className="w-7 h-7 bg-red-500/20 rounded flex items-center justify-center">
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-white/80">Hazard Control</p>
+                        </div>
+                        <span className="text-sm font-semibold text-red-400">
+                          {hoveredCountry.pillar1_score?.toFixed(0) || "—"}
+                        </span>
+                      </div>
+                      
+                      {/* Pillar 2: Health Vigilance */}
+                      <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                        <div className="w-7 h-7 bg-cyan-500/20 rounded flex items-center justify-center">
+                          <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-white/80">Health Vigilance</p>
+                        </div>
+                        <span className="text-sm font-semibold text-cyan-400">
+                          {hoveredCountry.pillar2_score?.toFixed(0) || "—"}
+                        </span>
+                      </div>
+                      
+                      {/* Pillar 3: Restoration */}
+                      <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                        <div className="w-7 h-7 bg-pink-500/20 rounded flex items-center justify-center">
+                          <HeartPulse className="w-3.5 h-3.5 text-pink-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-white/80">Restoration</p>
+                        </div>
+                        <span className="text-sm font-semibold text-pink-400">
+                          {hoveredCountry.pillar3_score?.toFixed(0) || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* View Full Profile Link */}
+                    <button
+                      onClick={() => navigate(`/country/${hoveredCountry.iso_code}`)}
+                      className="w-full mt-4 py-2.5 px-4 bg-adl-accent/20 hover:bg-adl-accent/30 text-adl-accent text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
+                      View Full Profile
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
               
-              {/* Results Count */}
-              <div className="flex-shrink-0 px-4 py-2 text-[10px] text-white/30 border-b border-white/5">
-                Showing {filteredCountries.length} of {mapCountries.length} countries
-              </div>
-              
-              {/* Scrollable List */}
-              <div className="flex-1 overflow-auto scrollbar-thin p-3">
-                <div className="grid grid-cols-1 gap-2">
-                  {filteredCountries.slice(0, 50).map((country) => {
-                    const value = country[selectedMetric];
-                    const score = country.maturity_score;
-                    return (
-                      <button
-                        key={country.iso_code}
-                        onClick={() => navigate(`/country/${country.iso_code}`)}
-                        className={cn(
-                          "p-3 rounded-lg transition-all duration-200 text-left",
-                          "bg-white/5 hover:bg-white/10 border border-transparent hover:border-adl-accent/30",
-                          "group"
-                        )}
+              {/* Quick Access List - Shows when not hovering on a country */}
+              {!hoveredCountry && (
+                <>
+                  {/* Filters Panel */}
+                  <AnimatePresence>
+                    {showFilters && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="flex-shrink-0 border-b border-white/5 overflow-hidden"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-medium group-hover:text-adl-accent transition-colors truncate">
-                              {country.name}
-                            </p>
-                            <p className="text-[10px] text-white/30">
-                              {country.iso_code} • {CONTINENT_MAP[country.iso_code] || "Unknown"}
-                            </p>
+                        <div className="p-3 space-y-3">
+                          {/* Continent Filter */}
+                          <div>
+                            <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" /> Continent
+                            </label>
+                            <div className="flex flex-wrap gap-1">
+                              {CONTINENTS.map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => setContinentFilter(c)}
+                                  className={cn(
+                                    "px-2 py-1 text-[10px] rounded transition-colors",
+                                    continentFilter === c
+                                      ? "bg-adl-accent text-white"
+                                      : "bg-white/5 text-white/60 hover:bg-white/10"
+                                  )}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          {value !== null && value !== undefined && (
-                            <span className={cn(
-                              "text-xs font-semibold px-2 py-0.5 rounded ml-2",
-                              selectedMetric === "maturity_score"
-                                ? score !== null && score >= 3.5 ? "bg-emerald-500/20 text-emerald-400" 
-                                : score !== null && score >= 3.0 ? "bg-lime-500/20 text-lime-400" 
-                                : score !== null && score >= 2.0 ? "bg-orange-500/20 text-orange-400" 
-                                : "bg-red-500/20 text-red-400"
-                                : selectedMetric === "fatal_accident_rate"
-                                ? value < 1.0 ? "bg-emerald-500/20 text-emerald-400" 
-                                : value < 2.0 ? "bg-yellow-500/20 text-yellow-400" 
-                                : "bg-red-500/20 text-red-400"
-                                : selectedMetric === "vulnerability_index"
-                                ? value < 20 ? "bg-emerald-500/20 text-emerald-400" 
-                                : value < 40 ? "bg-yellow-500/20 text-yellow-400" 
-                                : "bg-red-500/20 text-red-400"
-                                : "bg-white/10 text-white/60"
-                            )}>
-                              {value.toFixed(1)}
-                            </span>
-                          )}
+                          
+                          {/* Maturity Filter */}
+                          <div>
+                            <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <BarChart3 className="w-3 h-3" /> OHI Stage
+                            </label>
+                            <select
+                              value={maturityFilter}
+                              onChange={(e) => setMaturityFilter(e.target.value as MaturityFilter)}
+                              className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white appearance-none cursor-pointer"
+                            >
+                              {MATURITY_FILTERS.map(f => (
+                                <option key={f.value} value={f.value}>{f.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* Sort */}
+                          <div>
+                            <label className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <ArrowUpDown className="w-3 h-3" /> Sort By
+                            </label>
+                            <select
+                              value={sortOption}
+                              onChange={(e) => setSortOption(e.target.value as SortOption)}
+                              className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white appearance-none cursor-pointer"
+                            >
+                              {SORT_OPTIONS.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Results Count */}
+                  <div className="flex-shrink-0 px-4 py-2 text-[10px] text-white/30 border-b border-white/5">
+                    Showing {filteredCountries.length} of {mapCountries.length} countries
+                  </div>
+                  
+                  {/* Scrollable List */}
+                  <div className="flex-1 overflow-auto scrollbar-thin p-3">
+                    <div className="grid grid-cols-1 gap-2">
+                      {filteredCountries.slice(0, 50).map((country) => {
+                        const value = country[selectedMetric];
+                        const score = country.maturity_score;
+                        return (
+                          <button
+                            key={country.iso_code}
+                            onClick={() => navigate(`/country/${country.iso_code}`)}
+                            className={cn(
+                              "p-3 rounded-lg transition-all duration-200 text-left",
+                              "bg-white/5 hover:bg-white/10 border border-transparent hover:border-adl-accent/30",
+                              "group"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-white font-medium group-hover:text-adl-accent transition-colors truncate">
+                                  {country.name}
+                                </p>
+                                <p className="text-[10px] text-white/30">
+                                  {country.iso_code} • {CONTINENT_MAP[country.iso_code] || "Unknown"}
+                                </p>
+                              </div>
+                              {value !== null && value !== undefined && (
+                                <span className={cn(
+                                  "text-xs font-semibold px-2 py-0.5 rounded ml-2",
+                                  selectedMetric === "maturity_score"
+                                    ? score !== null && score >= 3.5 ? "bg-emerald-500/20 text-emerald-400" 
+                                    : score !== null && score >= 3.0 ? "bg-lime-500/20 text-lime-400" 
+                                    : score !== null && score >= 2.0 ? "bg-orange-500/20 text-orange-400" 
+                                    : "bg-red-500/20 text-red-400"
+                                    : value >= 75 ? "bg-emerald-500/20 text-emerald-400"
+                                    : value >= 50 ? "bg-lime-500/20 text-lime-400"
+                                    : value >= 25 ? "bg-orange-500/20 text-orange-400"
+                                    : "bg-red-500/20 text-red-400"
+                                )}>
+                                  {value.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -525,7 +656,7 @@ function StatsModal({
   
   const titles: Record<NonNullable<ModalType>, string> = {
     countries: "Countries Tracked",
-    maturity: "Maturity Distribution",
+    maturity: "ADL OHI Distribution",
     data: "Data Coverage Analysis",
   };
 
@@ -660,11 +791,11 @@ function StatsModal({
                 <h3 className="text-sm font-medium text-white/60 mb-3">Data Coverage by Metric</h3>
                 <div className="space-y-3">
                   {[
-                    { key: "maturity_score", label: "Maturity Score" },
-                    { key: "fatal_accident_rate", label: "Fatal Accident Rate" },
-                    { key: "strategic_capacity_score", label: "Strategic Capacity" },
-                    { key: "vulnerability_index", label: "Vulnerability Index" },
-                    { key: "rehab_access_score", label: "Rehab Access Score" },
+                    { key: "maturity_score", label: "ADL OHI Score" },
+                    { key: "governance_score", label: "Governance Index" },
+                    { key: "pillar1_score", label: "Hazard Control" },
+                    { key: "pillar2_score", label: "Health Vigilance" },
+                    { key: "pillar3_score", label: "Restoration" },
                   ].map(metric => {
                     const withData = mapCountries.filter(c => c[metric.key as MapMetric] !== null).length;
                     const pct = (withData / mapCountries.length) * 100;
