@@ -99,6 +99,10 @@ export function FrameworkPage() {
       <InteractionGuideModal
         isOpen={showInteractionGuide}
         onClose={handleCloseGuide}
+        onNavigateToBlock={(blockId) => {
+          setActiveBlock(blockId);
+          handleCloseGuide();
+        }}
       />
 
       {/* Page Header - Fixed */}
