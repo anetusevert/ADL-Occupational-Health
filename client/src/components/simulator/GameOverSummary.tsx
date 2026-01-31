@@ -23,11 +23,13 @@ import {
   Share2,
   Download,
   Sparkles,
+  Brain,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { GameStatistics, CycleHistory, CountryData, Achievement } from './types';
 import { MATURITY_STAGES, PILLAR_CONFIGS } from './types';
 import { OHIScoreDisplay } from './OHIScoreDisplay';
+import { runFinalReportWorkflow } from '../../services/api';
 
 // Country flag emoji helper
 function getCountryFlag(isoCode: string): string {
@@ -58,32 +60,79 @@ export function GameOverSummary({
   onNewCountry,
 }: GameOverSummaryProps) {
   const [narrative, setNarrative] = useState<string>('');
+  const [highlights, setHighlights] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [aiGrade, setAiGrade] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(true);
   
-  // Generate narrative (simulated - would be AI in production)
+  // Generate narrative using Final Report workflow
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const scoreChange = statistics.currentOHIScore - statistics.startingOHIScore;
-      const improved = scoreChange > 0;
-      const stage = MATURITY_STAGES.find(
-        s => statistics.currentOHIScore >= s.minScore && statistics.currentOHIScore <= s.maxScore
-      );
+    async function generateFinalReport() {
+      try {
+        const workflowResult = await runFinalReportWorkflow({
+          country_name: country.name,
+          history: history.map(h => ({
+            cycleNumber: h.cycleNumber || 0,
+            year: h.year,
+            pillars: h.pillars,
+            ohiScore: h.ohiScore,
+            rank: h.rank,
+            budgetSpent: h.budgetSpent || {},
+            policiesActive: h.policiesActive || [],
+            eventsOccurred: h.eventsOccurred || [],
+            choicesMade: h.choicesMade || {},
+          })),
+          statistics: {
+            totalCyclesPlayed: statistics.totalCyclesPlayed,
+            startingOHIScore: statistics.startingOHIScore,
+            currentOHIScore: statistics.currentOHIScore,
+            peakOHIScore: statistics.peakOHIScore,
+            lowestOHIScore: statistics.lowestOHIScore,
+            startingRank: statistics.startingRank,
+            currentRank: statistics.currentRank,
+            bestRank: statistics.bestRank,
+            totalBudgetSpent: statistics.totalBudgetSpent,
+            policiesMaxed: statistics.policiesMaxed,
+            eventsHandled: statistics.eventsHandled,
+            criticalEventsManaged: statistics.criticalEventsManaged,
+          },
+          final_rank: finalRank,
+        });
+        
+        if (workflowResult.success && workflowResult.data) {
+          const data = workflowResult.data as Record<string, unknown>;
+          setNarrative((data.narrative as string) || '');
+          setHighlights((data.highlights as string[]) || []);
+          setRecommendations((data.recommendations as string[]) || []);
+          setAiGrade((data.grade as string) || '');
+        } else {
+          throw new Error(workflowResult.errors?.[0] || 'Workflow failed');
+        }
+      } catch (error) {
+        console.error('Failed to generate final report:', error);
+        
+        // Fallback narrative
+        const scoreChange = statistics.currentOHIScore - statistics.startingOHIScore;
+        const improved = scoreChange > 0;
+        const stage = MATURITY_STAGES.find(
+          s => statistics.currentOHIScore >= s.minScore && statistics.currentOHIScore <= s.maxScore
+        );
+        
+        const narratives = improved ? [
+          `Under your leadership, ${country.name} has transformed its occupational health landscape. Through strategic investments in governance and worker protection, the nation has risen from a score of ${statistics.startingOHIScore.toFixed(2)} to ${statistics.currentOHIScore.toFixed(2)}, achieving "${stage?.label}" status on the global stage.`,
+          `Your tenure as Health Minister will be remembered as a turning point for ${country.name}. The policies you championed have strengthened the pillars of occupational health, reduced workplace fatalities, and created a more resilient system for worker protection.`,
+        ] : [
+          `Despite the challenges faced, ${country.name}'s occupational health system has shown resilience. While the final score of ${statistics.currentOHIScore.toFixed(2)} reflects ongoing work needed, the foundation has been laid for future improvements.`,
+        ];
+        
+        setNarrative(narratives.join('\n\n'));
+      }
       
-      const narratives = improved ? [
-        `Under your leadership, ${country.name} has transformed its occupational health landscape. Through strategic investments in governance and worker protection, the nation has risen from a score of ${statistics.startingOHIScore.toFixed(2)} to ${statistics.currentOHIScore.toFixed(2)}, achieving "${stage?.label}" status on the global stage.`,
-        `Your tenure as Health Minister will be remembered as a turning point for ${country.name}. The policies you championed have strengthened the pillars of occupational health, reduced workplace fatalities, and created a more resilient system for worker protection.`,
-        `${country.name}'s journey from rank #${statistics.startingRank} to #${finalRank} reflects your commitment to evidence-based policymaking and strategic resource allocation.`,
-      ] : [
-        `Despite the challenges faced, ${country.name}'s occupational health system has shown resilience. While the final score of ${statistics.currentOHIScore.toFixed(2)} reflects ongoing work needed, the foundation has been laid for future improvements.`,
-        `Your experience leading ${country.name}'s health ministry has provided valuable lessons in policy implementation and resource management under constraints.`,
-      ];
-      
-      setNarrative(narratives.join('\n\n'));
       setIsGenerating(false);
-    }, 2000);
+    }
     
-    return () => clearTimeout(timer);
-  }, [country, statistics, finalRank]);
+    generateFinalReport();
+  }, [country, statistics, history, finalRank]);
   
   // Calculate grade
   const scoreChange = statistics.currentOHIScore - statistics.startingOHIScore;
@@ -184,14 +233,36 @@ export function GameOverSummary({
             </div>
             
             {isGenerating ? (
-              <div className="flex items-center gap-3 text-white/40">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </motion.div>
-                <span>Generating your legacy report...</span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-white/60">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Brain className="w-5 h-5 text-adl-accent" />
+                  </motion.div>
+                  <span>AI is generating your comprehensive legacy report...</span>
+                </div>
+                <div className="space-y-2">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center gap-2 text-sm text-white/40"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Analyzing performance metrics...
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.5 }}
+                    className="flex items-center gap-2 text-sm text-white/40"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                    Synthesizing narrative assessment...
+                  </motion.div>
+                </div>
               </div>
             ) : (
               <motion.p

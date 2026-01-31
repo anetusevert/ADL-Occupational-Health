@@ -36,8 +36,13 @@ import { CountrySlideshow } from './CountrySlideshow';
 import { useGame, GameProvider } from '../../hooks/useGameSimulation';
 import type { CountryData, GameEvent, CountryBriefing, DecisionCard, NewsItem } from './types';
 
-// API functions
-import { researchCountry, generateDecisions, generateNews } from '../../services/api';
+// API functions - Using enhanced workflow endpoints
+import { 
+  runIntelligenceBriefingWorkflow,
+  runStrategicAdvisorWorkflow,
+  runNewsGeneratorWorkflow,
+  type WorkflowResponse,
+} from '../../services/api';
 
 // Map 3-letter ISO codes to 2-letter codes for flags
 const ISO3_TO_ISO2: Record<string, string> = {
@@ -100,15 +105,42 @@ function GameInner() {
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [isLoadingDecisions, setIsLoadingDecisions] = useState(false);
 
-  // Handle country selection and start research
+  // Handle country selection and start research using enhanced workflow
   const handleSelectAndResearch = useCallback(async (country: CountryData) => {
     selectCountry(country);
     setGamePhase('loading');
 
     try {
-      // Research the country
-      const briefingData = await researchCountry(country.iso_code);
-      setBriefing(briefingData as unknown as CountryBriefing);
+      // Use enhanced Intelligence Briefing workflow (with web search)
+      const workflowResult = await runIntelligenceBriefingWorkflow(country.iso_code);
+      
+      if (workflowResult.success && workflowResult.data) {
+        // Map workflow response to briefing format
+        const data = workflowResult.data as Record<string, unknown>;
+        const briefingData: CountryBriefing = {
+          country_name: (data.country_name as string) || country.name,
+          iso_code: (data.iso_code as string) || country.iso_code,
+          flag_url: (data.flag_url as string) || `https://flagcdn.com/w160/${country.iso_code.slice(0, 2).toLowerCase()}.png`,
+          executive_summary: (data.executive_summary as string) || `Welcome to ${country.name}.`,
+          socioeconomic_context: (data.socioeconomic_context as string) || '',
+          cultural_factors: (data.cultural_factors as string) || '',
+          future_outlook: (data.future_outlook as string) || '',
+          key_statistics: (data.key_statistics as Record<string, unknown>) || {},
+          ohi_score: (data.ohi_score as number) || country.initialOHIScore,
+          pillar_scores: (data.pillar_scores as Record<string, number>) || country.initialPillars,
+          global_rank: (data.global_rank as number) || 50,
+          pillar_insights: (data.pillar_insights as CountryBriefing['pillar_insights']) || {},
+          key_challenges: (data.key_challenges as string[]) || [],
+          key_stakeholders: (data.key_stakeholders as CountryBriefing['key_stakeholders']) || [],
+          recent_articles: (data.recent_articles as CountryBriefing['recent_articles']) || [],
+          mission_statement: (data.mission_statement as string) || `Transform ${country.name}'s occupational health system.`,
+          difficulty_rating: (data.difficulty_rating as string) || 'Medium',
+          country_context: (data.country_context as CountryBriefing['country_context']) || {},
+        };
+        setBriefing(briefingData);
+      } else {
+        throw new Error(workflowResult.errors?.[0] || 'Workflow failed');
+      }
       setGamePhase('briefing');
     } catch (error) {
       console.error('Failed to research country:', error);
@@ -156,74 +188,94 @@ function GameInner() {
     startGame();
     setGamePhase('playing');
 
-    // Generate initial decisions
+    // Generate initial decisions using Strategic Advisor workflow
     if (state.selectedCountry && briefing) {
       setIsLoadingDecisions(true);
       try {
-        const decisionCards = await generateDecisions({
+        const workflowResult = await runStrategicAdvisorWorkflow({
           iso_code: state.selectedCountry.iso_code,
           country_name: state.selectedCountry.name,
           current_month: 1,
           current_year: state.currentYear,
+          ohi_score: state.ohiScore,
           pillars: state.pillars,
           budget_remaining: state.budget.totalBudgetPoints,
           recent_decisions: [],
-          recent_events: [],
         });
-        setDecisions(decisionCards as unknown as DecisionCard[]);
+        
+        if (workflowResult.success && workflowResult.data) {
+          const data = workflowResult.data as Record<string, unknown>;
+          const decisionsData = (data.decisions as DecisionCard[]) || [];
+          setDecisions(decisionsData);
+        } else {
+          console.warn('Advisor workflow returned no decisions, using empty list');
+          setDecisions([]);
+        }
       } catch (error) {
         console.error('Failed to generate decisions:', error);
-        // Use fallback decisions
         setDecisions([]);
       }
       setIsLoadingDecisions(false);
     }
-  }, [startGame, state.selectedCountry, state.currentYear, state.pillars, state.budget.totalBudgetPoints, briefing]);
+  }, [startGame, state.selectedCountry, state.currentYear, state.pillars, state.ohiScore, state.budget.totalBudgetPoints, briefing]);
 
   // Handle confirming decisions and advancing
   const handleConfirmDecisions = useCallback(async () => {
     // Process the selected decisions (simplified - in full version would calculate impacts)
     advanceCycle();
 
-    // Generate news for this month
+    // Generate news using News Generator workflow
     if (state.selectedCountry) {
       try {
-        const news = await generateNews({
+        const newsWorkflowResult = await runNewsGeneratorWorkflow({
           iso_code: state.selectedCountry.iso_code,
+          country_name: state.selectedCountry.name,
           current_month: ((state.cycleNumber + 1) % 12) + 1,
           current_year: state.currentYear,
           recent_decisions: decisions.filter(d => selectedDecisions.includes(d.id)),
           pillar_changes: {},
           count: 2,
         });
-        setNewsItems(prev => [...news as unknown as NewsItem[], ...prev].slice(0, 20));
+        
+        if (newsWorkflowResult.success && newsWorkflowResult.data) {
+          const newsData = newsWorkflowResult.data as Record<string, unknown>;
+          const newsItems = (newsData.news_items as NewsItem[]) || [];
+          setNewsItems(prev => [...newsItems, ...prev].slice(0, 20));
+        }
       } catch (error) {
         console.error('Failed to generate news:', error);
       }
     }
 
-    // Generate new decisions for next turn
+    // Generate new decisions using Strategic Advisor workflow
     if (state.selectedCountry) {
       setIsLoadingDecisions(true);
       try {
-        const newDecisions = await generateDecisions({
+        const advisorWorkflowResult = await runStrategicAdvisorWorkflow({
           iso_code: state.selectedCountry.iso_code,
           country_name: state.selectedCountry.name,
           current_month: ((state.cycleNumber + 1) % 12) + 1,
           current_year: state.currentYear,
+          ohi_score: state.ohiScore,
           pillars: state.pillars,
           budget_remaining: state.budget.totalBudgetPoints - Object.values(state.budget.spent).reduce((a, b) => a + b, 0),
           recent_decisions: selectedDecisions,
-          recent_events: [],
         });
-        setDecisions(newDecisions as unknown as DecisionCard[]);
+        
+        if (advisorWorkflowResult.success && advisorWorkflowResult.data) {
+          const data = advisorWorkflowResult.data as Record<string, unknown>;
+          const decisionsData = (data.decisions as DecisionCard[]) || [];
+          setDecisions(decisionsData);
+        } else {
+          setDecisions([]);
+        }
         setSelectedDecisions([]);
       } catch (error) {
         console.error('Failed to generate new decisions:', error);
       }
       setIsLoadingDecisions(false);
     }
-  }, [advanceCycle, state.selectedCountry, state.cycleNumber, state.currentYear, state.pillars, state.budget, decisions, selectedDecisions]);
+  }, [advanceCycle, state.selectedCountry, state.cycleNumber, state.currentYear, state.pillars, state.ohiScore, state.budget, decisions, selectedDecisions]);
 
   // Setup Phase
   if (gamePhase === 'setup') {
