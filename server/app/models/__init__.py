@@ -43,6 +43,8 @@ from app.models.metric_config import (
 
 from app.models.ai_call_trace import AICallTrace
 
+from app.models.agent import Agent, DEFAULT_AGENTS
+
 __all__ = [
     # Country Enums
     "HeatStressRegulationType",
@@ -74,4 +76,7 @@ __all__ = [
     "DEFAULT_PILLAR_SUMMARIES",
     # AI Call Trace
     "AICallTrace",
+    # Agent Registry
+    "Agent",
+    "DEFAULT_AGENTS",
 ]

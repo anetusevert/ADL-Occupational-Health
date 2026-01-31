@@ -64,7 +64,8 @@ class AgentUpdateRequest(BaseModel):
 
 class AgentTestRequest(BaseModel):
     """Request to test an agent."""
-    variables: dict  # e.g., {"COUNTRY_NAME": "Germany", "TOPIC": "Governance"}
+    variables: dict  # e.g., {"ISO_CODE": "DEU", "TOPIC": "Governance"}
+    enable_web_search: bool = False  # Whether to perform web search
 
 
 class AgentTestResponse(BaseModel):
@@ -252,9 +253,14 @@ async def test_agent(
             execution_time_ms=0,
         )
     
-    # Run the agent
+    # Run the agent with auto database context injection
     runner = AgentRunner(db, ai_config)
-    result = await runner.run(agent_id, request.variables, update_stats=True)
+    result = await runner.run(
+        agent_id, 
+        request.variables, 
+        update_stats=True,
+        enable_web_search=request.enable_web_search
+    )
     
     execution_time_ms = int((time.time() - start_time) * 1000)
     

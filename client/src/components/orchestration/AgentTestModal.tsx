@@ -14,7 +14,7 @@ interface AgentTestModalProps {
   agent: AgentData | null;
   isOpen: boolean;
   onClose: () => void;
-  onTest: (agentId: string, variables: Record<string, string>) => Promise<{
+  onTest: (agentId: string, variables: Record<string, string>, enableWebSearch?: boolean) => Promise<{
     success: boolean;
     output?: string;
     error?: string;
@@ -23,44 +23,34 @@ interface AgentTestModalProps {
 }
 
 // Sample values for common variables
+// Note: DATABASE_CONTEXT, METRICS_DATA, INTELLIGENCE_DATA, PILLAR_SCORES are auto-injected from ISO_CODE
 const SAMPLE_VALUES: Record<string, string> = {
+  'ISO_CODE': 'DEU',
   'COUNTRY_NAME': 'Germany',
   'COUNTRY': 'Germany',
-  'ISO_CODE': 'DEU',
   'TOPIC': 'Governance and Regulatory Framework',
-  'METRICS_DATA': `Maturity Score: 78.5%
-Governance Score: 82.3%
-ILO C187 Ratified: Yes
-ILO C155 Ratified: Yes
-Inspector Density: 0.8 per 10,000 workers
-Fatal Accident Rate: 1.2 per 100,000 workers`,
-  'INTELLIGENCE_DATA': `GDP per Capita (PPP): $56,000
-HDI Score: 0.942
-CPI Score: 80
-Health Expenditure: 11.7% of GDP
-Life Expectancy: 81.3 years`,
-  'CONTEXT': `Ministry of Labour and Social Affairs (BMAS)
-Federal Institute for Occupational Safety and Health (BAuA)
-German Social Accident Insurance (DGUV)
-German Trade Union Confederation (DGB)`,
   'CURRENT_MONTH': '3',
   'CURRENT_YEAR': '2026',
-  'OHI_SCORE': '78.5',
   'BUDGET': '100',
-  'PILLAR_SCORES': `Governance: 82.3%
-Hazard Control: 75.2%
-Health Vigilance: 80.1%
-Restoration: 76.4%`,
   'GAME_STATE': `Turn: 3/12
 Budget Remaining: 100 points
 Recent Actions: Launched inspection campaign`,
   'USER_QUESTION': 'What should be my priority for this quarter?',
   'RECENT_DECISIONS': `- Launched national inspection campaign (Turn 2)
 - Increased inspector training budget (Turn 1)`,
+  // These are auto-injected but can be overridden
+  'DATABASE_CONTEXT': '(Auto-injected from database based on ISO_CODE)',
+  'METRICS_DATA': '(Auto-injected from database based on ISO_CODE)',
+  'INTELLIGENCE_DATA': '(Auto-injected from database based on ISO_CODE)',
+  'CONTEXT': '(Auto-injected from database based on ISO_CODE)',
+  'PILLAR_SCORES': '(Auto-injected from database based on ISO_CODE)',
+  'OHI_SCORE': '(Auto-injected from database based on ISO_CODE)',
+  'WEB_RESEARCH': '(Optional: Enable web search to populate)',
 };
 
 export function AgentTestModal({ agent, isOpen, onClose, onTest }: AgentTestModalProps) {
   const [variables, setVariables] = useState<Record<string, string>>({});
+  const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
@@ -88,7 +78,15 @@ export function AgentTestModal({ agent, isOpen, onClose, onTest }: AgentTestModa
     setResult(null);
     
     try {
-      const response = await onTest(agent.id, variables);
+      // Filter out auto-injected placeholder values
+      const filteredVars: Record<string, string> = {};
+      for (const [key, value] of Object.entries(variables)) {
+        if (!value.startsWith('(Auto-injected') && !value.startsWith('(Optional:')) {
+          filteredVars[key] = value;
+        }
+      }
+      
+      const response = await onTest(agent.id, filteredVars, enableWebSearch);
       setResult(response);
     } catch (error) {
       setResult({
@@ -168,11 +166,34 @@ export function AgentTestModal({ agent, isOpen, onClose, onTest }: AgentTestModa
                   ))}
                 </div>
                 
+                {/* Web Search Option */}
+                <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableWebSearch}
+                      onChange={(e) => setEnableWebSearch(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-slate-800 text-cyan-500 focus:ring-cyan-500/50"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-white">Enable Web Search</span>
+                      <p className="text-xs text-slate-500">Search for recent news and developments</p>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-400">
+                    <strong>Note:</strong> Database context is auto-injected based on ISO_CODE. 
+                    You only need to provide country code and topic.
+                  </p>
+                </div>
+
                 <button
                   onClick={handleRun}
                   disabled={isRunning}
                   className={cn(
-                    'w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors',
+                    'w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors',
                     isRunning
                       ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
                       : 'bg-cyan-500 text-white hover:bg-cyan-400'

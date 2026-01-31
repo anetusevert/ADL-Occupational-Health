@@ -40,9 +40,13 @@ async function updateAgent(
 
 async function testAgent(
   agentId: string, 
-  variables: Record<string, string>
+  variables: Record<string, string>,
+  enableWebSearch: boolean = false
 ): Promise<{ success: boolean; output?: string; error?: string; execution_time_ms?: number }> {
-  const response = await apiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, { variables });
+  const response = await apiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, { 
+    variables,
+    enable_web_search: enableWebSearch
+  });
   return response.data;
 }
 
@@ -106,9 +110,10 @@ export function AIOrchestrationLayer() {
 
   const handleRunTest = async (
     agentId: string, 
-    variables: Record<string, string>
+    variables: Record<string, string>,
+    enableWebSearch: boolean = false
   ) => {
-    return await testAgent(agentId, variables);
+    return await testAgent(agentId, variables, enableWebSearch);
   };
 
   // Loading state

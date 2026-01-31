@@ -39,6 +39,7 @@ from app.models.country import (
     DeepDiveStatus,
 )
 from app.models.user import AIConfig, AIProvider
+from app.models.agent import Agent
 from app.services.ai_orchestrator import (
     perform_web_search,
     perform_extended_research,
@@ -303,6 +304,27 @@ class StrategicDeepDiveAgent:
             return None
         return config
     
+    def _get_agent_prompts(self) -> tuple[str, str]:
+        """
+        Load prompts from the Report Generation Agent in the database.
+        Falls back to hardcoded defaults if agent not found or prompts are empty.
+        
+        Returns:
+            Tuple of (system_prompt, user_prompt_template)
+        """
+        try:
+            agent = self.db.query(Agent).filter(Agent.id == "report-generation").first()
+            if agent and agent.system_prompt and agent.user_prompt_template:
+                logger.info("[Agent] Loaded prompts from 'report-generation' agent in database")
+                return agent.system_prompt, agent.user_prompt_template
+            else:
+                logger.info("[Agent] Agent not found or prompts empty, using defaults")
+        except Exception as e:
+            logger.warning(f"[Agent] Could not load agent prompts from database: {e}")
+        
+        # Fallback to hardcoded defaults
+        return STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT, STRATEGIC_DEEP_DIVE_USER_PROMPT
+    
     def _get_or_create_deep_dive(self, iso_code: str, topic: str = "Comprehensive Occupational Health Assessment") -> CountryDeepDive:
         """Get existing deep dive record or create new one for a specific topic."""
         deep_dive = self.db.query(CountryDeepDive).filter(
@@ -360,6 +382,11 @@ class StrategicDeepDiveAgent:
             provider_name = f"{self.config.provider.value} ({self.config.model_name})"
             self._log("Orchestrator", AgentStatus.ANALYZING,
                       f"Using AI provider: {provider_name}", "🤖")
+            
+            # Load prompts from Agent registry (with fallback to defaults)
+            system_prompt, user_prompt_template = self._get_agent_prompts()
+            self._log("Orchestrator", AgentStatus.ANALYZING,
+                      "Loaded prompts from Report Generation Agent", "📝")
             
             # =========================================================
             # STEP 1: DataAgent - Fetch Framework Metrics
