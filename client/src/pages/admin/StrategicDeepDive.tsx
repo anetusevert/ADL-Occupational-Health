@@ -1220,10 +1220,10 @@ export function StrategicDeepDive() {
         </div>
       </div>
       
-      {/* Three-Column Layout */}
-      <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
+      {/* Three-Column Layout - Responsive: Stack on mobile, side-by-side on desktop */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-auto lg:overflow-hidden">
         {/* Column 1: Country Selection */}
-        <div className="w-[260px] flex-shrink-0 flex flex-col min-h-0 bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+        <div className="w-full lg:w-[260px] flex-shrink-0 flex flex-col min-h-0 bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden max-h-[35vh] lg:max-h-none">
           <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40 space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold text-white flex items-center gap-2">
@@ -1295,7 +1295,7 @@ export function StrategicDeepDive() {
         </div>
         
         {/* Column 2: Analysis Topics */}
-        <div className="w-[280px] flex-shrink-0 flex flex-col min-h-0 bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+        <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col min-h-0 bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden max-h-[35vh] lg:max-h-none">
           <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40">
             <h2 className="text-xs font-semibold text-white flex items-center gap-2">
               <Target className="w-3.5 h-3.5 text-purple-400" />

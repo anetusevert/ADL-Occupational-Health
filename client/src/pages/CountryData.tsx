@@ -851,10 +851,10 @@ export function CountryData() {
         </div>
       </div>
 
-      {/* Three-Column Layout */}
-      <div className="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
-        {/* Left Panel: Countries (3 cols) */}
-        <div className="col-span-3 overflow-hidden">
+      {/* Three-Column Layout - Responsive */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 overflow-auto lg:overflow-hidden">
+        {/* Left Panel: Countries */}
+        <div className="lg:col-span-3 overflow-hidden min-h-[250px] lg:min-h-0">
           <CountryPanel
             countries={countriesData?.countries || []}
             selectedCountries={selectedCountries}
@@ -874,8 +874,8 @@ export function CountryData() {
           />
         </div>
 
-        {/* Right Panel: Pivot Table (6 cols) */}
-        <div className="col-span-6 overflow-hidden">
+        {/* Right Panel: Pivot Table */}
+        <div className="md:col-span-2 lg:col-span-6 overflow-hidden min-h-[300px] lg:min-h-0">
           <PivotPanel
             data={pivotData}
             isLoading={pivotLoading}

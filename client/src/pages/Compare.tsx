@@ -195,9 +195,9 @@ export function Compare() {
           </div>
         </div>
         
-        {/* Country Selectors - Inline */}
-        <div className="flex items-center gap-3">
-          <div className="w-56">
+        {/* Country Selectors - Responsive */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="w-full sm:w-56">
             <CountrySelector
               label=""
               value={leftCountry}
@@ -207,8 +207,8 @@ export function Compare() {
               excludeValue={rightCountry}
             />
           </div>
-          <span className="text-white/20 text-sm font-medium">vs</span>
-          <div className="w-56">
+          <span className="text-white/20 text-sm font-medium text-center">vs</span>
+          <div className="w-full sm:w-56">
             <CountrySelector
               label=""
               value={rightCountry}

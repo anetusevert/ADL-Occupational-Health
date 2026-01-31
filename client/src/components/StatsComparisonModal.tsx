@@ -191,7 +191,7 @@ export function StatsComparisonModal({
                   </div>
 
                   {/* Rankings Lists */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Top Countries */}
                     <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
                       <div className="flex items-center gap-2 mb-3">

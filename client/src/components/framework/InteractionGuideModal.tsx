@@ -1048,11 +1048,11 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
               </button>
             )}
 
-            {/* Main Content - Content Left, Visual Right */}
+            {/* Main Content - Responsive: Stacked on mobile, side-by-side on desktop */}
             {!showLoader && slide && (
-              <div className="flex-1 flex min-h-0">
-                {/* Left - Content (40%) */}
-                <div className="w-2/5 flex flex-col min-h-0 border-r border-slate-700/50 bg-slate-900">
+              <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+                {/* Left - Content (full width on mobile, 40% on desktop) */}
+                <div className="w-full lg:w-2/5 flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-700/50 bg-slate-900 max-h-[50vh] lg:max-h-none overflow-auto">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={slide.id}
@@ -1067,8 +1067,8 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
                   </AnimatePresence>
                 </div>
 
-                {/* Right - Dynamic Animated Visualization (60%) */}
-                <div className="w-3/5 relative bg-gradient-to-br from-slate-800/80 to-slate-900 overflow-hidden">
+                {/* Right - Dynamic Animated Visualization (full width on mobile, 60% on desktop) */}
+                <div className="w-full lg:w-3/5 relative bg-gradient-to-br from-slate-800/80 to-slate-900 overflow-hidden flex-1 min-h-[200px] lg:min-h-0">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={slide.id}

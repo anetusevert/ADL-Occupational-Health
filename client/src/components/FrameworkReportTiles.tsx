@@ -142,9 +142,9 @@ export function FrameworkReportTiles({ isoCode, countryName, className = "" }: F
           </div>
         </div>
 
-        {/* 2x2 Grid of Pillar Tiles */}
+        {/* 2x2 Grid of Pillar Tiles - Responsive */}
         <div className="p-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {PILLAR_CONFIG.map((pillar, index) => {
               const Icon = pillar.icon;
               const { available, total } = getReportCount(pillar.id);

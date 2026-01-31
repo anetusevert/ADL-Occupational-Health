@@ -350,8 +350,8 @@ function DataSourceModal({ source, items, onClose }: DataSourceModalProps) {
             </button>
           </div>
           
-          {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
+          {/* Quick Stats - Responsive */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="bg-slate-800/50 rounded-lg p-3">
               <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                 <LinkIcon className="w-3 h-3" />
@@ -899,10 +899,10 @@ export function DataEngine() {
         </div>
       </div>
 
-      {/* Three-Panel Layout */}
-      <div className="flex-1 min-h-0 grid grid-cols-12 gap-4">
-        {/* Left Panel: Data Sources (1/3) */}
-        <div className="col-span-3">
+      {/* Three-Panel Layout - Responsive */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 overflow-auto lg:overflow-hidden">
+        {/* Left Panel: Data Sources */}
+        <div className="lg:col-span-3 min-h-[250px] lg:min-h-0">
           <DataSourcePanel
             sources={DATA_SOURCES}
             items={registry?.items || []}
@@ -1077,8 +1077,8 @@ export function DataEngine() {
           )}
         </div>
         
-        {/* Right Panel: Live Ops Center (1/3) */}
-        <div className="col-span-3">
+        {/* Right Panel: Live Ops Center */}
+        <div className="lg:col-span-3 min-h-[250px] lg:min-h-0">
           <LiveOpsPanel
             onOpenFullConsole={() => setIsConsoleOpen(true)}
             lastSync={registry?.last_updated || null}

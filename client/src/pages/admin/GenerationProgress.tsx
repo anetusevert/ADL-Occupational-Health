@@ -862,10 +862,10 @@ export function GenerationProgress() {
           </AnimatePresence>
         </div>
         
-        {/* Three-Panel Layout */}
-        <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
+        {/* Three-Panel Layout - Responsive: Stack on mobile, side-by-side on desktop */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden lg:overflow-visible">
           {/* Left Panel: Queue Management */}
-          <div className="w-[280px] flex-shrink-0 flex flex-col bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+          <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden max-h-[40vh] lg:max-h-none">
             <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -931,7 +931,7 @@ export function GenerationProgress() {
           </div>
           
           {/* Center Panel: Generation Control */}
-          <div className="w-[300px] flex-shrink-0 flex flex-col bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+          <div className="w-full lg:w-[300px] flex-shrink-0 flex flex-col bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden max-h-[40vh] lg:max-h-none">
             <div className="flex-shrink-0 px-3 py-2.5 border-b border-slate-700/40">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-400" />

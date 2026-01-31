@@ -66,7 +66,7 @@ function SortableColumnHeader({ country, isActive }: SortableColumnHeaderProps) 
       ref={setNodeRef}
       style={style}
       className={cn(
-        "text-center p-3 text-sm font-semibold text-white bg-slate-800/50 min-w-[130px] relative group",
+        "text-center p-2 sm:p-3 text-xs sm:text-sm font-semibold text-white bg-slate-800/50 min-w-[100px] sm:min-w-[130px] relative group",
         isDragging && "opacity-50",
         isActive && "bg-cyan-500/20"
       )}
@@ -191,7 +191,7 @@ function SortableMetricRow({
       )}
     >
       {/* Metric Name Cell */}
-      <td className="p-3 sticky left-0 bg-slate-900/95 z-10 min-w-[220px]">
+      <td className="p-2 sm:p-3 sticky left-0 bg-slate-900/95 z-10 min-w-[160px] sm:min-w-[220px]">
         <div className="flex items-center gap-2">
           {/* Drag Handle */}
           <button
@@ -230,7 +230,7 @@ function SortableMetricRow({
         return (
           <td
             key={`${row.metric.id}-${cell.iso_code}`}
-            className="p-3 text-center min-w-[130px]"
+            className="p-2 sm:p-3 text-center min-w-[100px] sm:min-w-[130px]"
           >
             <span
               className={cn(
@@ -373,24 +373,24 @@ export function InteractivePivotTable({
       transition={{ duration: 0.3 }}
       className="space-y-4"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30 flex-shrink-0">
             <Table2 className="w-5 h-5 text-emerald-400" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-white">
               Interactive Results
             </h2>
-            <p className="text-sm text-slate-400">
-              Drag columns and rows to reorder • {data.total_metrics} metrics •{" "}
-              {data.countries.length} countries
+            <p className="text-xs sm:text-sm text-slate-400 truncate">
+              <span className="hidden sm:inline">Drag columns and rows to reorder • </span>
+              {data.total_metrics} metrics • {data.countries.length} countries
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Reset Button */}
           <motion.button
             onClick={handleResetOrder}
@@ -399,7 +399,7 @@ export function InteractivePivotTable({
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors text-sm"
           >
             <RotateCcw className="w-4 h-4" />
-            Reset Order
+            <span className="hidden sm:inline">Reset Order</span>
           </motion.button>
 
           {/* Export Button */}
@@ -407,25 +407,27 @@ export function InteractivePivotTable({
             onClick={onExport}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow text-sm sm:text-base"
           >
             <Download className="w-4 h-4" />
-            Export to Excel
+            <span className="hidden sm:inline">Export to Excel</span>
+            <span className="sm:hidden">Export</span>
           </motion.button>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-6 text-xs text-slate-400 bg-slate-800/30 rounded-lg px-4 py-2">
-        <div className="flex items-center gap-2">
+      {/* Legend - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-xs text-slate-400 bg-slate-800/30 rounded-lg px-4 py-2">
+        <div className="hidden md:flex items-center gap-2">
           <GripHorizontal className="w-4 h-4" />
           <span>Drag column headers to reorder countries</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           <GripVertical className="w-4 h-4" />
           <span>Drag rows to reorder metrics</span>
         </div>
-        <div className="flex items-center gap-4 ml-auto">
+        <p className="md:hidden text-center">Scroll horizontally to view all data</p>
+        <div className="flex items-center justify-center sm:justify-end gap-4 sm:ml-auto">
           <div className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-emerald-400" />
             <span>Best</span>
@@ -437,9 +439,9 @@ export function InteractivePivotTable({
         </div>
       </div>
 
-      {/* Table Container */}
+      {/* Table Container - Responsive wrapper */}
       <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
-        <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+        <div className="overflow-x-auto max-h-[60vh] sm:max-h-[500px] overflow-y-auto -webkit-overflow-scrolling-touch">
           <table className="w-full border-collapse">
             {/* Table Header with Draggable Columns */}
             <thead className="sticky top-0 z-20">
@@ -451,7 +453,7 @@ export function InteractivePivotTable({
               >
                 <tr className="border-b border-slate-700/50">
                   {/* Fixed Metric Column Header */}
-                  <th className="text-left p-3 text-sm font-semibold text-white bg-slate-800 sticky left-0 z-30 min-w-[220px]">
+                  <th className="text-left p-2 sm:p-3 text-xs sm:text-sm font-semibold text-white bg-slate-800 sticky left-0 z-30 min-w-[160px] sm:min-w-[220px]">
                     <div className="flex items-center gap-2">
                       <span>Metric</span>
                     </div>

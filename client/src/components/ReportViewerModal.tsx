@@ -239,7 +239,7 @@ export function ReportViewerModal({
                         <Shield className="w-4 h-4 text-purple-400" />
                         SWOT Analysis
                       </h3>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
                           <div className="flex items-center gap-1.5 mb-2">
                             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />

@@ -109,7 +109,7 @@ export function ReportListModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-8 md:inset-16 lg:inset-24 bg-slate-900 rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl max-w-2xl mx-auto max-h-[500px]"
+            className="fixed inset-4 sm:inset-8 md:inset-16 lg:inset-24 bg-slate-900 rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl max-w-2xl mx-auto max-h-[80vh]"
           >
             {/* Header */}
             <div className={cn(
