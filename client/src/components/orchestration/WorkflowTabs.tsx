@@ -14,6 +14,9 @@ import {
   Trash2,
   Play,
   Copy,
+  Power,
+  Activity,
+  Clock,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -24,6 +27,26 @@ export interface WorkflowTab {
   color: string;
   agentCount: number;
   isDefault?: boolean;
+  isActive?: boolean;
+  executionCount?: number;
+  lastRunAt?: string;
+}
+
+// Helper to format relative time
+function formatRelativeTime(dateString?: string): string {
+  if (!dateString) return 'Never';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 }
 
 interface WorkflowTabsProps {
@@ -145,9 +168,16 @@ export function WorkflowTabs({
                     ? cn(colors.bg, 'border', colors.border, colors.text)
                     : 'text-white/60 hover:text-white hover:bg-white/5'
                 )}
+                title={`${workflow.name}${workflow.executionCount ? ` • ${workflow.executionCount} runs` : ''}${workflow.lastRunAt ? ` • Last: ${formatRelativeTime(workflow.lastRunAt)}` : ''}`}
               >
-                {/* Color dot */}
-                <span className={cn('w-2 h-2 rounded-full', colors.bg.replace('/20', ''))} />
+                {/* Active/Inactive status dot */}
+                <span 
+                  className={cn(
+                    'w-2 h-2 rounded-full flex-shrink-0',
+                    workflow.isActive !== false ? 'bg-emerald-500' : 'bg-slate-500'
+                  )} 
+                  title={workflow.isActive !== false ? 'Active' : 'Inactive'}
+                />
 
                 {/* Name */}
                 {isEditing ? (
@@ -165,16 +195,30 @@ export function WorkflowTabs({
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className="max-w-32 truncate">{workflow.name}</span>
+                  <span className="max-w-28 truncate">{workflow.name}</span>
                 )}
 
-                {/* Agent count */}
+                {/* Agent count badge */}
                 <span className={cn(
                   'text-xs px-1.5 py-0.5 rounded',
                   isActive ? 'bg-white/10' : 'bg-white/5 text-white/40'
                 )}>
                   {workflow.agentCount}
                 </span>
+
+                {/* Execution count badge (if has runs) */}
+                {(workflow.executionCount ?? 0) > 0 && (
+                  <span 
+                    className={cn(
+                      'flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded',
+                      isActive ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-white/30'
+                    )}
+                    title={`${workflow.executionCount} executions`}
+                  >
+                    <Activity className="w-2.5 h-2.5" />
+                    {workflow.executionCount}
+                  </span>
+                )}
 
                 {/* Close button (on hover for non-default) */}
                 {!workflow.isDefault && isActive && (

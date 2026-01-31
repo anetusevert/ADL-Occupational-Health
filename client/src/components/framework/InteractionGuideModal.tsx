@@ -39,8 +39,15 @@ import {
   FileCheck,
   Activity,
   Briefcase,
+  Quote,
+  Lightbulb,
+  Globe,
+  BookOpen,
+  BarChart3,
+  ArrowDown,
+  ExternalLink,
 } from "lucide-react";
-import { guideSlides, type GuideSlide } from "../../data/frameworkContent";
+import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
 
 interface InteractionGuideModalProps {

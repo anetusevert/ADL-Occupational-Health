@@ -52,6 +52,11 @@ class Workflow(Base):
     # System vs user-created
     is_default = Column(Boolean, default=False, nullable=False)
     
+    # Workflow status and usage tracking
+    is_active = Column(Boolean, default=True, nullable=False)
+    execution_count = Column(Integer, default=0, nullable=False)
+    last_run_at = Column(DateTime, nullable=True)
+    
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -68,6 +73,9 @@ class Workflow(Base):
             "color": self.color,
             "lane_order": self.lane_order,
             "is_default": self.is_default,
+            "is_active": self.is_active,
+            "execution_count": self.execution_count,
+            "last_run_at": self.last_run_at.isoformat() if self.last_run_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

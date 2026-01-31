@@ -61,6 +61,9 @@ class WorkflowResponse(BaseModel):
     color: Optional[str]
     lane_order: Optional[int]
     is_default: bool
+    is_active: bool
+    execution_count: int
+    last_run_at: Optional[str]
     created_at: Optional[str]
     updated_at: Optional[str]
 
@@ -211,6 +214,9 @@ def workflow_to_response(workflow: Workflow) -> WorkflowResponse:
         color=workflow.color,
         lane_order=workflow.lane_order,
         is_default=workflow.is_default,
+        is_active=workflow.is_active if workflow.is_active is not None else True,
+        execution_count=workflow.execution_count if workflow.execution_count is not None else 0,
+        last_run_at=workflow.last_run_at.isoformat() if workflow.last_run_at else None,
         created_at=workflow.created_at.isoformat() if workflow.created_at else None,
         updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
     )
@@ -712,6 +718,55 @@ async def delete_workflow(
     logger.info(f"Deleted workflow {workflow_id} by user {current_user.email}")
     
     return {"success": True, "message": f"Workflow {workflow_id} deleted"}
+
+
+@router.post("/workflows/{workflow_id}/execute", response_model=WorkflowResponse)
+async def record_workflow_execution(
+    workflow_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Record a workflow execution.
+    Increments execution_count and updates last_run_at timestamp.
+    Called when 'Test Workflow' is clicked.
+    """
+    workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+    
+    # Update execution stats
+    workflow.execution_count = (workflow.execution_count or 0) + 1
+    workflow.last_run_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(workflow)
+    
+    logger.info(f"Recorded execution #{workflow.execution_count} for workflow {workflow_id}")
+    
+    return workflow_to_response(workflow)
+
+
+@router.patch("/workflows/{workflow_id}/toggle-active", response_model=WorkflowResponse)
+async def toggle_workflow_active(
+    workflow_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Toggle a workflow's active status."""
+    workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+    
+    workflow.is_active = not (workflow.is_active if workflow.is_active is not None else True)
+    
+    db.commit()
+    db.refresh(workflow)
+    
+    status = "activated" if workflow.is_active else "deactivated"
+    logger.info(f"Workflow {workflow_id} {status} by user {current_user.email}")
+    
+    return workflow_to_response(workflow)
 
 
 # =============================================================================

@@ -900,4 +900,273 @@ export function getAllBlocks(): FrameworkBlock[] {
   ];
 }
 
+// ============================================================================
+// ELEMENT INSIGHTS FOR INTERACTIVE GUIDE
+// ============================================================================
+
+export interface ElementInsight {
+  id: string;
+  label: string;
+  dataPoint: string;           // Key statistic
+  perspective: string;         // Smart analysis insight
+  quote?: string;              // Expert quote or best practice
+  example?: string;            // Real-world country example
+  source?: string;             // Citation/reference
+  color?: string;              // Associated color theme
+}
+
+export const elementInsights: Record<string, ElementInsight> = {
+  // ============================================================================
+  // GOVERNANCE ELEMENTS
+  // ============================================================================
+  "governance-central": {
+    id: "governance-central",
+    label: "Governance Ecosystem",
+    dataPoint: "Countries with strong governance show 47% lower workplace fatality rates",
+    perspective: "Governance is not just about laws—it's about creating a culture where safety is non-negotiable. The best systems combine legal mandates with institutional capacity and social dialogue.",
+    quote: "A law on paper is not a law in practice. Implementation and enforcement determine outcomes.",
+    example: "Germany's dual system of state regulation and self-governing employer insurance associations (Berufsgenossenschaften) creates multiple accountability layers.",
+    source: "ILO Global Estimates on Occupational Safety and Health, 2024",
+    color: "purple"
+  },
+  "legislative-backbone": {
+    id: "legislative-backbone",
+    label: "Legislative Backbone",
+    dataPoint: "Only 62 of 187 countries have ratified ILO Convention C187",
+    perspective: "Ratification signals commitment, but the real test is transposition into national law with adequate penalties and clear employer duties. Framework laws must be complemented by sector-specific regulations.",
+    quote: "The foundation of every strong OH system is a comprehensive legal framework that leaves no worker unprotected.",
+    example: "Sweden's Work Environment Act covers all workers regardless of employment status, including gig economy workers since 2022.",
+    source: "ILO NORMLEX Database, 2024",
+    color: "purple"
+  },
+  "enforcement": {
+    id: "enforcement",
+    label: "Enforcement Capacity",
+    dataPoint: "ILO recommends 1 inspector per 10,000 workers; global average is 1:53,000",
+    perspective: "Inspectors are the frontline of enforcement. But quantity alone isn't enough—inspectors need training, authority to issue stop-work orders, and protection from corruption pressures.",
+    quote: "An inspector without authority is a tourist. An inspector without training is a liability.",
+    example: "Singapore's Workplace Safety and Health Council pairs inspectors with industry specialists, achieving 94% compliance rates in construction.",
+    source: "ILO Labour Inspection Report, 2023",
+    color: "purple"
+  },
+  "national-culture": {
+    id: "national-culture",
+    label: "National Culture",
+    dataPoint: "Just Culture adoption reduces incident under-reporting by 60%",
+    perspective: "Safety culture cannot be mandated—it must be cultivated. Organizations with 'Just Culture' distinguish between honest mistakes and willful violations, encouraging reporting without fear.",
+    quote: "When workers fear punishment more than hazards, they hide problems instead of fixing them.",
+    example: "Norway's 'Internal Control' regulation requires every company to demonstrate systematic safety culture through documented practices.",
+    source: "European Agency for Safety and Health at Work, 2023",
+    color: "purple"
+  },
+  "strategic-capacity": {
+    id: "strategic-capacity",
+    label: "Strategic Capacity",
+    dataPoint: "Top-performing countries invest 0.15-0.25% of GDP in OH infrastructure",
+    perspective: "Strategic capacity includes research institutions, professional training programs, and technology for monitoring. Countries without this infrastructure import solutions that may not fit local contexts.",
+    quote: "You cannot manage what you cannot measure. Strategic capacity provides the measurement.",
+    example: "Finland's FIOH employs 500+ researchers and provides evidence-based guidance that shapes national policy.",
+    source: "OECD Health Statistics, 2024",
+    color: "purple"
+  },
+
+  // ============================================================================
+  // HAZARD PREVENTION ELEMENTS (Pillar 1)
+  // ============================================================================
+  "prevention-central": {
+    id: "prevention-central",
+    label: "Hazard Prevention",
+    dataPoint: "Every $1 invested in prevention saves $4-6 in downstream costs",
+    perspective: "Prevention is the most cost-effective intervention. The hierarchy of controls—elimination, substitution, engineering, administrative, PPE—should guide all decisions, with elimination being the gold standard.",
+    quote: "The best protective equipment is the hazard that was never created.",
+    example: "Japan's 'Zero Accident' campaigns reduced industrial fatalities by 75% over two decades through systematic hazard elimination.",
+    source: "WHO/ILO Joint Estimates, 2024",
+    color: "blue"
+  },
+  "hazard-registry": {
+    id: "hazard-registry",
+    label: "Hazard Registry",
+    dataPoint: "REACH database tracks 23,000+ chemical substances used in EU workplaces",
+    perspective: "A comprehensive registry is the foundation of exposure prevention. Without knowing what hazards exist, control measures are guesswork. Modern registries link substances to exposure pathways and health outcomes.",
+    quote: "Know thy enemy. A hazard you don't track is a hazard you can't control.",
+    example: "The EU's REACH regulation requires companies to register all chemicals above 1 ton/year, with full safety data for those above 10 tons.",
+    source: "European Chemicals Agency (ECHA), 2024",
+    color: "blue"
+  },
+  "control-maturity": {
+    id: "control-maturity",
+    label: "Control Maturity",
+    dataPoint: "Engineering controls are 10x more effective than PPE alone",
+    perspective: "Control maturity measures how far up the hierarchy of controls a country has progressed. Immature systems rely on PPE and administrative measures; mature systems eliminate and engineer out hazards.",
+    quote: "PPE is the last line of defense, not the first. If you're relying on PPE, you've already failed at prevention.",
+    example: "Netherlands' Arbocatalogus provides sector-specific control solutions developed jointly by employers and unions.",
+    source: "NIOSH Hierarchy of Controls, 2024",
+    color: "blue"
+  },
+  "climate-defense": {
+    id: "climate-defense",
+    label: "Climate Defense",
+    dataPoint: "Heat stress causes 23 million lost workdays annually; projected to triple by 2030",
+    perspective: "Climate change is an emerging occupational hazard. Heat stress, UV exposure, and new disease vectors require proactive adaptation. Countries with strict heat regulations protect both health and productivity.",
+    quote: "Climate change is the world's largest occupational health crisis in waiting.",
+    example: "Qatar's mandatory work-stop orders above 35°C WBGT and shaded rest areas reduced heat-related incidents by 80% during World Cup construction.",
+    source: "ILO Working on a Warmer Planet Report, 2024",
+    color: "blue"
+  },
+  "risk-assessment": {
+    id: "risk-assessment",
+    label: "Risk Assessment",
+    dataPoint: "Systematic risk assessment reduces workplace injuries by 35-40%",
+    perspective: "Risk assessment is the diagnostic tool of prevention. It must be systematic, documented, regularly updated, and involve worker participation. Checkbox assessments are worse than useless—they create false confidence.",
+    quote: "A risk assessment gathering dust on a shelf is not protection—it's liability documentation.",
+    example: "UK's Management of Health and Safety at Work Regulations require 'suitable and sufficient' risk assessments with documented review cycles.",
+    source: "HSE Research Reports, 2023",
+    color: "blue"
+  },
+
+  // ============================================================================
+  // SURVEILLANCE ELEMENTS (Pillar 2)
+  // ============================================================================
+  "surveillance-central": {
+    id: "surveillance-central",
+    label: "Surveillance & Detection",
+    dataPoint: "Early detection of occupational disease reduces treatment costs by 60%",
+    perspective: "Surveillance is the early warning system. It catches diseases before they become chronic, identifies emerging hazards, and validates prevention efforts. Without surveillance, you're flying blind.",
+    quote: "What gets measured gets managed. What doesn't get measured gets ignored until it's too late.",
+    example: "South Korea's Special Health Examinations cover 179 hazardous job categories, with results feeding a national database for trend analysis.",
+    source: "WHO Global Health Observatory, 2024",
+    color: "emerald"
+  },
+  "active-surveillance": {
+    id: "active-surveillance",
+    label: "Active Surveillance",
+    dataPoint: "Countries with mandatory biomarker programs detect diseases 3-5 years earlier",
+    perspective: "Active surveillance means proactively testing workers—not waiting for them to report symptoms. Biomarker monitoring for lead, benzene, silica, and other exposures catches problems before irreversible damage occurs.",
+    quote: "By the time symptoms appear, the disease has often progressed beyond prevention.",
+    example: "Finland's mandatory blood lead testing for battery workers has virtually eliminated clinical lead poisoning since 1985.",
+    source: "FIOH Occupational Health Registry, 2024",
+    color: "emerald"
+  },
+  "vulnerability-index": {
+    id: "vulnerability-index",
+    label: "Vulnerability Index",
+    dataPoint: "Migrant workers face 2-3x higher injury rates than native workers",
+    perspective: "Vulnerability mapping identifies at-risk populations: migrants, temporary workers, young workers, and those in the informal economy. Tailored interventions for these groups yield the highest returns.",
+    quote: "Universal policies that ignore vulnerability create a two-tier safety system.",
+    example: "Germany's mandatory safety briefings in 7 languages and pictogram-based training reduced migrant worker injuries by 45%.",
+    source: "EU-OSHA Migrant Worker Safety Report, 2023",
+    color: "emerald"
+  },
+  "early-warning": {
+    id: "early-warning",
+    label: "Early Warning Systems",
+    dataPoint: "AI-powered predictive analytics can identify high-risk workplaces with 85% accuracy",
+    perspective: "Modern surveillance uses machine learning to spot patterns humans miss. Combining incident data, exposure records, and health outcomes creates predictive models that flag problems before incidents occur.",
+    quote: "The best time to prevent an accident is before it happens. Predictive analytics makes that possible.",
+    example: "Netherlands' Inspectorate uses algorithmic risk scoring to prioritize inspections, increasing violation detection rates by 40%.",
+    source: "RAND Corporation AI in OSH Report, 2024",
+    color: "emerald"
+  },
+  "health-monitoring": {
+    id: "health-monitoring",
+    label: "Health Monitoring",
+    dataPoint: "Periodic health exams in hazardous jobs detect 4x more conditions than self-reporting",
+    perspective: "Continuous health monitoring goes beyond annual checkups. It includes audiometry for noise-exposed workers, spirometry for dust exposure, and mental health screening for high-stress occupations.",
+    quote: "Workers often don't know they're sick until a test tells them. That test must come before symptoms.",
+    example: "Australia's Coal Mine Workers' Health Scheme provides free respiratory screening and has detected hundreds of early-stage black lung cases.",
+    source: "Safe Work Australia Statistics, 2024",
+    color: "emerald"
+  },
+
+  // ============================================================================
+  // RESTORATION ELEMENTS (Pillar 3)
+  // ============================================================================
+  "restoration-central": {
+    id: "restoration-central",
+    label: "Restoration & Compensation",
+    dataPoint: "No-fault systems process claims 70% faster than litigation-based systems",
+    perspective: "When prevention fails, restoration provides the safety net. The best systems combine fair compensation with comprehensive rehabilitation and strong return-to-work programs. Speed matters—delayed benefits compound suffering.",
+    quote: "The measure of a society is how it treats those who've been harmed in its service.",
+    example: "New Zealand's ACC provides no-fault coverage for all injuries (work and non-work), eliminating litigation entirely.",
+    source: "ILO Social Protection Report, 2024",
+    color: "amber"
+  },
+  "payer-mechanism": {
+    id: "payer-mechanism",
+    label: "Payer Mechanism",
+    dataPoint: "No-fault insurance reduces average claim resolution from 2 years to 45 days",
+    perspective: "The payer mechanism determines whether workers spend years in court or receive prompt support. No-fault systems remove the adversarial element, replacing blame-assignment with rehabilitation focus.",
+    quote: "In a no-fault system, energy goes into healing, not fighting. Everyone wins except the lawyers.",
+    example: "Germany's employer-funded BG system operates on 'rehabilitation before pension' principle, achieving 80% return-to-work rates.",
+    source: "OECD Sickness and Disability Report, 2024",
+    color: "amber"
+  },
+  "rehabilitation": {
+    id: "rehabilitation",
+    label: "Rehabilitation Services",
+    dataPoint: "Comprehensive rehab increases RTW success by 50% compared to medical-only treatment",
+    perspective: "Rehabilitation is not just medical treatment—it includes vocational retraining, psychological support, and workplace accommodation. Early intervention and holistic approaches yield the best outcomes.",
+    quote: "The goal is not just to heal the body, but to restore the worker to a meaningful life.",
+    example: "Canada's WSIB operates 9 specialized occupational health clinics offering integrated medical, vocational, and psychological rehabilitation.",
+    source: "WHO Rehabilitation Guidelines, 2024",
+    color: "amber"
+  },
+  "return-to-work": {
+    id: "return-to-work",
+    label: "Return to Work",
+    dataPoint: "Each week of absence after 4 weeks reduces RTW probability by 10%",
+    perspective: "Return-to-work is a race against time. The longer workers stay out, the harder it is to return. Early, graded return with workplace modifications dramatically improves outcomes.",
+    quote: "The workplace is often the best therapy. Modified duties beat extended absence.",
+    example: "Ontario's WSIB mandates employer cooperation with RTW plans and imposes financial penalties for non-compliance.",
+    source: "Cochrane Review on RTW Interventions, 2023",
+    color: "amber"
+  },
+  "compensation": {
+    id: "compensation",
+    label: "Compensation Adequacy",
+    dataPoint: "Replacement rates vary from 40% to 90% of pre-injury wages globally",
+    perspective: "Compensation must be adequate to maintain dignity without creating dependency. The best systems balance wage replacement with rehabilitation incentives and adjust for inflation over time.",
+    quote: "Compensation that impoverishes the worker has failed, regardless of what the law says.",
+    example: "Sweden's compensation replaces 80% of wages for the first year, with gradual reduction linked to rehabilitation milestones.",
+    source: "ILO World Social Protection Report, 2024",
+    color: "amber"
+  },
+
+  // ============================================================================
+  // INTEGRATION ELEMENT
+  // ============================================================================
+  "feedback-loop": {
+    id: "feedback-loop",
+    label: "Continuous Feedback Loop",
+    dataPoint: "Countries with integrated systems show 40% lower fatality rates than fragmented systems",
+    perspective: "The magic happens when pillars connect. Prevention data informs surveillance priorities. Surveillance validates prevention effectiveness. Restoration claims reveal hazards that prevention missed. Governance enables and enforces the entire cycle.",
+    quote: "A framework of silos is no framework at all. Integration is what transforms components into a system.",
+    example: "Finland's cross-linked databases allow researchers to trace an injury from incident report through treatment to return-to-work, identifying systemic improvement opportunities.",
+    source: "European Foundation for Improvement of Living and Working Conditions, 2024",
+    color: "cyan"
+  }
+};
+
+/**
+ * Get insight by element ID
+ */
+export function getInsightById(id: string): ElementInsight | undefined {
+  return elementInsights[id];
+}
+
+/**
+ * Get all insights for a specific slide/pillar
+ */
+export function getInsightsForPillar(pillar: 'governance' | 'prevention' | 'surveillance' | 'restoration' | 'integration'): ElementInsight[] {
+  const prefixMap: Record<string, string[]> = {
+    governance: ['governance-central', 'legislative-backbone', 'enforcement', 'national-culture', 'strategic-capacity'],
+    prevention: ['prevention-central', 'hazard-registry', 'control-maturity', 'climate-defense', 'risk-assessment'],
+    surveillance: ['surveillance-central', 'active-surveillance', 'vulnerability-index', 'early-warning', 'health-monitoring'],
+    restoration: ['restoration-central', 'payer-mechanism', 'rehabilitation', 'return-to-work', 'compensation'],
+    integration: ['feedback-loop']
+  };
+  
+  return prefixMap[pillar]?.map(id => elementInsights[id]).filter(Boolean) || [];
+}
+
 export default frameworkContent;

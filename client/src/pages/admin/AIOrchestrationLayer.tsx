@@ -90,6 +90,9 @@ interface WorkflowType {
   color: string | null;
   lane_order: number | null;
   is_default: boolean;
+  is_active: boolean;
+  execution_count: number;
+  last_run_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -162,6 +165,16 @@ async function createWorkflow(data: CreateWorkflowData): Promise<WorkflowType> {
 
 async function testAgent(agentId: string): Promise<{ success: boolean; response?: string; error?: string; latency_ms?: number }> {
   const response = await apiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, {});
+  return response.data;
+}
+
+async function recordWorkflowExecution(workflowId: string): Promise<WorkflowType> {
+  const response = await apiClient.post<WorkflowType>(`/api/v1/orchestration/workflows/${workflowId}/execute`, {});
+  return response.data;
+}
+
+async function toggleWorkflowActive(workflowId: string): Promise<WorkflowType> {
+  const response = await apiClient.patch<WorkflowType>(`/api/v1/orchestration/workflows/${workflowId}/toggle-active`, {});
   return response.data;
 }
 
@@ -767,6 +780,9 @@ export function AIOrchestrationLayer() {
     color: wf.color || 'cyan',
     agentCount: data.agents.filter(a => a.workflow_id === wf.id).length,
     isDefault: wf.is_default,
+    isActive: wf.is_active,
+    executionCount: wf.execution_count,
+    lastRunAt: wf.last_run_at || undefined,
   }));
 
   // Get selected workflow name
@@ -877,6 +893,17 @@ export function AIOrchestrationLayer() {
                 message: `Error: ${err.message || 'Test failed'}`,
                 emoji: '❌',
               }]);
+            }
+          }
+          
+          // Record workflow execution if a specific workflow was selected
+          if (selectedWorkflowId) {
+            try {
+              await recordWorkflowExecution(selectedWorkflowId);
+              // Refresh data to update execution counts
+              refetch();
+            } catch (err) {
+              console.error('Failed to record workflow execution:', err);
             }
           }
           
