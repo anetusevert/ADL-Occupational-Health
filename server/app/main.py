@@ -87,7 +87,9 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Create missing database tables on startup."""
+    """Create missing database tables and run migrations on startup."""
+    from sqlalchemy import text, inspect
+    
     # Import all models to ensure they're registered with Base
     from app.models import metric_config  # noqa: F401
     from app.models import country  # noqa: F401 - includes CountryDeepDive
@@ -102,6 +104,29 @@ async def startup_event():
         print("Database tables created/verified successfully")
     except Exception as e:
         print(f"ERROR creating database tables: {e}")
+    
+    # Run migrations for missing columns
+    try:
+        with engine.connect() as conn:
+            inspector = inspect(engine)
+            
+            # Check if country_deep_dives table exists
+            if 'country_deep_dives' in inspector.get_table_names():
+                columns = [col['name'] for col in inspector.get_columns('country_deep_dives')]
+                
+                # Add queue_position column if missing
+                if 'queue_position' not in columns:
+                    print("Adding missing column: queue_position")
+                    conn.execute(text("ALTER TABLE country_deep_dives ADD COLUMN queue_position INTEGER"))
+                    conn.commit()
+                    print("Added queue_position column successfully")
+                else:
+                    print("queue_position column already exists")
+            else:
+                print("country_deep_dives table does not exist yet")
+                
+    except Exception as e:
+        print(f"Migration error (non-fatal): {e}")
 
 
 @app.get("/health", tags=["System"])
