@@ -283,37 +283,28 @@ function RegionCard({
         onClick={onToggleExpand}
         className={cn(
           "relative cursor-pointer rounded-xl border backdrop-blur-md transition-all duration-300 overflow-hidden",
-          "bg-gradient-to-r",
-          `${region.gradient.replace('from-', 'from-').replace('to-', 'to-')}/10`,
+          "bg-gradient-to-r from-slate-800/80 to-slate-800/60",
           isExpanded
-            ? `border-${region.color}-400/50 shadow-lg ${region.glowColor}`
-            : "border-white/10 hover:border-white/20"
+            ? "border-slate-500/50 shadow-lg shadow-slate-800/50"
+            : "border-slate-700/50 hover:border-slate-600/50"
         )}
       >
-        {/* Glow effect */}
+        {/* Subtle glow effect on expand */}
         <motion.div
-          className={cn(
-            "absolute inset-0 opacity-0 transition-opacity duration-300",
-            `bg-${region.color}-500/5`
-          )}
+          className="absolute inset-0 bg-slate-600/5 opacity-0 transition-opacity duration-300"
           animate={{ opacity: isExpanded ? 0.4 : 0 }}
         />
 
         <div className="relative z-10 p-4 flex items-center gap-4">
           {/* Icon */}
           <motion.div
-            className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center",
-              `bg-gradient-to-br ${region.gradient}`,
-              "shadow-lg",
-              region.glowColor
-            )}
+            className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-700 shadow-lg shadow-slate-900/30"
             animate={{
               rotate: isExpanded ? [0, -3, 3, 0] : 0,
             }}
             transition={{ duration: 0.4 }}
           >
-            <Icon className="w-6 h-6 text-white" />
+            <Icon className="w-6 h-6 text-slate-200" />
           </motion.div>
 
           {/* Info */}
@@ -321,10 +312,7 @@ function RegionCard({
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-white">{region.name}</h3>
               {someSelected && (
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-xs font-bold",
-                  `bg-${region.color}-500/30 text-${region.color}-300`
-                )}>
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300">
                   {selectedInRegion}/{regionCountries.length}
                 </span>
               )}
@@ -332,7 +320,7 @@ function RegionCard({
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/30 text-emerald-300"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300"
                 >
                   <Check className="w-3 h-3" />
                   All
@@ -355,7 +343,7 @@ function RegionCard({
                 "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                 allSelected
                   ? "bg-red-500/20 text-red-300 hover:bg-red-500/30"
-                  : `bg-${region.color}-500/20 text-${region.color}-300 hover:bg-${region.color}-500/30`
+                  : "bg-slate-600/30 text-slate-300 hover:bg-slate-600/50"
               )}
             >
               {allSelected ? "Deselect" : "Select All"}
@@ -371,15 +359,12 @@ function RegionCard({
           </div>
         </div>
 
-        {/* Bottom glow line */}
+        {/* Subtle bottom accent line */}
         <motion.div
-          className={cn(
-            "absolute bottom-0 left-0 right-0 h-1 rounded-b-xl",
-            `bg-gradient-to-r ${region.gradient}`
-          )}
+          className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl bg-gradient-to-r from-slate-500/50 via-slate-400/30 to-slate-500/50"
           initial={{ opacity: 0, scaleX: 0 }}
           animate={{
-            opacity: isExpanded ? 0.8 : 0,
+            opacity: isExpanded ? 0.6 : 0,
             scaleX: isExpanded ? 1 : 0,
           }}
           transition={{ duration: 0.3 }}
@@ -417,7 +402,7 @@ function RegionCard({
                         className={cn(
                           "relative flex items-center gap-2 p-2.5 rounded-lg border transition-all duration-200",
                           isSelected
-                            ? `bg-${region.color}-500/20 border-${region.color}-500/50 shadow-md ${region.glowColor}`
+                            ? "bg-cyan-500/15 border-cyan-500/40 shadow-md shadow-cyan-900/10"
                             : "bg-slate-800/50 border-slate-700/30 hover:bg-slate-700/50 hover:border-slate-600"
                         )}
                       >
@@ -447,7 +432,7 @@ function RegionCard({
                         {/* Selection indicator */}
                         <div className={cn(
                           "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-                          isSelected ? `bg-${region.color}-500 border-${region.color}-500` : "border-slate-600"
+                          isSelected ? "bg-cyan-500 border-cyan-500" : "border-slate-600"
                         )}>
                           {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                         </div>
