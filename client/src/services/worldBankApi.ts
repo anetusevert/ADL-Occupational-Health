@@ -6,10 +6,13 @@
 
 // World Bank API indicator codes
 export const WORLD_BANK_INDICATORS = {
-  GDP_TOTAL: "NY.GDP.MKTP.CD",        // GDP (current US$)
-  GDP_PER_CAPITA: "NY.GDP.PCAP.CD",   // GDP per capita (current US$)
-  POPULATION: "SP.POP.TOTL",          // Population, total
-  LABOR_FORCE: "SL.TLF.TOTL.IN",      // Labor force, total
+  GDP_TOTAL: "NY.GDP.MKTP.CD",           // GDP (current US$)
+  GDP_PER_CAPITA: "NY.GDP.PCAP.CD",      // GDP per capita (current US$)
+  POPULATION: "SP.POP.TOTL",             // Population, total
+  LABOR_FORCE: "SL.TLF.CACT.ZS",         // Labor force participation rate (%)
+  LIFE_EXPECTANCY: "SP.DYN.LE00.IN",     // Life expectancy at birth, total (years)
+  URBAN_POPULATION: "SP.URB.TOTL.IN.ZS", // Urban population (% of total)
+  HDI_SCORE: "HD.HCI.OVRL",              // Human Capital Index (proxy for HDI)
 } as const;
 
 export type IndicatorType = keyof typeof WORLD_BANK_INDICATORS;
@@ -19,8 +22,9 @@ export const INDICATOR_META: Record<IndicatorType, {
   label: string;
   shortLabel: string;
   unit: string;
-  format: "currency" | "number" | "population";
+  format: "currency" | "number" | "population" | "percentage" | "years" | "index";
   sourceUrl: string;
+  higherIsBetter: boolean;
 }> = {
   GDP_TOTAL: {
     label: "GDP (Current US$)",
@@ -28,6 +32,7 @@ export const INDICATOR_META: Record<IndicatorType, {
     unit: "USD",
     format: "currency",
     sourceUrl: "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD",
+    higherIsBetter: true,
   },
   GDP_PER_CAPITA: {
     label: "GDP Per Capita (Current US$)",
@@ -35,6 +40,7 @@ export const INDICATOR_META: Record<IndicatorType, {
     unit: "USD",
     format: "currency",
     sourceUrl: "https://data.worldbank.org/indicator/NY.GDP.PCAP.CD",
+    higherIsBetter: true,
   },
   POPULATION: {
     label: "Population, Total",
@@ -42,13 +48,39 @@ export const INDICATOR_META: Record<IndicatorType, {
     unit: "",
     format: "population",
     sourceUrl: "https://data.worldbank.org/indicator/SP.POP.TOTL",
+    higherIsBetter: true,
   },
   LABOR_FORCE: {
-    label: "Labor Force, Total",
+    label: "Labor Force Participation Rate",
     shortLabel: "Labor Force",
+    unit: "%",
+    format: "percentage",
+    sourceUrl: "https://data.worldbank.org/indicator/SL.TLF.CACT.ZS",
+    higherIsBetter: true,
+  },
+  LIFE_EXPECTANCY: {
+    label: "Life Expectancy at Birth",
+    shortLabel: "Life Expectancy",
+    unit: "years",
+    format: "years",
+    sourceUrl: "https://data.worldbank.org/indicator/SP.DYN.LE00.IN",
+    higherIsBetter: true,
+  },
+  URBAN_POPULATION: {
+    label: "Urban Population (% of Total)",
+    shortLabel: "Urban Pop.",
+    unit: "%",
+    format: "percentage",
+    sourceUrl: "https://data.worldbank.org/indicator/SP.URB.TOTL.IN.ZS",
+    higherIsBetter: true,
+  },
+  HDI_SCORE: {
+    label: "Human Capital Index",
+    shortLabel: "HDI Score",
     unit: "",
-    format: "population",
-    sourceUrl: "https://data.worldbank.org/indicator/SL.TLF.TOTL.IN",
+    format: "index",
+    sourceUrl: "https://data.worldbank.org/indicator/HD.HCI.OVRL",
+    higherIsBetter: true,
   },
 };
 
@@ -417,6 +449,15 @@ export function formatIndicatorValue(
         return `${(value / 1e3).toFixed(1)}K`;
       }
       return value.toLocaleString();
+    
+    case "percentage":
+      return `${value.toFixed(1)}%`;
+    
+    case "years":
+      return `${value.toFixed(1)} yrs`;
+    
+    case "index":
+      return value.toFixed(3);
     
     default:
       return value.toLocaleString();
