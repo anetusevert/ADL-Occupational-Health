@@ -176,7 +176,7 @@ interface DataLayerTileProps {
   index: number;
   isSelected: boolean;
   onToggle: () => void;
-  isLarge?: boolean;
+  isCore?: boolean;
 }
 
 function DataLayerTile({
@@ -185,9 +185,10 @@ function DataLayerTile({
   index,
   isSelected,
   onToggle,
-  isLarge = false,
+  isCore = false,
 }: DataLayerTileProps) {
   const Icon = style.icon;
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <motion.div
@@ -195,56 +196,48 @@ function DataLayerTile({
       variants={tileVariants}
       initial="hidden"
       animate="visible"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       onClick={onToggle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "relative cursor-pointer rounded-xl border backdrop-blur-md transition-all duration-300 overflow-hidden",
+        "relative cursor-pointer rounded-lg border backdrop-blur-md transition-all duration-300 overflow-hidden",
         "bg-gradient-to-b",
         style.gradientFrom,
         style.gradientTo,
         isSelected
-          ? `border-${style.color}-400/60 shadow-lg ${style.glowColor} ring-2 ring-${style.color}-400/30`
+          ? "border-cyan-400/50 shadow-md shadow-cyan-900/20"
           : "border-white/10 hover:border-white/20",
-        isLarge ? "p-5" : "p-4"
+        isCore ? "px-3 py-2.5" : "px-2.5 py-2"
       )}
     >
-      {/* Glow effect */}
-      <motion.div
-        className={cn(
-          "absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300",
-          `bg-${style.color}-500/10`
-        )}
-        animate={{ opacity: isSelected ? 0.5 : 0 }}
-      />
-
       {/* Content */}
       <div className="relative z-10">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Icon */}
           <motion.div
             className={cn(
               "flex-shrink-0 rounded-lg flex items-center justify-center",
               `bg-gradient-to-br ${style.gradient}`,
-              isLarge ? "w-12 h-12" : "w-10 h-10",
-              "shadow-lg",
-              style.glowColor
+              isCore ? "w-9 h-9" : "w-7 h-7",
+              "shadow-md"
             )}
             animate={{
-              rotate: isSelected ? [0, -5, 5, 0] : 0,
+              rotate: isSelected ? [0, -3, 3, 0] : 0,
             }}
-            transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+            transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
           >
-            <Icon className={cn("text-white", isLarge ? "w-6 h-6" : "w-5 h-5")} />
+            <Icon className={cn("text-white", isCore ? "w-4 h-4" : "w-3.5 h-3.5")} />
           </motion.div>
 
           {/* Text */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <h3
                 className={cn(
-                  "font-bold transition-colors duration-300 truncate",
-                  isLarge ? "text-base" : "text-sm",
+                  "font-semibold transition-colors duration-300 truncate",
+                  isCore ? "text-sm" : "text-xs",
                   isSelected ? "text-white" : "text-slate-200"
                 )}
               >
@@ -254,28 +247,20 @@ function DataLayerTile({
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className={cn(
-                    "w-5 h-5 rounded-full flex items-center justify-center",
-                    `bg-${style.color}-500`
-                  )}
+                  className="w-4 h-4 rounded-full flex items-center justify-center bg-cyan-500"
                 >
-                  <Check className="w-3 h-3 text-white" />
+                  <Check className="w-2.5 h-2.5 text-white" />
                 </motion.div>
               )}
             </div>
-            {isLarge && (
-              <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                {style.description}
-              </p>
-            )}
           </div>
 
           {/* Metric count */}
           <div
             className={cn(
-              "flex-shrink-0 px-2 py-1 rounded-md text-xs font-bold",
+              "flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold",
               isSelected
-                ? `bg-${style.color}-500/30 text-${style.color}-300`
+                ? "bg-cyan-500/30 text-cyan-300"
                 : "bg-slate-700/50 text-slate-400"
             )}
           >
@@ -283,37 +268,41 @@ function DataLayerTile({
           </div>
         </div>
 
-        {/* Key metrics preview for large tiles */}
-        {isLarge && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: isSelected ? 1 : 0.7, height: "auto" }}
-            className="mt-3 pt-3 border-t border-white/10"
-          >
-            <div className="flex flex-wrap gap-1.5">
-              {["ILO Ratified", "Inspector Density", "Policy Score"].slice(0, 2).map((metric, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "text-[10px] px-2 py-1 rounded-md",
-                    `bg-${style.color}-500/10 text-${style.color}-300/80`
-                  )}
-                >
-                  {metric}
+        {/* Hover-revealed description */}
+        <AnimatePresence>
+          {isHovered && isCore && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+              className="mt-2 pt-2 border-t border-white/10"
+            >
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                {style.description}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {["ILO Ratified", "Inspector Density"].map((metric, i) => (
+                  <span
+                    key={i}
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400"
+                  >
+                    {metric}
+                  </span>
+                ))}
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">
+                  +{Math.max(0, category.metric_count - 2)} more
                 </span>
-              ))}
-              <span className="text-[10px] px-2 py-1 rounded-md bg-slate-700/50 text-slate-400">
-                +{Math.max(0, category.metric_count - 2)} more
-              </span>
-            </div>
-          </motion.div>
-        )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Bottom border glow */}
+      {/* Bottom border accent when selected */}
       <motion.div
         className={cn(
-          "absolute bottom-0 left-0 right-0 h-1 rounded-b-xl",
+          "absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg",
           `bg-gradient-to-r ${style.gradient}`
         )}
         initial={{ opacity: 0, scaleX: 0 }}
@@ -323,21 +312,6 @@ function DataLayerTile({
         }}
         transition={{ duration: 0.3 }}
       />
-
-      {/* Active indicator dot */}
-      <AnimatePresence>
-        {isSelected && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className={cn(
-              "absolute top-2 right-2 w-2 h-2 rounded-full",
-              `bg-${style.color}-400`
-            )}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
@@ -436,15 +410,15 @@ export function DataLayerTiles({
 
   return (
     <div className="h-full flex flex-col bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-slate-700/50 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Database className="w-5 h-5 text-white" />
+      {/* Compact Header */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700/50 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Database className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-white">Select Data Layers</h2>
-            <p className="text-xs text-slate-400">
+            <h2 className="text-base font-semibold text-white">Select Data Layers</h2>
+            <p className="text-[10px] text-slate-400">
               Analyzing {selectedCountriesCount} {selectedCountriesCount === 1 ? "country" : "countries"}
             </p>
           </div>
@@ -452,10 +426,10 @@ export function DataLayerTiles({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg"
+              className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-lg"
             >
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm font-bold text-indigo-300">{totalMetrics} metrics</span>
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <span className="text-xs font-bold text-indigo-300">{totalMetrics} metrics</span>
             </motion.div>
           )}
         </div>
@@ -469,24 +443,24 @@ export function DataLayerTiles({
         />
       </div>
 
-      {/* Tiles Grid */}
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+      {/* Compact Tiles Grid - fits without scroll */}
+      <div className="flex-1 p-3 overflow-y-auto">
         {/* Core Framework Section */}
-        <div className="mb-6">
+        <div className="mb-3">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="flex items-center gap-2 mb-3"
+            className="flex items-center gap-2 mb-2"
           >
-            <Shield className="w-4 h-4 text-purple-400" />
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+            <Shield className="w-3 h-3 text-purple-400" />
+            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
               Core Framework
             </h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-purple-500/30 to-transparent" />
           </motion.div>
 
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {coreCategories.map((category, index) => {
               const style = CATEGORY_STYLES[category.id] || DEFAULT_STYLE;
               return (
@@ -497,21 +471,21 @@ export function DataLayerTiles({
                   index={index}
                   isSelected={selectedCategories.includes(category.id)}
                   onToggle={() => toggleCategory(category.id)}
-                  isLarge={true}
+                  isCore={true}
                 />
               );
             })}
           </div>
         </div>
 
-        {/* Decorative Connector */}
+        {/* Compact Connector */}
         <motion.div
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
-          transition={{ delay: 0.5, duration: 0.4 }}
-          className="flex justify-center py-2"
+          transition={{ delay: 0.5, duration: 0.3 }}
+          className="flex justify-center py-1"
         >
-          <div className="w-1 h-8 bg-gradient-to-b from-purple-500/50 via-indigo-500/50 to-amber-500/50 rounded-full" />
+          <div className="w-0.5 h-4 bg-gradient-to-b from-purple-500/30 via-indigo-500/30 to-amber-500/30 rounded-full" />
         </motion.div>
 
         {/* Intelligence Data Section */}
@@ -520,16 +494,16 @@ export function DataLayerTiles({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex items-center gap-2 mb-3"
+            className="flex items-center gap-2 mb-2"
           >
-            <Brain className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+            <Brain className="w-3 h-3 text-amber-400" />
+            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
               Intelligence Data
             </h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-amber-500/50 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-amber-500/30 to-transparent" />
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             {intelligenceCategories.map((category, index) => {
               const style = CATEGORY_STYLES[category.id] || DEFAULT_STYLE;
               return (
@@ -540,24 +514,22 @@ export function DataLayerTiles({
                   index={index + coreCategories.length}
                   isSelected={selectedCategories.includes(category.id)}
                   onToggle={() => toggleCategory(category.id)}
-                  isLarge={false}
+                  isCore={false}
                 />
               );
             })}
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Compact Legend */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="mt-6 pt-4 border-t border-slate-700/50"
+          transition={{ delay: 1 }}
+          className="mt-3 pt-2 border-t border-slate-700/30"
         >
-          <p className="text-[10px] text-slate-500 text-center">
-            Click tiles to toggle selection. Core Framework metrics assess compliance and capabilities.
-            <br />
-            Intelligence Data provides contextual indicators for deeper analysis.
+          <p className="text-[9px] text-slate-500 text-center">
+            Hover over Core tiles to see details. Click to toggle selection.
           </p>
         </motion.div>
       </div>

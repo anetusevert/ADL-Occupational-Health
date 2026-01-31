@@ -274,64 +274,58 @@ function RegionCard({
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      className="mb-3"
     >
-      {/* Region Header */}
+      {/* Compact Region Header */}
       <motion.div
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: 1.005 }}
+        whileTap={{ scale: 0.995 }}
         onClick={onToggleExpand}
         className={cn(
-          "relative cursor-pointer rounded-xl border backdrop-blur-md transition-all duration-300 overflow-hidden",
+          "relative cursor-pointer rounded-lg border backdrop-blur-md transition-all duration-300 overflow-hidden",
           "bg-gradient-to-r from-slate-800/80 to-slate-800/60",
           isExpanded
-            ? "border-slate-500/50 shadow-lg shadow-slate-800/50"
+            ? "border-slate-500/50 shadow-md shadow-slate-800/50"
             : "border-slate-700/50 hover:border-slate-600/50"
         )}
       >
-        {/* Subtle glow effect on expand */}
-        <motion.div
-          className="absolute inset-0 bg-slate-600/5 opacity-0 transition-opacity duration-300"
-          animate={{ opacity: isExpanded ? 0.4 : 0 }}
-        />
-
-        <div className="relative z-10 p-4 flex items-center gap-4">
-          {/* Icon */}
+        <div className="relative z-10 px-3 py-2.5 flex items-center gap-3">
+          {/* Compact Icon */}
           <motion.div
-            className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-700 shadow-lg shadow-slate-900/30"
+            className="w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-700 shadow-md shadow-slate-900/30"
             animate={{
               rotate: isExpanded ? [0, -3, 3, 0] : 0,
             }}
             transition={{ duration: 0.4 }}
           >
-            <Icon className="w-6 h-6 text-slate-200" />
+            <Icon className="w-4 h-4 text-slate-200" />
           </motion.div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-white">{region.name}</h3>
+              <h3 className="text-sm font-bold text-white">{region.name}</h3>
+              <span className="text-[10px] text-slate-500">
+                {regionCountries.length} countries
+              </span>
               {someSelected && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300">
-                  {selectedInRegion}/{regionCountries.length}
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">
+                  {selectedInRegion}
                 </span>
               )}
               {allSelected && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300"
                 >
-                  <Check className="w-3 h-3" />
-                  All
+                  <Check className="w-2.5 h-2.5" />
                 </motion.span>
               )}
             </div>
-            <p className="text-sm text-slate-400">{region.description}</p>
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
@@ -340,13 +334,13 @@ function RegionCard({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                "px-2 py-1 rounded text-[10px] font-medium transition-colors",
                 allSelected
                   ? "bg-red-500/20 text-red-300 hover:bg-red-500/30"
                   : "bg-slate-600/30 text-slate-300 hover:bg-slate-600/50"
               )}
             >
-              {allSelected ? "Deselect" : "Select All"}
+              {allSelected ? "Clear" : "Select All"}
             </motion.button>
 
             {/* Expand/Collapse */}
@@ -354,35 +348,24 @@ function RegionCard({
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <ChevronDown className="w-5 h-5 text-slate-400" />
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             </motion.div>
           </div>
         </div>
-
-        {/* Subtle bottom accent line */}
-        <motion.div
-          className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl bg-gradient-to-r from-slate-500/50 via-slate-400/30 to-slate-500/50"
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={{
-            opacity: isExpanded ? 0.6 : 0,
-            scaleX: isExpanded ? 1 : 0,
-          }}
-          transition={{ duration: 0.3 }}
-        />
       </motion.div>
 
-      {/* Expanded Country Grid */}
+      {/* Expanded Country Grid - Compact */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: smoothEase }}
+            transition={{ duration: 0.2, ease: smoothEase }}
             className="overflow-hidden"
           >
-            <div className="pt-3 pb-1 px-1">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="pt-2 pb-1 px-0.5">
+              <div className="grid grid-cols-3 gap-1">
                 <AnimatePresence mode="popLayout">
                   {filteredCountries.map((country, i) => {
                     const isSelected = selectedCountries.includes(country.iso_code);
@@ -397,17 +380,17 @@ function RegionCard({
                         exit="exit"
                         layout
                         onClick={() => onToggleCountry(country.iso_code)}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         className={cn(
-                          "relative flex items-center gap-2 p-2.5 rounded-lg border transition-all duration-200",
+                          "relative flex items-center gap-1.5 px-2 py-1.5 rounded border transition-all duration-200",
                           isSelected
-                            ? "bg-cyan-500/15 border-cyan-500/40 shadow-md shadow-cyan-900/10"
-                            : "bg-slate-800/50 border-slate-700/30 hover:bg-slate-700/50 hover:border-slate-600"
+                            ? "bg-cyan-500/15 border-cyan-500/40"
+                            : "bg-slate-800/50 border-slate-700/30 hover:bg-slate-700/50"
                         )}
                       >
                         {/* Flag */}
-                        <div className="flex-shrink-0 w-8 h-5 rounded overflow-hidden shadow-sm bg-slate-700">
+                        <div className="flex-shrink-0 w-6 h-4 rounded-sm overflow-hidden bg-slate-700">
                           {country.flag_url ? (
                             <img 
                               src={`${getApiBaseUrl()}${country.flag_url}`} 
@@ -416,26 +399,25 @@ function RegionCard({
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Globe className="w-3 h-3 text-slate-500" />
+                              <Globe className="w-2.5 h-2.5 text-slate-500" />
                             </div>
                           )}
                         </div>
 
                         {/* Name */}
                         <span className={cn(
-                          "flex-1 text-left text-xs font-medium truncate",
+                          "flex-1 text-left text-[10px] font-medium truncate",
                           isSelected ? "text-white" : "text-slate-300"
                         )}>
                           {country.name}
                         </span>
 
                         {/* Selection indicator */}
-                        <div className={cn(
-                          "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-                          isSelected ? "bg-cyan-500 border-cyan-500" : "border-slate-600"
-                        )}>
-                          {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                        </div>
+                        {isSelected && (
+                          <div className="w-3 h-3 rounded-sm bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-2 h-2 text-white" />
+                          </div>
+                        )}
                       </motion.button>
                     );
                   })}
@@ -526,41 +508,57 @@ export function RegionSelector({
 
   return (
     <div className="h-full flex flex-col bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-slate-700/50 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Globe className="w-5 h-5 text-white" />
+      {/* Compact Header */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700/50 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <Globe className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">Select Countries</h2>
-            <p className="text-xs text-slate-400">
+          <div className="flex-1">
+            <h2 className="text-base font-semibold text-white">Select Countries</h2>
+            <p className="text-[10px] text-slate-400">
               Choose by region or search for specific countries
             </p>
           </div>
+          {/* Inline selection count */}
+          {selectedCountries.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-cyan-400 font-medium">
+                {selectedCountries.length} selected
+              </span>
+              <button
+                onClick={clearAll}
+                className="text-[10px] text-slate-500 hover:text-red-400 transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Search */}
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          resultCount={filteredCount}
-          totalCount={countries.length}
-        />
-
-        {/* Selection Summary */}
-        <AnimatePresence>
-          <SelectionSummary
-            selectedCountries={selectedCountries}
-            countryMap={countryMap}
-            onRemove={removeCountry}
-            onClear={clearAll}
+        {/* Compact Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search countries by name or code..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-slate-800/80 border border-slate-700/50 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all"
           />
-        </AnimatePresence>
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Region List */}
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+      {/* Compact Region List - no scroll needed */}
+      <div className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {SORTED_REGIONS.map((region, index) => (
           <RegionCard
             key={region.id}
