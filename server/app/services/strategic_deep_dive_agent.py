@@ -446,13 +446,19 @@ class StrategicDeepDiveAgent:
                           f"Using OpenAI native web search for {country.name}...", "🌐")
                 
                 # Prepare the user prompt with internal data
-                user_prompt = STRATEGIC_DEEP_DIVE_USER_PROMPT.format(
+                # Support both uppercase (Agent model) and lowercase (legacy) variable names
+                user_prompt = user_prompt_template.format(
                     country_name=country.name,
+                    COUNTRY_NAME=country.name,
                     iso_code=iso_code,
+                    ISO_CODE=iso_code,
                     metrics_text=metrics_text,
+                    METRICS_DATA=metrics_text,
                     intelligence_text=intelligence_text,
+                    INTELLIGENCE_DATA=intelligence_text,
                     research_text="[OpenAI will perform real-time web research using its web_search tool]",
                     topic=topic,
+                    TOPIC=topic,
                 )
                 
                 self._log("SynthesisAgent", AgentStatus.SYNTHESIZING,
@@ -462,7 +468,7 @@ class StrategicDeepDiveAgent:
                 api_key = get_openai_api_key_from_config(self.config)
                 try:
                     analysis = call_openai_with_web_search(
-                        system_prompt=STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT,
+                        system_prompt=system_prompt,
                         user_prompt=user_prompt,
                         country_iso_code=iso_code,
                         api_key=api_key,
@@ -519,6 +525,8 @@ class StrategicDeepDiveAgent:
                         intelligence_text=intelligence_text,
                         research_text=research_text,
                         topic=topic,
+                        system_prompt=system_prompt,
+                        user_prompt_template=user_prompt_template,
                     )
                 except Exception as llm_error:
                     logger.error(f"[SynthesisAgent] LLM call exception: {type(llm_error).__name__}: {str(llm_error)}")
@@ -618,12 +626,16 @@ class StrategicDeepDiveAgent:
         intelligence_text: str,
         research_text: str,
         topic: str,
+        system_prompt: str,
+        user_prompt_template: str,
     ) -> Optional[Dict[str, Any]]:
         """
         Call LLM to generate strategic analysis.
         
         This is the core AI synthesis step that coordinates all gathered data
         into a comprehensive McKinsey-style strategic report.
+        
+        Uses prompts loaded from the Report Generation Agent (or fallback defaults).
         
         Includes exponential backoff retry logic for rate limit errors.
         """
@@ -648,20 +660,26 @@ class StrategicDeepDiveAgent:
                 return None
             
             # Format the user prompt with all gathered data
-            user_prompt = STRATEGIC_DEEP_DIVE_USER_PROMPT.format(
+            # Support both uppercase (Agent model) and lowercase (legacy) variable names
+            user_prompt = user_prompt_template.format(
                 country_name=country_name,
+                COUNTRY_NAME=country_name,
                 iso_code=iso_code,
+                ISO_CODE=iso_code,
                 metrics_text=metrics_text,
+                METRICS_DATA=metrics_text,
                 intelligence_text=intelligence_text,
+                INTELLIGENCE_DATA=intelligence_text,
                 research_text=research_text,
                 topic=topic,
+                TOPIC=topic,
             )
             
             logger.info(f"[SynthesisAgent] Prompt constructed: {len(user_prompt)} characters")
-            logger.info(f"[SynthesisAgent] System prompt: {len(STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT)} characters")
+            logger.info(f"[SynthesisAgent] System prompt: {len(system_prompt)} characters")
             
             messages = [
-                SystemMessage(content=STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT),
+                SystemMessage(content=system_prompt),
                 HumanMessage(content=user_prompt),
             ]
             
