@@ -65,23 +65,23 @@ class ErrorBoundary extends React.Component<
   }
 }
 import { AppLayout } from "./components/AppLayout";
-import { LandingPage } from "./pages/LandingPage";
-import {
-  Home,
-  CountryProfile,
-  Compare,
-  FrameworkPage,
-  DataEngine,
-  Leaderboard,
-  Simulator,
-  CountryData,
-} from "./pages";
-import { UserManagement } from "./pages/admin/UserManagement";
-import { AIOrchestration } from "./pages/admin/AIOrchestration";
-import { AgentPrompts } from "./pages/admin/AgentPrompts";
-import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
-import { MetricCalculator } from "./pages/admin/MetricCalculator";
-import { GenerationProgress } from "./pages/admin/GenerationProgress";
+
+// Use React.lazy for code-splitting and to avoid TDZ issues
+const LandingPage = React.lazy(() => import("./pages/LandingPage").then(m => ({ default: m.LandingPage })));
+const Home = React.lazy(() => import("./pages/Home").then(m => ({ default: m.Home })));
+const CountryProfile = React.lazy(() => import("./pages/CountryProfile").then(m => ({ default: m.CountryProfile })));
+const Compare = React.lazy(() => import("./pages/Compare").then(m => ({ default: m.Compare })));
+const FrameworkPage = React.lazy(() => import("./pages/FrameworkPage").then(m => ({ default: m.FrameworkPage })));
+const DataEngine = React.lazy(() => import("./pages/DataEngine").then(m => ({ default: m.DataEngine })));
+const Leaderboard = React.lazy(() => import("./pages/Leaderboard").then(m => ({ default: m.Leaderboard })));
+const Simulator = React.lazy(() => import("./pages/Simulator").then(m => ({ default: m.Simulator })));
+const CountryData = React.lazy(() => import("./pages/CountryData").then(m => ({ default: m.CountryData })));
+const UserManagement = React.lazy(() => import("./pages/admin/UserManagement").then(m => ({ default: m.UserManagement })));
+const AIOrchestration = React.lazy(() => import("./pages/admin/AIOrchestration").then(m => ({ default: m.AIOrchestration })));
+const AgentPrompts = React.lazy(() => import("./pages/admin/AgentPrompts").then(m => ({ default: m.AgentPrompts })));
+const StrategicDeepDive = React.lazy(() => import("./pages/admin/StrategicDeepDive").then(m => ({ default: m.StrategicDeepDive })));
+const MetricCalculator = React.lazy(() => import("./pages/admin/MetricCalculator").then(m => ({ default: m.MetricCalculator })));
+const GenerationProgress = React.lazy(() => import("./pages/admin/GenerationProgress").then(m => ({ default: m.GenerationProgress })));
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -237,6 +237,7 @@ function LoginRoute() {
 function AppContent() {
   return (
     <BrowserRouter>
+      <React.Suspense fallback={<PremiumLoadingScreen />}>
       <Routes>
         {/* Public Routes - Outside AppLayout */}
         <Route path="/" element={<LandingRoute />} />
@@ -444,6 +445,7 @@ function AppContent() {
             }
           />
         </Routes>
+      </React.Suspense>
     </BrowserRouter>
   );
 }
