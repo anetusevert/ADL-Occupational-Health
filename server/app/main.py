@@ -155,6 +155,36 @@ async def startup_event():
                     conn.execute(text("ALTER TABLE agents ADD COLUMN workflow_id VARCHAR(50)"))
                     conn.commit()
                 
+                # Add execution_count if missing
+                if 'execution_count' not in columns:
+                    print("Adding missing column to agents: execution_count")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN execution_count INTEGER DEFAULT 0 NOT NULL"))
+                    conn.commit()
+                
+                # Add last_run_at if missing
+                if 'last_run_at' not in columns:
+                    print("Adding missing column to agents: last_run_at")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN last_run_at TIMESTAMP"))
+                    conn.commit()
+                
+                # Add is_active if missing
+                if 'is_active' not in columns:
+                    print("Adding missing column to agents: is_active")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN is_active BOOLEAN DEFAULT TRUE NOT NULL"))
+                    conn.commit()
+                
+                # Add created_at if missing
+                if 'created_at' not in columns:
+                    print("Adding missing column to agents: created_at")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN created_at TIMESTAMP DEFAULT NOW() NOT NULL"))
+                    conn.commit()
+                
+                # Add updated_at if missing
+                if 'updated_at' not in columns:
+                    print("Adding missing column to agents: updated_at")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN updated_at TIMESTAMP DEFAULT NOW() NOT NULL"))
+                    conn.commit()
+                
                 print("Agents table migration complete")
             
             print("All migrations completed successfully")
