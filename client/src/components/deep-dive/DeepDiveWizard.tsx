@@ -13,7 +13,12 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, type CountryDeepDiveItem, type TopicStatus } from "../../services/api";
+import { 
+  getStrategicDeepDiveCountries,
+  generateStrategicDeepDive,
+  type CountryDeepDiveItem, 
+  type TopicStatus 
+} from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { exportToPDF, exportToWord } from "../../services/reportExport";
 import { CountrySelectionStep } from "./CountrySelectionStep";
@@ -63,14 +68,17 @@ export function DeepDiveWizard() {
 
   // Fetch countries
   const {
-    data: countries = [],
+    data: countriesResponse,
     isLoading: isLoadingCountries,
     error: countriesError,
     refetch: refetchCountries,
   } = useQuery({
     queryKey: ["deepDiveCountries"],
-    queryFn: api.getDeepDiveCountries,
+    queryFn: getStrategicDeepDiveCountries,
   });
+
+  // Extract countries array from response
+  const countries = countriesResponse?.countries ?? [];
 
   // Get selected country data objects
   const selectedCountriesData = useMemo(() => {
@@ -82,11 +90,12 @@ export function DeepDiveWizard() {
   // Generate report mutation
   const generateReportMutation = useMutation({
     mutationFn: async ({ countryIso, topic }: { countryIso: string; topic: string }) => {
-      const response = await api.generateDeepDiveReport(countryIso, topic);
+      const response = await generateStrategicDeepDive(countryIso, topic);
       return response;
     },
     onSuccess: (data) => {
-      setReport(data.report);
+      // Extract the markdown report from the nested structure
+      setReport(data.report?.report || null);
     },
   });
 
