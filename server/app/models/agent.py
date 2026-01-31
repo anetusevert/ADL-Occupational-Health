@@ -58,7 +58,6 @@ class Workflow(Base):
     
     # Relationships
     agents = relationship("Agent", back_populates="workflow_rel", lazy="dynamic")
-    connections = relationship("AgentConnection", back_populates="workflow_rel", lazy="dynamic")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
@@ -87,16 +86,13 @@ class AgentConnection(Base):
     __tablename__ = "agent_connections"
     
     id = Column(String(100), primary_key=True)  # "source-target"
-    source_agent_id = Column(String(50), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
-    target_agent_id = Column(String(50), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
-    workflow_id = Column(String(50), ForeignKey("workflows.id", ondelete="CASCADE"), nullable=True)
+    source_agent_id = Column(String(50), nullable=False)
+    target_agent_id = Column(String(50), nullable=False)
+    workflow_id = Column(String(50), nullable=True)
     connection_type = Column(String(20), nullable=True, default="data")  # "data", "control", "optional"
     
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
-    # Relationships
-    workflow_rel = relationship("Workflow", back_populates="connections")
     
     def to_dict(self) -> dict:
         return {
