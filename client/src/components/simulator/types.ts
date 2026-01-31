@@ -3,9 +3,128 @@
  * Type Definitions
  */
 
-export type GamePhase = 'setup' | 'playing' | 'paused' | 'event' | 'results' | 'ended';
+export type GamePhase = 'setup' | 'loading' | 'briefing' | 'decision' | 'processing' | 'outcome' | 'playing' | 'paused' | 'event' | 'results' | 'ended';
 export type GameSpeed = 'slow' | 'medium' | 'fast';
 export type PillarId = 'governance' | 'hazardControl' | 'healthVigilance' | 'restoration';
+
+// =============================================================================
+// AI-GENERATED CONTENT TYPES
+// =============================================================================
+
+export interface CountryBriefing {
+  country_name: string;
+  iso_code: string;
+  flag_url: string;
+  executive_summary: string;
+  socioeconomic_context: string;
+  cultural_factors: string;
+  future_outlook: string;
+  key_statistics: Record<string, any>;
+  ohi_score: number;
+  pillar_scores: Record<string, number>;
+  global_rank: number;
+  pillar_insights: Record<string, PillarInsight>;
+  key_challenges: string[];
+  key_stakeholders: Stakeholder[];
+  recent_articles: ArticleSummary[];
+  mission_statement: string;
+  difficulty_rating: string;
+  country_context: CountryContext;
+}
+
+export interface PillarInsight {
+  score: number;
+  analysis: string;
+  key_issues: string[];
+  opportunities: string[];
+}
+
+export interface Stakeholder {
+  name: string;
+  role: string;
+  institution: string;
+  stance: 'supportive' | 'neutral' | 'critical';
+}
+
+export interface ArticleSummary {
+  title: string;
+  summary: string;
+  source: string;
+  url: string;
+  relevance: string;
+  date?: string;
+}
+
+export interface CountryContext {
+  iso_code: string;
+  name: string;
+  capital: string;
+  major_cities: string[];
+  industrial_regions: string[];
+  key_industries: string[];
+  high_risk_sectors: string[];
+  ministry_name: string;
+  ministry_abbreviation: string;
+  labor_inspection_body: string;
+  major_unions: string[];
+  industry_associations: string[];
+  employer_federation: string;
+  iconic_landmark: string;
+  landmark_city: string;
+  iso2_code: string;
+}
+
+export interface DecisionCard {
+  id: string;
+  title: string;
+  description: string;
+  detailed_context: string;
+  pillar: PillarId;
+  cost: number;
+  expected_impacts: Partial<Record<PillarId, number>>;
+  risk_level: 'low' | 'medium' | 'high';
+  time_to_effect: string;
+  stakeholder_reactions: Record<string, string>;
+  location?: string;
+  institution?: string;
+  isSelected?: boolean;
+}
+
+export interface NewsItem {
+  id: string;
+  headline: string;
+  summary: string;
+  source: string;
+  source_type: string;
+  category: string;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  location?: string;
+  timestamp: string;
+  related_decision?: string;
+}
+
+export interface OutcomeReport {
+  month: number;
+  year: number;
+  month_name: string;
+  summary_narrative: string;
+  decision_outcomes: DecisionOutcome[];
+  score_changes: Record<string, number>;
+  score_explanations: Record<string, string>;
+  news_headlines: NewsItem[];
+  emerging_issues: string[];
+  next_month_preview: string;
+}
+
+export interface DecisionOutcome {
+  decision_id: string;
+  decision_title: string;
+  success_level: 'full' | 'partial' | 'failed';
+  narrative: string;
+  actual_impacts: Record<string, number>;
+  side_effects: string[];
+  stakeholder_reactions: Array<{ name: string; reaction: string }>;
+}
 
 export interface CountryData {
   iso_code: string;

@@ -363,10 +363,26 @@ function BestPracticesContent() {
 
   // Calculate OHI scores and sort by score (best to lowest)
   const countriesWithScores = data.countries
-    .map(country => ({
-      country,
-      ohiScore: getEffectiveOHIScore(country)
-    }))
+    .map(country => {
+      // Extract pillar scores from country data
+      const governanceScore = country.governance?.strategic_capacity_score ?? null;
+      const pillar1Score = country.pillar_1_hazard?.control_maturity_score ?? null;
+      const pillar2Score = country.pillar_2_vigilance?.vulnerability_index 
+        ? Math.round(100 - country.pillar_2_vigilance.vulnerability_index) // Invert: lower vulnerability = higher score
+        : null;
+      const pillar3Score = country.pillar_3_restoration?.rehab_access_score ?? null;
+      
+      // Calculate OHI score from pillar scores
+      const ohiScore = getEffectiveOHIScore(
+        country.maturity_score,
+        governanceScore,
+        pillar1Score,
+        pillar2Score,
+        pillar3Score
+      );
+      
+      return { country, ohiScore };
+    })
     .filter(item => item.ohiScore !== null && item.ohiScore > 0)
     .sort((a, b) => (b.ohiScore ?? 0) - (a.ohiScore ?? 0))
     .slice(0, 15); // Top 15 countries
