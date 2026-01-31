@@ -15,13 +15,12 @@ export { AgentConfigPanel } from './AgentConfigPanel';
 
 // n8n-style workflow builder components
 export { WorkflowTabs } from './WorkflowTabs';
-export type { WorkflowData } from './WorkflowTabs';
+export type { WorkflowTab } from './WorkflowTabs';
 
 export { NodePalette } from './NodePalette';
 export type { NodeTemplate } from './NodePalette';
 
 export { CanvasToolbar } from './CanvasToolbar';
-export type { SaveStatus, RunStatus } from './CanvasToolbar';
 
 export { ExecutionPanel } from './ExecutionPanel';
-export type { ExecutionLogEntry, ExecutionRun } from './ExecutionPanel';
+export type { ExecutionLogEntry, ExecutionResult } from './ExecutionPanel';

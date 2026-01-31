@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AppLayout } from "./components/AppLayout";
-import { Login } from "./pages/Login";
+import { LandingPage } from "./pages/LandingPage";
 import {
   Home,
   CountryProfile,
@@ -144,8 +144,25 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Login redirect if already authenticated
-// Redirects to Framework page on first entry for introduction
+// Landing page route for unauthenticated users
+// Shows cinematic entrance + landing page with login modal
+function LandingRoute() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <PremiumLoadingScreen />;
+  }
+
+  if (isAuthenticated) {
+    // Redirect authenticated users to Framework page
+    return <Navigate to="/framework" replace />;
+  }
+
+  // Show landing page (outside of AppLayout for full-screen experience)
+  return <LandingPage />;
+}
+
+// Login redirect - now redirects to landing page
 function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -154,92 +171,108 @@ function LoginRoute() {
   }
 
   if (isAuthenticated) {
-    // Always redirect to Framework page - introduction will show on first visit
     return <Navigate to="/framework" replace />;
   }
 
-  return <Login />;
+  // Redirect to landing page instead of showing old login
+  return <Navigate to="/" replace />;
 }
 
 // Main App content with routes
 function AppContent() {
   return (
     <BrowserRouter>
-      <AppLayout>
-        <Routes>
-          {/* Public Route - Login */}
-          <Route path="/login" element={<LoginRoute />} />
+      <Routes>
+        {/* Public Routes - Outside AppLayout for full-screen experience */}
+        <Route path="/" element={<LandingRoute />} />
+        <Route path="/login" element={<LoginRoute />} />
 
-          {/* Protected Routes - Main App */}
-          <Route
-            path="/"
-            element={
+        {/* Protected Routes - Inside AppLayout */}
+        <Route
+          path="/home"
+          element={
+            <AppLayout>
               <ProtectedRoute>
                 <Home />
               </ProtectedRoute>
-            }
-          />
+            </AppLayout>
+          }
+        />
 
           <Route
             path="/framework"
             element={
-              <ProtectedRoute>
-                <FrameworkPage />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <FrameworkPage />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/country/:iso"
             element={
-              <ProtectedRoute>
-                <CountryProfile />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <CountryProfile />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/compare"
             element={
-              <ProtectedRoute>
-                <CompareV2 />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <CompareV2 />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/leaderboard"
             element={
-              <ProtectedRoute>
-                <Leaderboard />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <Leaderboard />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/simulator"
             element={
-              <ProtectedRoute>
-                <Simulator />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <Simulator />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/country-data"
             element={
-              <ProtectedRoute>
-                <CountryData />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <CountryData />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/deep-dive"
             element={
-              <ProtectedRoute>
-                <CountryDeepDive />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <CountryDeepDive />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
@@ -247,18 +280,22 @@ function AppContent() {
           <Route
             path="/data-engine"
             element={
-              <ProtectedRoute>
-                <DataEngine />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <DataEngine />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/metric-calculator"
             element={
-              <ProtectedRoute>
-                <MetricCalculator />
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <MetricCalculator />
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
@@ -266,82 +303,92 @@ function AppContent() {
           <Route
             path="/admin/users"
             element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <UserManagement />
-                </AdminRoute>
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <UserManagement />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/admin/ai-config"
             element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AIOrchestration />
-                </AdminRoute>
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AIOrchestration />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/admin/orchestration"
             element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AIOrchestrationLayer />
-                </AdminRoute>
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AIOrchestrationLayer />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/admin/strategic-deep-dive"
             element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <StrategicDeepDive />
-                </AdminRoute>
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <StrategicDeepDive />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
 
           <Route
             path="/admin/generation-progress"
             element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <ReportWorkshop />
-                </AdminRoute>
-              </ProtectedRoute>
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <ReportWorkshop />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
-
 
           {/* 404 Fallback */}
           <Route
             path="*"
             element={
-              <ProtectedRoute>
-                <div className="h-full flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
-                    <span className="text-4xl font-bold text-white/20">404</span>
+              <AppLayout>
+                <ProtectedRoute>
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
+                      <span className="text-4xl font-bold text-white/20">404</span>
+                    </div>
+                    <h1 className="text-2xl font-semibold text-white mb-2">Page Not Found</h1>
+                    <p className="text-white/40 mb-6 text-sm">The requested page doesn't exist</p>
+                    <a
+                      href="/framework"
+                      className="px-5 py-2.5 bg-adl-accent text-white rounded-lg hover:bg-adl-blue-light transition-colors text-sm font-medium"
+                    >
+                      Return to Dashboard
+                    </a>
                   </div>
-                  <h1 className="text-2xl font-semibold text-white mb-2">Page Not Found</h1>
-                  <p className="text-white/40 mb-6 text-sm">The requested page doesn't exist</p>
-                  <a
-                    href="/"
-                    className="px-5 py-2.5 bg-adl-accent text-white rounded-lg hover:bg-adl-blue-light transition-colors text-sm font-medium"
-                  >
-                    Return to Dashboard
-                  </a>
-                </div>
-              </ProtectedRoute>
+                </ProtectedRoute>
+              </AppLayout>
             }
           />
         </Routes>
-      </AppLayout>
     </BrowserRouter>
   );
 }
