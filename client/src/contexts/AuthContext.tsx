@@ -46,22 +46,30 @@ const USER_KEY = "gohip_user";
 // Detect API base URL
 function getApiBaseUrl(): string {
   // First priority: explicitly set environment variable
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    console.log(`[Auth] Using VITE_API_URL: ${envUrl}`);
+    return envUrl;
   }
   
   // Second priority: auto-detect for Railway deployments
-  const hostname = window.location.hostname;
-  if (hostname.includes('.up.railway.app')) {
-    // For Railway, assume backend is on same project with "back-end" prefix
-    // Frontend: front-end-production-xxxx.up.railway.app
-    // Backend:  back-end-production-xxxx.up.railway.app
-    const backendHost = hostname.replace('front-end', 'back-end');
-    console.log(`[Auth] Auto-detected Railway backend: https://${backendHost}`);
-    return `https://${backendHost}`;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    console.log(`[Auth] Current hostname: ${hostname}`);
+    
+    if (hostname.includes('.up.railway.app')) {
+      // For Railway, assume backend is on same project with "back-end" prefix
+      // Frontend: front-end-production-xxxx.up.railway.app
+      // Backend:  back-end-production-xxxx.up.railway.app
+      const backendHost = hostname.replace('front-end', 'back-end');
+      console.log(`[Auth] Auto-detected Railway backend: https://${backendHost}`);
+      console.warn(`[Auth] If login fails, verify backend URL in Railway dashboard`);
+      return `https://${backendHost}`;
+    }
   }
   
   // Fallback for local development
+  console.log(`[Auth] Using localhost fallback`);
   return "http://localhost:8000";
 }
 
@@ -112,9 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch current user info with timeout
   const fetchUser = useCallback(async (authToken: string): Promise<User | null> => {
+    const url = `${API_BASE_URL}/api/v1/auth/me`;
+    console.log(`[Auth] Fetching user from: ${url}`);
+    
     try {
       const response = await fetchWithTimeout(
-        `${API_BASE_URL}/api/v1/auth/me`,
+        url,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -123,15 +134,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch user");
+        console.error(`[Auth] User fetch failed with status: ${response.status}`);
+        throw new Error(`Failed to fetch user: ${response.status}`);
       }
 
-      return await response.json();
+      const userData = await response.json();
+      console.log(`[Auth] User fetched successfully:`, userData.email);
+      return userData;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        console.error("Auth request timed out - check VITE_API_URL configuration");
+        console.error("[Auth] Request timed out - backend may be unreachable");
+        console.error(`[Auth] Tried URL: ${url}`);
       } else {
-        console.error("Error fetching user:", error);
+        console.error("[Auth] Error fetching user:", error);
+        console.error(`[Auth] Tried URL: ${url}`);
       }
       return null;
     }
@@ -210,9 +226,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         localStorage.setItem(USER_KEY, JSON.stringify(userData));
       } else {
-        // Login succeeded but couldn't fetch user - still allow login
-        // User data will be loaded from localStorage on next mount
-        console.warn("Login succeeded but user fetch failed");
+        // Login succeeded but couldn't fetch user details
+        // Create a minimal user object to allow navigation
+        // This happens when /auth/me fails but login succeeded
+        console.warn("Login succeeded but user fetch failed - using minimal user");
+        const minimalUser: User = {
+          id: 0,
+          email: email,
+          full_name: null,
+          role: "user",
+          is_active: true,
+          is_verified: true,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString(),
+        };
+        setUser(minimalUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(minimalUser));
       }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
