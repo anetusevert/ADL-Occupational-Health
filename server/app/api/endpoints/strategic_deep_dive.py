@@ -416,7 +416,7 @@ async def generate_report(
                 error="No AI configuration found. Please configure AI settings first.",
             )
         
-        log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model}", "⚙️")
+        log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model_name}", "⚙️")
         
         # Create or update deep dive record
         existing = db.query(CountryDeepDive).filter(
@@ -540,7 +540,7 @@ async def generate_report(
         dive.benchmark_countries = report_data.get("benchmark_countries", [])
         dive.data_quality_notes = report_data.get("data_quality_notes")
         dive.external_research_summary = report_data.get("external_research_summary")
-        dive.ai_provider = f"{ai_config.provider}/{ai_config.model}"
+        dive.ai_provider = f"{ai_config.provider}/{ai_config.model_name}"
         dive.generated_at = datetime.utcnow()
         dive.error_message = None
         
