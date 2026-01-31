@@ -92,8 +92,7 @@ export function ScoreCelebration({
   positive: boolean;
   onComplete?: () => void;
 }) {
-  if (!show) return null;
-  
+  // Generate particles once when component mounts (hooks must be called unconditionally)
   const particles = useMemo(() => 
     Array.from({ length: 30 }, (_, i) => ({
       id: i,
@@ -104,6 +103,8 @@ export function ScoreCelebration({
     })),
     []
   );
+  
+  if (!show) return null;
   
   return (
     <motion.div
