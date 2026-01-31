@@ -338,7 +338,7 @@ export function CountryProfile() {
         {/* Compact Header */}
         <div className="flex-shrink-0 mb-3">
           <Link
-            to="/"
+            to="/home"
             className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs mb-2"
           >
             <ArrowLeft className="w-3 h-3" />
