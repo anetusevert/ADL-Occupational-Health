@@ -8,9 +8,6 @@
  * - EU (European Union) member states
  */
 
-import { Globe, Building2, Landmark, MapPin, Compass, Palmtree } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
 // =============================================================================
 // GCC COUNTRIES (Special Focus Region)
 // =============================================================================
@@ -67,8 +64,10 @@ export const OCEANIA_COUNTRIES = [
 ] as const;
 
 // =============================================================================
-// REGION INTERFACE & DEFINITIONS
+// REGION INTERFACE & DEFINITIONS (Icon names as strings)
 // =============================================================================
+
+export type RegionIconName = "landmark" | "building2" | "compass" | "globe" | "mapPin" | "palmtree";
 
 export interface RegionDefinition {
   id: string;
@@ -76,7 +75,7 @@ export interface RegionDefinition {
   shortName: string;
   description: string;
   countries: readonly string[];
-  icon: LucideIcon;
+  iconName: RegionIconName;
   color: string;
   gradient: string;
   glowColor: string;
@@ -90,7 +89,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "GCC",
     description: "Strategic focus region with 6 member states",
     countries: GCC_COUNTRIES,
-    icon: Landmark,
+    iconName: "landmark",
     color: "amber",
     gradient: "from-amber-500 to-yellow-500",
     glowColor: "shadow-amber-500/20",
@@ -102,7 +101,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "Europe",
     description: "44 European nations including EU members",
     countries: EUROPE_COUNTRIES,
-    icon: Building2,
+    iconName: "building2",
     color: "blue",
     gradient: "from-blue-500 to-indigo-500",
     glowColor: "shadow-blue-500/20",
@@ -114,7 +113,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "Asia",
     description: "48 countries across Asia and the Pacific Rim",
     countries: ASIA_COUNTRIES,
-    icon: Compass,
+    iconName: "compass",
     color: "rose",
     gradient: "from-rose-500 to-pink-500",
     glowColor: "shadow-rose-500/20",
@@ -126,7 +125,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "Americas",
     description: "35 nations of North, Central, and South America",
     countries: AMERICAS_COUNTRIES,
-    icon: Globe,
+    iconName: "globe",
     color: "emerald",
     gradient: "from-emerald-500 to-teal-500",
     glowColor: "shadow-emerald-500/20",
@@ -138,7 +137,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "Africa",
     description: "54 African nations",
     countries: AFRICA_COUNTRIES,
-    icon: MapPin,
+    iconName: "mapPin",
     color: "orange",
     gradient: "from-orange-500 to-red-500",
     glowColor: "shadow-orange-500/20",
@@ -150,7 +149,7 @@ export const REGIONS: Record<string, RegionDefinition> = {
     shortName: "Oceania",
     description: "14 Pacific island nations",
     countries: OCEANIA_COUNTRIES,
-    icon: Palmtree,
+    iconName: "palmtree",
     color: "cyan",
     gradient: "from-cyan-500 to-sky-500",
     glowColor: "shadow-cyan-500/20",

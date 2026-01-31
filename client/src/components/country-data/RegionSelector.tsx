@@ -20,10 +20,26 @@ import {
   ChevronUp,
   Globe,
   Users,
+  Landmark,
+  Building2,
+  Compass,
+  MapPin,
+  Palmtree,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn, getApiBaseUrl } from "../../lib/utils";
-import { SORTED_REGIONS, type RegionDefinition } from "../../data/regions";
+import { SORTED_REGIONS, type RegionDefinition, type RegionIconName } from "../../data/regions";
 import type { CountryDataSummary } from "../../services/api";
+
+// Icon resolver for region icons
+const REGION_ICONS: Record<RegionIconName, LucideIcon> = {
+  landmark: Landmark,
+  building2: Building2,
+  compass: Compass,
+  globe: Globe,
+  mapPin: MapPin,
+  palmtree: Palmtree,
+};
 
 // =============================================================================
 // ANIMATION CONSTANTS
@@ -222,7 +238,7 @@ function RegionCard({
   onToggleCountry,
   searchQuery,
 }: RegionCardProps) {
-  const Icon = region.icon;
+  const Icon = REGION_ICONS[region.iconName];
   
   // Filter countries in this region
   const regionCountries = useMemo(() => {

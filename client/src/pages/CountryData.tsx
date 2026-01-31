@@ -21,7 +21,7 @@ import {
   fetchPivotTable,
 } from "../services/api";
 import type { PivotTableResponse } from "../services/api";
-import { CountryFlowWizard } from "../components/country-data";
+import { CountryFlowWizard } from "../components/country-data/CountryFlowWizard";
 
 // =============================================================================
 // EXCEL EXPORT
