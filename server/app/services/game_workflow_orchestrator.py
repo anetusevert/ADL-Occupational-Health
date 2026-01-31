@@ -203,6 +203,24 @@ class GameWorkflowOrchestrator:
         start_time = datetime.utcnow()
         self.agent_log = []
         
+        # Check if AI config is available
+        if not self.ai_config:
+            logger.warning("No AI configuration available - returning fallback data")
+            self._log_agent_activity(
+                "Orchestrator",
+                AgentStatus.ERROR,
+                "No AI configuration found. Please configure AI settings in Admin.",
+                "⚠️"
+            )
+            return WorkflowResult(
+                workflow_type=GameWorkflowType.INTELLIGENCE_BRIEFING,
+                success=False,
+                data={},
+                agent_log=self.agent_log.copy(),
+                errors=["No AI configuration found. Please configure AI settings in Admin > AI Settings."],
+                execution_time_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
+            )
+        
         self._log_agent_activity(
             "Orchestrator", 
             AgentStatus.STARTING,
@@ -398,6 +416,24 @@ Create a compelling intelligence briefing as valid JSON with these fields:
         start_time = datetime.utcnow()
         self.agent_log = []
 
+        # Check if AI config is available
+        if not self.ai_config:
+            logger.warning("No AI configuration available for Strategic Advisor")
+            self._log_agent_activity(
+                "AdvisorAgent",
+                AgentStatus.ERROR,
+                "No AI configuration found. Please configure AI settings in Admin.",
+                "⚠️"
+            )
+            return WorkflowResult(
+                workflow_type=GameWorkflowType.STRATEGIC_ADVISOR,
+                success=False,
+                data={"decisions": []},
+                agent_log=self.agent_log.copy(),
+                errors=["No AI configuration found. Please configure AI settings in Admin > AI Settings."],
+                execution_time_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
+            )
+
         self._log_agent_activity(
             "AdvisorAgent",
             AgentStatus.STARTING,
@@ -503,6 +539,17 @@ Format as JSON with:
         start_time = datetime.utcnow()
         self.agent_log = []
 
+        # Check if AI config is available
+        if not self.ai_config:
+            logger.warning("No AI configuration available for News Generator")
+            return WorkflowResult(
+                workflow_type=GameWorkflowType.NEWS_GENERATOR,
+                success=False,
+                data={"news_items": []},
+                errors=["No AI configuration found. Please configure AI settings in Admin > AI Settings."],
+                execution_time_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
+            )
+
         self._log_agent_activity(
             "NewsAgent",
             AgentStatus.STARTING,
@@ -606,6 +653,17 @@ Generate valid JSON array of news items:
         """
         start_time = datetime.utcnow()
         self.agent_log = []
+
+        # Check if AI config is available
+        if not self.ai_config:
+            logger.warning("No AI configuration available for Final Report")
+            return WorkflowResult(
+                workflow_type=GameWorkflowType.FINAL_REPORT,
+                success=False,
+                data={},
+                errors=["No AI configuration found. Please configure AI settings in Admin > AI Settings."],
+                execution_time_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
+            )
 
         self._log_agent_activity(
             "ReportAgent",
@@ -713,28 +771,34 @@ Generate valid JSON:
                     except json.JSONDecodeError:
                         logger.warning("Failed to parse OpenAI response as JSON")
 
-        # Fallback to LangChain
-        llm = get_llm_from_config(self.ai_config, self.db)
-        if llm:
-            from langchain_core.messages import HumanMessage, SystemMessage
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-            response = await llm.ainvoke(messages)
-            if response and response.content:
-                try:
-                    if expect_array:
-                        json_start = response.content.find("[")
-                        json_end = response.content.rfind("]") + 1
-                    else:
-                        json_start = response.content.find("{")
-                        json_end = response.content.rfind("}") + 1
-                    
-                    if json_start >= 0 and json_end > json_start:
-                        return json.loads(response.content[json_start:json_end])
-                except json.JSONDecodeError:
-                    pass
+        # Fallback to LangChain (if we have config)
+        if self.ai_config:
+            try:
+                llm = get_llm_from_config(self.ai_config, self.db)
+                if llm:
+                    from langchain_core.messages import HumanMessage, SystemMessage
+                    messages = [
+                        SystemMessage(content=system_prompt),
+                        HumanMessage(content=user_prompt),
+                    ]
+                    response = await llm.ainvoke(messages)
+                    if response and response.content:
+                        try:
+                            if expect_array:
+                                json_start = response.content.find("[")
+                                json_end = response.content.rfind("]") + 1
+                            else:
+                                json_start = response.content.find("{")
+                                json_end = response.content.rfind("}") + 1
+                            
+                            if json_start >= 0 and json_end > json_start:
+                                return json.loads(response.content[json_start:json_end])
+                        except json.JSONDecodeError:
+                            pass
+            except ValueError as e:
+                logger.warning(f"Failed to get LLM from config: {e}")
+        else:
+            logger.warning("No AI config available - cannot generate AI content")
 
         return [] if expect_array else {}
 
