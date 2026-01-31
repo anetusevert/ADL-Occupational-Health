@@ -1189,6 +1189,77 @@ export async function fetchAIContext(isoCode: string): Promise<{
 }
 
 // ============================================================================
+// GLOBAL RANKINGS API (Database-backed)
+// ============================================================================
+
+/**
+ * Country ranking entry
+ */
+export interface CountryRankEntry {
+  iso_code: string;
+  name: string;
+  value: number;
+  rank: number;
+  is_current: boolean;
+}
+
+/**
+ * Current country ranking details
+ */
+export interface CurrentCountryRank {
+  iso_code: string;
+  name: string;
+  value: number;
+  rank: number;
+  percentile: number;
+}
+
+/**
+ * Global rankings response from database
+ */
+export interface GlobalRankingsResponse {
+  metric: string;
+  metric_label: string;
+  unit: string;
+  total_countries: number;
+  data_source: string;
+  higher_is_better: boolean;
+  current_country: CurrentCountryRank | null;
+  top_10: CountryRankEntry[];
+  bottom_10: CountryRankEntry[];
+}
+
+/**
+ * Metric type mapping for database rankings
+ * Maps frontend indicator types to backend metric names
+ */
+export const INDICATOR_TO_METRIC: Record<string, string> = {
+  GDP_PER_CAPITA: "gdp_per_capita",
+  POPULATION: "population",
+  LABOR_FORCE: "labor_force",
+  LIFE_EXPECTANCY: "life_expectancy",
+  URBAN_POPULATION: "urban_population",
+  HDI_SCORE: "hdi_score",
+};
+
+/**
+ * Fetch global rankings for a specific metric from the database
+ * This replaces live World Bank API calls with pre-fetched data
+ */
+export async function fetchDatabaseRankings(
+  metric: string,
+  currentIsoCode: string
+): Promise<GlobalRankingsResponse> {
+  const response = await apiClient.get<GlobalRankingsResponse>(
+    `/api/v1/intelligence/rankings/${metric}`,
+    {
+      params: { current_iso: currentIsoCode.toUpperCase() }
+    }
+  );
+  return response.data;
+}
+
+// ============================================================================
 // COUNTRY DATA REGISTRY API FUNCTIONS (Pivot Table)
 // ============================================================================
 

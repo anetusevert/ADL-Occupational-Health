@@ -123,6 +123,84 @@ class IntelligenceListResponse(BaseModel):
     countries: List[IntelligenceSummary]
 
 
+class CountryRank(BaseModel):
+    """Individual country ranking entry."""
+    iso_code: str
+    name: str
+    value: float
+    rank: int
+    is_current: bool = False
+
+
+class CurrentCountryRank(BaseModel):
+    """Current country ranking details."""
+    iso_code: str
+    name: str
+    value: float
+    rank: int
+    percentile: float
+
+
+class GlobalRankingsResponse(BaseModel):
+    """Response for global rankings endpoint."""
+    metric: str
+    metric_label: str
+    unit: str
+    total_countries: int
+    data_source: str
+    higher_is_better: bool
+    current_country: Optional[CurrentCountryRank]
+    top_10: List[CountryRank]
+    bottom_10: List[CountryRank]
+
+
+# Metric configuration mapping
+METRIC_CONFIG = {
+    "gdp_per_capita": {
+        "column": "gdp_per_capita_ppp",
+        "label": "GDP Per Capita (PPP)",
+        "unit": "USD",
+        "source": "World Bank",
+        "higher_is_better": True,
+    },
+    "population": {
+        "column": "population_total",
+        "label": "Population",
+        "unit": "",
+        "source": "World Bank",
+        "higher_is_better": True,
+    },
+    "labor_force": {
+        "column": "labor_force_participation",
+        "label": "Labor Force Participation Rate",
+        "unit": "%",
+        "source": "World Bank",
+        "higher_is_better": True,
+    },
+    "life_expectancy": {
+        "column": "life_expectancy_at_birth",
+        "label": "Life Expectancy at Birth",
+        "unit": "years",
+        "source": "World Bank / WHO",
+        "higher_is_better": True,
+    },
+    "urban_population": {
+        "column": "urban_population_pct",
+        "label": "Urban Population",
+        "unit": "%",
+        "source": "World Bank",
+        "higher_is_better": True,
+    },
+    "hdi_score": {
+        "column": "hdi_score",
+        "label": "Human Development Index",
+        "unit": "",
+        "source": "UNDP",
+        "higher_is_better": True,
+    },
+}
+
+
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
@@ -350,3 +428,134 @@ async def get_ai_context(iso_code: str, db: Session = Depends(get_db)):
             "OECD Better Life Index (OECD countries)",
         ]
     }
+
+
+@router.get(
+    "/rankings/{metric}",
+    response_model=GlobalRankingsResponse,
+    summary="Get Global Rankings for a Metric",
+    description="Get global rankings for a specific metric (GDP, population, etc.) from the database."
+)
+async def get_global_rankings(
+    metric: str,
+    current_iso: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get global rankings for a specific metric.
+    
+    Supported metrics:
+    - gdp_per_capita: GDP per capita (PPP, current USD)
+    - population: Total population
+    - labor_force: Labor force participation rate (%)
+    - life_expectancy: Life expectancy at birth (years)
+    - urban_population: Urban population (%)
+    - hdi_score: Human Development Index (0-1)
+    """
+    metric = metric.lower()
+    
+    if metric not in METRIC_CONFIG:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid metric '{metric}'. Valid options: {', '.join(METRIC_CONFIG.keys())}"
+        )
+    
+    config = METRIC_CONFIG[metric]
+    column_name = config["column"]
+    higher_is_better = config["higher_is_better"]
+    
+    # Get the column attribute from the model
+    column_attr = getattr(CountryIntelligence, column_name, None)
+    if column_attr is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Column {column_name} not found in CountryIntelligence model"
+        )
+    
+    # Query all countries with this metric, join with Country for names
+    results = db.query(
+        CountryIntelligence.country_iso_code,
+        Country.name,
+        column_attr
+    ).join(
+        Country, CountryIntelligence.country_iso_code == Country.iso_code
+    ).filter(
+        column_attr.isnot(None)
+    ).all()
+    
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data found for metric '{metric}'"
+        )
+    
+    # Sort by value (descending for higher_is_better, ascending otherwise)
+    sorted_results = sorted(
+        results,
+        key=lambda x: x[2] if x[2] is not None else float('-inf'),
+        reverse=higher_is_better
+    )
+    
+    # Assign ranks
+    ranked_countries = []
+    for rank, (iso_code, name, value) in enumerate(sorted_results, start=1):
+        ranked_countries.append({
+            "iso_code": iso_code,
+            "name": name,
+            "value": value,
+            "rank": rank
+        })
+    
+    total_countries = len(ranked_countries)
+    
+    # Get top 10 and bottom 10
+    top_10 = []
+    bottom_10 = []
+    
+    for entry in ranked_countries[:10]:
+        is_current = current_iso and entry["iso_code"].upper() == current_iso.upper()
+        top_10.append(CountryRank(
+            iso_code=entry["iso_code"],
+            name=entry["name"],
+            value=entry["value"],
+            rank=entry["rank"],
+            is_current=is_current
+        ))
+    
+    for entry in ranked_countries[-10:]:
+        is_current = current_iso and entry["iso_code"].upper() == current_iso.upper()
+        bottom_10.append(CountryRank(
+            iso_code=entry["iso_code"],
+            name=entry["name"],
+            value=entry["value"],
+            rank=entry["rank"],
+            is_current=is_current
+        ))
+    
+    # Find current country ranking
+    current_country_rank = None
+    if current_iso:
+        current_iso_upper = current_iso.upper()
+        for entry in ranked_countries:
+            if entry["iso_code"].upper() == current_iso_upper:
+                percentile = round(((total_countries - entry["rank"] + 1) / total_countries) * 100, 1)
+                current_country_rank = CurrentCountryRank(
+                    iso_code=entry["iso_code"],
+                    name=entry["name"],
+                    value=entry["value"],
+                    rank=entry["rank"],
+                    percentile=percentile
+                )
+                break
+    
+    return GlobalRankingsResponse(
+        metric=metric,
+        metric_label=config["label"],
+        unit=config["unit"],
+        total_countries=total_countries,
+        data_source=config["source"],
+        higher_is_better=higher_is_better,
+        current_country=current_country_rank,
+        top_10=top_10,
+        bottom_10=bottom_10
+    )
