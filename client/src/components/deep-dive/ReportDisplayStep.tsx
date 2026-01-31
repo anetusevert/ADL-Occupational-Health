@@ -223,26 +223,45 @@ export function ReportDisplayStep({
     );
   }
 
-  // Error state
+  // Error state - check if it's "not available" vs actual error
   if (error) {
+    const isNotAvailable = error.message.includes("not yet available");
+    
     return (
       <div className="h-full flex items-center justify-center relative overflow-hidden">
         <GradientOrbs count={2} />
         <motion.div className="text-center max-w-md px-6 relative z-10" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="w-24 h-24 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
-            <AlertCircle className="w-12 h-12 text-red-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">Report Generation Failed</h3>
-          <p className="text-sm text-slate-400 mb-6">{error.message}</p>
+          {isNotAvailable ? (
+            <>
+              <div className="w-24 h-24 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
+                <BookOpen className="w-12 h-12 text-amber-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Report Not Available</h3>
+              <p className="text-sm text-slate-400 mb-6">
+                This strategic deep dive report has not been generated yet. 
+                Please check back later or contact an administrator.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-24 h-24 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+                <AlertCircle className="w-12 h-12 text-red-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Report Generation Failed</h3>
+              <p className="text-sm text-slate-400 mb-6">{error.message}</p>
+            </>
+          )}
           <div className="flex gap-3 justify-center">
             <motion.button onClick={onBack} className="px-4 py-2 bg-slate-700/50 border border-slate-600/40 rounded-xl text-slate-300 text-sm font-medium flex items-center gap-2" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <ChevronLeft className="w-4 h-4" />
               Go Back
             </motion.button>
-            <motion.button onClick={onRetry} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 rounded-xl text-purple-300 text-sm font-medium flex items-center gap-2" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <RefreshCw className="w-4 h-4" />
-              Try Again
-            </motion.button>
+            {!isNotAvailable && (
+              <motion.button onClick={onRetry} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 rounded-xl text-purple-300 text-sm font-medium flex items-center gap-2" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </div>
