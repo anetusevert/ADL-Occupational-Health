@@ -25,7 +25,7 @@ import { AIOrchestration } from "./pages/admin/AIOrchestration";
 import { AgentPrompts } from "./pages/admin/AgentPrompts";
 import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
 import { MetricCalculator } from "./pages/admin/MetricCalculator";
-import { GenerationProgress } from "./pages/admin/GenerationProgress";
+import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -311,7 +311,7 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AdminRoute>
-                  <GenerationProgress />
+                  <ReportWorkshop />
                 </AdminRoute>
               </ProtectedRoute>
             }

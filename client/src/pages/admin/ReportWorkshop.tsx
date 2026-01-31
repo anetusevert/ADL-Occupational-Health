@@ -2,28 +2,20 @@
  * GOHIP Platform - Report Workshop
  * =================================
  * 
- * Admin-only dashboard for controlled report generation with:
- * - Queue management (add/remove countries)
- * - One-by-one generation with real-time progress
- * - Immediate preview and quality iteration
- * - Cancel/reset capabilities
+ * Admin-only dashboard for controlled report generation.
+ * Clean implementation without framer-motion to avoid TDZ issues.
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
   CheckCircle2,
   XCircle,
   Clock,
-  Globe,
   RefreshCw,
   AlertTriangle,
   Play,
-  Pause,
-  Square,
-  CheckSquare,
   Loader2,
   Trash2,
   Plus,
@@ -32,17 +24,13 @@ import {
   ArrowRight,
   RotateCcw,
   Eye,
-  ChevronRight,
   X,
-  StopCircle,
   Sparkles,
   Brain,
   Search,
-  Filter,
   GripVertical,
 } from 'lucide-react';
 import {
-  apiClient,
   getStrategicDeepDiveCountries,
   getQueueStatus,
   resetProcessingReports,
@@ -53,7 +41,6 @@ import {
   generateControlled,
   type QueueItem,
   type QueueStatusResponse,
-  type ControlledGenerateResponse,
   type StrategicDeepDiveReport,
 } from '../../services/api';
 
@@ -74,17 +61,6 @@ const ALL_TOPICS = [
   "Migrant & Informal Worker Protection",
 ];
 
-// EU and GCC country codes for quick selection
-const EU_COUNTRIES = [
-  "ALB", "AND", "AUT", "BLR", "BEL", "BIH", "BGR", "HRV", "CZE", "DNK",
-  "EST", "FIN", "FRA", "DEU", "GRC", "HUN", "ISL", "IRL", "ITA", "LVA",
-  "LIE", "LTU", "LUX", "MLT", "MDA", "MCO", "MNE", "NLD", "MKD", "NOR",
-  "POL", "PRT", "ROU", "RUS", "SMR", "SRB", "SVK", "SVN", "ESP", "SWE",
-  "CHE", "UKR", "GBR", "VAT"
-];
-
-const GCC_COUNTRIES = ["BHR", "KWT", "OMN", "QAT", "SAU", "ARE"];
-
 // =============================================================================
 // PROCESSING DIALOG COMPONENT
 // =============================================================================
@@ -100,11 +76,7 @@ interface ProcessingDialogProps {
 function ProcessingDialog({ processingCount, pendingCount, onResetAndStart, onContinue, onLeave }: ProcessingDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl"
-      >
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
             <AlertTriangle className="w-6 h-6 text-amber-400" />
@@ -157,7 +129,7 @@ function ProcessingDialog({ processingCount, pendingCount, onResetAndStart, onCo
             </div>
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -193,15 +165,12 @@ function QueueItemRow({
   const isDragTarget = dragOverIndex === index;
   
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+    <div
       draggable={isPending}
-      onDragStart={(e) => isPending && onDragStart(e as any, index)}
+      onDragStart={(e) => isPending && onDragStart(e, index)}
       onDragOver={(e) => {
         e.preventDefault();
-        if (isPending) onDragOver(e as any, index);
+        if (isPending) onDragOver(e, index);
       }}
       onDragEnd={onDragEnd}
       className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
@@ -248,7 +217,7 @@ function QueueItemRow({
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -434,11 +403,7 @@ function CountrySelector({ onAddCountry, onClose }: CountrySelectorProps) {
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full mx-4 shadow-2xl overflow-hidden"
-      >
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full mx-4 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Plus className="w-5 h-5 text-cyan-400" />
@@ -515,7 +480,7 @@ function CountrySelector({ onAddCountry, onClose }: CountrySelectorProps) {
             ))}
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -524,7 +489,7 @@ function CountrySelector({ onAddCountry, onClose }: CountrySelectorProps) {
 // MAIN COMPONENT
 // =============================================================================
 
-export function GenerationProgress() {
+export function ReportWorkshop() {
   const queryClient = useQueryClient();
   
   // UI State
@@ -541,6 +506,7 @@ export function GenerationProgress() {
   const [lastGeneratedReport, setLastGeneratedReport] = useState<StrategicDeepDiveReport | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [autoGenerateNext, setAutoGenerateNext] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -554,6 +520,19 @@ export function GenerationProgress() {
     staleTime: 5000,
     retry: 2,
   });
+  
+  // Elapsed time timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating && currentGeneration) {
+      interval = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - currentGeneration.startTime) / 1000));
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating, currentGeneration]);
   
   // Check for processing reports on mount
   useEffect(() => {
@@ -615,6 +594,10 @@ export function GenerationProgress() {
     },
   });
   
+  const pendingCount = queueStatus?.pending_count || 0;
+  const processingCount = queueStatus?.processing_count || 0;
+  const queueItems = queueStatus?.queue_items || [];
+  
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -628,13 +611,10 @@ export function GenerationProgress() {
   
   const handleDragEnd = useCallback(() => {
     if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
-      // Reorder the queue items
       const pendingItems = queueItems.filter(item => item.status === 'pending');
       const newOrder = [...pendingItems];
       const [draggedItem] = newOrder.splice(draggedIndex, 1);
       newOrder.splice(dragOverIndex, 0, draggedItem);
-      
-      // Get new order of IDs and call API
       const newOrderIds = newOrder.map(item => item.id);
       reorderMutation.mutate(newOrderIds);
     }
@@ -650,7 +630,6 @@ export function GenerationProgress() {
       return;
     }
     
-    // Get first pending item
     const nextItem = queueStatus.queue_items.find(item => item.status === 'pending');
     if (!nextItem) {
       setStatusMessage({ type: 'info', text: 'No pending reports in queue.' });
@@ -756,16 +735,7 @@ export function GenerationProgress() {
     }
   };
   
-  // Calculate elapsed time
-  const elapsedSeconds = currentGeneration
-    ? Math.floor((Date.now() - currentGeneration.startTime) / 1000)
-    : 0;
-  
-  const pendingCount = queueStatus?.pending_count || 0;
-  const processingCount = queueStatus?.processing_count || 0;
-  const queueItems = queueStatus?.queue_items || [];
-  
-  // Error state - show a friendly error UI instead of crashing
+  // Error state
   if (queueError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-8">
@@ -787,7 +757,7 @@ export function GenerationProgress() {
     );
   }
   
-  // Loading state - show a spinner on initial load
+  // Loading state
   if (isLoadingQueue && !queueStatus) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -802,27 +772,23 @@ export function GenerationProgress() {
   return (
     <>
       {/* Processing Dialog */}
-      <AnimatePresence>
-        {showProcessingDialog && (
-          <ProcessingDialog
-            processingCount={processingCount}
-            pendingCount={pendingCount}
-            onResetAndStart={handleResetAndStart}
-            onContinue={handleContinue}
-            onLeave={handleLeave}
-          />
-        )}
-      </AnimatePresence>
+      {showProcessingDialog && (
+        <ProcessingDialog
+          processingCount={processingCount}
+          pendingCount={pendingCount}
+          onResetAndStart={handleResetAndStart}
+          onContinue={handleContinue}
+          onLeave={handleLeave}
+        />
+      )}
       
       {/* Country Selector Modal */}
-      <AnimatePresence>
-        {showCountrySelector && (
-          <CountrySelector
-            onAddCountry={handleAddCountry}
-            onClose={() => setShowCountrySelector(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showCountrySelector && (
+        <CountrySelector
+          onAddCountry={handleAddCountry}
+          onClose={() => setShowCountrySelector(false)}
+        />
+      )}
       
       {/* Main Layout */}
       <div className="h-full flex flex-col overflow-hidden p-4">
@@ -839,30 +805,25 @@ export function GenerationProgress() {
           </div>
           
           {/* Status Message */}
-          <AnimatePresence>
-            {statusMessage && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${
-                  statusMessage.type === 'success'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : statusMessage.type === 'error'
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                }`}
-              >
-                {statusMessage.type === 'success' && <CheckCircle2 className="w-4 h-4" />}
-                {statusMessage.type === 'error' && <XCircle className="w-4 h-4" />}
-                {statusMessage.type === 'info' && <Activity className="w-4 h-4" />}
-                {statusMessage.text}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {statusMessage && (
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
+                statusMessage.type === 'success'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : statusMessage.type === 'error'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+              }`}
+            >
+              {statusMessage.type === 'success' && <CheckCircle2 className="w-4 h-4" />}
+              {statusMessage.type === 'error' && <XCircle className="w-4 h-4" />}
+              {statusMessage.type === 'info' && <Activity className="w-4 h-4" />}
+              {statusMessage.text}
+            </div>
+          )}
         </div>
         
-        {/* Three-Panel Layout - Responsive */}
+        {/* Three-Panel Layout */}
         <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden lg:overflow-visible">
           {/* Left Panel: Queue Management */}
           <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden max-h-[300px] lg:max-h-none">
@@ -901,32 +862,30 @@ export function GenerationProgress() {
             
             {/* Queue List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              <AnimatePresence>
-                {queueItems.length > 0 ? (
-                  queueItems.map((item, index) => (
-                    <QueueItemRow
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      isActive={currentGeneration?.iso_code === item.iso_code && currentGeneration?.topic === item.topic}
-                      onRemove={(id) => removeFromQueueMutation.mutate(id)}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDragEnd={handleDragEnd}
-                      isDragging={draggedIndex !== null}
-                      dragOverIndex={dragOverIndex}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">Queue is empty</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Add countries to start generating
-                    </p>
-                  </div>
-                )}
-              </AnimatePresence>
+              {queueItems.length > 0 ? (
+                queueItems.map((item, index) => (
+                  <QueueItemRow
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    isActive={currentGeneration?.iso_code === item.iso_code && currentGeneration?.topic === item.topic}
+                    onRemove={(id) => removeFromQueueMutation.mutate(id)}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                    isDragging={draggedIndex !== null}
+                    dragOverIndex={dragOverIndex}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Queue is empty</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Add countries to start generating
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           
@@ -1046,4 +1005,4 @@ export function GenerationProgress() {
   );
 }
 
-export default GenerationProgress;
+export default ReportWorkshop;

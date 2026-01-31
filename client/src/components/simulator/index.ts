@@ -23,3 +23,10 @@ export { WorldMapView } from './WorldMapView';
 export { OHIScoreDisplay, OHIScoreInline } from './OHIScoreDisplay';
 export { GameOverSummary } from './GameOverSummary';
 export { ParticleEffects, ScoreCelebration, PulsingGlow, AchievementUnlock, ShimmerEffect } from './ParticleEffects';
+
+// New AI-Powered Game Components
+export { LoadingBriefing } from './LoadingBriefing';
+export { SituationalBriefing } from './SituationalBriefing';
+export { DecisionRound } from './DecisionRound';
+export { NewsFeed } from './NewsFeed';
+export { CountryLandmark } from './CountryLandmark';

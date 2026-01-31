@@ -1366,3 +1366,183 @@ export async function generateGameSummary(
   );
   return response.data;
 }
+
+// ============================================================================
+// SOVEREIGN HEALTH GAME - NEW AI-POWERED API FUNCTIONS
+// ============================================================================
+
+export interface CountryBriefingResponse {
+  country_name: string;
+  iso_code: string;
+  flag_url: string;
+  executive_summary: string;
+  socioeconomic_context: string;
+  cultural_factors: string;
+  future_outlook: string;
+  key_statistics: Record<string, any>;
+  ohi_score: number;
+  pillar_scores: Record<string, number>;
+  global_rank: number;
+  pillar_insights: Record<string, {
+    score: number;
+    analysis: string;
+    key_issues: string[];
+    opportunities: string[];
+  }>;
+  key_challenges: string[];
+  key_stakeholders: Array<{
+    name: string;
+    role: string;
+    institution: string;
+    stance: string;
+  }>;
+  recent_articles: Array<{
+    title: string;
+    summary: string;
+    source: string;
+    url: string;
+    relevance: string;
+    date?: string;
+  }>;
+  mission_statement: string;
+  difficulty_rating: string;
+  country_context: Record<string, any>;
+}
+
+export interface DecisionCardResponse {
+  id: string;
+  title: string;
+  description: string;
+  detailed_context: string;
+  pillar: string;
+  cost: number;
+  expected_impacts: Record<string, number>;
+  risk_level: string;
+  time_to_effect: string;
+  stakeholder_reactions: Record<string, string>;
+  location?: string;
+  institution?: string;
+}
+
+export interface GenerateDecisionsRequest {
+  iso_code: string;
+  country_name: string;
+  current_month: number;
+  current_year: number;
+  pillars: {
+    governance: number;
+    hazardControl: number;
+    healthVigilance: number;
+    restoration: number;
+  };
+  budget_remaining: number;
+  recent_decisions: string[];
+  recent_events: string[];
+}
+
+export interface NewsItemResponse {
+  id: string;
+  headline: string;
+  summary: string;
+  source: string;
+  source_type: string;
+  category: string;
+  sentiment: string;
+  location?: string;
+  timestamp: string;
+  related_decision?: string;
+}
+
+export interface GenerateNewsRequest {
+  iso_code: string;
+  current_month: number;
+  current_year: number;
+  recent_decisions: Array<Record<string, any>>;
+  pillar_changes: Record<string, number>;
+  count?: number;
+}
+
+export interface CountryContextResponse {
+  iso_code: string;
+  name: string;
+  capital: string;
+  major_cities: string[];
+  industrial_regions: string[];
+  key_industries: string[];
+  high_risk_sectors: string[];
+  ministry_name: string;
+  ministry_abbreviation: string;
+  labor_inspection_body: string;
+  major_unions: string[];
+  industry_associations: string[];
+  employer_federation: string;
+  iconic_landmark: string;
+  landmark_city: string;
+}
+
+/**
+ * Research a country and generate comprehensive AI briefing
+ */
+export async function researchCountry(
+  iso_code: string
+): Promise<CountryBriefingResponse> {
+  const response = await aiApiClient.post<CountryBriefingResponse>(
+    "/api/v1/simulator/research-country",
+    { iso_code }
+  );
+  return response.data;
+}
+
+/**
+ * Generate decision cards for the current turn
+ */
+export async function generateDecisions(
+  request: GenerateDecisionsRequest
+): Promise<DecisionCardResponse[]> {
+  const response = await aiApiClient.post<DecisionCardResponse[]>(
+    "/api/v1/simulator/generate-decisions",
+    request
+  );
+  return response.data;
+}
+
+/**
+ * Generate news items for the newsfeed
+ */
+export async function generateNews(
+  request: GenerateNewsRequest
+): Promise<NewsItemResponse[]> {
+  const response = await aiApiClient.post<NewsItemResponse[]>(
+    "/api/v1/simulator/generate-news",
+    request
+  );
+  return response.data;
+}
+
+/**
+ * Get country context data for realistic gameplay
+ */
+export async function getCountryContext(
+  iso_code: string
+): Promise<CountryContextResponse> {
+  const response = await apiClient.get<CountryContextResponse>(
+    `/api/v1/simulator/country-context/${iso_code}`
+  );
+  return response.data;
+}
+
+/**
+ * List all available countries with full context
+ */
+export async function listAvailableCountries(): Promise<{
+  countries: Array<{
+    iso_code: string;
+    name: string;
+    capital: string;
+    landmark: string;
+  }>;
+  total: number;
+}> {
+  const response = await apiClient.get("/api/v1/simulator/available-countries");
+  return response.data;
+}
