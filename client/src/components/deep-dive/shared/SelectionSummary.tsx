@@ -7,7 +7,7 @@
  */
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, Globe, Users } from "lucide-react";
+import { X, ChevronRight, Globe, Users, Flag } from "lucide-react";
 import { cn } from "../../../lib/utils";
 
 interface SelectedCountry {
@@ -39,8 +39,8 @@ export function SelectionSummary({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       className={cn(
-        "fixed bottom-6 left-1/2 -translate-x-1/2 z-50",
-        "bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl",
+        "fixed bottom-20 left-1/2 -translate-x-1/2 z-50",
+        "bg-slate-900/98 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl",
         "max-w-2xl w-[90vw]",
         className
       )}
@@ -87,7 +87,9 @@ export function SelectionSummary({
                     className="w-5 h-3.5 object-cover rounded shadow-sm"
                   />
                 ) : (
-                  <span className="text-[10px] text-slate-400 w-5">{country.iso_code}</span>
+                  <div className="w-5 h-3.5 flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40">
+                    <Flag className="w-2 h-2 text-slate-500" />
+                  </div>
                 )}
                 <span className="text-xs text-slate-300 group-hover:text-red-300 transition-colors">
                   {country.name}
