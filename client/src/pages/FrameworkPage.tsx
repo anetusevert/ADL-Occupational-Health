@@ -176,7 +176,7 @@ export function FrameworkPage() {
       </div>
 
       {/* Bottom Stats - Fixed & Interactive */}
-      <div className="flex-shrink-0 mt-4 grid grid-cols-4 gap-3">
+      <div className="flex-shrink-0 mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((stat, index) => (
           <motion.button
             key={stat.id}

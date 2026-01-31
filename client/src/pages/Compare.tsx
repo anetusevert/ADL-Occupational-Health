@@ -468,8 +468,8 @@ interface ComparisonHeaderProps {
 
 function ComparisonHeader({ left, right }: ComparisonHeaderProps) {
   return (
-    <div className="bg-gradient-to-r from-slate-800/80 via-slate-900/50 to-slate-800/80 rounded-xl border border-slate-700/50 p-6">
-      <div className="grid grid-cols-3 items-center">
+    <div className="bg-gradient-to-r from-slate-800/80 via-slate-900/50 to-slate-800/80 rounded-xl border border-slate-700/50 p-4 sm:p-6">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 sm:gap-0 items-center">
         {/* Left Country */}
         <div className="text-center">
           <div className="flex justify-center mb-3">

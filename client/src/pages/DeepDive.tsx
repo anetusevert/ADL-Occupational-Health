@@ -677,7 +677,7 @@ export function DeepDive() {
 
           {/* Quick status cards when running */}
           {isRunning && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
                 <Database className="w-6 h-6 text-purple-400 mx-auto mb-1" />
                 <p className="text-xs text-purple-400">DataAgent</p>

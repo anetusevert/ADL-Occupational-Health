@@ -229,7 +229,7 @@ function DataSourceDetailView({
       </div>
 
       {/* Metadata Grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
           <div className="flex items-center gap-2 mb-1">
             <Clock className="w-3.5 h-3.5 text-slate-400" />

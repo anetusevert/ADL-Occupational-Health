@@ -105,7 +105,7 @@ export function Login() {
           </p>
           
           {/* Feature highlights */}
-          <div className="mt-10 grid grid-cols-3 gap-4">
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { label: "Countries", value: "196", desc: "Global Coverage" },
               { label: "Framework Pillars", value: "4", desc: "OH Assessment" },

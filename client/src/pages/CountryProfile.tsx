@@ -372,7 +372,7 @@ export function CountryProfile() {
               </div>
               
               {/* Three Pillars - Equal Width Row */}
-              <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-h-0">
                 <PillarCard {...pillars[1]} delay={0.2} />
                 <PillarCard {...pillars[2]} delay={0.3} />
                 <PillarCard {...pillars[3]} delay={0.4} />

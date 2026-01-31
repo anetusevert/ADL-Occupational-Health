@@ -351,7 +351,7 @@ function DataSourceModal({ source, items, onClose }: DataSourceModalProps) {
           </div>
           
           {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className="bg-slate-800/50 rounded-lg p-3">
               <div className="flex items-center gap-2 text-slate-400 text-xs mb-1">
                 <LinkIcon className="w-3 h-3" />
@@ -899,10 +899,10 @@ export function DataEngine() {
         </div>
       </div>
 
-      {/* Three-Panel Layout */}
-      <div className="flex-1 min-h-0 grid grid-cols-12 gap-4">
-        {/* Left Panel: Data Sources (1/3) */}
-        <div className="col-span-3">
+      {/* Three-Panel Layout - Responsive */}
+      <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-4 overflow-auto lg:overflow-hidden">
+        {/* Left Panel: Data Sources */}
+        <div className="w-full lg:col-span-3">
           <DataSourcePanel
             sources={DATA_SOURCES}
             items={registry?.items || []}
@@ -912,8 +912,8 @@ export function DataEngine() {
           />
         </div>
         
-        {/* Middle Panel: Data Registry (1/3) */}
-        <div className="col-span-6 flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+        {/* Middle Panel: Data Registry */}
+        <div className="w-full lg:col-span-6 flex flex-col bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden min-h-[300px]">
           {/* Table Header */}
           <div className="flex-shrink-0 p-3 border-b border-white/5 bg-white/5">
             <div className="flex items-center justify-between gap-3">
@@ -1077,8 +1077,8 @@ export function DataEngine() {
           )}
         </div>
         
-        {/* Right Panel: Live Ops Center (1/3) */}
-        <div className="col-span-3">
+        {/* Right Panel: Live Ops Center */}
+        <div className="w-full lg:col-span-3">
           <LiveOpsPanel
             onOpenFullConsole={() => setIsConsoleOpen(true)}
             lastSync={registry?.last_updated || null}

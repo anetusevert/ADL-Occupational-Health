@@ -489,10 +489,10 @@ export function MetricCalculator() {
               })}
             </div>
 
-            {/* Pillar Content */}
-            <div className="grid grid-cols-3 gap-6">
+            {/* Pillar Content - Responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Score Breakdown Panel */}
-              <div className="col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-4">
                 {/* Pillar Header */}
                 <div className={cn(
                   "rounded-xl p-6 border",

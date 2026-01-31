@@ -1,9 +1,10 @@
 /**
  * Arthur D. Little - Global Health Platform
  * Professional Collapsible Sidebar Navigation
+ * Fully Responsive: Hidden on mobile, collapsible on desktop
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -27,6 +28,7 @@ import {
   Table2,
   Calculator,
   Wrench,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -36,6 +38,11 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+}
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 // Framework - Standalone at top
@@ -65,86 +72,72 @@ const adminNavItems: NavItem[] = [
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
 ];
 
-export function Sidebar() {
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const { user, isAdmin, logout } = useAuth();
 
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
-  return (
-    <motion.aside
-      initial={false}
-      animate={{ width: isCollapsed ? 80 : 280 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="fixed left-0 top-0 bottom-0 z-50 bg-adl-navy-dark/95 backdrop-blur-xl border-r border-white/5 flex flex-col"
-    >
-      {/* Header with ADL Logo - Premium animated */}
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    if (mobileOpen && onMobileClose) {
+      onMobileClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Handle click on nav link - close mobile menu
+  const handleNavClick = () => {
+    if (onMobileClose) {
+      onMobileClose();
+    }
+  };
+
+  // Sidebar content (shared between mobile and desktop)
+  const renderSidebarContent = (isMobile: boolean) => (
+    <>
+      {/* Header with ADL Logo */}
       <div className="h-[72px] border-b border-white/5 flex items-center justify-between px-4">
-        <Link to="/framework" className="flex-1 flex flex-col items-center overflow-hidden group">
-          <AnimatePresence mode="wait">
-            {isCollapsed ? (
-              /* Compact Logo when collapsed */
-              <motion.div
-                key="compact-logo"
-                initial={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }}
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="flex items-center justify-center"
-              >
-                <motion.img 
-                  src="/adl-logo.png" 
-                  alt="ADL"
-                  className="h-10 object-contain"
-                  whileHover={{ 
-                    scale: 1.05,
-                    filter: "drop-shadow(0 0 12px rgba(6,182,212,0.4))",
-                  }}
-                  transition={{ duration: 0.2 }}
-                />
-              </motion.div>
-            ) : (
-              /* Full Logo when expanded */
-              <motion.div
-                key="full-logo"
-                initial={{ opacity: 0, x: -10, filter: "blur(4px)" }}
-                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, x: -10, filter: "blur(4px)" }}
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="flex flex-col items-center text-center"
-              >
-                <motion.img 
-                  src="/adl-logo.png" 
-                  alt="Arthur D. Little"
-                  className="h-9 object-contain"
-                  whileHover={{ 
-                    filter: "drop-shadow(0 0 12px rgba(6,182,212,0.4))",
-                  }}
-                  transition={{ duration: 0.2 }}
-                />
-                <motion.span 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.15 }}
-                  className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center"
-                >
-                  Global Health Intelligence
-                </motion.span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Link>
-        <button
-          onClick={toggleCollapse}
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+        <Link 
+          to="/framework" 
+          className="flex-1 flex flex-col items-center overflow-hidden group"
+          onClick={handleNavClick}
         >
-          {isCollapsed ? (
-            <ChevronRight className="w-5 h-5" />
-          ) : (
-            <ChevronLeft className="w-5 h-5" />
-          )}
-        </button>
+          <div className="flex flex-col items-center text-center">
+            <img 
+              src="/adl-logo.png" 
+              alt="Arthur D. Little"
+              className={cn("object-contain", isMobile || !isCollapsed ? "h-9" : "h-10")}
+            />
+            {(isMobile || !isCollapsed) && (
+              <span className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center">
+                Global Health Intelligence
+              </span>
+            )}
+          </div>
+        </Link>
+        
+        {/* Mobile: Close button, Desktop: Collapse button */}
+        {isMobile ? (
+          <button
+            onClick={onMobileClose}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={toggleCollapse}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-5 h-5" />
+            ) : (
+              <ChevronLeft className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -153,22 +146,15 @@ export function Sidebar() {
         <div
           className={cn(
             "mb-5 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-adl-accent/10 border border-adl-accent/20",
-            isCollapsed && "justify-center"
+            !isMobile && isCollapsed && "justify-center"
           )}
         >
           <Activity className="w-4 h-4 text-adl-accent animate-pulse flex-shrink-0" />
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-xs text-adl-accent font-medium whitespace-nowrap"
-              >
-                Platform Active
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {(isMobile || !isCollapsed) && (
+            <span className="text-xs text-adl-accent font-medium whitespace-nowrap">
+              Platform Active
+            </span>
+          )}
         </div>
 
         {/* Framework - Standalone Top Item */}
@@ -176,27 +162,21 @@ export function Sidebar() {
           <NavLink
             item={frameworkItem}
             isActive={location.pathname === frameworkItem.path}
-            isCollapsed={isCollapsed}
+            isCollapsed={!isMobile && isCollapsed}
             isHighlight
+            onClick={handleNavClick}
           />
         </div>
 
         {/* Section: Analytics Suite */}
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="px-3 mb-2 flex items-center gap-2"
-            >
-              <BarChart3 className="w-3 h-3 text-white/30" />
-              <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">
-                Analytics Suite
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {(isMobile || !isCollapsed) && (
+          <div className="px-3 mb-2 flex items-center gap-2">
+            <BarChart3 className="w-3 h-3 text-white/30" />
+            <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+              Analytics Suite
+            </span>
+          </div>
+        )}
 
         <div className="space-y-1 mb-4">
           {analyticsSuiteItems.map((item) => (
@@ -204,27 +184,21 @@ export function Sidebar() {
               key={item.path}
               item={item}
               isActive={location.pathname === item.path}
-              isCollapsed={isCollapsed}
+              isCollapsed={!isMobile && isCollapsed}
+              onClick={handleNavClick}
             />
           ))}
         </div>
 
         {/* Section: Tool Suite */}
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="px-3 mb-2 flex items-center gap-2"
-            >
-              <Wrench className="w-3 h-3 text-white/30" />
-              <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">
-                Tool Suite
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {(isMobile || !isCollapsed) && (
+          <div className="px-3 mb-2 flex items-center gap-2">
+            <Wrench className="w-3 h-3 text-white/30" />
+            <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+              Tool Suite
+            </span>
+          </div>
+        )}
 
         <div className="space-y-1">
           {toolSuiteItems.map((item) => (
@@ -232,7 +206,8 @@ export function Sidebar() {
               key={item.path}
               item={item}
               isActive={location.pathname === item.path}
-              isCollapsed={isCollapsed}
+              isCollapsed={!isMobile && isCollapsed}
+              onClick={handleNavClick}
             />
           ))}
         </div>
@@ -241,21 +216,14 @@ export function Sidebar() {
         {isAdmin && (
           <>
             <div className="my-5 border-t border-white/5" />
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="px-3 mb-2 flex items-center gap-2"
-                >
-                  <Shield className="w-3 h-3 text-amber-400/70" />
-                  <span className="text-[10px] font-semibold text-amber-400/70 uppercase tracking-wider">
-                    Administration
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {(isMobile || !isCollapsed) && (
+              <div className="px-3 mb-2 flex items-center gap-2">
+                <Shield className="w-3 h-3 text-amber-400/70" />
+                <span className="text-[10px] font-semibold text-amber-400/70 uppercase tracking-wider">
+                  Administration
+                </span>
+              </div>
+            )}
 
             <div className="space-y-1">
               {adminNavItems.map((item) => (
@@ -263,8 +231,9 @@ export function Sidebar() {
                   key={item.path}
                   item={item}
                   isActive={location.pathname === item.path}
-                  isCollapsed={isCollapsed}
+                  isCollapsed={!isMobile && isCollapsed}
                   isAdmin
+                  onClick={handleNavClick}
                 />
               ))}
             </div>
@@ -277,72 +246,101 @@ export function Sidebar() {
         <div
           className={cn(
             "flex items-center gap-3 p-2.5 rounded-lg bg-white/5",
-            isCollapsed && "justify-center"
+            !isMobile && isCollapsed && "justify-center"
           )}
         >
           <div className="flex-shrink-0 w-9 h-9 bg-adl-accent/20 rounded-lg flex items-center justify-center border border-adl-accent/30">
             <User className="w-5 h-5 text-adl-accent" />
           </div>
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 min-w-0"
-              >
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.full_name || user?.email?.split("@")[0] || "User"}
-                </p>
-                <p className="text-[10px] text-white/40 capitalize font-medium">{user?.role}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {(isMobile || !isCollapsed) && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.full_name || user?.email?.split("@")[0] || "User"}
+              </p>
+              <p className="text-[10px] text-white/40 capitalize font-medium">{user?.role}</p>
+            </div>
+          )}
         </div>
 
         <button
-          onClick={logout}
+          onClick={() => {
+            logout();
+            if (onMobileClose) onMobileClose();
+          }}
           className={cn(
             "mt-2 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
             "text-white/40 hover:text-red-400 hover:bg-red-500/10",
             "transition-all duration-200",
-            isCollapsed && "justify-center"
+            !isMobile && isCollapsed && "justify-center"
           )}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-sm font-medium whitespace-nowrap"
-              >
-                Sign Out
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {(isMobile || !isCollapsed) && (
+            <span className="text-sm font-medium whitespace-nowrap">
+              Sign Out
+            </span>
+          )}
         </button>
       </div>
 
       {/* ADL Footer */}
       <div className="px-4 py-3 border-t border-white/5">
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center"
-            >
-              <p className="text-[9px] text-white/20 font-medium">
-                &copy; {new Date().getFullYear()} Arthur D. Little
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {(isMobile || !isCollapsed) && (
+          <div className="text-center">
+            <p className="text-[9px] text-white/20 font-medium">
+              &copy; {new Date().getFullYear()} Arthur D. Little
+            </p>
+          </div>
+        )}
       </div>
-    </motion.aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* ========== MOBILE SIDEBAR ========== */}
+      {/* Backdrop */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            onClick={onMobileClose}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar - Slide in overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.aside
+            initial={{ x: -300 }}
+            animate={{ x: 0 }}
+            exit={{ x: -300 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="fixed left-0 top-0 bottom-0 w-[280px] z-50 bg-adl-navy-dark/98 backdrop-blur-xl border-r border-white/5 flex flex-col lg:hidden"
+          >
+            {renderSidebarContent(true)}
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ========== DESKTOP SIDEBAR ========== */}
+      {/* Wrapper div ensures proper hiding on mobile - Framer Motion won't override this */}
+      <div className="hidden lg:block fixed left-0 top-0 bottom-0 z-50">
+        <motion.aside
+          initial={false}
+          animate={{ width: isCollapsed ? 80 : 280 }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          className="h-full bg-adl-navy-dark/95 backdrop-blur-xl border-r border-white/5 flex flex-col"
+        >
+          {renderSidebarContent(false)}
+        </motion.aside>
+      </div>
+    </>
   );
 }
 
@@ -353,18 +351,21 @@ function NavLink({
   isCollapsed,
   isAdmin = false,
   isHighlight = false,
+  onClick,
 }: {
   item: NavItem;
   isActive: boolean;
   isCollapsed: boolean;
   isAdmin?: boolean;
   isHighlight?: boolean;
+  onClick?: () => void;
 }) {
   const Icon = item.icon;
 
   return (
     <Link
       to={item.path}
+      onClick={onClick}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
         isActive
@@ -384,22 +385,14 @@ function NavLink({
         isActive && (isAdmin ? "text-amber-400" : "text-adl-accent"),
         isHighlight && !isActive && "text-adl-accent/60"
       )} />
-      <AnimatePresence>
-        {!isCollapsed && (
-          <motion.span
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.15 }}
-            className={cn(
-              "text-sm font-medium whitespace-nowrap",
-              isHighlight && "font-semibold"
-            )}
-          >
-            {item.label}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {!isCollapsed && (
+        <span className={cn(
+          "text-sm font-medium whitespace-nowrap",
+          isHighlight && "font-semibold"
+        )}>
+          {item.label}
+        </span>
+      )}
     </Link>
   );
 }
