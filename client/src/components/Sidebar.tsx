@@ -29,6 +29,7 @@ import {
   Calculator,
   Wrench,
   X,
+  Workflow,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -67,10 +68,9 @@ const toolSuiteItems: NavItem[] = [
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
   { path: "/admin/generation-progress", label: "Deep Dive Reports", icon: Activity, adminOnly: true },
-  { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
+  { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
-  { path: "/admin/ai-logs", label: "AI Call Logs", icon: Database, adminOnly: true },
 ];
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {

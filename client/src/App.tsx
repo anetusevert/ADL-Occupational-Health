@@ -22,11 +22,10 @@ import {
 import { CompareV2 } from "./pages/CompareV2";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { AIOrchestration } from "./pages/admin/AIOrchestration";
-import { AgentPrompts } from "./pages/admin/AgentPrompts";
+import { AIOrchestrationLayer } from "./pages/admin/AIOrchestrationLayer";
 import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
 import { MetricCalculator } from "./pages/admin/MetricCalculator";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
-import { AICallLogs } from "./pages/admin/AICallLogs";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -286,11 +285,11 @@ function AppContent() {
           />
 
           <Route
-            path="/admin/agent-prompts"
+            path="/admin/orchestration"
             element={
               <ProtectedRoute>
                 <AdminRoute>
-                  <AgentPrompts />
+                  <AIOrchestrationLayer />
                 </AdminRoute>
               </ProtectedRoute>
             }
@@ -318,16 +317,6 @@ function AppContent() {
             }
           />
 
-          <Route
-            path="/admin/ai-logs"
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AICallLogs />
-                </AdminRoute>
-              </ProtectedRoute>
-            }
-          />
 
           {/* 404 Fallback */}
           <Route

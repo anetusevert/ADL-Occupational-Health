@@ -330,61 +330,62 @@ async def test_ai_connection(
             message=f"API key required for {provider.value}",
         )
     
-        start_time = time.time()
-        success = False
-        error_message = None
-        latency = 0
-        
-        try:
-            # Test based on provider
-            if provider == AIProvider.openai:
-                response_text = await _test_openai(api_key, model_name, test_request.prompt)
-            elif provider == AIProvider.anthropic:
-                response_text = await _test_anthropic(api_key, model_name, test_request.prompt)
-            elif provider == AIProvider.google:
-                response_text = await _test_google(api_key, model_name, test_request.prompt)
-            elif provider == AIProvider.ollama:
-                endpoint = test_request.api_key or config.api_endpoint or "http://localhost:11434"
-                response_text = await _test_ollama(endpoint, model_name, test_request.prompt)
-            else:
-                return AITestResponse(
-                    success=False,
-                    message=f"Testing not implemented for {provider.value}",
-                )
-            
-            latency = int((time.time() - start_time) * 1000)
-            success = True
-            
-            return AITestResponse(
-                success=True,
-                message="Connection successful!",
-                response=response_text,
-                latency_ms=latency,
-            )
-            
-        except Exception as e:
-            latency = int((time.time() - start_time) * 1000)
-            error_message = str(e)
+    # Actually run the test
+    start_time = time.time()
+    success = False
+    error_message = None
+    latency = 0
+    
+    try:
+        # Test based on provider
+        if provider == AIProvider.openai:
+            response_text = await _test_openai(api_key, model_name, test_request.prompt)
+        elif provider == AIProvider.anthropic:
+            response_text = await _test_anthropic(api_key, model_name, test_request.prompt)
+        elif provider == AIProvider.google:
+            response_text = await _test_google(api_key, model_name, test_request.prompt)
+        elif provider == AIProvider.ollama:
+            endpoint = test_request.api_key or config.api_endpoint or "http://localhost:11434"
+            response_text = await _test_ollama(endpoint, model_name, test_request.prompt)
+        else:
             return AITestResponse(
                 success=False,
-                message=f"Connection failed: {str(e)}",
+                message=f"Testing not implemented for {provider.value}",
             )
-        finally:
-            # Log the test as a trace
-            try:
-                AICallTracer.trace(
-                    db=db,
-                    provider=provider.value,
-                    model_name=model_name,
-                    operation_type="connection_test",
-                    success=success,
-                    latency_ms=latency,
-                    endpoint="/api/v1/ai-config/test",
-                    error_message=error_message,
-                    user_id=admin.id,
-                )
-            except Exception as trace_error:
-                pass  # Don't fail the test if tracing fails
+        
+        latency = int((time.time() - start_time) * 1000)
+        success = True
+        
+        return AITestResponse(
+            success=True,
+            message="Connection successful!",
+            response=response_text,
+            latency_ms=latency,
+        )
+        
+    except Exception as e:
+        latency = int((time.time() - start_time) * 1000)
+        error_message = str(e)
+        return AITestResponse(
+            success=False,
+            message=f"Connection failed: {str(e)}",
+        )
+    finally:
+        # Log the test as a trace
+        try:
+            AICallTracer.trace(
+                db=db,
+                provider=provider.value,
+                model_name=model_name,
+                operation_type="connection_test",
+                success=success,
+                latency_ms=latency,
+                endpoint="/api/v1/ai-config/test",
+                error_message=error_message,
+                user_id=admin.id,
+            )
+        except Exception as trace_error:
+            pass  # Don't fail the test if tracing fails
 
 
 # =============================================================================
@@ -392,32 +393,67 @@ async def test_ai_connection(
 # =============================================================================
 
 async def _test_openai(api_key: str, model: str, prompt: str) -> str:
-    """Test OpenAI connection."""
+    """Test OpenAI connection with settings aligned to agent execution."""
     from langchain_openai import ChatOpenAI
-    from langchain_core.messages import HumanMessage
+    from langchain_core.messages import SystemMessage, HumanMessage
     
-    llm = ChatOpenAI(model=model, api_key=api_key, max_tokens=50)
-    response = llm.invoke([HumanMessage(content=prompt)])
+    # Use settings similar to actual agent execution
+    max_tokens = 100
+    if 'gpt-5' in model.lower() or 'o1' in model.lower() or 'o3' in model.lower():
+        max_tokens = 500  # Reasoning models need more tokens
+    
+    llm = ChatOpenAI(
+        model=model, 
+        api_key=api_key, 
+        max_tokens=max_tokens,
+        temperature=0.7,
+        request_timeout=60,
+    )
+    
+    # Use same message format as agents (System + Human)
+    messages = [
+        SystemMessage(content="You are a helpful assistant. Keep your response brief."),
+        HumanMessage(content=prompt)
+    ]
+    response = llm.invoke(messages)
     return response.content
 
 
 async def _test_anthropic(api_key: str, model: str, prompt: str) -> str:
-    """Test Anthropic connection."""
+    """Test Anthropic connection with settings aligned to agent execution."""
     from langchain_anthropic import ChatAnthropic
-    from langchain_core.messages import HumanMessage
+    from langchain_core.messages import SystemMessage, HumanMessage
     
-    llm = ChatAnthropic(model=model, api_key=api_key, max_tokens=50)
-    response = llm.invoke([HumanMessage(content=prompt)])
+    llm = ChatAnthropic(
+        model=model, 
+        api_key=api_key, 
+        max_tokens=100,
+        temperature=0.7,
+    )
+    messages = [
+        SystemMessage(content="You are a helpful assistant. Keep your response brief."),
+        HumanMessage(content=prompt)
+    ]
+    response = llm.invoke(messages)
     return response.content
 
 
 async def _test_google(api_key: str, model: str, prompt: str) -> str:
-    """Test Google connection."""
+    """Test Google connection with settings aligned to agent execution."""
     from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_core.messages import HumanMessage
+    from langchain_core.messages import SystemMessage, HumanMessage
     
-    llm = ChatGoogleGenerativeAI(model=model, google_api_key=api_key, max_output_tokens=50)
-    response = llm.invoke([HumanMessage(content=prompt)])
+    llm = ChatGoogleGenerativeAI(
+        model=model, 
+        google_api_key=api_key, 
+        max_output_tokens=100,
+        temperature=0.7,
+    )
+    messages = [
+        SystemMessage(content="You are a helpful assistant. Keep your response brief."),
+        HumanMessage(content=prompt)
+    ]
+    response = llm.invoke(messages)
     return response.content
 
 

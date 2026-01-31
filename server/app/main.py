@@ -94,6 +94,7 @@ async def startup_event():
     from app.models import metric_config  # noqa: F401
     from app.models import country  # noqa: F401 - includes CountryDeepDive
     from app.models import user  # noqa: F401
+    from app.models import agent  # noqa: F401 - AI Agent Registry
     
     print("GOHIP Platform starting up...")
     print(f"Database URL: {settings.DATABASE_URL[:50]}...")
