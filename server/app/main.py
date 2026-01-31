@@ -90,9 +90,18 @@ async def startup_event():
     """Create missing database tables on startup."""
     # Import all models to ensure they're registered with Base
     from app.models import metric_config  # noqa: F401
+    from app.models import country  # noqa: F401 - includes CountryDeepDive
+    from app.models import user  # noqa: F401
+    
+    print("GOHIP Platform starting up...")
+    print(f"Database URL: {settings.DATABASE_URL[:50]}...")
     
     # Create tables that don't exist yet
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created/verified successfully")
+    except Exception as e:
+        print(f"ERROR creating database tables: {e}")
 
 
 @app.get("/health", tags=["System"])

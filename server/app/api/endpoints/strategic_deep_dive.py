@@ -209,6 +209,41 @@ class TopicsResponse(BaseModel):
 # ENDPOINTS
 # =============================================================================
 
+@router.get("/health")
+async def strategic_deep_dive_health(
+    db: Session = Depends(get_db),
+):
+    """
+    Health check for strategic deep dive service.
+    Tests database connection and table access.
+    """
+    try:
+        # Test database connection
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        
+        # Test CountryDeepDive table exists
+        count = db.query(CountryDeepDive).count()
+        
+        # Test Country table
+        country_count = db.query(Country).count()
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "deep_dive_count": count,
+            "country_count": country_count,
+            "message": "Strategic Deep Dive service is operational"
+        }
+    except Exception as e:
+        logging.error(f"Health check failed: {str(e)}", exc_info=True)
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "message": "Strategic Deep Dive service has issues"
+        }
+
+
 @router.get("/topics", response_model=TopicsResponse)
 async def get_analysis_topics(
     current_user: User = Depends(get_current_admin_user),
@@ -759,52 +794,59 @@ async def get_queue_status(
     2. Queue position (if set)
     3. Creation date (fallback)
     """
-    from sqlalchemy import nullslast
-    
-    # Get all processing and pending reports
-    queue_reports = db.query(CountryDeepDive).filter(
-        CountryDeepDive.status.in_([DeepDiveStatus.PROCESSING, DeepDiveStatus.PENDING])
-    ).order_by(
-        # Processing first, then pending
-        CountryDeepDive.status.desc(),
-        # Then by queue position (nulls last)
-        nullslast(CountryDeepDive.queue_position.asc()),
-        # Then by creation date
-        CountryDeepDive.created_at.asc()
-    ).all()
-    
-    # Get country names
-    country_names = {}
-    countries = db.query(Country).all()
-    for c in countries:
-        country_names[c.iso_code] = c.name
-    
-    processing_count = 0
-    pending_count = 0
-    queue_items = []
-    
-    for report in queue_reports:
-        if report.status == DeepDiveStatus.PROCESSING:
-            processing_count += 1
-        else:
-            pending_count += 1
+    try:
+        from sqlalchemy import nullslast
         
-        queue_items.append(QueueItem(
-            id=str(report.id),
-            iso_code=report.country_iso_code,
-            country_name=country_names.get(report.country_iso_code, report.country_iso_code),
-            topic=report.topic,
-            status=report.status.value if hasattr(report.status, 'value') else str(report.status),
-            queue_position=report.queue_position,
-            created_at=report.created_at.isoformat() if report.created_at else None,
-            updated_at=report.updated_at.isoformat() if report.updated_at else None,
-        ))
-    
-    return QueueStatusResponse(
-        processing_count=processing_count,
-        pending_count=pending_count,
-        queue_items=queue_items
-    )
+        # Get all processing and pending reports
+        queue_reports = db.query(CountryDeepDive).filter(
+            CountryDeepDive.status.in_([DeepDiveStatus.PROCESSING, DeepDiveStatus.PENDING])
+        ).order_by(
+            # Processing first, then pending
+            CountryDeepDive.status.desc(),
+            # Then by queue position (nulls last)
+            nullslast(CountryDeepDive.queue_position.asc()),
+            # Then by creation date
+            CountryDeepDive.created_at.asc()
+        ).all()
+        
+        # Get country names
+        country_names = {}
+        countries = db.query(Country).all()
+        for c in countries:
+            country_names[c.iso_code] = c.name
+        
+        processing_count = 0
+        pending_count = 0
+        queue_items = []
+        
+        for report in queue_reports:
+            if report.status == DeepDiveStatus.PROCESSING:
+                processing_count += 1
+            else:
+                pending_count += 1
+            
+            queue_items.append(QueueItem(
+                id=str(report.id),
+                iso_code=report.country_iso_code,
+                country_name=country_names.get(report.country_iso_code, report.country_iso_code),
+                topic=report.topic,
+                status=report.status.value if hasattr(report.status, 'value') else str(report.status),
+                queue_position=report.queue_position,
+                created_at=report.created_at.isoformat() if report.created_at else None,
+                updated_at=report.updated_at.isoformat() if report.updated_at else None,
+            ))
+        
+        return QueueStatusResponse(
+            processing_count=processing_count,
+            pending_count=pending_count,
+            queue_items=queue_items
+        )
+    except Exception as e:
+        logging.error(f"Error in get_queue_status: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch queue status: {str(e)}"
+        )
 
 
 class ReorderQueueRequest(BaseModel):

@@ -11,11 +11,26 @@ import { cn } from '../../lib/utils';
 import type { CountryData } from './types';
 import { MATURITY_STAGES } from './types';
 
-// Country flag helper - handles 3-letter ISO codes
+// Map 3-letter ISO codes to 2-letter codes for flags
+const ISO3_TO_ISO2: Record<string, string> = {
+  DEU: 'DE', GBR: 'GB', FRA: 'FR', TUR: 'TR', POL: 'PL',
+  USA: 'US', CAN: 'CA', BRA: 'BR', MEX: 'MX',
+  JPN: 'JP', CHN: 'CN', IND: 'IN', SGP: 'SG', SAU: 'SA', IDN: 'ID',
+  AUS: 'AU', NZL: 'NZ',
+  ZAF: 'ZA', NGA: 'NG', EGY: 'EG',
+};
+
+// Get flag image URL from CDN
+function getFlagUrl(isoCode: string): string {
+  const iso2 = ISO3_TO_ISO2[isoCode.toUpperCase()] || isoCode.slice(0, 2);
+  return `https://flagcdn.com/w80/${iso2.toLowerCase()}.png`;
+}
+
+// Country flag emoji helper (fallback)
 function getCountryFlag(isoCode: string): string {
   if (!isoCode || isoCode.length < 2) return '🏳️';
-  const code = isoCode.toUpperCase().slice(0, 2);
-  const codePoints = code.split('').map(char => 127397 + char.charCodeAt(0));
+  const iso2 = ISO3_TO_ISO2[isoCode.toUpperCase()] || isoCode.slice(0, 2);
+  const codePoints = iso2.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
   return String.fromCodePoint(...codePoints);
 }
 
@@ -145,7 +160,20 @@ export function CountrySelector({
                 )}
 
                 {/* Flag */}
-                <div className="text-2xl mb-1">{getCountryFlag(country.iso_code)}</div>
+                <div className="mb-1.5">
+                  <img
+                    src={getFlagUrl(country.iso_code)}
+                    alt={`${country.name} flag`}
+                    className="w-10 h-7 object-cover rounded shadow-sm"
+                    onError={(e) => {
+                      // Fallback to emoji if image fails
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                  <span className="hidden text-2xl">{getCountryFlag(country.iso_code)}</span>
+                </div>
 
                 {/* Country Info */}
                 <p className="text-xs font-medium text-white truncate">{country.name}</p>
