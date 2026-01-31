@@ -275,21 +275,25 @@ def seed_defaults(db: Session):
         db.commit()
         logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
     
-    # Seed connections
-    connection_count = db.query(AgentConnection).count()
-    if connection_count == 0:
-        logger.info("Seeding default connections...")
-        for conn_data in DEFAULT_CONNECTIONS:
-            connection = AgentConnection(
-                id=conn_data["id"],
-                source_agent_id=conn_data["source"],
-                target_agent_id=conn_data["target"],
-                workflow_id=conn_data.get("workflow_id"),
-                connection_type=conn_data.get("type", "data"),
-            )
-            db.add(connection)
-        db.commit()
-        logger.info(f"Seeded {len(DEFAULT_CONNECTIONS)} default connections")
+    # Seed connections (with error handling for missing table)
+    try:
+        connection_count = db.query(AgentConnection).count()
+        if connection_count == 0:
+            logger.info("Seeding default connections...")
+            for conn_data in DEFAULT_CONNECTIONS:
+                connection = AgentConnection(
+                    id=conn_data["id"],
+                    source_agent_id=conn_data["source"],
+                    target_agent_id=conn_data["target"],
+                    workflow_id=conn_data.get("workflow_id"),
+                    connection_type=conn_data.get("type", "data"),
+                )
+                db.add(connection)
+            db.commit()
+            logger.info(f"Seeded {len(DEFAULT_CONNECTIONS)} default connections")
+    except Exception as e:
+        logger.warning(f"Could not seed connections (table may not exist yet): {e}")
+        db.rollback()
 
 
 # =============================================================================
@@ -307,7 +311,13 @@ async def get_agents(
     
     agents = db.query(Agent).order_by(Agent.workflow_id, Agent.order_in_workflow).all()
     workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
-    connections = db.query(AgentConnection).all()
+    
+    # Get connections (with fallback if table doesn't exist)
+    try:
+        connections = db.query(AgentConnection).all()
+    except Exception as e:
+        logger.warning(f"Could not query connections: {e}")
+        connections = []
     
     return AgentListResponse(
         agents=[agent_to_response(a) for a in agents],
@@ -699,8 +709,12 @@ async def get_connections(
     current_user: User = Depends(get_current_admin_user),
 ):
     """Get all connections."""
-    connections = db.query(AgentConnection).all()
-    return [connection_to_response(c) for c in connections]
+    try:
+        connections = db.query(AgentConnection).all()
+        return [connection_to_response(c) for c in connections]
+    except Exception as e:
+        logger.warning(f"Could not query connections: {e}")
+        return []
 
 
 @router.post("/connections", response_model=ConnectionResponse)
