@@ -1357,25 +1357,38 @@ def call_openai_with_web_search(
         response = None
         last_error = None
         
+        # Check if model supports temperature parameter
+        # Reasoning models (gpt-5, o1, o3) don't support temperature
+        is_reasoning_model = any(x in model.lower() for x in ['gpt-5', 'o1', 'o3'])
+        
         for attempt in range(MAX_RETRIES):
             try:
                 logger.info(f"[OpenAI Web Search] API call attempt {attempt + 1}/{MAX_RETRIES}")
                 
-                response = client.responses.create(
-                    model=model,
-                    tools=[{
+                # Build request params
+                request_params = {
+                    "model": model,
+                    "tools": [{
                         "type": "web_search",
                         "user_location": {
                             "type": "approximate",
                             "country": iso2_code
                         }
                     }],
-                    input=[
+                    "input": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    temperature=temperature,
-                )
+                }
+                
+                # Only add temperature for non-reasoning models
+                if not is_reasoning_model:
+                    request_params["temperature"] = temperature
+                    logger.info(f"[OpenAI Web Search] Using temperature={temperature}")
+                else:
+                    logger.info(f"[OpenAI Web Search] Reasoning model detected, skipping temperature parameter")
+                
+                response = client.responses.create(**request_params)
                 
                 break  # Success
                 
