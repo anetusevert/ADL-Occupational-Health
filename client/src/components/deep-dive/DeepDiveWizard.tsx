@@ -1,36 +1,25 @@
 /**
  * Arthur D. Little - Global Health Platform
- * Deep Dive Wizard - Main Container
+ * Deep Dive Wizard - Main Orchestrator
  * 
- * Full-screen immersive wizard for Country Deep Dive experience
- * Step 1: Country Selection (Multi-select with regions)
- * Step 2: Topic Selection (Visual gallery)
- * Step 3: Report Display (Immersive reading)
+ * 3-Step Wizard for Country Deep Dive Analysis:
+ * 1. Country Selection (multi-select with regions)
+ * 2. Topic Selection (visual gallery)
+ * 3. Report Display (reading mode with export)
  * 
- * Features:
- * - Multi-country selection with region support
- * - Enhanced step transitions
- * - PDF and Word export with personalized filenames
+ * Re-applied: 2026-01-31
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain } from "lucide-react";
-import {
-  getStrategicDeepDiveCountries,
-  getStrategicDeepDiveReport,
-  getCountryTopicStatuses,
-  deleteStrategicDeepDive,
-  type CountryDeepDiveItem,
-  type TopicStatus,
-} from "../../services/api";
-import { exportToPDF, exportToWord } from "../../services/reportExport";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { api, type CountryDeepDiveItem, type TopicStatus } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
-import { StepIndicator } from "./shared";
+import { exportToPDF, exportToWord } from "../../services/reportExport";
 import { CountrySelectionStep } from "./CountrySelectionStep";
 import { TopicSelectionStep } from "./TopicSelectionStep";
 import { ReportDisplayStep } from "./ReportDisplayStep";
+import { StepIndicator, FloatingParticles } from "./shared";
 
 // Animation variants for step transitions
 const stepVariants = {
@@ -52,99 +41,69 @@ const stepVariants = {
 };
 
 const stepTransition = {
-  x: { type: "spring", stiffness: 300, damping: 30 },
-  opacity: { duration: 0.4 },
-  scale: { duration: 0.4 },
+  type: "spring",
+  stiffness: 300,
+  damping: 30,
 };
 
 export function DeepDiveWizard() {
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<string>("Comprehensive Occupational Health Assessment");
   
-  // Fetch countries with auto-refresh
-  const { 
-    data: countriesData, 
-    isLoading: isLoadingCountries, 
+  // Selection state
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  
+  // Report state
+  const [report, setReport] = useState<string | null>(null);
+  const [topicStatusMap, setTopicStatusMap] = useState<Record<string, TopicStatus>>({});
+
+  // Fetch countries
+  const {
+    data: countries = [],
+    isLoading: isLoadingCountries,
     error: countriesError,
-    refetch: refetchCountries 
+    refetch: refetchCountries,
   } = useQuery({
-    queryKey: ["strategic-deep-dive-countries"],
-    queryFn: getStrategicDeepDiveCountries,
-    staleTime: 10 * 1000,
-    refetchInterval: 15 * 1000,
-    retry: 2,
+    queryKey: ["deepDiveCountries"],
+    queryFn: api.getDeepDiveCountries,
   });
 
-  // Get primary selected country (first in list)
-  const primaryCountry = selectedCountries[0] || null;
-
-  // Fetch report for selected country AND topic
-  const { 
-    data: report, 
-    isLoading: isLoadingReport,
-    refetch: refetchReport 
-  } = useQuery({
-    queryKey: ["strategic-deep-dive-report", primaryCountry, selectedTopic],
-    queryFn: () => primaryCountry ? getStrategicDeepDiveReport(primaryCountry, selectedTopic) : null,
-    enabled: !!primaryCountry && currentStep === 3,
-    staleTime: 60 * 1000,
-    retry: false,
-  });
-
-  // Fetch topic statuses for selected country
-  const { data: topicStatuses } = useQuery({
-    queryKey: ["strategic-deep-dive-topic-statuses", primaryCountry],
-    queryFn: () => primaryCountry ? getCountryTopicStatuses(primaryCountry) : null,
-    enabled: !!primaryCountry,
-    staleTime: 30 * 1000,
-    refetchInterval: 15 * 1000,
-  });
-
-  // Build topic status map
-  const topicStatusMap = useMemo(() => {
-    const map: Record<string, TopicStatus> = {};
-    if (topicStatuses?.topics) {
-      topicStatuses.topics.forEach(ts => {
-        map[ts.topic] = ts;
-      });
-    }
-    return map;
-  }, [topicStatuses]);
-
-  // Get selected countries data
+  // Get selected country data objects
   const selectedCountriesData = useMemo(() => {
-    if (!countriesData) return [];
     return selectedCountries
-      .map(iso => countriesData.countries.find(c => c.iso_code === iso))
+      .map((iso) => countries.find((c) => c.iso_code === iso))
       .filter((c): c is CountryDeepDiveItem => c !== undefined);
-  }, [selectedCountries, countriesData]);
+  }, [selectedCountries, countries]);
 
-  // Navigation handlers
-  const goToStep = useCallback((step: number) => {
-    setDirection(step > currentStep ? 1 : -1);
-    setCurrentStep(step);
-  }, [currentStep]);
+  // Generate report mutation
+  const generateReportMutation = useMutation({
+    mutationFn: async ({ countryIso, topic }: { countryIso: string; topic: string }) => {
+      const response = await api.generateDeepDiveReport(countryIso, topic);
+      return response;
+    },
+    onSuccess: (data) => {
+      setReport(data.report);
+    },
+  });
 
   // Country selection handlers
   const handleSelectCountry = useCallback((isoCode: string) => {
-    setSelectedCountries(prev => {
+    setSelectedCountries((prev) => {
       if (prev.includes(isoCode)) return prev;
       return [...prev, isoCode];
     });
   }, []);
 
   const handleDeselectCountry = useCallback((isoCode: string) => {
-    setSelectedCountries(prev => prev.filter(iso => iso !== isoCode));
+    setSelectedCountries((prev) => prev.filter((c) => c !== isoCode));
   }, []);
 
   const handleSelectMultiple = useCallback((isoCodes: string[]) => {
-    setSelectedCountries(prev => {
+    setSelectedCountries((prev) => {
       const newSet = new Set([...prev, ...isoCodes]);
       return Array.from(newSet);
     });
@@ -154,6 +113,7 @@ export function DeepDiveWizard() {
     setSelectedCountries([]);
   }, []);
 
+  // Navigation handlers
   const handleContinueFromCountries = useCallback(() => {
     if (selectedCountries.length > 0) {
       setDirection(1);
@@ -161,154 +121,98 @@ export function DeepDiveWizard() {
     }
   }, [selectedCountries]);
 
-  const handleTopicSelect = useCallback((topic: string) => {
-    setSelectedTopic(topic);
-    setDirection(1);
-    setCurrentStep(3);
-  }, []);
-
-  const handleBack = useCallback(() => {
-    if (currentStep > 1) {
-      setDirection(-1);
-      setCurrentStep(currentStep - 1);
-    }
-  }, [currentStep]);
-
-  const handleReset = useCallback(() => {
-    setDirection(-1);
-    setSelectedCountries([]);
-    setSelectedTopic("Comprehensive Occupational Health Assessment");
-    setCurrentStep(1);
-  }, []);
-
-  // Handle delete report
-  const handleDeleteReport = useCallback(async () => {
-    if (!primaryCountry) return;
-    if (confirm(`Are you sure you want to delete the "${selectedTopic}" report for this country?`)) {
-      try {
-        await deleteStrategicDeepDive(primaryCountry, selectedTopic);
-        queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-countries"] });
-        queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-topic-statuses", primaryCountry] });
-        queryClient.invalidateQueries({ queryKey: ["strategic-deep-dive-report", primaryCountry, selectedTopic] });
-      } catch (error) {
-        alert("Failed to delete report: " + (error instanceof Error ? error.message : "Unknown error"));
+  const handleSelectTopic = useCallback(
+    (topic: string) => {
+      setSelectedTopic(topic);
+      setDirection(1);
+      setCurrentStep(3);
+      
+      // Generate report for first selected country
+      if (selectedCountries.length > 0) {
+        generateReportMutation.mutate({
+          countryIso: selectedCountries[0],
+          topic,
+        });
       }
+    },
+    [selectedCountries, generateReportMutation]
+  );
+
+  const handleBackToCountries = useCallback(() => {
+    setDirection(-1);
+    setCurrentStep(1);
+    setSelectedTopic(null);
+    setReport(null);
+  }, []);
+
+  const handleBackToTopics = useCallback(() => {
+    setDirection(-1);
+    setCurrentStep(2);
+    setReport(null);
+  }, []);
+
+  const handleRetryReport = useCallback(() => {
+    if (selectedCountries.length > 0 && selectedTopic) {
+      generateReportMutation.mutate({
+        countryIso: selectedCountries[0],
+        topic: selectedTopic,
+      });
     }
-  }, [primaryCountry, selectedTopic, queryClient]);
+  }, [selectedCountries, selectedTopic, generateReportMutation]);
 
   // Export handlers
   const handleExportPDF = useCallback(async () => {
     if (!report || !selectedCountriesData[0]) return;
-    
-    try {
-      await exportToPDF({
-        userName: user?.full_name || user?.email?.split("@")[0] || "User",
-        countryName: selectedCountriesData[0].name,
-        topicName: selectedTopic,
-        report,
-      });
-    } catch (error) {
-      console.error("PDF export failed:", error);
-      alert("Failed to export PDF. Please try again.");
-    }
+    await exportToPDF({
+      userName: user?.full_name || user?.email?.split("@")[0] || "User",
+      countryName: selectedCountriesData[0].name,
+      topicName: selectedTopic || "Report",
+      report,
+    });
   }, [report, selectedCountriesData, selectedTopic, user]);
 
   const handleExportWord = useCallback(async () => {
     if (!report || !selectedCountriesData[0]) return;
-    
-    try {
-      await exportToWord({
-        userName: user?.full_name || user?.email?.split("@")[0] || "User",
-        countryName: selectedCountriesData[0].name,
-        topicName: selectedTopic,
-        report,
-      });
-    } catch (error) {
-      console.error("Word export failed:", error);
-      alert("Failed to export Word document. Please try again.");
-    }
+    await exportToWord({
+      userName: user?.full_name || user?.email?.split("@")[0] || "User",
+      countryName: selectedCountriesData[0].name,
+      topicName: selectedTopic || "Report",
+      report,
+    });
   }, [report, selectedCountriesData, selectedTopic, user]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800">
-      {/* Header with Step Indicator */}
-      <motion.header 
-        className="flex-shrink-0 px-6 py-4 border-b border-slate-700/40 bg-slate-900/80 backdrop-blur-xl z-50"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center justify-between">
-          {/* Logo/Title */}
-          <div className="flex items-center gap-3">
-            <motion.div 
-              className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/30"
-              animate={{
-                boxShadow: [
-                  "0 0 0px rgba(147, 51, 234, 0.3)",
-                  "0 0 20px rgba(147, 51, 234, 0.5)",
-                  "0 0 0px rgba(147, 51, 234, 0.3)"
-                ]
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <Brain className="w-5 h-5 text-purple-400" />
-            </motion.div>
-            <div>
-              <h1 className="text-lg font-semibold text-white tracking-tight">
-                Strategic Deep Dive
-              </h1>
-              <p className="text-white/40 text-xs">
-                AI-Powered Country Analysis
-              </p>
-            </div>
-          </div>
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 pointer-events-none">
+        <FloatingParticles color="purple" count={15} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-3xl" />
+      </div>
 
-          {/* Step Indicator */}
-          <StepIndicator 
-            currentStep={currentStep} 
-            onStepClick={goToStep}
-            canNavigateBack={true}
-          />
+      {/* Step Indicator */}
+      <div className="flex-shrink-0 pt-6 px-8 relative z-10">
+        <StepIndicator currentStep={currentStep} />
+      </div>
 
-          {/* Stats/Actions */}
-          <div className="flex items-center gap-3">
-            {countriesData && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/50 border border-slate-700/40 rounded-lg">
-                <span className="text-xs text-slate-400">
-                  {countriesData.completed} / {countriesData.total_count} analyzed
-                </span>
-              </div>
-            )}
-            {selectedCountries.length > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 border border-purple-500/40 rounded-lg">
-                <span className="text-xs text-purple-300">
-                  {selectedCountries.length} selected
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Main Content - Step Container */}
-      <div className="flex-1 relative overflow-hidden">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+      {/* Step Content */}
+      <div className="flex-1 overflow-hidden relative z-10">
+        <AnimatePresence mode="wait" custom={direction}>
           {currentStep === 1 && (
             <motion.div
-              key="country-step"
+              key="step1"
+              className="h-full"
               custom={direction}
               variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={stepTransition}
-              className="absolute inset-0"
             >
               <CountrySelectionStep
-                countries={countriesData?.countries || []}
+                countries={countries}
                 isLoading={isLoadingCountries}
-                error={countriesError}
+                error={countriesError as Error | null}
                 selectedCountries={selectedCountries}
                 onSelectCountry={handleSelectCountry}
                 onDeselectCountry={handleDeselectCountry}
@@ -322,46 +226,45 @@ export function DeepDiveWizard() {
 
           {currentStep === 2 && (
             <motion.div
-              key="topic-step"
+              key="step2"
+              className="h-full"
               custom={direction}
               variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={stepTransition}
-              className="absolute inset-0"
             >
               <TopicSelectionStep
                 selectedCountries={selectedCountriesData}
                 topicStatusMap={topicStatusMap}
-                onSelectTopic={handleTopicSelect}
-                onBack={handleBack}
+                onSelectTopic={handleSelectTopic}
+                onBack={handleBackToCountries}
               />
             </motion.div>
           )}
 
           {currentStep === 3 && (
             <motion.div
-              key="report-step"
+              key="step3"
+              className="h-full"
               custom={direction}
               variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={stepTransition}
-              className="absolute inset-0"
             >
               <ReportDisplayStep
+                country={selectedCountriesData[0] || null}
+                topic={selectedTopic}
                 report={report}
-                isLoading={isLoadingReport}
-                selectedCountries={selectedCountriesData}
-                selectedTopic={selectedTopic}
-                onBack={handleBack}
-                onReset={handleReset}
-                onDelete={handleDeleteReport}
+                isLoading={generateReportMutation.isPending}
+                error={generateReportMutation.error as Error | null}
+                onBack={handleBackToTopics}
+                onRetry={handleRetryReport}
                 onExportPDF={handleExportPDF}
                 onExportWord={handleExportWord}
-                userName={user?.full_name || user?.email?.split("@")[0] || "User"}
               />
             </motion.div>
           )}

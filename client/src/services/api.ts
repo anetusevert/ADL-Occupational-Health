@@ -1546,3 +1546,114 @@ export async function listAvailableCountries(): Promise<{
   const response = await apiClient.get("/api/v1/simulator/available-countries");
   return response.data;
 }
+
+
+// =============================================================================
+// WORKFLOW-BASED API FUNCTIONS (Enhanced AI Integration)
+// =============================================================================
+
+/**
+ * Workflow response from orchestrated AI operations
+ */
+export interface WorkflowResponse {
+  workflow_type: string;
+  success: boolean;
+  data: Record<string, unknown>;
+  agent_log: Array<{
+    timestamp: string;
+    agent: string;
+    status: string;
+    message: string;
+    emoji: string;
+  }>;
+  errors: string[];
+  execution_time_ms: number;
+}
+
+/**
+ * Request for strategic advisor workflow
+ */
+export interface AdvisorWorkflowRequest {
+  iso_code: string;
+  country_name: string;
+  current_month: number;
+  current_year: number;
+  ohi_score: number;
+  pillars: {
+    governance: number;
+    hazardControl: number;
+    healthVigilance: number;
+    restoration: number;
+  };
+  budget_remaining: number;
+  recent_decisions: string[];
+}
+
+/**
+ * Request for news generator workflow
+ */
+export interface NewsWorkflowRequest {
+  iso_code: string;
+  country_name: string;
+  current_month: number;
+  current_year: number;
+  recent_decisions: Array<Record<string, unknown>>;
+  pillar_changes: Record<string, number>;
+  count: number;
+}
+
+/**
+ * Run the enhanced Intelligence Briefing workflow
+ * Uses web search and AI synthesis for comprehensive briefing
+ */
+export async function runIntelligenceBriefingWorkflow(
+  iso_code: string
+): Promise<WorkflowResponse> {
+  const response = await aiApiClient.post<WorkflowResponse>(
+    "/api/v1/simulator/workflow/intelligence-briefing",
+    { iso_code }
+  );
+  return response.data;
+}
+
+/**
+ * Run the Strategic Advisor workflow
+ * Generates conversational advice and decision options
+ */
+export async function runStrategicAdvisorWorkflow(
+  request: AdvisorWorkflowRequest
+): Promise<WorkflowResponse> {
+  const response = await aiApiClient.post<WorkflowResponse>(
+    "/api/v1/simulator/workflow/strategic-advisor",
+    request
+  );
+  return response.data;
+}
+
+/**
+ * Run the News Generator workflow
+ * Creates dynamic, contextual news content
+ */
+export async function runNewsGeneratorWorkflow(
+  request: NewsWorkflowRequest
+): Promise<WorkflowResponse> {
+  const response = await aiApiClient.post<WorkflowResponse>(
+    "/api/v1/simulator/workflow/news-generator",
+    request
+  );
+  return response.data;
+}
+
+/**
+ * Run the Final Report workflow
+ * Generates end-game summary and assessment
+ */
+export async function runFinalReportWorkflow(
+  request: GameSummaryRequest
+): Promise<WorkflowResponse> {
+  const response = await aiApiClient.post<WorkflowResponse>(
+    "/api/v1/simulator/workflow/final-report",
+    request
+  );
+  return response.data;
+}

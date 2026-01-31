@@ -3,82 +3,94 @@
  * Report Export Service
  * 
  * Generates professionally formatted PDF and Word documents
- * from Strategic Deep Dive reports.
+ * with personalized filenames including user name, report details, and timestamp
  * 
- * Features:
- * - PDF generation with jsPDF
- * - Word document generation with docx
- * - ADL branding and styling
- * - Personalized filenames with user name, report details, and timestamp
+ * Re-applied: 2026-01-31
  */
 
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
-  AlignmentType,
-  BorderStyle,
-  ShadingType,
-  Header,
-  Footer,
-  PageNumber,
-  NumberFormat,
-} from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
-import type { StrategicDeepDiveReport } from "./api";
 
-// Types
+// ADL Brand Colors
+const ADL_COLORS = {
+  primary: "#6366f1", // Indigo
+  secondary: "#8b5cf6", // Purple
+  text: "#1e293b",
+  lightText: "#64748b",
+  background: "#f8fafc",
+  accent: "#0ea5e9",
+};
+
 interface ExportOptions {
   userName: string;
   countryName: string;
   topicName: string;
-  report: StrategicDeepDiveReport;
+  report: string;
 }
 
-// Color palette for consistent branding
-const COLORS = {
-  primary: "#6366f1", // Indigo
-  secondary: "#8b5cf6", // Purple
-  success: "#10b981", // Emerald
-  warning: "#f59e0b", // Amber
-  danger: "#ef4444", // Red
-  dark: "#1e293b", // Slate 800
-  light: "#f8fafc", // Slate 50
-  muted: "#64748b", // Slate 500
-};
+/**
+ * Generate filename with user name, report details and timestamp
+ */
+function generateFilename(userName: string, countryName: string, topicName: string, extension: string): string {
+  const sanitize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_").substring(0, 30);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").substring(0, 19);
+  
+  const safeUserName = sanitize(userName);
+  const safeCountry = sanitize(countryName);
+  const safeTopic = sanitize(topicName.split(" ").slice(0, 3).join(" "));
+  
+  return `${safeUserName}_${safeCountry}_${safeTopic}_${timestamp}.${extension}`;
+}
 
 /**
- * Generate filename with user name, report details, and timestamp
+ * Parse markdown report into structured sections
  */
-export function generateFilename(
-  userName: string,
-  countryName: string,
-  topicName: string,
-  extension: "pdf" | "docx"
-): string {
-  // Clean and format components
-  const cleanUserName = userName.replace(/[^a-zA-Z0-9]/g, "") || "User";
-  const cleanCountryName = countryName.replace(/[^a-zA-Z0-9]/g, "");
-  const cleanTopicName = topicName
-    .replace(/[^a-zA-Z0-9\s]/g, "")
-    .split(" ")
-    .slice(0, 3)
-    .join("")
-    .replace(/\s+/g, "");
+function parseReport(report: string): Array<{ level: number; title: string; content: string }> {
+  const lines = report.split("\n");
+  const sections: Array<{ level: number; title: string; content: string }> = [];
+  let currentSection: { level: number; title: string; content: string } | null = null;
+  let contentBuffer: string[] = [];
 
-  // Generate timestamp
-  const now = new Date();
-  const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+  for (const line of lines) {
+    const h1Match = line.match(/^#\s+(.+)$/);
+    const h2Match = line.match(/^##\s+(.+)$/);
+    const h3Match = line.match(/^###\s+(.+)$/);
 
-  return `${cleanUserName}_${cleanCountryName}_${cleanTopicName}_${timestamp}.${extension}`;
+    if (h1Match || h2Match || h3Match) {
+      if (currentSection) {
+        currentSection.content = contentBuffer.join("\n").trim();
+        sections.push(currentSection);
+      }
+      currentSection = {
+        level: h1Match ? 1 : h2Match ? 2 : 3,
+        title: h1Match?.[1] || h2Match?.[1] || h3Match?.[1] || "",
+        content: "",
+      };
+      contentBuffer = [];
+    } else {
+      contentBuffer.push(line);
+    }
+  }
+
+  if (currentSection) {
+    currentSection.content = contentBuffer.join("\n").trim();
+    sections.push(currentSection);
+  }
+
+  return sections;
+}
+
+/**
+ * Strip markdown formatting from text
+ */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^- /gm, "• ")
+    .replace(/^#+\s*/gm, "");
 }
 
 /**
@@ -86,8 +98,8 @@ export function generateFilename(
  */
 export async function exportToPDF(options: ExportOptions): Promise<void> {
   const { userName, countryName, topicName, report } = options;
+  const sections = parseReport(report);
   
-  // Create new PDF document
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -97,287 +109,117 @@ export async function exportToPDF(options: ExportOptions): Promise<void> {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-  let yPos = margin;
+  const contentWidth = pageWidth - 2 * margin;
+  let yPosition = margin;
 
-  // Helper function to add new page if needed
-  const checkPageBreak = (requiredSpace: number) => {
-    if (yPos + requiredSpace > pageHeight - margin - 20) {
+  // Helper to add new page if needed
+  const checkPageBreak = (requiredSpace: number = 30) => {
+    if (yPosition + requiredSpace > pageHeight - margin) {
       doc.addPage();
-      yPos = margin;
-      addHeader();
+      yPosition = margin;
+      return true;
     }
+    return false;
   };
 
-  // Helper function to add header
-  const addHeader = () => {
-    doc.setFillColor(30, 41, 59); // Slate 800
-    doc.rect(0, 0, pageWidth, 15, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text("Arthur D. Little - Strategic Deep Dive Report", margin, 10);
-    doc.text(countryName, pageWidth - margin, 10, { align: "right" });
-    yPos = 25;
-  };
-
-  // Helper function to add footer
-  const addFooter = (pageNum: number, totalPages: number) => {
-    doc.setFillColor(248, 250, 252); // Slate 50
-    doc.rect(0, pageHeight - 15, pageWidth, 15, "F");
-    doc.setTextColor(100, 116, 139); // Slate 500
-    doc.setFontSize(8);
-    doc.text(`Generated for ${userName}`, margin, pageHeight - 7);
-    doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 7, { align: "right" });
-  };
-
-  // Title Page
-  doc.setFillColor(30, 41, 59); // Slate 800
-  doc.rect(0, 0, pageWidth, pageHeight, "F");
-
-  // ADL Branding
-  doc.setTextColor(99, 102, 241); // Indigo
-  doc.setFontSize(12);
-  doc.text("ARTHUR D. LITTLE", pageWidth / 2, 40, { align: "center" });
-
-  // Title
+  // Title page
+  doc.setFillColor(99, 102, 241); // Indigo gradient start
+  doc.rect(0, 0, pageWidth, 80, "F");
+  
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text("Strategic Deep Dive", pageWidth / 2, pageHeight / 3, { align: "center" });
-
-  // Subtitle (Topic)
-  doc.setFontSize(16);
-  doc.setTextColor(147, 51, 234); // Purple
-  doc.text(topicName, pageWidth / 2, pageHeight / 3 + 15, { align: "center" });
-
-  // Country
-  doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
-  doc.text(countryName, pageWidth / 2, pageHeight / 2, { align: "center" });
-
-  // Report date
   doc.setFontSize(10);
-  doc.setTextColor(148, 163, 184); // Slate 400
-  const reportDate = report.generated_at 
-    ? new Date(report.generated_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-    : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  doc.text(reportDate, pageWidth / 2, pageHeight - 50, { align: "center" });
+  doc.text("Arthur D. Little", margin, 25);
+  doc.text("Global Occupational Health Intelligence Platform", margin, 32);
+  
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  doc.text(topicName, margin, 55, { maxWidth: contentWidth });
+  
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.text(countryName, margin, 70);
 
-  // Prepared for
-  doc.text(`Prepared for: ${userName}`, pageWidth / 2, pageHeight - 40, { align: "center" });
+  yPosition = 100;
 
-  // Start content pages
-  doc.addPage();
-  addHeader();
+  // Metadata box
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(margin, yPosition, contentWidth, 35, 3, 3, "F");
+  
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(9);
+  doc.text("Prepared for:", margin + 5, yPosition + 10);
+  doc.text("Generated:", margin + 5, yPosition + 20);
+  doc.text("Report Type:", margin + 5, yPosition + 30);
+  
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(userName, margin + 35, yPosition + 10);
+  doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }), margin + 35, yPosition + 20);
+  doc.text("Country Deep Dive Analysis", margin + 35, yPosition + 30);
 
-  // Executive Summary
-  if (report.executive_summary) {
+  yPosition += 50;
+
+  // Content sections
+  for (const section of sections) {
     checkPageBreak(40);
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(16);
-    doc.text("Executive Summary", margin, yPos);
-    yPos += 10;
 
-    doc.setTextColor(51, 65, 85); // Slate 700
-    doc.setFontSize(10);
-    const summaryLines = doc.splitTextToSize(report.executive_summary, contentWidth);
-    doc.text(summaryLines, margin, yPos);
-    yPos += summaryLines.length * 5 + 15;
-  }
-
-  // Key Findings
-  if (report.key_findings && report.key_findings.length > 0) {
-    checkPageBreak(30);
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(16);
-    doc.text("Key Findings", margin, yPos);
-    yPos += 10;
-
-    report.key_findings.forEach((finding, index) => {
-      checkPageBreak(25);
-      
-      // Impact indicator
-      const impactColor = finding.impact_level === "high" ? [239, 68, 68] : 
-                          finding.impact_level === "medium" ? [245, 158, 11] : [100, 116, 139];
-      doc.setFillColor(impactColor[0], impactColor[1], impactColor[2]);
-      doc.rect(margin, yPos - 4, 3, 15, "F");
-
-      // Title
+    // Section heading
+    if (section.level === 1) {
+      doc.setFillColor(99, 102, 241);
+      doc.rect(margin, yPosition, 4, 8, "F");
       doc.setTextColor(30, 41, 59);
-      doc.setFontSize(11);
-      doc.text(finding.title, margin + 6, yPos);
-      
-      // Impact badge
-      doc.setFontSize(8);
-      doc.setTextColor(impactColor[0], impactColor[1], impactColor[2]);
-      doc.text(`[${finding.impact_level.toUpperCase()}]`, pageWidth - margin, yPos, { align: "right" });
-
-      yPos += 6;
-
-      // Description
-      doc.setTextColor(71, 85, 105);
-      doc.setFontSize(9);
-      const descLines = doc.splitTextToSize(finding.description, contentWidth - 10);
-      doc.text(descLines, margin + 6, yPos);
-      yPos += descLines.length * 4 + 8;
-    });
-
-    yPos += 10;
-  }
-
-  // SWOT Analysis
-  if (report.strengths?.length || report.weaknesses?.length || 
-      report.opportunities?.length || report.threats?.length) {
-    checkPageBreak(80);
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(16);
-    doc.text("SWOT Analysis", margin, yPos);
-    yPos += 12;
-
-    const swotData = [
-      { title: "Strengths", items: report.strengths || [], color: [16, 185, 129] },
-      { title: "Weaknesses", items: report.weaknesses || [], color: [239, 68, 68] },
-      { title: "Opportunities", items: report.opportunities || [], color: [245, 158, 11] },
-      { title: "Threats", items: report.threats || [], color: [139, 92, 246] },
-    ];
-
-    const cellWidth = contentWidth / 2 - 3;
-    const cellHeight = 60;
-
-    swotData.forEach((section, index) => {
-      const xOffset = index % 2 === 0 ? margin : margin + cellWidth + 6;
-      const yOffset = index < 2 ? yPos : yPos + cellHeight + 5;
-
-      // Box
-      doc.setFillColor(section.color[0], section.color[1], section.color[2]);
-      doc.setGlobalAlpha(0.1);
-      doc.rect(xOffset, yOffset, cellWidth, cellHeight, "F");
-      doc.setGlobalAlpha(1);
-
-      // Border
-      doc.setDrawColor(section.color[0], section.color[1], section.color[2]);
-      doc.rect(xOffset, yOffset, cellWidth, cellHeight, "S");
-
-      // Title
-      doc.setTextColor(section.color[0], section.color[1], section.color[2]);
-      doc.setFontSize(10);
-      doc.text(section.title, xOffset + 3, yOffset + 6);
-
-      // Items
-      doc.setTextColor(51, 65, 85);
-      doc.setFontSize(8);
-      let itemY = yOffset + 12;
-      section.items.slice(0, 3).forEach((item) => {
-        const itemText = `• ${item.title}`;
-        const lines = doc.splitTextToSize(itemText, cellWidth - 6);
-        doc.text(lines[0], xOffset + 3, itemY);
-        itemY += 5;
-      });
-    });
-
-    yPos += cellHeight * 2 + 20;
-  }
-
-  // Strategic Recommendations
-  if (report.strategic_recommendations && report.strategic_recommendations.length > 0) {
-    checkPageBreak(30);
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(16);
-    doc.text("Strategic Recommendations", margin, yPos);
-    yPos += 10;
-
-    report.strategic_recommendations.forEach((rec, index) => {
-      checkPageBreak(25);
-      
-      // Priority color
-      const priorityColor = rec.priority === "critical" ? [239, 68, 68] :
-                           rec.priority === "high" ? [245, 158, 11] :
-                           rec.priority === "medium" ? [59, 130, 246] : [100, 116, 139];
-      
-      doc.setFillColor(priorityColor[0], priorityColor[1], priorityColor[2]);
-      doc.rect(margin, yPos - 4, 3, 15, "F");
-
-      // Title
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.title, margin + 8, yPosition + 6);
+      yPosition += 15;
+    } else if (section.level === 2) {
       doc.setTextColor(30, 41, 59);
-      doc.setFontSize(11);
-      doc.text(rec.title, margin + 6, yPos);
-
-      // Priority and timeline
-      doc.setFontSize(8);
-      doc.setTextColor(priorityColor[0], priorityColor[1], priorityColor[2]);
-      doc.text(`${rec.priority.toUpperCase()} | ${rec.timeline}`, pageWidth - margin, yPos, { align: "right" });
-
-      yPos += 6;
-
-      // Description
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.title, margin, yPosition + 5);
+      yPosition += 12;
+    } else {
       doc.setTextColor(71, 85, 105);
-      doc.setFontSize(9);
-      const descLines = doc.splitTextToSize(rec.description, contentWidth - 10);
-      doc.text(descLines, margin + 6, yPos);
-      yPos += descLines.length * 4 + 8;
-    });
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.title, margin, yPosition + 5);
+      yPosition += 10;
+    }
 
-    yPos += 10;
-  }
-
-  // Priority Interventions
-  if (report.priority_interventions && report.priority_interventions.length > 0) {
-    checkPageBreak(30);
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(16);
-    doc.text("Priority Interventions", margin, yPos);
-    yPos += 10;
-
-    report.priority_interventions.forEach((intervention, index) => {
-      checkPageBreak(15);
-      
-      // Number circle
-      doc.setFillColor(16, 185, 129);
-      doc.circle(margin + 4, yPos - 1, 3.5, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.text(String(index + 1), margin + 4, yPos + 0.5, { align: "center" });
-
-      // Text
+    // Section content
+    if (section.content) {
       doc.setTextColor(51, 65, 85);
       doc.setFontSize(10);
-      const lines = doc.splitTextToSize(intervention, contentWidth - 15);
-      doc.text(lines, margin + 12, yPos);
-      yPos += lines.length * 5 + 5;
-    });
-
-    yPos += 10;
+      doc.setFont("helvetica", "normal");
+      
+      const cleanContent = stripMarkdown(section.content);
+      const lines = doc.splitTextToSize(cleanContent, contentWidth);
+      
+      for (const line of lines) {
+        checkPageBreak(8);
+        doc.text(line, margin, yPosition);
+        yPosition += 5;
+      }
+      yPosition += 5;
+    }
   }
 
-  // Data Quality Notes
-  if (report.data_quality_notes) {
-    checkPageBreak(30);
-    
-    doc.setFillColor(241, 245, 249); // Slate 100
-    doc.rect(margin, yPos - 5, contentWidth, 25, "F");
-    
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(9);
-    doc.text("Data Quality Notes", margin + 5, yPos);
-    yPos += 6;
-    
-    doc.setFontSize(8);
-    const notesLines = doc.splitTextToSize(report.data_quality_notes, contentWidth - 10);
-    doc.text(notesLines, margin + 5, yPos);
-  }
-
-  // Add page numbers
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 2; i <= totalPages; i++) {
+  // Footer on each page
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    addFooter(i - 1, totalPages - 1);
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(8);
+    doc.text(
+      `Arthur D. Little | ${countryName} - ${topicName} | Page ${i} of ${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: "center" }
+    );
   }
 
-  // Save the PDF
+  // Save
   const filename = generateFilename(userName, countryName, topicName, "pdf");
   doc.save(filename);
 }
@@ -387,363 +229,178 @@ export async function exportToPDF(options: ExportOptions): Promise<void> {
  */
 export async function exportToWord(options: ExportOptions): Promise<void> {
   const { userName, countryName, topicName, report } = options;
+  const sections = parseReport(report);
 
-  const reportDate = report.generated_at 
-    ? new Date(report.generated_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-    : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const children: Paragraph[] = [];
 
-  // Create document sections
-  const sections: Paragraph[] = [];
-
-  // Title section
-  sections.push(
+  // Title
+  children.push(
     new Paragraph({
       children: [
         new TextRun({
-          text: "ARTHUR D. LITTLE",
+          text: "Arthur D. Little",
           bold: true,
-          size: 24,
+          size: 20,
           color: "6366f1",
         }),
       ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { after: 100 },
     }),
     new Paragraph({
       children: [
         new TextRun({
-          text: "Strategic Deep Dive Report",
-          bold: true,
-          size: 48,
+          text: "Global Occupational Health Intelligence Platform",
+          size: 18,
+          color: "64748b",
         }),
       ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { after: 400 },
     }),
     new Paragraph({
       children: [
         new TextRun({
           text: topicName,
           bold: true,
-          size: 28,
-          color: "8b5cf6",
+          size: 48,
+          color: "1e293b",
         }),
       ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 400 },
+      spacing: { after: 200 },
     }),
     new Paragraph({
       children: [
         new TextRun({
           text: countryName,
-          bold: true,
-          size: 36,
-        }),
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 600 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Prepared for: ${userName}`,
-          size: 22,
+          size: 28,
           color: "64748b",
         }),
       ],
-      alignment: AlignmentType.CENTER,
+      spacing: { after: 600 },
+    })
+  );
+
+  // Metadata
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({ text: "Prepared for: ", color: "64748b", size: 20 }),
+        new TextRun({ text: userName, bold: true, size: 20 }),
+      ],
       spacing: { after: 100 },
     }),
     new Paragraph({
       children: [
+        new TextRun({ text: "Generated: ", color: "64748b", size: 20 }),
         new TextRun({
-          text: reportDate,
-          size: 22,
-          color: "64748b",
+          text: new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          bold: true,
+          size: 20,
         }),
       ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 800 },
+      spacing: { after: 400 },
     })
   );
 
-  // Executive Summary
-  if (report.executive_summary) {
-    sections.push(
-      new Paragraph({
-        text: "Executive Summary",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
-      }),
+  // Add a divider
+  children.push(
+    new Paragraph({
+      border: {
+        bottom: { color: "e2e8f0", size: 1, style: BorderStyle.SINGLE },
+      },
+      spacing: { after: 400 },
+    })
+  );
+
+  // Content sections
+  for (const section of sections) {
+    // Heading
+    children.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: report.executive_summary,
-            size: 24,
+            text: section.title,
+            bold: true,
+            size: section.level === 1 ? 32 : section.level === 2 ? 26 : 22,
+            color: section.level === 1 ? "6366f1" : "1e293b",
           }),
         ],
-        spacing: { after: 400 },
-      })
-    );
-  }
-
-  // Key Findings
-  if (report.key_findings && report.key_findings.length > 0) {
-    sections.push(
-      new Paragraph({
-        text: "Key Findings",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        heading: section.level === 1 ? HeadingLevel.HEADING_1 : section.level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+        spacing: { before: section.level === 1 ? 400 : 300, after: 200 },
       })
     );
 
-    report.key_findings.forEach((finding) => {
-      const impactColor = finding.impact_level === "high" ? "ef4444" :
-                          finding.impact_level === "medium" ? "f59e0b" : "64748b";
-      
-      sections.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: finding.title,
-              bold: true,
-              size: 26,
-            }),
-            new TextRun({
-              text: `  [${finding.impact_level.toUpperCase()}]`,
-              bold: true,
-              size: 20,
-              color: impactColor,
-            }),
-          ],
-          spacing: { before: 200, after: 100 },
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: finding.description,
-              size: 22,
-              color: "475569",
-            }),
-          ],
-          spacing: { after: 200 },
-        })
-      );
-    });
-  }
-
-  // SWOT Analysis
-  if (report.strengths?.length || report.weaknesses?.length || 
-      report.opportunities?.length || report.threats?.length) {
-    sections.push(
-      new Paragraph({
-        text: "SWOT Analysis",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
-      })
-    );
-
-    const swotSections = [
-      { title: "Strengths", items: report.strengths || [], color: "10b981" },
-      { title: "Weaknesses", items: report.weaknesses || [], color: "ef4444" },
-      { title: "Opportunities", items: report.opportunities || [], color: "f59e0b" },
-      { title: "Threats", items: report.threats || [], color: "8b5cf6" },
-    ];
-
-    swotSections.forEach(({ title, items, color }) => {
-      if (items.length > 0) {
-        sections.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: title,
-                bold: true,
-                size: 26,
-                color: color,
-              }),
-            ],
-            spacing: { before: 200, after: 100 },
-          })
-        );
-
-        items.forEach((item) => {
-          sections.push(
-            new Paragraph({
-              children: [
-                new TextRun({ text: "• ", size: 22 }),
-                new TextRun({ text: item.title, bold: true, size: 22 }),
-                new TextRun({ text: ` — ${item.description}`, size: 22, color: "64748b" }),
-              ],
-              spacing: { after: 100 },
-            })
-          );
-        });
+    // Content paragraphs
+    if (section.content) {
+      const paragraphs = section.content.split("\n\n");
+      for (const para of paragraphs) {
+        const cleanPara = stripMarkdown(para.trim());
+        if (cleanPara) {
+          // Check for bullet points
+          if (cleanPara.startsWith("•")) {
+            const items = cleanPara.split("\n").filter((l) => l.trim());
+            for (const item of items) {
+              children.push(
+                new Paragraph({
+                  children: [new TextRun({ text: item, size: 22, color: "334155" })],
+                  bullet: { level: 0 },
+                  spacing: { after: 100 },
+                })
+              );
+            }
+          } else {
+            children.push(
+              new Paragraph({
+                children: [new TextRun({ text: cleanPara, size: 22, color: "334155" })],
+                spacing: { after: 200 },
+              })
+            );
+          }
+        }
       }
-    });
-  }
-
-  // Strategic Recommendations
-  if (report.strategic_recommendations && report.strategic_recommendations.length > 0) {
-    sections.push(
-      new Paragraph({
-        text: "Strategic Recommendations",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
-      })
-    );
-
-    report.strategic_recommendations.forEach((rec) => {
-      const priorityColor = rec.priority === "critical" ? "ef4444" :
-                           rec.priority === "high" ? "f59e0b" :
-                           rec.priority === "medium" ? "3b82f6" : "64748b";
-      
-      sections.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: rec.title,
-              bold: true,
-              size: 26,
-            }),
-          ],
-          spacing: { before: 200, after: 50 },
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `Priority: ${rec.priority.toUpperCase()}`,
-              bold: true,
-              size: 20,
-              color: priorityColor,
-            }),
-            new TextRun({
-              text: `  |  Timeline: ${rec.timeline}`,
-              size: 20,
-              color: "64748b",
-            }),
-          ],
-          spacing: { after: 100 },
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: rec.description,
-              size: 22,
-              color: "475569",
-            }),
-          ],
-          spacing: { after: 200 },
-        })
-      );
-    });
-  }
-
-  // Priority Interventions
-  if (report.priority_interventions && report.priority_interventions.length > 0) {
-    sections.push(
-      new Paragraph({
-        text: "Priority Interventions",
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
-      })
-    );
-
-    report.priority_interventions.forEach((intervention, index) => {
-      sections.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `${index + 1}. `,
-              bold: true,
-              size: 22,
-              color: "10b981",
-            }),
-            new TextRun({
-              text: intervention,
-              size: 22,
-            }),
-          ],
-          spacing: { after: 100 },
-        })
-      );
-    });
-  }
-
-  // Data Quality Notes
-  if (report.data_quality_notes) {
-    sections.push(
-      new Paragraph({
-        text: "Data Quality Notes",
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 100 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: report.data_quality_notes,
-            size: 20,
-            color: "64748b",
-            italics: true,
-          }),
-        ],
-        spacing: { after: 400 },
-      })
-    );
+    }
   }
 
   // Footer
-  sections.push(
+  children.push(
     new Paragraph({
-      children: [
-        new TextRun({
-          text: "—",
-          size: 24,
-          color: "e2e8f0",
-        }),
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 400, after: 200 },
+      border: {
+        top: { color: "e2e8f0", size: 1, style: BorderStyle.SINGLE },
+      },
+      spacing: { before: 600 },
     }),
     new Paragraph({
       children: [
         new TextRun({
-          text: "Generated by Arthur D. Little Strategic Deep Dive Agent",
-          size: 20,
+          text: `© ${new Date().getFullYear()} Arthur D. Little. All rights reserved.`,
+          size: 16,
           color: "94a3b8",
-          italics: true,
         }),
       ],
       alignment: AlignmentType.CENTER,
+      spacing: { before: 200 },
     })
   );
 
-  // Create the document
+  // Create document
   const doc = new Document({
     sections: [
       {
-        properties: {
-          page: {
-            margin: {
-              top: 1440, // 1 inch in twips
-              right: 1440,
-              bottom: 1440,
-              left: 1440,
-            },
-          },
-        },
-        children: sections,
+        properties: {},
+        children,
       },
     ],
   });
 
-  // Generate and save the document
+  // Generate and save
   const blob = await Packer.toBlob(doc);
   const filename = generateFilename(userName, countryName, topicName, "docx");
   saveAs(blob, filename);
 }
 
-export default {
-  exportToPDF,
-  exportToWord,
-  generateFilename,
-};
+export default { exportToPDF, exportToWord };
