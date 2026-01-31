@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_admin_user
 from app.services.ai_orchestrator import run_deep_dive_analysis
-from app.services.ai_consultant import generate_country_assessment as legacy_generate_assessment, extract_country_data
 from app.models.country import Country
 from app.models.user import User, AIConfig, AIProvider
 
@@ -324,13 +323,10 @@ class PillarExplanationResponse(BaseModel):
     summary="Generate Country Strategic Assessment",
     description="""
     Generate a comprehensive AI-powered country strategic assessment using the 
-    dedicated Strategic Assessment Agent.
+    Report Generation Agent from the AI Orchestration Layer.
     
-    This endpoint:
-    1. Uses the active AI configuration (provider + model) from the orchestration layer
-    2. Leverages a focused Strategic Assessment Agent prompt
-    3. Generates a high-quality ministerial-level assessment
-    4. Saves the assessment to the database for future retrieval
+    This endpoint uses the unified AgentRunner system with automatic database 
+    context injection.
     
     The assessment includes:
     - Framework maturity stage classification
@@ -347,7 +343,7 @@ async def generate_country_assessment(
     current_user: User = Depends(get_current_user)
 ) -> CountryAssessmentResponse:
     """
-    Generate a comprehensive country assessment using the Strategic Assessment Agent.
+    Generate a comprehensive country assessment using the Report Generation Agent.
     
     Args:
         iso_code: ISO 3166-1 alpha-3 country code
@@ -358,6 +354,8 @@ async def generate_country_assessment(
         CountryAssessmentResponse with assessment text
     """
     import logging
+    from app.services.agent_runner import AgentRunner
+    
     logger = logging.getLogger(__name__)
     
     # Normalize ISO code
@@ -370,24 +368,34 @@ async def generate_country_assessment(
             detail=f"Invalid ISO code format: '{iso_code}'. Must be 3-letter alpha code."
         )
     
-    # Use the dedicated Strategic Assessment Agent
+    # Get country
+    country = db.query(Country).filter(Country.iso_code == iso_code).first()
+    if not country:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Country with ISO code '{iso_code}' not found"
+        )
+    
     try:
-        from app.services.strategic_assessment_agent import generate_strategic_assessment
-        
-        result = generate_strategic_assessment(
-            iso_code=iso_code,
-            db=db,
-            force_regenerate=True  # Always regenerate when endpoint is called
+        # Use the Report Generation Agent via AgentRunner
+        runner = AgentRunner(db)
+        result = await runner.run(
+            agent_id="report-generation",
+            variables={
+                "ISO_CODE": iso_code,
+                "TOPIC": "Comprehensive Strategic Assessment",
+            },
+            update_stats=True,
         )
         
         if result.get("success"):
             return CountryAssessmentResponse(
                 success=True,
                 iso_code=iso_code,
-                country_name=result.get("country_name"),
-                assessment=result.get("assessment"),
-                source=result.get("source"),
-                generated_at=result.get("generated_at"),
+                country_name=country.name,
+                assessment=result.get("output"),
+                source="report-generation-agent",
+                generated_at=datetime.utcnow().isoformat(),
             )
         else:
             raise HTTPException(
@@ -398,24 +406,7 @@ async def generate_country_assessment(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Strategic Assessment Agent failed: {e}")
-        
-        # Fallback to legacy assessment generator
-        try:
-            result = legacy_generate_assessment(iso_code, db)
-            
-            if result["success"]:
-                return CountryAssessmentResponse(
-                    success=True,
-                    iso_code=iso_code,
-                    country_name=result.get("country_name"),
-                    assessment=result.get("assessment"),
-                    source=result.get("source", "fallback"),
-                    generated_at=datetime.utcnow().isoformat(),
-                )
-        except Exception as fallback_error:
-            logger.error(f"Fallback also failed: {fallback_error}")
-        
+        logger.error(f"Report Generation Agent failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Assessment generation failed: {str(e)}"
