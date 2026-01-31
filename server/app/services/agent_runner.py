@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.models.agent import Agent
-from app.models.ai_config import AIConfig
+from app.models.user import AIConfig
 from app.services.ai_orchestrator import get_llm_from_config
 from app.services.country_data_provider import CountryDataProvider, detect_country_from_name
 

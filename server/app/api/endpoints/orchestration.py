@@ -19,9 +19,8 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
-from app.models.user import User
+from app.models.user import User, AIConfig
 from app.models.agent import Agent, DEFAULT_AGENTS
-from app.models.ai_config import AIConfig
 from app.services.agent_runner import AgentRunner
 
 logger = logging.getLogger(__name__)
