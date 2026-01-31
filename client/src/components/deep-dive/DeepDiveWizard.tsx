@@ -216,27 +216,6 @@ export function DeepDiveWizard() {
     }
   }, [selectedCountries, selectedTopic, fetchOrGenerateReport]);
 
-  // Force regenerate report (admin only) - uses synchronous generation for immediate feedback
-  const handleRegenerateReport = useCallback(async () => {
-    if (selectedCountries.length > 0 && selectedTopic) {
-      setReport(null);
-      setReportError(null);
-      setIsGenerating(true);
-      
-      try {
-        // Admin regenerate uses synchronous endpoint for immediate feedback
-        const generated = await generateStrategicDeepDive(selectedCountries[0], selectedTopic);
-        setReport(generated.report?.report || null);
-      } catch (err: any) {
-        const serverMessage = err?.response?.data?.detail || err?.response?.data?.message;
-        const errorMessage = serverMessage || (err instanceof Error ? err.message : "Failed to regenerate report");
-        setReportError(new Error(errorMessage));
-      } finally {
-        setIsGenerating(false);
-      }
-    }
-  }, [selectedCountries, selectedTopic]);
-
   // Export handlers
   const handleExportPDF = useCallback(async () => {
     if (!report || !selectedCountriesData[0]) return;
@@ -339,10 +318,8 @@ export function DeepDiveWizard() {
                 isLoading={isFetching || isGenerating}
                 isGenerating={isGenerating}
                 error={reportError}
-                isAdmin={isAdmin}
                 onBack={handleBackToTopics}
                 onRetry={handleRetryReport}
-                onRegenerate={handleRegenerateReport}
                 onExportPDF={handleExportPDF}
                 onExportWord={handleExportWord}
               />

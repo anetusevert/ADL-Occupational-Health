@@ -54,7 +54,6 @@ const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Deep Dive", icon: Brain },
-  { path: "/deep-dive-reports", label: "Report Status", icon: Activity },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/compare", label: "Compare", icon: GitCompare },
 ];
@@ -68,7 +67,7 @@ const toolSuiteItems: NavItem[] = [
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/generation-progress", label: "Deep Dive Reports", icon: Activity, adminOnly: true },
+  { path: "/admin/generation-progress", label: "Report Status", icon: Activity, adminOnly: true },
   { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },

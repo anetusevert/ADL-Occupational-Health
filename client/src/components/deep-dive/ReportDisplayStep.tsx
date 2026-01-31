@@ -41,10 +41,8 @@ interface ReportDisplayStepProps {
   isLoading: boolean;
   isGenerating?: boolean; // true when AI is generating (vs just fetching)
   error: Error | null;
-  isAdmin?: boolean;
   onBack: () => void;
   onRetry: () => void;
-  onRegenerate?: () => void; // Admin-only regenerate
   onExportPDF: () => void;
   onExportWord: () => void;
 }
@@ -140,10 +138,8 @@ export function ReportDisplayStep({
   isLoading,
   isGenerating = false,
   error,
-  isAdmin = false,
   onBack,
   onRetry,
-  onRegenerate,
   onExportPDF,
   onExportWord,
 }: ReportDisplayStepProps) {
@@ -292,20 +288,6 @@ export function ReportDisplayStep({
             <motion.button onClick={() => setShowSidebar(!showSidebar)} className={cn("p-2 rounded-lg border transition-all", showSidebar ? "bg-purple-500/20 border-purple-500/40 text-purple-400" : "bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-white")} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <ListTree className="w-4 h-4" />
             </motion.button>
-            
-            {/* Admin-only Regenerate button */}
-            {isAdmin && onRegenerate && (
-              <motion.button
-                onClick={onRegenerate}
-                className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-sm font-medium hover:bg-amber-500/30 transition-all"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                title="Regenerate report with AI"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Regenerate
-              </motion.button>
-            )}
             
             <div className="relative">
               <motion.button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white text-sm font-medium shadow-lg shadow-purple-500/25" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
