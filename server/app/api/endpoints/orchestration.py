@@ -84,17 +84,17 @@ def agent_to_response(agent: Agent) -> AgentResponse:
     return AgentResponse(
         id=agent.id,
         name=agent.name,
-        description=agent.description,
-        system_prompt=agent.system_prompt,
-        user_prompt_template=agent.user_prompt_template,
-        template_variables=agent.template_variables or [],
-        icon=agent.icon or "bot",
-        color=agent.color or "cyan",
-        is_active=agent.is_active if agent.is_active is not None else True,
-        execution_count=agent.execution_count or 0,
-        last_run_at=agent.last_run_at.isoformat() if agent.last_run_at else None,
-        created_at=agent.created_at.isoformat() if agent.created_at else None,
-        updated_at=agent.updated_at.isoformat() if agent.updated_at else None,
+        description=getattr(agent, 'description', None),
+        system_prompt=getattr(agent, 'system_prompt', None),
+        user_prompt_template=getattr(agent, 'user_prompt_template', None),
+        template_variables=getattr(agent, 'template_variables', None) or [],
+        icon=getattr(agent, 'icon', 'bot') or "bot",
+        color=getattr(agent, 'color', 'cyan') or "cyan",
+        is_active=getattr(agent, 'is_active', True) if getattr(agent, 'is_active', None) is not None else True,
+        execution_count=getattr(agent, 'execution_count', 0) or 0,
+        last_run_at=agent.last_run_at.isoformat() if getattr(agent, 'last_run_at', None) else None,
+        created_at=agent.created_at.isoformat() if getattr(agent, 'created_at', None) else None,
+        updated_at=agent.updated_at.isoformat() if getattr(agent, 'updated_at', None) else None,
     )
 
 
@@ -140,17 +140,40 @@ async def list_agents(
     Public endpoint - no authentication required.
     """
     try:
-        # Seed defaults if needed
-        seed_agents(db)
+        # Try to seed defaults if needed
+        try:
+            seed_agents(db)
+        except Exception as seed_error:
+            logger.warning(f"Could not seed agents: {seed_error}")
+            db.rollback()
         
-        agents = db.query(Agent).order_by(Agent.name).all()
+        # Query agents with fallback
+        try:
+            agents = db.query(Agent).order_by(Agent.name).all()
+        except Exception as query_error:
+            logger.warning(f"Query failed, trying without order: {query_error}")
+            db.rollback()
+            try:
+                agents = db.query(Agent).all()
+            except Exception as e2:
+                logger.warning(f"Agent query failed completely: {e2}")
+                db.rollback()
+                return AgentListResponse(agents=[], total=0)
+        
+        # Convert to response with error handling per agent
+        response_agents = []
+        for a in agents:
+            try:
+                response_agents.append(agent_to_response(a))
+            except Exception as conv_error:
+                logger.warning(f"Could not convert agent {a.id}: {conv_error}")
         
         return AgentListResponse(
-            agents=[agent_to_response(a) for a in agents],
-            total=len(agents),
+            agents=response_agents,
+            total=len(response_agents),
         )
     except Exception as e:
-        logger.error(f"Failed to list agents: {e}")
+        logger.error(f"Failed to list agents: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
