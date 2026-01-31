@@ -2,6 +2,7 @@
  * Situational Briefing Component
  * 
  * Full-screen briefing showing country analysis before gameplay
+ * Redesigned: No scrolling, uses modals for detailed information
  */
 
 import { useState } from 'react';
@@ -23,10 +24,17 @@ import {
   AlertTriangle,
   Lightbulb,
   Play,
+  FileText,
+  Briefcase,
+  Newspaper,
+  Info,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { CountryBriefing, PillarId } from './types';
 import { PILLAR_CONFIGS, MATURITY_STAGES } from './types';
+import { BriefingModal, InfoCard } from './BriefingModal';
+import { CountrySlideshow, CountryProfile } from './CountrySlideshow';
+import { EconomicIndicators } from './EconomicIndicators';
 
 interface SituationalBriefingProps {
   briefing: CountryBriefing;
@@ -40,29 +48,34 @@ const PILLAR_ICONS: Record<PillarId, typeof Crown> = {
   restoration: Heart,
 };
 
+type ModalType = 'executive' | 'socioeconomic' | 'cultural' | 'stakeholders' | 'articles' | 'pillar' | null;
+
 export function SituationalBriefing({ briefing, onAcceptMission }: SituationalBriefingProps) {
-  const [expandedSection, setExpandedSection] = useState<string | null>('overview');
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedPillar, setSelectedPillar] = useState<PillarId | null>(null);
 
   const maturityStage = MATURITY_STAGES.find(
     s => briefing.ohi_score >= s.minScore && briefing.ohi_score <= s.maxScore
   );
 
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
+  const openPillarModal = (pillar: PillarId) => {
+    setSelectedPillar(pillar);
+    setActiveModal('pillar');
   };
 
   return (
-    <div className="h-full overflow-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-sm border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+      {/* Fixed Header with Flag */}
+      <div className="flex-shrink-0 bg-slate-900/90 backdrop-blur-sm border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img
+              <motion.img
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
                 src={briefing.flag_url}
                 alt={briefing.country_name}
-                className="w-16 h-12 object-cover rounded shadow-lg"
+                className="w-16 h-12 object-cover rounded shadow-lg border border-white/20"
               />
               <div>
                 <h1 className="text-2xl font-bold text-white">
@@ -96,7 +109,7 @@ export function SituationalBriefing({ briefing, onAcceptMission }: SituationalBr
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onAcceptMission}
-                className="flex items-center gap-2 px-6 py-3 bg-adl-accent text-white rounded-xl font-semibold hover:bg-adl-blue-light transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-adl-accent text-white rounded-xl font-semibold hover:bg-adl-blue-light transition-colors shadow-lg shadow-adl-accent/25"
               >
                 <Play className="w-5 h-5" />
                 Accept Mission
@@ -106,400 +119,350 @@ export function SituationalBriefing({ briefing, onAcceptMission }: SituationalBr
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Mission Statement */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-adl-accent/20 to-cyan-500/10 border border-adl-accent/30 rounded-2xl p-6"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-adl-accent/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Target className="w-6 h-6 text-adl-accent" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white mb-2">Your Mission</h2>
-              <p className="text-white/80 leading-relaxed">
+      {/* Main Content - No Scroll, Fixed Layout */}
+      <div className="flex-1 min-h-0 p-6">
+        <div className="h-full max-w-7xl mx-auto grid grid-cols-12 gap-4">
+          {/* Left Column - Mission & Quick Actions */}
+          <div className="col-span-3 flex flex-col gap-4">
+            {/* Mission Statement */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-gradient-to-br from-adl-accent/20 to-cyan-500/10 border border-adl-accent/30 rounded-xl p-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-5 h-5 text-adl-accent" />
+                <h2 className="font-semibold text-white">Your Mission</h2>
+              </div>
+              <p className="text-sm text-white/80 leading-relaxed">
                 {briefing.mission_statement}
               </p>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Column - Analysis */}
-          <div className="col-span-8 space-y-4">
-            {/* Executive Summary */}
-            <BriefingSection
-              title="Executive Summary"
-              icon={<Globe2 className="w-5 h-5 text-adl-accent" />}
-              isExpanded={expandedSection === 'overview'}
-              onToggle={() => toggleSection('overview')}
-            >
-              <p className="text-white/70 leading-relaxed">
-                {briefing.executive_summary}
-              </p>
-            </BriefingSection>
-
-            {/* Socioeconomic Context */}
-            <BriefingSection
-              title="Socioeconomic Context"
-              icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
-              isExpanded={expandedSection === 'socioeconomic'}
-              onToggle={() => toggleSection('socioeconomic')}
-            >
-              <p className="text-white/70 leading-relaxed whitespace-pre-line">
-                {briefing.socioeconomic_context}
-              </p>
-            </BriefingSection>
-
-            {/* Cultural Factors */}
-            <BriefingSection
-              title="Cultural & Work Environment"
-              icon={<Users className="w-5 h-5 text-blue-400" />}
-              isExpanded={expandedSection === 'cultural'}
-              onToggle={() => toggleSection('cultural')}
-            >
-              <p className="text-white/70 leading-relaxed">
-                {briefing.cultural_factors}
-              </p>
-            </BriefingSection>
-
-            {/* Framework Analysis */}
-            <BriefingSection
-              title="Framework Analysis"
-              icon={<Shield className="w-5 h-5 text-teal-400" />}
-              isExpanded={expandedSection === 'framework'}
-              onToggle={() => toggleSection('framework')}
-              defaultExpanded
-            >
-              <div className="grid grid-cols-2 gap-4">
-                {PILLAR_CONFIGS.map(config => {
-                  const insight = briefing.pillar_insights[config.id];
-                  const score = briefing.pillar_scores[config.id] || 0;
-                  const Icon = PILLAR_ICONS[config.id];
-
-                  return (
-                    <motion.div
-                      key={config.id}
-                      whileHover={{ scale: 1.02 }}
-                      onClick={() => setSelectedPillar(selectedPillar === config.id ? null : config.id)}
-                      className={cn(
-                        'p-4 rounded-xl border cursor-pointer transition-all',
-                        config.bgColor,
-                        selectedPillar === config.id
-                          ? `${config.borderColor} ring-1 ring-offset-0 ring-offset-transparent`
-                          : 'border-white/10 hover:border-white/20'
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Icon className={cn('w-5 h-5', config.color)} />
-                          <span className="font-medium text-white">{config.name}</span>
-                        </div>
-                        <span className={cn('text-lg font-bold', config.color)}>
-                          {score.toFixed(0)}
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-3">
-                        <motion.div
-                          className={cn('h-full rounded-full', config.color.replace('text-', 'bg-'))}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${score}%` }}
-                          transition={{ duration: 0.5, delay: 0.2 }}
-                        />
-                      </div>
-
-                      {/* Insight Preview */}
-                      <AnimatePresence>
-                        {selectedPillar === config.id && insight && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="space-y-2 pt-2 border-t border-white/10"
-                          >
-                            <p className="text-sm text-white/60">{insight.analysis}</p>
-                            {insight.key_issues?.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {insight.key_issues.map((issue, i) => (
-                                  <span key={i} className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 rounded">
-                                    {issue}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </BriefingSection>
-
-            {/* Recent Articles */}
-            {briefing.recent_articles?.length > 0 && (
-              <BriefingSection
-                title="Recent Developments"
-                icon={<ExternalLink className="w-5 h-5 text-amber-400" />}
-                isExpanded={expandedSection === 'articles'}
-                onToggle={() => toggleSection('articles')}
-              >
-                <div className="space-y-3">
-                  {briefing.recent_articles.map((article, index) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h4 className="text-sm font-medium text-white">{article.title}</h4>
-                          <p className="text-xs text-white/50 mt-1">{article.summary}</p>
-                        </div>
-                        <span className={cn(
-                          'text-[10px] px-2 py-0.5 rounded flex-shrink-0',
-                          article.relevance === 'governance' ? 'bg-purple-500/20 text-purple-300' :
-                          article.relevance === 'hazardControl' ? 'bg-blue-500/20 text-blue-300' :
-                          article.relevance === 'healthVigilance' ? 'bg-teal-500/20 text-teal-300' :
-                          'bg-amber-500/20 text-amber-300'
-                        )}>
-                          {article.relevance}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-white/30">
-                        <span>{article.source}</span>
-                        {article.date && (
-                          <>
-                            <span>•</span>
-                            <span>{article.date}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </BriefingSection>
-            )}
-          </div>
-
-          {/* Right Column - Stats & Stakeholders */}
-          <div className="col-span-4 space-y-4">
-            {/* Key Statistics */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-white mb-4">Key Statistics</h3>
-              <div className="space-y-3">
-                <StatRow
-                  icon={<DollarSign className="w-4 h-4 text-emerald-400" />}
-                  label="GDP per Capita"
-                  value={briefing.key_statistics.gdp_per_capita
-                    ? `$${Number(briefing.key_statistics.gdp_per_capita).toLocaleString()}`
-                    : 'N/A'}
+            {/* Info Cards - Click to open modals */}
+            <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+              <InfoCard
+                title="Executive Summary"
+                preview={briefing.executive_summary?.substring(0, 60) + '...' || 'View summary'}
+                icon={<Globe2 className="w-4 h-4" />}
+                color="text-adl-accent"
+                onClick={() => setActiveModal('executive')}
+              />
+              <InfoCard
+                title="Socioeconomic Context"
+                preview={briefing.socioeconomic_context?.substring(0, 60) + '...' || 'View context'}
+                icon={<TrendingUp className="w-4 h-4" />}
+                color="text-purple-400"
+                onClick={() => setActiveModal('socioeconomic')}
+              />
+              <InfoCard
+                title="Cultural Factors"
+                preview={briefing.cultural_factors?.substring(0, 60) + '...' || 'View factors'}
+                icon={<Users className="w-4 h-4" />}
+                color="text-blue-400"
+                onClick={() => setActiveModal('cultural')}
+              />
+              {briefing.key_stakeholders?.length > 0 && (
+                <InfoCard
+                  title="Key Stakeholders"
+                  preview={`${briefing.key_stakeholders.length} stakeholders identified`}
+                  icon={<Briefcase className="w-4 h-4" />}
+                  color="text-amber-400"
+                  onClick={() => setActiveModal('stakeholders')}
                 />
-                <StatRow
-                  icon={<Users className="w-4 h-4 text-blue-400" />}
-                  label="Population"
-                  value={briefing.key_statistics.population
-                    ? `${Number(briefing.key_statistics.population).toLocaleString()}M`
-                    : 'N/A'}
+              )}
+              {briefing.recent_articles?.length > 0 && (
+                <InfoCard
+                  title="Recent Developments"
+                  preview={`${briefing.recent_articles.length} articles found`}
+                  icon={<Newspaper className="w-4 h-4" />}
+                  color="text-teal-400"
+                  onClick={() => setActiveModal('articles')}
                 />
-                <StatRow
-                  icon={<TrendingUp className="w-4 h-4 text-purple-400" />}
-                  label="Health Expenditure"
-                  value={briefing.key_statistics.health_expenditure_pct
-                    ? `${briefing.key_statistics.health_expenditure_pct}% GDP`
-                    : 'N/A'}
-                />
-                <StatRow
-                  icon={<Building className="w-4 h-4 text-amber-400" />}
-                  label="Labor Force"
-                  value={briefing.key_statistics.labor_force
-                    ? `${briefing.key_statistics.labor_force}%`
-                    : 'N/A'}
-                />
-              </div>
+              )}
             </div>
 
             {/* Key Challenges */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
-                Key Challenges
-              </h3>
-              <div className="space-y-2">
-                {briefing.key_challenges.map((challenge, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-2 p-2 bg-red-500/10 rounded-lg"
-                  >
-                    <span className="text-red-400 font-bold text-sm">{index + 1}</span>
-                    <p className="text-sm text-white/70">{challenge}</p>
+                <span className="text-xs font-medium text-white">Key Challenges</span>
+              </div>
+              <div className="space-y-1">
+                {briefing.key_challenges.slice(0, 3).map((challenge, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs">
+                    <span className="text-red-400 font-bold">{i + 1}</span>
+                    <span className="text-white/60 line-clamp-1">{challenge}</span>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Key Stakeholders */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="w-4 h-4 text-adl-accent" />
-                Key Stakeholders
-              </h3>
-              <div className="space-y-3">
-                {briefing.key_stakeholders.map((stakeholder, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-white/5 rounded-lg"
+          {/* Center Column - Framework Analysis */}
+          <div className="col-span-5 flex flex-col gap-4">
+            {/* Framework Pillars */}
+            <div className="flex-1 grid grid-cols-2 gap-3">
+              {PILLAR_CONFIGS.map((config, index) => {
+                const insight = briefing.pillar_insights[config.id];
+                const score = briefing.pillar_scores[config.id] || 0;
+                const Icon = PILLAR_ICONS[config.id];
+
+                return (
+                  <motion.button
+                    key={config.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => openPillarModal(config.id)}
+                    className={cn(
+                      'p-4 rounded-xl border text-left transition-all',
+                      config.bgColor,
+                      'border-white/10 hover:border-white/30'
+                    )}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">{stakeholder.name}</p>
-                        <p className="text-xs text-white/50">{stakeholder.role}</p>
-                        <p className="text-xs text-white/30 mt-1">{stakeholder.institution}</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Icon className={cn('w-5 h-5', config.color)} />
+                        <span className="font-medium text-white text-sm">{config.name}</span>
                       </div>
-                      <span className={cn(
-                        'text-[10px] px-2 py-0.5 rounded',
-                        stakeholder.stance === 'supportive' ? 'bg-emerald-500/20 text-emerald-300' :
-                        stakeholder.stance === 'critical' ? 'bg-red-500/20 text-red-300' :
-                        'bg-white/10 text-white/50'
-                      )}>
-                        {stakeholder.stance}
+                      <span className={cn('text-2xl font-bold', config.color)}>
+                        {score.toFixed(0)}
                       </span>
                     </div>
-                  </div>
-                ))}
-              </div>
+
+                    {/* Progress Bar */}
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
+                      <motion.div
+                        className={cn('h-full rounded-full', config.color.replace('text-', 'bg-'))}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${score}%` }}
+                        transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
+                      />
+                    </div>
+
+                    {/* Quick insight */}
+                    {insight?.key_issues?.[0] && (
+                      <p className="text-[10px] text-white/40 line-clamp-1">
+                        Issue: {insight.key_issues[0]}
+                      </p>
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
 
-            {/* Country Context */}
-            {briefing.country_context && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-yellow-400" />
-                  Quick Facts
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-white/50">Capital</span>
-                    <span className="text-white">{briefing.country_context.capital}</span>
+            {/* Country Slideshow */}
+            <div className="h-48 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+              <CountrySlideshow briefing={briefing} />
+            </div>
+          </div>
+
+          {/* Right Column - Stats & Economic Data */}
+          <div className="col-span-4 flex flex-col gap-4">
+            {/* Economic Indicators - Full Tile */}
+            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+              <EconomicIndicators briefing={briefing} variant="full" />
+            </div>
+
+            {/* Accept Mission CTA */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onAcceptMission}
+              className="flex-shrink-0 w-full py-4 bg-adl-accent text-white rounded-xl font-semibold text-lg hover:bg-adl-blue-light transition-colors shadow-lg shadow-adl-accent/25 flex items-center justify-center gap-3"
+            >
+              <Play className="w-6 h-6" />
+              Begin Simulation
+              <ChevronRight className="w-5 h-5" />
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals for Detailed Information */}
+      <BriefingModal
+        isOpen={activeModal === 'executive'}
+        onClose={() => setActiveModal(null)}
+        title="Executive Summary"
+        icon={<Globe2 className="w-5 h-5 text-adl-accent" />}
+      >
+        <p className="text-white/80 leading-relaxed whitespace-pre-line">
+          {briefing.executive_summary}
+        </p>
+      </BriefingModal>
+
+      <BriefingModal
+        isOpen={activeModal === 'socioeconomic'}
+        onClose={() => setActiveModal(null)}
+        title="Socioeconomic Context"
+        icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
+        size="lg"
+      >
+        <p className="text-white/80 leading-relaxed whitespace-pre-line">
+          {briefing.socioeconomic_context}
+        </p>
+        {briefing.future_outlook && (
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <h3 className="font-semibold text-white mb-2">Future Outlook</h3>
+            <p className="text-white/70">{briefing.future_outlook}</p>
+          </div>
+        )}
+      </BriefingModal>
+
+      <BriefingModal
+        isOpen={activeModal === 'cultural'}
+        onClose={() => setActiveModal(null)}
+        title="Cultural & Work Environment"
+        icon={<Users className="w-5 h-5 text-blue-400" />}
+      >
+        <p className="text-white/80 leading-relaxed whitespace-pre-line">
+          {briefing.cultural_factors}
+        </p>
+      </BriefingModal>
+
+      <BriefingModal
+        isOpen={activeModal === 'stakeholders'}
+        onClose={() => setActiveModal(null)}
+        title="Key Stakeholders"
+        icon={<Briefcase className="w-5 h-5 text-amber-400" />}
+        size="lg"
+      >
+        <div className="grid gap-4">
+          {briefing.key_stakeholders.map((stakeholder, index) => (
+            <div key={index} className="p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-semibold text-white">{stakeholder.name}</h4>
+                  <p className="text-sm text-white/60">{stakeholder.role}</p>
+                  <p className="text-xs text-white/40 mt-1">{stakeholder.institution}</p>
+                </div>
+                <span className={cn(
+                  'text-xs px-3 py-1 rounded-full',
+                  stakeholder.stance === 'supportive' ? 'bg-emerald-500/20 text-emerald-300' :
+                  stakeholder.stance === 'critical' ? 'bg-red-500/20 text-red-300' :
+                  'bg-white/10 text-white/50'
+                )}>
+                  {stakeholder.stance}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </BriefingModal>
+
+      <BriefingModal
+        isOpen={activeModal === 'articles'}
+        onClose={() => setActiveModal(null)}
+        title="Recent Developments"
+        icon={<Newspaper className="w-5 h-5 text-teal-400" />}
+        size="lg"
+      >
+        <div className="space-y-4">
+          {briefing.recent_articles?.map((article, index) => (
+            <div key={index} className="p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-white">{article.title}</h4>
+                  <p className="text-sm text-white/60 mt-2">{article.summary}</p>
+                  <div className="flex items-center gap-3 mt-3 text-xs text-white/40">
+                    <span>{article.source}</span>
+                    {article.date && <span>• {article.date}</span>}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/50">Ministry</span>
-                    <span className="text-white text-right text-xs">{briefing.country_context.ministry_abbreviation}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/50">Landmark</span>
-                    <span className="text-white">{briefing.country_context.iconic_landmark}</span>
+                </div>
+                <span className={cn(
+                  'text-xs px-2 py-1 rounded flex-shrink-0',
+                  article.relevance === 'governance' ? 'bg-purple-500/20 text-purple-300' :
+                  article.relevance === 'hazardControl' ? 'bg-blue-500/20 text-blue-300' :
+                  article.relevance === 'healthVigilance' ? 'bg-teal-500/20 text-teal-300' :
+                  'bg-amber-500/20 text-amber-300'
+                )}>
+                  {article.relevance}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </BriefingModal>
+
+      <BriefingModal
+        isOpen={activeModal === 'pillar' && selectedPillar !== null}
+        onClose={() => { setActiveModal(null); setSelectedPillar(null); }}
+        title={selectedPillar ? PILLAR_CONFIGS.find(p => p.id === selectedPillar)?.fullName || '' : ''}
+        icon={selectedPillar ? (() => {
+          const Icon = PILLAR_ICONS[selectedPillar];
+          const config = PILLAR_CONFIGS.find(p => p.id === selectedPillar);
+          return <Icon className={cn('w-5 h-5', config?.color)} />;
+        })() : null}
+        size="lg"
+      >
+        {selectedPillar && (() => {
+          const insight = briefing.pillar_insights[selectedPillar];
+          const score = briefing.pillar_scores[selectedPillar] || 0;
+          const config = PILLAR_CONFIGS.find(p => p.id === selectedPillar);
+
+          return (
+            <div className="space-y-6">
+              {/* Score */}
+              <div className="flex items-center gap-4">
+                <div className={cn('text-5xl font-bold', config?.color)}>
+                  {score.toFixed(0)}
+                </div>
+                <div>
+                  <div className="text-white/60 text-sm">Current Score</div>
+                  <div className="h-3 w-40 bg-white/10 rounded-full overflow-hidden mt-1">
+                    <div
+                      className={cn('h-full rounded-full', config?.color.replace('text-', 'bg-'))}
+                      style={{ width: `${score}%` }}
+                    />
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-center py-8"
-        >
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onAcceptMission}
-            className="inline-flex items-center gap-3 px-10 py-4 bg-adl-accent text-white rounded-xl font-semibold text-lg hover:bg-adl-blue-light transition-colors shadow-lg shadow-adl-accent/25"
-          >
-            <Play className="w-6 h-6" />
-            Begin Simulation
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-          <p className="text-white/30 text-sm mt-4">
-            Monthly rounds • Real policy decisions • AI-powered outcomes
-          </p>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
+              {/* Analysis */}
+              <div>
+                <h4 className="font-semibold text-white mb-2">Analysis</h4>
+                <p className="text-white/70">{insight?.analysis || 'No analysis available'}</p>
+              </div>
 
-function BriefingSection({
-  title,
-  icon,
-  isExpanded,
-  onToggle,
-  defaultExpanded,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  isExpanded: boolean;
-  onToggle: () => void;
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-}) {
-  const expanded = defaultExpanded || isExpanded;
+              {/* Key Issues */}
+              {insight?.key_issues && insight.key_issues.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-white mb-2">Key Issues</h4>
+                  <div className="space-y-2">
+                    {insight.key_issues.map((issue, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 bg-red-500/10 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                        <span className="text-sm text-white/80">{issue}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white/5 border border-white/10 rounded-xl overflow-hidden"
-    >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          {icon}
-          <span className="font-semibold text-white">{title}</span>
-        </div>
-        <ChevronDown
-          className={cn(
-            'w-5 h-5 text-white/40 transition-transform',
-            expanded && 'rotate-180'
-          )}
-        />
-      </button>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4">
-              {children}
+              {/* Opportunities */}
+              {insight?.opportunities && insight.opportunities.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-white mb-2">Opportunities</h4>
+                  <div className="space-y-2">
+                    {insight.opportunities.map((opp, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 bg-emerald-500/10 rounded-lg">
+                        <Lightbulb className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span className="text-sm text-white/80">{opp}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-function StatRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="text-sm text-white/60">{label}</span>
-      </div>
-      <span className="text-sm font-medium text-white">{value}</span>
+          );
+        })()}
+      </BriefingModal>
     </div>
   );
 }

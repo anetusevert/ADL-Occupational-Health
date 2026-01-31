@@ -39,3 +39,7 @@ export { AdvisorChoices, SimpleChoices } from './AdvisorChoices';
 // Data Visualization Components
 export { OHIDeltaChart } from './OHIDeltaChart';
 export { EconomicIndicators, EconomicIndicatorsCompact } from './EconomicIndicators';
+
+// Country Display Components
+export { CountrySlideshow, CountryProfile } from './CountrySlideshow';
+export { BriefingModal, InfoCard } from './BriefingModal';

@@ -3,9 +3,11 @@
  * 
  * Displays World Bank-style economic data for the country
  * Shows real-time indicators like GDP, health expenditure, labor force
+ * Full-tile version with development tracking over time
  */
 
-import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign,
   Users,
@@ -13,16 +15,22 @@ import {
   Briefcase,
   Building2,
   TrendingUp,
+  TrendingDown,
+  Minus,
   Globe2,
   HeartPulse,
+  BarChart3,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import type { CountryBriefing } from './types';
+import type { CountryBriefing, CycleHistory } from './types';
 
 interface EconomicIndicatorsProps {
   briefing: CountryBriefing | null;
   className?: string;
   compact?: boolean;
+  history?: CycleHistory[];
+  variant?: 'default' | 'full';
 }
 
 interface Indicator {
@@ -39,7 +47,11 @@ export function EconomicIndicators({
   briefing,
   className,
   compact = false,
+  history = [],
+  variant = 'default',
 }: EconomicIndicatorsProps) {
+  const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
+  const isFull = variant === 'full';
   // Extract economic data from briefing
   const stats = briefing?.key_statistics || {};
 
@@ -114,6 +126,164 @@ export function EconomicIndicators({
     );
   }
 
+  // Full variant - takes entire tile with development tracking
+  if (isFull) {
+    return (
+      <div className={cn('h-full flex flex-col', className)}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-medium text-white">Economic Indicators</span>
+          </div>
+          <span className="text-[10px] text-white/30 px-2 py-0.5 bg-white/5 rounded">
+            World Bank Data
+          </span>
+        </div>
+
+        {/* Main Indicators */}
+        <div className="flex-1 p-4 overflow-auto">
+          <div className="grid grid-cols-2 gap-3">
+            {indicators.map((indicator, index) => {
+              const Icon = indicator.icon;
+              const value = formatValue(indicator.value, indicator.unit);
+              const hasValue = indicator.value !== null && indicator.value !== undefined;
+              const isSelected = selectedIndicator === indicator.id;
+
+              return (
+                <motion.button
+                  key={indicator.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.08, duration: 0.3 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedIndicator(isSelected ? null : indicator.id)}
+                  className={cn(
+                    'p-3 rounded-xl border transition-all text-left',
+                    isSelected
+                      ? 'bg-emerald-500/20 border-emerald-500/30 ring-1 ring-emerald-500/30'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                      isSelected ? 'bg-emerald-500/30' : 'bg-white/5'
+                    )}>
+                      <Icon className={cn('w-5 h-5', indicator.color)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white/50">{indicator.label}</p>
+                      <p className={cn(
+                        'text-lg font-bold mt-0.5',
+                        hasValue ? 'text-white' : 'text-white/30'
+                      )}>
+                        {value}
+                      </p>
+                      {hasValue && indicator.unit && indicator.unit !== 'USD' && (
+                        <p className="text-[10px] text-white/40">{indicator.unit}</p>
+                      )}
+                    </div>
+
+                    {/* Trend Indicator (simulated) */}
+                    {hasValue && (
+                      <div className="flex items-center gap-1">
+                        {index % 3 === 0 ? (
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : index % 3 === 1 ? (
+                          <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+                        ) : (
+                          <Minus className="w-3.5 h-3.5 text-white/30" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expanded Detail */}
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="mt-3 pt-3 border-t border-white/10"
+                      >
+                        <p className="text-xs text-white/60">{indicator.description}</p>
+                        
+                        {/* Mini Chart */}
+                        <div className="mt-2 h-8 flex items-end gap-0.5">
+                          {[...Array(8)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${30 + Math.random() * 70}%` }}
+                              transition={{ delay: i * 0.05 }}
+                              className="flex-1 bg-gradient-to-t from-emerald-500/50 to-emerald-400/30 rounded-sm"
+                            />
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-white/30 mt-1">Historical trend (simulated)</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Country Context Footer */}
+          {briefing.country_context && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-4 pt-4 border-t border-white/10"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Globe2 className="w-3.5 h-3.5 text-white/40" />
+                <span className="text-xs text-white/60">Economic Profile</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-white/40">Capital</span>
+                  <span className="text-white">{briefing.country_context.capital || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/40">Difficulty</span>
+                  <span className={cn(
+                    'font-medium',
+                    briefing.difficulty_rating === 'Easy' ? 'text-emerald-400' :
+                    briefing.difficulty_rating === 'Medium' ? 'text-amber-400' :
+                    briefing.difficulty_rating === 'Hard' ? 'text-orange-400' :
+                    'text-red-400'
+                  )}>
+                    {briefing.difficulty_rating}
+                  </span>
+                </div>
+              </div>
+
+              {briefing.country_context.key_industries && briefing.country_context.key_industries.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {briefing.country_context.key_industries.slice(0, 4).map((industry, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 text-[10px] bg-white/5 rounded text-white/50"
+                    >
+                      {industry}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Default compact variant
   return (
     <div className={cn('', className)}>
       {/* Header */}

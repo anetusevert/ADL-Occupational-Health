@@ -3,6 +3,7 @@
  * Gradient Shift Animation Component
  * 
  * Dynamic background gradient animations
+ * Re-applied: 2026-01-31
  */
 
 import { motion } from "framer-motion";
@@ -26,7 +27,7 @@ export function GradientShift({
         className
       )}
       animate={{
-        background: colors.map(c => `linear-gradient(to bottom right, var(--tw-gradient-stops))`),
+        background: colors.map(() => `linear-gradient(to bottom right, var(--tw-gradient-stops))`),
       }}
       transition={{
         duration,
@@ -37,7 +38,7 @@ export function GradientShift({
   );
 }
 
-// Alternative: Animated gradient orbs
+// Animated gradient orbs for background effects
 interface GradientOrbsProps {
   count?: number;
   className?: string;

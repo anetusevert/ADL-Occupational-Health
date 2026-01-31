@@ -30,6 +30,7 @@ import { OHIScoreDisplay } from './OHIScoreDisplay';
 import { AdvisorPanel } from './AdvisorPanel';
 import { OHIDeltaChart } from './OHIDeltaChart';
 import { EconomicIndicators } from './EconomicIndicators';
+import { CountrySlideshow } from './CountrySlideshow';
 
 // Import game state
 import { useGame, GameProvider } from '../../hooks/useGameSimulation';
@@ -390,31 +391,21 @@ function GameInner() {
             </div>
           </div>
 
-          {/* Middle Right - Country Landmark */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
-            {briefing?.country_context?.iconic_landmark ? (
-              <LandmarkCard
-                landmark={briefing.country_context.iconic_landmark}
-                countryName={state.selectedCountry?.name || ''}
-                landmarkCity={briefing.country_context.landmark_city}
-                className="h-36"
-              />
-            ) : (
-              <div className="h-36 flex items-center justify-center">
-                <CountryLandmark
-                  landmark="National Monument"
-                  countryName={state.selectedCountry?.name || ''}
-                  size="md"
-                />
-              </div>
-            )}
+          {/* Middle Right - Country Slideshow */}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden h-44">
+            <CountrySlideshow
+              briefing={briefing}
+              autoPlay={true}
+              interval={6000}
+            />
           </div>
 
-          {/* Bottom Right - Economic Indicators (World Bank Data) */}
-          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 overflow-hidden">
+          {/* Bottom Right - Economic Indicators (World Bank Data) - Full Tile */}
+          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
             <EconomicIndicators
               briefing={briefing}
-              compact
+              variant="full"
+              history={state.history}
             />
           </div>
         </div>

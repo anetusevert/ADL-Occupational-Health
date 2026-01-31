@@ -3,6 +3,7 @@
  * Selection Summary Panel Component
  * 
  * Floating panel showing selected countries with remove capability
+ * Re-applied: 2026-01-31
  */
 
 import { motion, AnimatePresence } from "framer-motion";

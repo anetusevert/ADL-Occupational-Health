@@ -110,9 +110,10 @@ async def startup_event():
     try:
         with engine.connect() as conn:
             inspector = inspect(engine)
+            table_names = inspector.get_table_names()
             
             # Check if country_deep_dives table exists
-            if 'country_deep_dives' in inspector.get_table_names():
+            if 'country_deep_dives' in table_names:
                 columns = [col['name'] for col in inspector.get_columns('country_deep_dives')]
                 
                 # Add queue_position column if missing
@@ -121,10 +122,42 @@ async def startup_event():
                     conn.execute(text("ALTER TABLE country_deep_dives ADD COLUMN queue_position INTEGER"))
                     conn.commit()
                     print("Added queue_position column successfully")
-                else:
-                    print("queue_position column already exists")
-            else:
-                print("country_deep_dives table does not exist yet")
+            
+            # Migrate agents table - add new columns for visual workflow builder
+            if 'agents' in table_names:
+                columns = [col['name'] for col in inspector.get_columns('agents')]
+                
+                # Add position columns
+                if 'position_x' not in columns:
+                    print("Adding missing column to agents: position_x")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN position_x FLOAT DEFAULT 100"))
+                    conn.commit()
+                
+                if 'position_y' not in columns:
+                    print("Adding missing column to agents: position_y")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN position_y FLOAT DEFAULT 100"))
+                    conn.commit()
+                
+                # Add LLM override columns
+                if 'llm_provider' not in columns:
+                    print("Adding missing column to agents: llm_provider")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN llm_provider VARCHAR(50)"))
+                    conn.commit()
+                
+                if 'llm_model_name' not in columns:
+                    print("Adding missing column to agents: llm_model_name")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN llm_model_name VARCHAR(100)"))
+                    conn.commit()
+                
+                # Add workflow_id column (replacing workflow enum)
+                if 'workflow_id' not in columns:
+                    print("Adding missing column to agents: workflow_id")
+                    conn.execute(text("ALTER TABLE agents ADD COLUMN workflow_id VARCHAR(50)"))
+                    conn.commit()
+                
+                print("Agents table migration complete")
+            
+            print("All migrations completed successfully")
                 
     except Exception as e:
         print(f"Migration error (non-fatal): {e}")

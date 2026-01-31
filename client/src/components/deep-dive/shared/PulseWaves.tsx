@@ -3,6 +3,7 @@
  * Pulse Waves Animation Component
  * 
  * Expanding pulse rings for emphasis effects
+ * Re-applied: 2026-01-31
  */
 
 import { motion } from "framer-motion";

@@ -3,6 +3,7 @@
  * Orbiting Elements Animation Component
  * 
  * Decorative orbiting icons around a central element
+ * Re-applied: 2026-01-31
  */
 
 import { motion } from "framer-motion";
