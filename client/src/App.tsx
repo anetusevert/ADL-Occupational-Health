@@ -13,13 +13,13 @@ import { Login } from "./pages/Login";
 import {
   Home,
   CountryProfile,
-  Compare,
   FrameworkPage,
   DataEngine,
   Leaderboard,
   Simulator,
   CountryData,
 } from "./pages";
+import { CompareV2 } from "./pages/CompareV2";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { AIOrchestration } from "./pages/admin/AIOrchestration";
 import { AgentPrompts } from "./pages/admin/AgentPrompts";
@@ -201,7 +201,7 @@ function AppContent() {
             path="/compare"
             element={
               <ProtectedRoute>
-                <Compare />
+                <CompareV2 />
               </ProtectedRoute>
             }
           />
