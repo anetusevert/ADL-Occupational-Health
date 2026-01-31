@@ -83,13 +83,19 @@ async function fetchWithTimeout(
   timeoutMs: number = AUTH_TIMEOUT_MS
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => {
+    console.log(`[Auth] Request timed out after ${timeoutMs}ms`);
+    controller.abort();
+  }, timeoutMs);
 
   try {
+    console.log(`[Auth] Starting fetch to: ${url}`);
+    const startTime = Date.now();
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
     });
+    console.log(`[Auth] Fetch completed in ${Date.now() - startTime}ms, status: ${response.status}`);
     return response;
   } finally {
     clearTimeout(timeoutId);
@@ -154,25 +160,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state on mount
   useEffect(() => {
     const initAuth = async () => {
+      console.log("[Auth] Initializing auth state...");
       const storedToken = localStorage.getItem(TOKEN_KEY);
+      console.log("[Auth] Stored token exists:", !!storedToken);
       
       if (storedToken) {
         try {
+          console.log("[Auth] Validating stored token...");
           const userData = await fetchUser(storedToken);
           if (userData) {
+            console.log("[Auth] Token valid, user loaded");
             setUser(userData);
             setToken(storedToken);
             localStorage.setItem(USER_KEY, JSON.stringify(userData));
             setAuthError(null);
           } else {
             // Token invalid, clear storage
+            console.log("[Auth] Token invalid, clearing storage");
             localStorage.removeItem(TOKEN_KEY);
             localStorage.removeItem(USER_KEY);
             setToken(null);
             setUser(null);
           }
         } catch (error) {
-          console.error("Auth initialization failed:", error);
+          console.error("[Auth] Initialization failed:", error);
           // Clear invalid state
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
@@ -180,9 +191,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setAuthError("Unable to connect to authentication service");
         }
+      } else {
+        console.log("[Auth] No stored token, showing login");
       }
       
       // Always set loading to false, even if there was an error
+      console.log("[Auth] Setting isLoading to false");
       setIsLoading(false);
     };
 
