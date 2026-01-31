@@ -24,7 +24,7 @@ import {
   Eye,
   Sparkles,
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, getApiBaseUrl } from "../../lib/utils";
 import { GradientOrbs, FloatingParticles } from "./shared";
 
 interface ReportSection {
@@ -86,6 +86,34 @@ function parseReportSections(report: string): ReportSection[] {
   }
 
   return sections;
+}
+
+// Country flag with proper URL and error handling
+function CountryFlagHeader({ country }: { country: { iso_code: string; name: string; flag_url: string | null } | null }) {
+  const [imgError, setImgError] = useState(false);
+  const apiBaseUrl = getApiBaseUrl();
+  
+  if (!country) return null;
+  
+  const fullFlagUrl = country.flag_url ? `${apiBaseUrl}${country.flag_url}` : null;
+  
+  if (fullFlagUrl && !imgError) {
+    return (
+      <img 
+        src={fullFlagUrl} 
+        alt={country.name} 
+        className="w-8 h-5 object-cover rounded shadow-lg border border-slate-700"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  
+  // Fallback: show country code
+  return (
+    <div className="w-8 h-5 flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40 text-[8px] font-medium text-slate-400">
+      {country.iso_code.slice(0, 2)}
+    </div>
+  );
 }
 
 // Render markdown content
@@ -234,7 +262,7 @@ export function ReportDisplayStep({
               <span className="text-sm">Back</span>
             </motion.button>
             <div className="flex items-center gap-3">
-              {country?.flag_url && <img src={country.flag_url} alt={country.name} className="w-8 h-5 object-cover rounded shadow-lg border border-slate-700" />}
+              <CountryFlagHeader country={country} />
               <div>
                 <h2 className="text-lg font-semibold text-white line-clamp-1">{topic}</h2>
                 <p className="text-xs text-slate-500">{country?.name}</p>
