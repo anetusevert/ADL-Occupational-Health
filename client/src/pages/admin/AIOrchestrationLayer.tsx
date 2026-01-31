@@ -53,7 +53,7 @@ import {
   ExecutionPanel,
   type NodeTemplate,
   type ExecutionLogEntry,
-  type ExecutionRun,
+  type WorkflowTab,
 } from '../../components/orchestration';
 
 // =============================================================================
@@ -697,11 +697,10 @@ export function AIOrchestrationLayer() {
   // n8n-style UI state
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
-  const [isExecutionPanelExpanded, setIsExecutionPanelExpanded] = useState(false);
-  const [executionRuns, setExecutionRuns] = useState<ExecutionRun[]>([]);
-  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [isExecutionPanelCollapsed, setIsExecutionPanelCollapsed] = useState(true);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLogEntry[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
-  const [snapToGrid, setSnapToGrid] = useState(true);
 
   // Fetch agents and workflows
   const { data, isLoading, error, refetch } = useQuery({
@@ -823,10 +822,14 @@ export function AIOrchestrationLayer() {
       }
     : data;
 
-  // Get workflows with agent counts
-  const workflowsWithCounts = data.workflows.map(wf => ({
-    ...wf,
-    agent_count: data.agents.filter(a => a.workflow_id === wf.id).length,
+  // Get workflows with agent counts for tabs
+  const workflowTabs: WorkflowTab[] = data.workflows.map(wf => ({
+    id: wf.id,
+    name: wf.name,
+    description: wf.description || undefined,
+    color: wf.color || 'cyan',
+    agentCount: data.agents.filter(a => a.workflow_id === wf.id).length,
+    isDefault: wf.is_default,
   }));
 
   // Get selected workflow name
@@ -850,11 +853,11 @@ export function AIOrchestrationLayer() {
     <div className="h-full flex flex-col overflow-hidden bg-slate-900">
       {/* Workflow Tabs - n8n style */}
       <WorkflowTabs
-        workflows={workflowsWithCounts}
+        workflows={workflowTabs}
         activeWorkflowId={selectedWorkflowId}
-        onSelectWorkflow={setSelectedWorkflowId}
-        onCreateWorkflow={() => setShowCreateWorkflow(true)}
-        onDeleteWorkflow={(id) => {
+        onSelect={setSelectedWorkflowId}
+        onCreateNew={() => setShowCreateWorkflow(true)}
+        onDelete={(id) => {
           // Could add delete workflow mutation here
           console.log('Delete workflow:', id);
         }}
@@ -863,18 +866,30 @@ export function AIOrchestrationLayer() {
       {/* Canvas Toolbar - n8n style */}
       <CanvasToolbar
         workflowName={selectedWorkflowName}
-        saveStatus="saved"
-        runStatus="idle"
+        isSaved={true}
         showGrid={showGrid}
         onToggleGrid={() => setShowGrid(!showGrid)}
-        snapToGrid={snapToGrid}
-        onToggleSnap={() => setSnapToGrid(!snapToGrid)}
-        showMiniMap={showMiniMap}
-        onToggleMiniMap={() => setShowMiniMap(!showMiniMap)}
         onRun={() => {
           // Trigger workflow execution
-          console.log('Run workflow');
+          setIsRunning(true);
+          setExecutionLogs([
+            { id: '1', timestamp: new Date().toISOString(), agent: 'Orchestrator', status: 'starting', message: 'Starting workflow execution...', emoji: '🚀' },
+          ]);
+          // Simulate workflow run
+          setTimeout(() => {
+            setExecutionLogs(prev => [...prev,
+              { id: '2', timestamp: new Date().toISOString(), agent: 'ResearchAgent', status: 'running', message: 'Researching data...', emoji: '🔍' },
+            ]);
+          }, 1000);
+          setTimeout(() => {
+            setExecutionLogs(prev => [...prev,
+              { id: '3', timestamp: new Date().toISOString(), agent: 'ResearchAgent', status: 'complete', message: 'Research complete', emoji: '✅' },
+            ]);
+            setIsRunning(false);
+          }, 3000);
+          setIsExecutionPanelCollapsed(false);
         }}
+        isRunning={isRunning}
       />
 
       {/* Main Content Area */}
@@ -883,7 +898,7 @@ export function AIOrchestrationLayer() {
         <NodePalette
           onDragStart={handlePaletteDragStart}
           onAddNode={handleAddNodeFromPalette}
-          isCollapsed={isPaletteCollapsed}
+          collapsed={isPaletteCollapsed}
           onToggleCollapse={() => setIsPaletteCollapsed(!isPaletteCollapsed)}
         />
 
@@ -914,10 +929,11 @@ export function AIOrchestrationLayer() {
 
       {/* Execution Panel - n8n style bottom panel */}
       <ExecutionPanel
-        runs={executionRuns}
-        isExpanded={isExecutionPanelExpanded}
-        onToggleExpand={() => setIsExecutionPanelExpanded(!isExecutionPanelExpanded)}
-        onClearLogs={() => setExecutionRuns([])}
+        isRunning={isRunning}
+        logs={executionLogs}
+        collapsed={isExecutionPanelCollapsed}
+        onToggleCollapse={() => setIsExecutionPanelCollapsed(!isExecutionPanelCollapsed)}
+        onClear={() => setExecutionLogs([])}
       />
     </div>
   );
