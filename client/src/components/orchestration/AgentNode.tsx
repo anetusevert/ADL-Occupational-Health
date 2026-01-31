@@ -1,7 +1,7 @@
 /**
  * AgentNode - Custom React Flow node for AI agents
  * 
- * Displays an agent as a draggable node in the workflow canvas.
+ * n8n-style design: clean, minimal with visible connection handles.
  */
 
 import React, { memo } from 'react';
@@ -17,6 +17,8 @@ import {
   Zap,
   Cpu,
   Settings,
+  FileText,
+  MessageSquare,
 } from 'lucide-react';
 
 // Icon mapping
@@ -32,51 +34,56 @@ const ICON_MAP: Record<string, React.ElementType> = {
   cpu: Cpu,
   bot: Brain,
   settings: Settings,
+  'file-text': FileText,
+  message: MessageSquare,
 };
 
-// Color mapping for node styling
-const COLOR_CLASSES: Record<string, { bg: string; border: string; text: string; handle: string }> = {
+// n8n-style color accents (subtle, professional)
+const COLOR_ACCENTS: Record<string, { accent: string; bg: string; iconBg: string }> = {
   blue: {
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/50',
-    text: 'text-blue-400',
-    handle: 'bg-blue-400',
+    accent: '#3b82f6',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-blue-500/20',
   },
   cyan: {
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/50',
-    text: 'text-cyan-400',
-    handle: 'bg-cyan-400',
+    accent: '#06b6d4',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-cyan-500/20',
   },
   purple: {
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/50',
-    text: 'text-purple-400',
-    handle: 'bg-purple-400',
+    accent: '#8b5cf6',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-purple-500/20',
   },
   amber: {
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/50',
-    text: 'text-amber-400',
-    handle: 'bg-amber-400',
+    accent: '#f59e0b',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-amber-500/20',
   },
   emerald: {
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/50',
-    text: 'text-emerald-400',
-    handle: 'bg-emerald-400',
+    accent: '#10b981',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-emerald-500/20',
   },
   pink: {
-    bg: 'bg-pink-500/10',
-    border: 'border-pink-500/50',
-    text: 'text-pink-400',
-    handle: 'bg-pink-400',
+    accent: '#ec4899',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-pink-500/20',
   },
   slate: {
-    bg: 'bg-slate-500/10',
-    border: 'border-slate-500/50',
-    text: 'text-slate-400',
-    handle: 'bg-slate-400',
+    accent: '#64748b',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-slate-500/20',
+  },
+  orange: {
+    accent: '#f97316',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-orange-500/20',
+  },
+  teal: {
+    accent: '#14b8a6',
+    bg: 'bg-slate-800',
+    iconBg: 'bg-teal-500/20',
   },
 };
 
@@ -94,56 +101,84 @@ export interface AgentNodeData {
 
 function AgentNodeComponent({ data, selected }: NodeProps<AgentNodeData>) {
   const IconComponent = ICON_MAP[data.icon || 'bot'] || Brain;
-  const colors = COLOR_CLASSES[data.color || 'cyan'] || COLOR_CLASSES.cyan;
+  const colors = COLOR_ACCENTS[data.color || 'cyan'] || COLOR_ACCENTS.cyan;
   
   return (
     <div
       className={`
-        relative px-4 py-3 rounded-xl border-2 min-w-[160px] max-w-[200px]
-        transition-all duration-200 cursor-pointer
-        ${colors.bg} ${colors.border}
-        ${selected ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900' : ''}
-        hover:scale-105
+        relative rounded-lg shadow-lg
+        transition-all duration-150
+        ${colors.bg}
+        ${selected 
+          ? 'ring-2 ring-offset-2 ring-offset-slate-900' 
+          : 'hover:shadow-xl'
+        }
       `}
+      style={{
+        borderLeft: `4px solid ${colors.accent}`,
+        minWidth: '160px',
+        maxWidth: '200px',
+        ...(selected ? { '--tw-ring-color': colors.accent } as React.CSSProperties : {}),
+      }}
     >
-      {/* Input Handle */}
+      {/* Input Handle - Left side */}
       <Handle
         type="target"
         position={Position.Left}
-        className={`w-3 h-3 ${colors.handle} border-2 border-slate-900`}
+        className="!w-3 !h-3 !bg-slate-400 !border-2 !border-slate-600 hover:!bg-white hover:!border-slate-400 transition-colors"
+        style={{ left: -6 }}
       />
       
-      {/* Content */}
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg ${colors.bg} ${colors.border} border`}>
-          <IconComponent className={`w-5 h-5 ${colors.text}`} />
+      {/* Node Content */}
+      <div className="px-3 py-2.5">
+        {/* Header with icon and name */}
+        <div className="flex items-center gap-2.5">
+          {/* Icon container */}
+          <div 
+            className={`p-1.5 rounded ${colors.iconBg} flex-shrink-0`}
+          >
+            <IconComponent 
+              className="w-4 h-4" 
+              style={{ color: colors.accent }}
+            />
+          </div>
+          
+          {/* Name and category */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-white truncate leading-tight">
+              {data.name}
+            </h3>
+            {data.category && (
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
+                {data.category}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-white truncate">{data.name}</h3>
-          {data.category && (
-            <p className="text-xs text-slate-400 truncate">{data.category}</p>
-          )}
-        </div>
+        
+        {/* LLM Override - compact display */}
+        {data.llm_provider && (
+          <div className="mt-2 flex items-center gap-1 text-[10px] text-slate-500">
+            <Cpu className="w-3 h-3" />
+            <span className="truncate">{data.llm_model_name || data.llm_provider}</span>
+          </div>
+        )}
       </div>
       
-      {/* LLM Override Indicator */}
-      {data.llm_provider && (
-        <div className="mt-2 px-2 py-1 bg-slate-800/50 rounded text-xs text-slate-400 flex items-center gap-1">
-          <Cpu className="w-3 h-3" />
-          <span className="truncate">{data.llm_model_name || data.llm_provider}</span>
-        </div>
-      )}
-      
-      {/* Status Indicator */}
+      {/* Status Indicator - inactive */}
       {data.is_active === false && (
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900" />
+        <div 
+          className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900"
+          title="Inactive"
+        />
       )}
       
-      {/* Output Handle */}
+      {/* Output Handle - Right side */}
       <Handle
         type="source"
         position={Position.Right}
-        className={`w-3 h-3 ${colors.handle} border-2 border-slate-900`}
+        className="!w-3 !h-3 !bg-slate-400 !border-2 !border-slate-600 hover:!bg-white hover:!border-slate-400 transition-colors"
+        style={{ right: -6 }}
       />
     </div>
   );

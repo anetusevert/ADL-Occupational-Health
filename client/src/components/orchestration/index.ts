@@ -24,3 +24,5 @@ export { CanvasToolbar } from './CanvasToolbar';
 
 export { ExecutionPanel } from './ExecutionPanel';
 export type { ExecutionLogEntry, ExecutionResult } from './ExecutionPanel';
+
+export { CustomEdge } from './CustomEdge';

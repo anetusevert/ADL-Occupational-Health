@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import Integer
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_admin_user
+from app.core.dependencies import get_current_admin_user, get_current_user
 from app.models.user import User
 from app.models.country import Country, CountryDeepDive, DeepDiveStatus
 from app.services.strategic_deep_dive_agent import (
@@ -246,9 +246,9 @@ async def strategic_deep_dive_health(
 
 @router.get("/topics", response_model=TopicsResponse)
 async def get_analysis_topics(
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get available analysis topics for deep dive."""
+    """Get available analysis topics for deep dive. Available to all authenticated users."""
     topics = [
         TopicOption(
             id="comprehensive",
@@ -302,9 +302,9 @@ async def get_analysis_topics(
 @router.get("/countries", response_model=AllCountriesResponse)
 async def get_all_countries_with_status(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get all countries with their deep dive status."""
+    """Get all countries with their deep dive status. Available to all authenticated users."""
     from collections import defaultdict
     
     # Get all countries
@@ -383,10 +383,11 @@ async def get_country_deep_dive(
     iso_code: str,
     topic: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get the deep dive report for a specific country and topic.
+    Available to all authenticated users.
     
     If topic is not specified, returns the first available report.
     """
@@ -457,9 +458,9 @@ async def generate_country_deep_dive(
     iso_code: str,
     request: GenerateDeepDiveRequest = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
-    """Generate a deep dive report for a specific country."""
+    """Generate a deep dive report for a specific country. Available to all authenticated users for auto-generation."""
     # Verify country exists
     country = db.query(Country).filter(
         Country.iso_code == iso_code.upper()

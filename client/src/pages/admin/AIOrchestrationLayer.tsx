@@ -20,6 +20,7 @@ import {
   Node,
   Edge,
   NodeTypes,
+  EdgeTypes,
   BackgroundVariant,
   useReactFlow,
   ReactFlowProvider,
@@ -51,6 +52,7 @@ import {
   NodePalette,
   CanvasToolbar,
   ExecutionPanel,
+  CustomEdge,
   type NodeTemplate,
   type ExecutionLogEntry,
   type WorkflowTab,
@@ -176,9 +178,8 @@ async function deleteConnection(connectionId: string): Promise<void> {
 // CONSTANTS
 // =============================================================================
 
-const LANE_HEIGHT = 200;
-const LANE_PADDING = 40;
 const GRID_SIZE = 25;
+const NODE_SPACING = 280;
 const SNAP_DISTANCE = 80;
 
 const WORKFLOW_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -201,53 +202,6 @@ const WORKFLOW_COLORS: Record<string, { bg: string; border: string; text: string
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
 };
-
-// =============================================================================
-// WORKFLOW LANE COMPONENT
-// =============================================================================
-
-interface WorkflowLaneProps {
-  workflow: WorkflowType;
-  laneY: number;
-  width: number;
-}
-
-function WorkflowLane({ workflow, laneY, width }: WorkflowLaneProps) {
-  const colors = WORKFLOW_COLORS[workflow.color || 'cyan'] || WORKFLOW_COLORS.cyan;
-  
-  return (
-    <div
-      className="absolute pointer-events-none"
-      style={{
-        left: 0,
-        top: laneY,
-        width: width,
-        height: LANE_HEIGHT,
-      }}
-    >
-      {/* Lane Background */}
-      <div
-        className="absolute inset-0 rounded-lg"
-        style={{
-          background: colors.bg,
-          border: `1px dashed ${colors.border}`,
-        }}
-      />
-      
-      {/* Lane Header */}
-      <div
-        className="absolute -top-6 left-4 px-3 py-1 rounded-full text-xs font-medium"
-        style={{
-          backgroundColor: colors.bg,
-          border: `1px solid ${colors.border}`,
-          color: colors.text,
-        }}
-      >
-        {workflow.name}
-      </div>
-    </div>
-  );
-}
 
 // =============================================================================
 // CONNECTION SUGGESTION OVERLAY
@@ -341,17 +295,6 @@ function FlowComponent({
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [nearbyNode, setNearbyNode] = useState<string | null>(null);
 
-  // Calculate lane positions
-  const lanePositions = useMemo(() => {
-    const positions: Record<string, number> = {};
-    data.workflows
-      .sort((a, b) => (a.lane_order || 0) - (b.lane_order || 0))
-      .forEach((wf, idx) => {
-        positions[wf.id] = idx * (LANE_HEIGHT + LANE_PADDING) + LANE_PADDING;
-      });
-    return positions;
-  }, [data.workflows]);
-
   // Convert agents to React Flow nodes with horizontal layout
   useEffect(() => {
     if (!data?.agents) return;
@@ -390,17 +333,14 @@ function FlowComponent({
 
     setNodes(newNodes);
 
-    // Create edges from connections - improved styling
+    // Create edges from connections - n8n style
     const newEdges: Edge[] = data.connections.map(conn => ({
       id: conn.id,
       source: conn.source,
       target: conn.target,
+      type: 'custom',
       animated: false,
-      style: { stroke: '#64748b', strokeWidth: 2.5 },
-      type: 'bezier',
-      label: '',
-      labelStyle: { fill: '#94a3b8', fontSize: 11 },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8 },
+      data: { label: '' },
     }));
 
     setEdges(newEdges);
@@ -521,12 +461,6 @@ function FlowComponent({
     return data.agents.find(a => a.id === selectedAgentId) || null;
   }, [data?.agents, selectedAgentId]);
 
-  // Calculate canvas width
-  const canvasWidth = Math.max(
-    1500,
-    ...data.agents.map(a => (a.position_x || 0) + 400)
-  );
-
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Canvas */}
@@ -541,15 +475,15 @@ function FlowComponent({
           onNodeDragStop={onNodeDragStop}
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           snapToGrid={showGrid}
           snapGrid={[GRID_SIZE, GRID_SIZE]}
           fitView
           className="bg-slate-900"
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{
-            type: 'bezier',
+            type: 'custom',
             animated: false,
-            style: { stroke: '#64748b', strokeWidth: 2.5 },
           }}
         >
           <Background
@@ -863,25 +797,90 @@ export function AIOrchestrationLayer() {
         isSaved={true}
         showGrid={showGrid}
         onToggleGrid={() => setShowGrid(!showGrid)}
-        onRun={() => {
-          // Trigger workflow execution
+        onRun={async () => {
+          // Get agents to test
+          const agentsToTest = filteredData.agents.sort((a, b) => 
+            (a.order_in_workflow || 0) - (b.order_in_workflow || 0)
+          );
+          
+          if (agentsToTest.length === 0) {
+            setExecutionLogs([{
+              id: 'error-1',
+              timestamp: new Date().toISOString(),
+              agent: 'Orchestrator',
+              status: 'error',
+              message: 'No agents in workflow to test',
+              emoji: '❌',
+            }]);
+            setIsExecutionPanelCollapsed(false);
+            return;
+          }
+          
+          // Start execution
           setIsRunning(true);
-          setExecutionLogs([
-            { id: '1', timestamp: new Date().toISOString(), agent: 'Orchestrator', status: 'starting', message: 'Starting workflow execution...', emoji: '🚀' },
-          ]);
-          // Simulate workflow run
-          setTimeout(() => {
-            setExecutionLogs(prev => [...prev,
-              { id: '2', timestamp: new Date().toISOString(), agent: 'ResearchAgent', status: 'running', message: 'Researching data...', emoji: '🔍' },
-            ]);
-          }, 1000);
-          setTimeout(() => {
-            setExecutionLogs(prev => [...prev,
-              { id: '3', timestamp: new Date().toISOString(), agent: 'ResearchAgent', status: 'complete', message: 'Research complete', emoji: '✅' },
-            ]);
-            setIsRunning(false);
-          }, 3000);
           setIsExecutionPanelCollapsed(false);
+          setExecutionLogs([{
+            id: 'start',
+            timestamp: new Date().toISOString(),
+            agent: 'Orchestrator',
+            status: 'starting',
+            message: `Starting workflow test with ${agentsToTest.length} agent(s)...`,
+            emoji: '🚀',
+          }]);
+          
+          // Test each agent sequentially
+          for (let i = 0; i < agentsToTest.length; i++) {
+            const agent = agentsToTest[i];
+            const logId = `agent-${i}`;
+            
+            // Log running status
+            setExecutionLogs(prev => [...prev, {
+              id: `${logId}-start`,
+              timestamp: new Date().toISOString(),
+              agent: agent.name,
+              status: 'running',
+              message: `Testing agent...`,
+              emoji: '⏳',
+            }]);
+            
+            try {
+              // Actually test the agent
+              const result = await testAgent(agent.id);
+              
+              // Log result
+              setExecutionLogs(prev => [...prev, {
+                id: `${logId}-result`,
+                timestamp: new Date().toISOString(),
+                agent: agent.name,
+                status: result.success ? 'complete' : 'error',
+                message: result.success 
+                  ? `Test passed (${result.latency_ms || 0}ms)` 
+                  : `Test failed: ${result.error || 'Unknown error'}`,
+                emoji: result.success ? '✅' : '❌',
+                duration_ms: result.latency_ms,
+              }]);
+            } catch (err: any) {
+              setExecutionLogs(prev => [...prev, {
+                id: `${logId}-error`,
+                timestamp: new Date().toISOString(),
+                agent: agent.name,
+                status: 'error',
+                message: `Error: ${err.message || 'Test failed'}`,
+                emoji: '❌',
+              }]);
+            }
+          }
+          
+          // Finish
+          setExecutionLogs(prev => [...prev, {
+            id: 'complete',
+            timestamp: new Date().toISOString(),
+            agent: 'Orchestrator',
+            status: 'complete',
+            message: 'Workflow test complete',
+            emoji: '🎯',
+          }]);
+          setIsRunning(false);
         }}
         isRunning={isRunning}
       />
