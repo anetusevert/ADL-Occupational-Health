@@ -17,7 +17,31 @@ import type {
 // AXIOS INSTANCE
 // ============================================================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Detect API base URL with Railway auto-detection
+function getApiBaseUrl(): string {
+  // First priority: explicitly set environment variable
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Second priority: auto-detect for Railway deployments
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname.includes('.up.railway.app')) {
+      // For Railway, assume backend is on same project with "back-end" prefix
+      // Frontend: front-end-production-xxxx.up.railway.app
+      // Backend:  back-end-production-xxxx.up.railway.app
+      const backendHost = hostname.replace('front-end', 'back-end');
+      console.log(`[API] Auto-detected Railway backend: https://${backendHost}`);
+      return `https://${backendHost}`;
+    }
+  }
+  
+  // Fallback for local development
+  return "http://localhost:8000";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Standard API client for quick operations
 export const apiClient = axios.create({
