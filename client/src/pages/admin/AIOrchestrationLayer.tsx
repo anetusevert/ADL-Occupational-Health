@@ -2,40 +2,51 @@
  * AI Orchestration Layer
  * ======================
  * 
- * Simple dashboard showing all workflows with their usage statistics.
+ * Simple view of all AI agents with ability to view/edit prompts and test.
  */
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Workflow,
+  Bot,
   Loader2,
   XCircle,
   RefreshCw,
   Plus,
-  Search,
-  Filter,
-  LayoutGrid,
-  List,
 } from 'lucide-react';
 import { apiClient } from '../../services/api';
-import { WorkflowCard, WorkflowDashboardData } from '../../components/orchestration';
-import { cn } from '../../lib/utils';
+import { AgentCard, AgentData, AgentEditModal, AgentTestModal } from '../../components/orchestration';
 
 // =============================================================================
 // API FUNCTIONS
 // =============================================================================
 
-async function getWorkflowDashboard(): Promise<WorkflowDashboardData[]> {
-  const response = await apiClient.get<WorkflowDashboardData[]>('/api/v1/orchestration/workflows/dashboard');
+interface AgentListResponse {
+  agents: AgentData[];
+  total: number;
+}
+
+async function getAgents(): Promise<AgentData[]> {
+  const response = await apiClient.get<AgentListResponse>('/api/v1/orchestration/agents');
+  return response.data.agents;
+}
+
+async function updateAgent(
+  agentId: string, 
+  updates: { system_prompt?: string; user_prompt_template?: string }
+): Promise<void> {
+  await apiClient.patch(`/api/v1/orchestration/agents/${agentId}`, updates);
+}
+
+async function testAgent(
+  agentId: string, 
+  variables: Record<string, string>
+): Promise<{ success: boolean; output?: string; error?: string; execution_time_ms?: number }> {
+  const response = await apiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, { variables });
   return response.data;
 }
 
-async function toggleWorkflowActive(workflowId: string, isActive: boolean): Promise<void> {
-  await apiClient.patch(`/api/v1/orchestration/workflows/${workflowId}`, { is_active: isActive });
-}
-
-async function initializeOrchestration(): Promise<{ success: boolean; message: string }> {
+async function initializeAgents(): Promise<{ success: boolean; message: string }> {
   const response = await apiClient.post('/api/v1/orchestration/init');
   return response.data;
 }
@@ -46,68 +57,58 @@ async function initializeOrchestration(): Promise<{ success: boolean; message: s
 
 export function AIOrchestrationLayer() {
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Modal states
+  const [editAgent, setEditAgent] = useState<AgentData | null>(null);
+  const [testAgentData, setTestAgentData] = useState<AgentData | null>(null);
 
-  // Fetch workflow dashboard data
-  const { data: workflows, isLoading, error, refetch } = useQuery({
-    queryKey: ['workflow-dashboard'],
-    queryFn: getWorkflowDashboard,
+  // Fetch agents
+  const { data: agents, isLoading, error, refetch } = useQuery({
+    queryKey: ['agents'],
+    queryFn: getAgents,
     staleTime: 30000,
     retry: 2,
   });
 
-  // Toggle workflow active mutation
-  const toggleMutation = useMutation({
-    mutationFn: ({ workflowId, isActive }: { workflowId: string; isActive: boolean }) =>
-      toggleWorkflowActive(workflowId, isActive),
+  // Update agent mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ agentId, updates }: { agentId: string; updates: { system_prompt?: string; user_prompt_template?: string } }) =>
+      updateAgent(agentId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workflow-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      setEditAgent(null);
     },
   });
 
-  // Initialize/seed orchestration data
+  // Initialize agents mutation
   const initMutation = useMutation({
-    mutationFn: initializeOrchestration,
+    mutationFn: initializeAgents,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workflow-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
     },
   });
 
-  // Filter workflows
-  const filteredWorkflows = workflows?.filter(wf => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      if (!wf.name.toLowerCase().includes(query) && 
-          !wf.description?.toLowerCase().includes(query)) {
-        return false;
-      }
-    }
-    // Active filter
-    if (filterActive === 'active' && !wf.is_active) return false;
-    if (filterActive === 'inactive' && wf.is_active) return false;
-    return true;
-  }) || [];
-
-  // Calculate summary stats
-  const totalWorkflows = workflows?.length || 0;
-  const activeWorkflows = workflows?.filter(w => w.is_active).length || 0;
-  const totalRuns = workflows?.reduce((sum, w) => sum + w.execution_count, 0) || 0;
-  const avgSuccessRate = workflows?.length 
-    ? workflows.reduce((sum, w) => sum + w.success_rate, 0) / workflows.length 
-    : 0;
-
-  // Handle toggle
-  const handleToggleActive = (workflowId: string, isActive: boolean) => {
-    toggleMutation.mutate({ workflowId, isActive });
+  // Handlers
+  const handleViewPrompts = (agent: AgentData) => {
+    setEditAgent(agent);
   };
 
-  // Handle run (placeholder - would trigger workflow execution)
-  const handleRun = (workflowId: string) => {
-    console.log('Run workflow:', workflowId);
-    // TODO: Implement workflow execution
+  const handleTest = (agent: AgentData) => {
+    setTestAgentData(agent);
+  };
+
+  const handleSavePrompts = async (
+    agentId: string, 
+    updates: { system_prompt?: string; user_prompt_template?: string }
+  ) => {
+    await updateMutation.mutateAsync({ agentId, updates });
+  };
+
+  const handleRunTest = async (
+    agentId: string, 
+    variables: Record<string, string>
+  ) => {
+    return await testAgent(agentId, variables);
   };
 
   // Loading state
@@ -116,7 +117,7 @@ export function AIOrchestrationLayer() {
       <div className="h-full flex items-center justify-center bg-slate-900">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading workflows...</p>
+          <p className="text-slate-400">Loading agents...</p>
         </div>
       </div>
     );
@@ -160,14 +161,16 @@ export function AIOrchestrationLayer() {
     <div className="h-full flex flex-col overflow-hidden bg-slate-900">
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-white/10">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-cyan-500/20">
-              <Workflow className="w-6 h-6 text-cyan-400" />
+              <Bot className="w-6 h-6 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">AI Orchestration</h1>
-              <p className="text-sm text-slate-400">Manage and monitor AI workflows</p>
+              <h1 className="text-xl font-semibold text-white">AI Agents</h1>
+              <p className="text-sm text-slate-400">
+                {agents?.length || 0} agents available
+              </p>
             </div>
           </div>
           
@@ -179,131 +182,60 @@ export function AIOrchestrationLayer() {
             Refresh
           </button>
         </div>
-
-        {/* Stats Summary */}
-        <div className="grid grid-cols-4 gap-4 mb-4">
-          <div className="bg-slate-800/50 rounded-lg px-4 py-3 border border-white/5">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Total Workflows</p>
-            <p className="text-2xl font-semibold text-white">{totalWorkflows}</p>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg px-4 py-3 border border-white/5">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Active</p>
-            <p className="text-2xl font-semibold text-emerald-400">{activeWorkflows}</p>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg px-4 py-3 border border-white/5">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Total Runs</p>
-            <p className="text-2xl font-semibold text-white">{totalRuns}</p>
-          </div>
-          <div className="bg-slate-800/50 rounded-lg px-4 py-3 border border-white/5">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Avg Success</p>
-            <p className={cn(
-              'text-2xl font-semibold',
-              avgSuccessRate >= 90 ? 'text-emerald-400' :
-              avgSuccessRate >= 70 ? 'text-amber-400' :
-              'text-red-400'
-            )}>
-              {avgSuccessRate.toFixed(1)}%
-            </p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search workflows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
-            />
-          </div>
-
-          {/* Active Filter */}
-          <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
-            {(['all', 'active', 'inactive'] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterActive(status)}
-                className={cn(
-                  'px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                  filterActive === status
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-400 hover:text-white'
-                )}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'grid' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-              )}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'p-2 rounded transition-colors',
-                viewMode === 'list' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
-              )}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {filteredWorkflows.length === 0 ? (
+        {!agents || agents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <Workflow className="w-16 h-16 text-slate-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No workflows found</h3>
+            <Bot className="w-16 h-16 text-slate-600 mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">No agents found</h3>
             <p className="text-slate-400 mb-4">
-              {searchQuery ? 'Try adjusting your search' : 'Initialize to create default workflows'}
+              Initialize to create default agents
             </p>
-            {!searchQuery && (
-              <button
-                onClick={() => initMutation.mutate()}
-                disabled={initMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-400 disabled:opacity-50"
-              >
-                {initMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                Initialize Workflows
-              </button>
-            )}
+            <button
+              onClick={() => initMutation.mutate()}
+              disabled={initMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-400 disabled:opacity-50"
+            >
+              {initMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Initialize Agents
+            </button>
           </div>
         ) : (
-          <div className={cn(
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'flex flex-col gap-4'
-          )}>
-            {filteredWorkflows.map((workflow) => (
-              <WorkflowCard
-                key={workflow.id}
-                workflow={workflow}
-                onToggleActive={handleToggleActive}
-                onRun={handleRun}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {agents.map((agent) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                onViewPrompts={handleViewPrompts}
+                onTest={handleTest}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <AgentEditModal
+        agent={editAgent}
+        isOpen={!!editAgent}
+        onClose={() => setEditAgent(null)}
+        onSave={handleSavePrompts}
+        isSaving={updateMutation.isPending}
+      />
+
+      {/* Test Modal */}
+      <AgentTestModal
+        agent={testAgentData}
+        isOpen={!!testAgentData}
+        onClose={() => setTestAgentData(null)}
+        onTest={handleRunTest}
+      />
     </div>
   );
 }
