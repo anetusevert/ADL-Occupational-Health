@@ -8,6 +8,7 @@ Generates strategic intelligence reports by country and topic using:
 - CountryDeepDive model for persistent storage
 """
 
+import asyncio
 import logging
 import json
 import uuid
@@ -385,20 +386,43 @@ async def generate_report(
     db.refresh(dive)
     
     try:
-        # Run the report-generation agent SYNCHRONOUSLY
+        # Run the report-generation agent SYNCHRONOUSLY with timeout
+        # Railway has ~60s timeout, so we use 50s to ensure response is sent
         log_step("AgentRunner", "running", "Executing report-generation agent with database context", "🤖")
         
         runner = AgentRunner(db, ai_config)
-        result = await runner.run(
-            agent_id="report-generation",
-            variables={
-                "ISO_CODE": iso_code,
-                "TOPIC": request.topic,
-                # DATABASE_CONTEXT and COUNTRY_NAME are auto-injected by AgentRunner
-            },
-            update_stats=True,
-            enable_web_search=request.enable_web_search,
-        )
+        
+        try:
+            result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="report-generation",
+                    variables={
+                        "ISO_CODE": iso_code,
+                        "TOPIC": request.topic,
+                        # DATABASE_CONTEXT and COUNTRY_NAME are auto-injected by AgentRunner
+                    },
+                    update_stats=True,
+                    enable_web_search=request.enable_web_search,
+                ),
+                timeout=50.0  # 50 second timeout to stay within Railway limits
+            )
+        except asyncio.TimeoutError:
+            # Request timed out - return graceful error so CORS headers are sent
+            dive.status = DeepDiveStatus.FAILED
+            dive.error_message = "Request timed out - AI model took too long"
+            dive.generated_at = datetime.utcnow()
+            db.commit()
+            
+            log_step("AgentRunner", "timeout", "Request timed out after 50 seconds", "⏱️")
+            
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name=country.name,
+                report=None,
+                agent_log=agent_log,
+                error="Generation timed out. The AI model is taking too long. Please try again.",
+            )
         
         if not result["success"]:
             dive.status = DeepDiveStatus.FAILED
