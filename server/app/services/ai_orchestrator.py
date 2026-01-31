@@ -37,6 +37,7 @@ from app.models.country import (
     Pillar3Restoration,
 )
 from app.models.user import AIConfig, AIProvider
+from app.services.ai_call_tracer import AICallTracer, trace_ai_call
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -1191,10 +1192,18 @@ def call_orchestrator_llm(
     metrics_context: str,
     country_name: str,
     topic: str,
+    db: Optional[Session] = None,
+    country_iso_code: Optional[str] = None,
+    user_id: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Call configured LLM to synthesize research and metrics into strategic analysis.
     """
+    import time
+    start_time = time.time()
+    success = False
+    error_message = None
+    
     try:
         from langchain_core.messages import SystemMessage, HumanMessage
         
@@ -1226,14 +1235,38 @@ Output ONLY valid JSON matching the required schema."""
                 content = content[4:]
             content = content.strip()
         
-        return json.loads(content)
+        result = json.loads(content)
+        success = True
+        return result
         
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
+        error_message = f"JSON parse error: {str(e)}"
         return None
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
+        error_message = str(e)
         return None
+    finally:
+        # Log the trace if db session is available
+        if db:
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                AICallTracer.trace(
+                    db=db,
+                    provider=config.provider.value,
+                    model_name=config.model_name,
+                    operation_type="orchestrator_synthesis",
+                    success=success,
+                    latency_ms=latency_ms,
+                    endpoint="/api/v1/ai/deep-dive",
+                    country_iso_code=country_iso_code,
+                    topic=topic,
+                    error_message=error_message,
+                    user_id=user_id,
+                )
+            except Exception as trace_error:
+                logger.warning(f"Failed to log AI call trace: {trace_error}")
 
 
 # =============================================================================
@@ -1247,6 +1280,9 @@ def call_openai_with_web_search(
     api_key: str,
     model: str = "gpt-4o",
     temperature: float = 0.7,
+    db: Optional[Session] = None,
+    topic: Optional[str] = None,
+    user_id: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Use OpenAI Responses API with native web_search tool.
@@ -1270,6 +1306,9 @@ def call_openai_with_web_search(
     
     MAX_RETRIES = 3
     BASE_DELAY = 5
+    start_time = time.time()
+    success = False
+    error_message = None
     
     try:
         from openai import OpenAI
@@ -1394,18 +1433,42 @@ def call_openai_with_web_search(
             result['source_urls'] = [s.get('url', s) if isinstance(s, dict) else s for s in sources[:20]]
         
         logger.info(f"[OpenAI Web Search] Successfully parsed response with {len(result)} keys")
+        success = True
         return result
         
     except json.JSONDecodeError as e:
         logger.error(f"[OpenAI Web Search] JSON parse error: {e}")
         logger.error(f"[OpenAI Web Search] Content: {content[:500] if content else 'EMPTY'}")
+        error_message = f"JSON parse error: {str(e)}"
         return None
     except ImportError as e:
         logger.error(f"[OpenAI Web Search] OpenAI package not installed or outdated: {e}")
+        error_message = f"Import error: {str(e)}"
         return None
     except Exception as e:
         logger.error(f"[OpenAI Web Search] API call failed: {type(e).__name__}: {e}")
+        error_message = f"{type(e).__name__}: {str(e)}"
         return None
+    finally:
+        # Log the trace if db session is available
+        if db:
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                AICallTracer.trace(
+                    db=db,
+                    provider="openai",
+                    model_name=model,
+                    operation_type="openai_web_search",
+                    success=success,
+                    latency_ms=latency_ms,
+                    endpoint="/api/v1/ai/deep-dive",
+                    country_iso_code=country_iso_code,
+                    topic=topic,
+                    error_message=error_message,
+                    user_id=user_id,
+                )
+            except Exception as trace_error:
+                logger.warning(f"Failed to log AI call trace: {trace_error}")
 
 
 def get_openai_api_key_from_config(config: AIConfig) -> Optional[str]:
@@ -1538,6 +1601,8 @@ class DeepDiveOrchestrator:
             metrics_context=metrics_text,
             country_name=country.name,
             topic=topic,
+            db=self.db,
+            country_iso_code=iso_code,
         )
         
         if not analysis:

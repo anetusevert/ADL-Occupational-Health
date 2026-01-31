@@ -16,7 +16,7 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { id: 1, label: "Select Country", icon: Globe },
+  { id: 1, label: "Select Countries", icon: Globe },
   { id: 2, label: "Choose Topic", icon: Layers },
   { id: 3, label: "View Report", icon: FileText },
 ];

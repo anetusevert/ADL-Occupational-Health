@@ -29,4 +29,13 @@ export { LoadingBriefing } from './LoadingBriefing';
 export { SituationalBriefing } from './SituationalBriefing';
 export { DecisionRound } from './DecisionRound';
 export { NewsFeed } from './NewsFeed';
-export { CountryLandmark } from './CountryLandmark';
+export { CountryLandmark, LandmarkCard } from './CountryLandmark';
+
+// Advisor Panel Components (Conversational Gameplay)
+export { AdvisorPanel } from './AdvisorPanel';
+export { AdvisorMessage, AdvisorTypingIndicator } from './AdvisorMessage';
+export { AdvisorChoices, SimpleChoices } from './AdvisorChoices';
+
+// Data Visualization Components
+export { OHIDeltaChart } from './OHIDeltaChart';
+export { EconomicIndicators, EconomicIndicatorsCompact } from './EconomicIndicators';

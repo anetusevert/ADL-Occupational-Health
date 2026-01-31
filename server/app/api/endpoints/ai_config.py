@@ -21,6 +21,7 @@ from app.core.database import get_db
 from app.core.security import encrypt_api_key, decrypt_api_key
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User, AIConfig, AIProvider, SUPPORTED_MODELS
+from app.services.ai_call_tracer import AICallTracer
 
 # Create router
 router = APIRouter(prefix="/ai-config", tags=["AI Configuration"])
@@ -329,39 +330,61 @@ async def test_ai_connection(
             message=f"API key required for {provider.value}",
         )
     
-    try:
         start_time = time.time()
+        success = False
+        error_message = None
+        latency = 0
         
-        # Test based on provider
-        if provider == AIProvider.openai:
-            response_text = await _test_openai(api_key, model_name, test_request.prompt)
-        elif provider == AIProvider.anthropic:
-            response_text = await _test_anthropic(api_key, model_name, test_request.prompt)
-        elif provider == AIProvider.google:
-            response_text = await _test_google(api_key, model_name, test_request.prompt)
-        elif provider == AIProvider.ollama:
-            endpoint = test_request.api_key or config.api_endpoint or "http://localhost:11434"
-            response_text = await _test_ollama(endpoint, model_name, test_request.prompt)
-        else:
+        try:
+            # Test based on provider
+            if provider == AIProvider.openai:
+                response_text = await _test_openai(api_key, model_name, test_request.prompt)
+            elif provider == AIProvider.anthropic:
+                response_text = await _test_anthropic(api_key, model_name, test_request.prompt)
+            elif provider == AIProvider.google:
+                response_text = await _test_google(api_key, model_name, test_request.prompt)
+            elif provider == AIProvider.ollama:
+                endpoint = test_request.api_key or config.api_endpoint or "http://localhost:11434"
+                response_text = await _test_ollama(endpoint, model_name, test_request.prompt)
+            else:
+                return AITestResponse(
+                    success=False,
+                    message=f"Testing not implemented for {provider.value}",
+                )
+            
+            latency = int((time.time() - start_time) * 1000)
+            success = True
+            
+            return AITestResponse(
+                success=True,
+                message="Connection successful!",
+                response=response_text,
+                latency_ms=latency,
+            )
+            
+        except Exception as e:
+            latency = int((time.time() - start_time) * 1000)
+            error_message = str(e)
             return AITestResponse(
                 success=False,
-                message=f"Testing not implemented for {provider.value}",
+                message=f"Connection failed: {str(e)}",
             )
-        
-        latency = int((time.time() - start_time) * 1000)
-        
-        return AITestResponse(
-            success=True,
-            message="Connection successful!",
-            response=response_text,
-            latency_ms=latency,
-        )
-        
-    except Exception as e:
-        return AITestResponse(
-            success=False,
-            message=f"Connection failed: {str(e)}",
-        )
+        finally:
+            # Log the test as a trace
+            try:
+                AICallTracer.trace(
+                    db=db,
+                    provider=provider.value,
+                    model_name=model_name,
+                    operation_type="connection_test",
+                    success=success,
+                    latency_ms=latency,
+                    endpoint="/api/v1/ai-config/test",
+                    error_message=error_message,
+                    user_id=admin.id,
+                )
+            except Exception as trace_error:
+                pass  # Don't fail the test if tracing fails
 
 
 # =============================================================================
@@ -410,3 +433,152 @@ async def _test_ollama(endpoint: str, model: str, prompt: str) -> str:
         )
         response.raise_for_status()
         return response.json().get("response", "")
+
+
+# =============================================================================
+# AI CALL TRACE ENDPOINTS
+# =============================================================================
+
+class AICallTraceResponse(BaseModel):
+    """Response for a single AI call trace."""
+    id: str
+    timestamp: str
+    provider: str
+    model_name: str
+    endpoint: Optional[str]
+    operation_type: str
+    country_iso_code: Optional[str]
+    topic: Optional[str]
+    latency_ms: Optional[int]
+    success: bool
+    error_message: Optional[str]
+    user_id: Optional[int]
+
+
+class AICallTracesListResponse(BaseModel):
+    """Response for listing AI call traces."""
+    traces: List[AICallTraceResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class AICallStatsResponse(BaseModel):
+    """Response for AI call statistics."""
+    period_days: int
+    total_calls: int
+    success_count: int
+    error_count: int
+    success_rate: float
+    avg_latency_ms: float
+    calls_by_provider: dict
+    calls_by_operation: dict
+    recent_errors: List[dict]
+
+
+@router.get(
+    "/traces",
+    response_model=AICallTracesListResponse,
+    summary="List AI Call Traces",
+    description="Get a paginated list of AI API call traces."
+)
+async def list_ai_traces(
+    page: int = 1,
+    page_size: int = 50,
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+    success: Optional[bool] = None,
+    operation_type: Optional[str] = None,
+    country_iso_code: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+) -> AICallTracesListResponse:
+    """
+    Get a paginated list of AI call traces with optional filters.
+    """
+    from datetime import datetime
+    
+    # Parse date filters
+    start_dt = None
+    end_dt = None
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            pass
+    
+    # Get traces
+    offset = (page - 1) * page_size
+    traces = AICallTracer.get_traces(
+        db=db,
+        limit=page_size,
+        offset=offset,
+        provider=provider,
+        model_name=model_name,
+        success=success,
+        country_iso_code=country_iso_code,
+        operation_type=operation_type,
+        start_date=start_dt,
+        end_date=end_dt,
+    )
+    
+    # Get total count
+    total = AICallTracer.get_total_count(
+        db=db,
+        provider=provider,
+        model_name=model_name,
+        success=success,
+        country_iso_code=country_iso_code,
+        operation_type=operation_type,
+        start_date=start_dt,
+        end_date=end_dt,
+    )
+    
+    return AICallTracesListResponse(
+        traces=[
+            AICallTraceResponse(
+                id=t.id,
+                timestamp=t.timestamp.isoformat() if t.timestamp else "",
+                provider=t.provider,
+                model_name=t.model_name,
+                endpoint=t.endpoint,
+                operation_type=t.operation_type,
+                country_iso_code=t.country_iso_code,
+                topic=t.topic,
+                latency_ms=t.latency_ms,
+                success=t.success,
+                error_message=t.error_message,
+                user_id=t.user_id,
+            )
+            for t in traces
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get(
+    "/traces/stats",
+    response_model=AICallStatsResponse,
+    summary="Get AI Call Statistics",
+    description="Get summary statistics for AI API calls."
+)
+async def get_ai_trace_stats(
+    days: int = 30,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+) -> AICallStatsResponse:
+    """
+    Get summary statistics for AI calls over the specified period.
+    """
+    stats = AICallTracer.get_stats(db=db, days=days)
+    
+    return AICallStatsResponse(**stats)

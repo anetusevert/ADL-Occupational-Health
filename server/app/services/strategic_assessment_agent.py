@@ -22,6 +22,7 @@ from app.core.security import decrypt_api_key
 from app.models.country import Country, CountryIntelligence
 from app.models.user import AIConfig, AIProvider
 from app.services.ai_orchestrator import get_llm_from_config
+from app.services.ai_call_tracer import AICallTracer
 
 logger = logging.getLogger(__name__)
 
@@ -416,9 +417,16 @@ def generate_assessment_with_llm(
     config: AIConfig,
     country_data: Dict[str, Any],
     intelligence_text: str,
-    data_quality_notes: str
+    data_quality_notes: str,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
 ) -> Optional[str]:
     """Generate strategic assessment using orchestrated LLM configuration."""
+    import time
+    start_time = time.time()
+    success = False
+    error_message = None
+    
     try:
         from langchain_core.messages import SystemMessage, HumanMessage
         
@@ -439,11 +447,33 @@ def generate_assessment_with_llm(
         
         response = llm.invoke(messages)
         
+        success = True
         return response.content.strip()
         
     except Exception as e:
         logger.error(f"LLM assessment generation failed: {e}")
+        error_message = str(e)
         raise
+    finally:
+        # Log the trace if db session is available
+        if db:
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                AICallTracer.trace(
+                    db=db,
+                    provider=config.provider.value,
+                    model_name=config.model_name,
+                    operation_type="strategic_assessment",
+                    success=success,
+                    latency_ms=latency_ms,
+                    endpoint="/api/v1/countries/{iso}/strategic-assessment",
+                    country_iso_code=country_data.get("iso_code"),
+                    topic="Strategic Assessment",
+                    error_message=error_message,
+                    user_id=user_id,
+                )
+            except Exception as trace_error:
+                logger.warning(f"Failed to log AI call trace: {trace_error}")
 
 
 # =============================================================================
@@ -618,7 +648,8 @@ def generate_strategic_assessment(
                 ai_config,
                 country_data,
                 intelligence_text,
-                data_quality_notes
+                data_quality_notes,
+                db=db,
             )
             source = f"{provider_name} (orchestrated)"
             logger.info(f"Successfully generated AI assessment for {country.name}")

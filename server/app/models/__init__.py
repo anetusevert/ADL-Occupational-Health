@@ -41,6 +41,8 @@ from app.models.metric_config import (
     DEFAULT_PILLAR_SUMMARIES,
 )
 
+from app.models.ai_call_trace import AICallTrace
+
 __all__ = [
     # Country Enums
     "HeatStressRegulationType",
@@ -70,4 +72,6 @@ __all__ = [
     "DEFAULT_METRIC_DEFINITIONS",
     "DEFAULT_MATURITY_RULES",
     "DEFAULT_PILLAR_SUMMARIES",
+    # AI Call Trace
+    "AICallTrace",
 ]

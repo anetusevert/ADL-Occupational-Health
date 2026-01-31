@@ -7,4 +7,12 @@ export { DeepDiveWizard } from "./DeepDiveWizard";
 export { CountrySelectionStep } from "./CountrySelectionStep";
 export { TopicSelectionStep } from "./TopicSelectionStep";
 export { ReportDisplayStep } from "./ReportDisplayStep";
-export { FloatingParticles, StepIndicator } from "./shared";
+export { 
+  FloatingParticles, 
+  StepIndicator,
+  OrbitingElements,
+  PulseWaves,
+  GradientShift,
+  GradientOrbs,
+  SelectionSummary,
+} from "./shared";

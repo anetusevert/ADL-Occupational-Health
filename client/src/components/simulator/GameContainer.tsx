@@ -25,8 +25,11 @@ import { WorldMapView } from './WorldMapView';
 import { GameOverSummary } from './GameOverSummary';
 import { ParticleEffects } from './ParticleEffects';
 import { NewsFeed } from './NewsFeed';
-import { CountryLandmark } from './CountryLandmark';
+import { CountryLandmark, LandmarkCard } from './CountryLandmark';
 import { OHIScoreDisplay } from './OHIScoreDisplay';
+import { AdvisorPanel } from './AdvisorPanel';
+import { OHIDeltaChart } from './OHIDeltaChart';
+import { EconomicIndicators } from './EconomicIndicators';
 
 // Import game state
 import { useGame, GameProvider } from '../../hooks/useGameSimulation';
@@ -256,7 +259,7 @@ function GameInner() {
     );
   }
 
-  // Main Game - New Layout
+  // Main Game - Redesigned Layout with Advisor Panel
   return (
     <div className="h-full flex flex-col">
       {/* Event Modal */}
@@ -290,71 +293,33 @@ function GameInner() {
         onShowMap={() => setShowWorldMap(true)}
       />
 
-      {/* Main 3-Panel Layout */}
+      {/* Main 3-Panel Layout - Redesigned */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3">
-        {/* Left Panel - Decisions */}
+        {/* Left Panel - AI Advisor */}
         <div className="col-span-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
-          {isLoadingDecisions ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                  className="w-8 h-8 border-2 border-adl-accent border-t-transparent rounded-full mx-auto mb-2"
-                />
-                <p className="text-sm text-white/40">Generating decisions...</p>
-              </div>
-            </div>
-          ) : decisions.length > 0 ? (
-            <DecisionRound
-              decisions={decisions}
-              currentMonth={((state.cycleNumber) % 12) + 1}
-              currentYear={state.currentYear}
-              budgetRemaining={state.budget.totalBudgetPoints - Object.values(state.budget.spent).reduce((a, b) => a + b, 0)}
-              onSelectDecisions={setSelectedDecisions}
-              onConfirmDecisions={handleConfirmDecisions}
-              disabled={state.phase !== 'playing'}
-            />
-          ) : (
-            <div className="h-full flex flex-col">
-              <PolicyTemple
-                pillars={state.pillars}
-                policies={state.policies}
-                budget={state.budget.allocated}
-                budgetSpent={state.budget.spent}
-                currentYear={state.currentYear}
-                selectedPillar={state.selectedPillar}
-                onSelectPillar={selectPillar}
-                onInvestPolicy={investInPolicy}
-                disabled={state.phase !== 'playing' && state.phase !== 'paused'}
-              />
-            </div>
-          )}
+          <AdvisorPanel
+            countryName={state.selectedCountry?.name || ''}
+            currentMonth={((state.cycleNumber) % 12) + 1}
+            currentYear={state.currentYear}
+            decisions={decisions}
+            budgetRemaining={state.budget.totalBudgetPoints - Object.values(state.budget.spent).reduce((a, b) => a + b, 0)}
+            briefing={briefing}
+            isLoading={isLoadingDecisions}
+            onSelectDecisions={setSelectedDecisions}
+            onConfirmDecisions={handleConfirmDecisions}
+            disabled={state.phase !== 'playing'}
+          />
         </div>
 
-        {/* Center Panel - Country Visualization */}
+        {/* Center Panel - News Feed (Central Focus) */}
         <div className="col-span-5 flex flex-col gap-3">
-          {/* Top - Landmark & Score */}
-          <div className="flex-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center">
-            {briefing?.country_context?.iconic_landmark && (
-              <CountryLandmark
-                landmark={briefing.country_context.iconic_landmark}
-                countryName={state.selectedCountry?.name || ''}
-                size="lg"
-              />
-            )}
-            
-            {/* Score Display */}
-            <div className="mt-4 text-center">
-              <OHIScoreDisplay
-                score={state.ohiScore}
-                previousScore={state.history.length > 0 ? state.history[state.history.length - 1].ohiScore : undefined}
-                size="lg"
-              />
-              <p className="text-xs text-white/40 mt-2">
-                Rank #{state.statistics.currentRank} of 195
-              </p>
-            </div>
+          {/* Main News Feed - Large Central Display */}
+          <div className="flex-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+            <NewsFeed 
+              newsItems={newsItems} 
+              variant="central"
+              maxItems={15}
+            />
           </div>
 
           {/* Bottom - Timeline */}
@@ -375,26 +340,82 @@ function GameInner() {
           </div>
         </div>
 
-        {/* Right Panel - News & Stats */}
+        {/* Right Panel - OHI Score, Stats, Landmark, Economic Data */}
         <div className="col-span-4 flex flex-col gap-3">
-          {/* Stats Dashboard */}
+          {/* Top Right - OHI Score with Delta Chart */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 overflow-hidden">
-            <StatsDashboard
-              ohiScore={state.ohiScore}
-              previousScore={state.history.length > 0 ? state.history[state.history.length - 1].ohiScore : undefined}
-              pillars={state.pillars}
-              rank={state.statistics.currentRank}
-              previousRank={state.history.length > 0 ? state.history[state.history.length - 1].rank : undefined}
-              history={state.history}
-              statistics={state.statistics}
-              currentYear={state.currentYear}
-              compact
-            />
+            <div className="flex items-start gap-4">
+              {/* Compact OHI Score */}
+              <div className="flex-shrink-0">
+                <OHIScoreDisplay
+                  score={state.ohiScore}
+                  previousScore={state.history.length > 0 ? state.history[state.history.length - 1].ohiScore : undefined}
+                  size="md"
+                  showStage={false}
+                />
+              </div>
+              
+              {/* Delta Chart */}
+              <div className="flex-1 min-w-0">
+                <OHIDeltaChart
+                  history={state.history}
+                  currentScore={state.ohiScore}
+                  startingScore={state.statistics.startingOHIScore || state.ohiScore}
+                  compact
+                />
+              </div>
+            </div>
+
+            {/* Pillar Bars - Compact */}
+            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-4 gap-2">
+              {[
+                { id: 'governance', label: 'Gov', value: state.pillars.governance, color: 'bg-purple-500' },
+                { id: 'hazardControl', label: 'Haz', value: state.pillars.hazardControl, color: 'bg-blue-500' },
+                { id: 'healthVigilance', label: 'Vig', value: state.pillars.healthVigilance, color: 'bg-teal-500' },
+                { id: 'restoration', label: 'Res', value: state.pillars.restoration, color: 'bg-amber-500' },
+              ].map(pillar => (
+                <div key={pillar.id} className="text-center">
+                  <div className="text-[10px] text-white/40 mb-1">{pillar.label}</div>
+                  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className={cn('h-full rounded-full', pillar.color)}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pillar.value}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                  <div className="text-xs font-bold text-white mt-0.5">{pillar.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* News Feed */}
-          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
-            <NewsFeed newsItems={newsItems} />
+          {/* Middle Right - Country Landmark */}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+            {briefing?.country_context?.iconic_landmark ? (
+              <LandmarkCard
+                landmark={briefing.country_context.iconic_landmark}
+                countryName={state.selectedCountry?.name || ''}
+                landmarkCity={briefing.country_context.landmark_city}
+                className="h-36"
+              />
+            ) : (
+              <div className="h-36 flex items-center justify-center">
+                <CountryLandmark
+                  landmark="National Monument"
+                  countryName={state.selectedCountry?.name || ''}
+                  size="md"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Right - Economic Indicators (World Bank Data) */}
+          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 overflow-hidden">
+            <EconomicIndicators
+              briefing={briefing}
+              compact
+            />
           </div>
         </div>
       </div>

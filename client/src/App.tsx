@@ -26,6 +26,7 @@ import { AgentPrompts } from "./pages/admin/AgentPrompts";
 import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
 import { MetricCalculator } from "./pages/admin/MetricCalculator";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
+import { AICallLogs } from "./pages/admin/AICallLogs";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -312,6 +313,17 @@ function AppContent() {
               <ProtectedRoute>
                 <AdminRoute>
                   <ReportWorkshop />
+                </AdminRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/ai-logs"
+            element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AICallLogs />
                 </AdminRoute>
               </ProtectedRoute>
             }

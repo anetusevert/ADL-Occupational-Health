@@ -22,6 +22,7 @@ from sqlalchemy import func
 from app.models.country import Country
 from app.models.user import MetricExplanation, AIConfig, User
 from app.core.config import settings
+from app.services.ai_call_tracer import AICallTracer
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,7 @@ def generate_metric_explanation_with_ai(
     db: Session
 ) -> Optional[dict]:
     """Generate explanation using configured AI provider."""
+    import time
     from app.services.ai_orchestrator import get_llm_from_config
     
     metric_id = metric["id"]
@@ -307,8 +309,12 @@ def generate_metric_explanation_with_ai(
     # Get AI config
     ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
     
+    start_time = time.time()
+    success = False
+    error_message = None
+    
     try:
-        llm = get_llm_from_config(ai_config, db)
+        llm = get_llm_from_config(ai_config)
         
         if llm:
             from langchain_core.messages import SystemMessage, HumanMessage
@@ -340,6 +346,7 @@ def generate_metric_explanation_with_ai(
             
             result = json.loads(response_text)
             
+            success = True
             return {
                 "metric_name": metric_name,
                 "metric_value": formatted_value,
@@ -356,6 +363,26 @@ def generate_metric_explanation_with_ai(
             }
     except Exception as e:
         logger.error(f"AI explanation generation failed for {metric_name}: {e}")
+        error_message = str(e)
+    finally:
+        # Log the trace if AI was used
+        if ai_config:
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                AICallTracer.trace(
+                    db=db,
+                    provider=ai_config.provider.value,
+                    model_name=ai_config.model_name,
+                    operation_type="metric_explanation",
+                    success=success,
+                    latency_ms=latency_ms,
+                    endpoint="/api/v1/admin/metric-explanations",
+                    country_iso_code=country.iso_code,
+                    topic=f"{pillar_id}/{metric_name}",
+                    error_message=error_message,
+                )
+            except Exception as trace_error:
+                logger.warning(f"Failed to log AI call trace: {trace_error}")
     
     # Fallback: Generate basic explanation without AI
     return generate_fallback_explanation(country, pillar_id, metric, benchmark, value, formatted_value, percentile)

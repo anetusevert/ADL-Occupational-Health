@@ -52,6 +52,7 @@ from app.services.ai_orchestrator import (
     call_openai_with_web_search,
     get_openai_api_key_from_config,
 )
+from app.services.ai_call_tracer import AICallTracer
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -439,6 +440,9 @@ class StrategicDeepDiveAgent:
                     api_key=api_key,
                     model=self.config.model_name,
                     temperature=self.config.temperature,
+                    db=self.db,
+                    topic=topic,
+                    user_id=int(user_id) if user_id else None,
                 )
                 
                 self._log("ResearchAgent", AgentStatus.COMPLETE,
@@ -594,6 +598,9 @@ class StrategicDeepDiveAgent:
         
         MAX_RETRIES = 5
         BASE_DELAY = 2  # seconds
+        start_time = time.time()
+        success = False
+        error_message = None
         
         try:
             from langchain_core.messages import SystemMessage, HumanMessage
@@ -701,29 +708,51 @@ class StrategicDeepDiveAgent:
             result = json.loads(content)
             logger.info(f"[SynthesisAgent] Successfully parsed JSON with {len(result)} top-level keys")
             
+            success = True
             return result
             
         except json.JSONDecodeError as e:
             logger.error(f"[SynthesisAgent] Failed to parse LLM response as JSON: {e}")
             logger.error(f"[SynthesisAgent] Content that failed to parse: {content[:1000] if content else 'EMPTY'}")
+            error_message = f"JSON parse error: {str(e)[:100]}"
             raise ValueError(f"Failed to parse LLM response as JSON: {str(e)[:100]}")
         except ImportError as e:
             logger.error(f"[SynthesisAgent] Missing LangChain dependency: {e}")
+            error_message = f"Import error: {str(e)}"
             raise ValueError(f"Missing LangChain dependency: {e}")
         except Exception as e:
             import traceback
             # Use detailed error logging for better debugging
-            error_info = get_detailed_error_info(e)
+            err_info = get_detailed_error_info(e)
             user_message = format_error_for_user(e)
             
             logger.error(f"[SynthesisAgent] LLM call failed: {user_message}")
-            logger.error(f"[SynthesisAgent] Error type: {error_info['error_type']}")
-            logger.error(f"[SynthesisAgent] Is rate limit: {error_info['is_rate_limit']}")
-            logger.error(f"[SynthesisAgent] Is quota exceeded: {error_info['is_quota_exceeded']}")
-            logger.error(f"[SynthesisAgent] Is invalid model: {error_info['is_invalid_model']}")
-            logger.error(f"[SynthesisAgent] HTTP status: {error_info['http_status']}")
+            logger.error(f"[SynthesisAgent] Error type: {err_info['error_type']}")
+            logger.error(f"[SynthesisAgent] Is rate limit: {err_info['is_rate_limit']}")
+            logger.error(f"[SynthesisAgent] Is quota exceeded: {err_info['is_quota_exceeded']}")
+            logger.error(f"[SynthesisAgent] Is invalid model: {err_info['is_invalid_model']}")
+            logger.error(f"[SynthesisAgent] HTTP status: {err_info['http_status']}")
             logger.error(f"[SynthesisAgent] Traceback: {traceback.format_exc()}")
+            error_message = user_message
             raise ValueError(f"LLM error: {user_message}")
+        finally:
+            # Log the trace
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                AICallTracer.trace(
+                    db=self.db,
+                    provider=self.config.provider.value if self.config else "unknown",
+                    model_name=self.config.model_name if self.config else "unknown",
+                    operation_type="strategic_deep_dive",
+                    success=success,
+                    latency_ms=latency_ms,
+                    endpoint="/api/v1/admin/deep-dive",
+                    country_iso_code=iso_code,
+                    topic=topic,
+                    error_message=error_message,
+                )
+            except Exception as trace_error:
+                logger.warning(f"Failed to log AI call trace: {trace_error}")
 
 
 # =============================================================================

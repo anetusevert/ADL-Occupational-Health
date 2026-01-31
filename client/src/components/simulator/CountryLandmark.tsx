@@ -11,8 +11,10 @@ interface CountryLandmarkProps {
   landmark: string;
   countryName: string;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   animated?: boolean;
+  showOverlay?: boolean;
+  landmarkCity?: string;
 }
 
 // Landmark SVG components - stylized minimalist versions
@@ -41,6 +43,8 @@ export function CountryLandmark({
   className,
   size = 'md',
   animated = true,
+  showOverlay = false,
+  landmarkCity,
 }: CountryLandmarkProps) {
   const LandmarkComponent = landmarks[landmark];
   
@@ -48,30 +52,57 @@ export function CountryLandmark({
     sm: 'h-24',
     md: 'h-40',
     lg: 'h-64',
+    xl: 'h-full min-h-[200px]',
   };
+
+  const isXL = size === 'xl';
 
   if (!LandmarkComponent) {
     return (
-      <div className={cn('flex items-center justify-center', sizeClasses[size], className)}>
+      <div className={cn(
+        'flex items-center justify-center relative',
+        sizeClasses[size],
+        className
+      )}>
         <div className="text-center">
-          <div className="text-4xl mb-2">🏛️</div>
-          <p className="text-xs text-white/30">{landmark}</p>
+          <motion.div 
+            className={cn('mb-2', isXL ? 'text-6xl' : 'text-4xl')}
+            animate={animated ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            🏛️
+          </motion.div>
+          <p className={cn('text-white/30', isXL ? 'text-sm' : 'text-xs')}>{landmark}</p>
         </div>
+        {showOverlay && (
+          <LandmarkOverlay 
+            landmark={landmark} 
+            countryName={countryName} 
+            landmarkCity={landmarkCity}
+          />
+        )}
       </div>
     );
   }
 
   return (
     <motion.div
-      className={cn('relative flex items-end justify-center', sizeClasses[size], className)}
+      className={cn(
+        'relative flex items-end justify-center',
+        sizeClasses[size],
+        className
+      )}
       initial={animated ? { opacity: 0, y: 20 } : false}
       animate={animated ? { opacity: 1, y: 0 } : false}
       transition={{ duration: 0.5 }}
     >
       {/* Glow Effect */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <motion.div
-          className="w-32 h-32 bg-adl-accent/10 rounded-full blur-3xl"
+          className={cn(
+            'bg-adl-accent/10 rounded-full blur-3xl',
+            isXL ? 'w-64 h-64' : 'w-32 h-32'
+          )}
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3],
@@ -81,8 +112,80 @@ export function CountryLandmark({
       </div>
 
       {/* Landmark SVG */}
-      <LandmarkComponent className="relative z-10 w-full h-full" />
+      <LandmarkComponent className={cn(
+        'relative z-10',
+        isXL ? 'w-full h-[80%]' : 'w-full h-full'
+      )} />
+
+      {/* Overlay with country and landmark info */}
+      {showOverlay && (
+        <LandmarkOverlay 
+          landmark={landmark} 
+          countryName={countryName}
+          landmarkCity={landmarkCity}
+        />
+      )}
     </motion.div>
+  );
+}
+
+/**
+ * Overlay component for landmark with country name
+ */
+function LandmarkOverlay({
+  landmark,
+  countryName,
+  landmarkCity,
+}: {
+  landmark: string;
+  countryName: string;
+  landmarkCity?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"
+    >
+      <div className="text-center">
+        <h3 className="text-white font-bold text-lg">{landmark}</h3>
+        <p className="text-white/50 text-sm">
+          {landmarkCity ? `${landmarkCity}, ` : ''}{countryName}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+/**
+ * Full-width landmark card for right panel display
+ */
+export function LandmarkCard({
+  landmark,
+  countryName,
+  landmarkCity,
+  className,
+}: {
+  landmark: string;
+  countryName: string;
+  landmarkCity?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn(
+      'relative rounded-xl overflow-hidden bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-white/10',
+      className
+    )}>
+      <CountryLandmark
+        landmark={landmark}
+        countryName={countryName}
+        landmarkCity={landmarkCity}
+        size="xl"
+        showOverlay={true}
+        animated={true}
+      />
+    </div>
   );
 }
 

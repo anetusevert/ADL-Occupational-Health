@@ -70,6 +70,7 @@ const adminNavItems: NavItem[] = [
   { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
+  { path: "/admin/ai-logs", label: "AI Call Logs", icon: Database, adminOnly: true },
 ];
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
