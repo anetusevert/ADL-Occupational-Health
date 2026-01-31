@@ -1,16 +1,18 @@
 """
-GOHIP Platform - AI Agent Registry Model
-=========================================
+GOHIP Platform - AI Agent & Workflow Models
+============================================
 
-Database model for storing AI agent configurations.
+Database models for storing AI agent configurations and workflows.
 Agents can be configured, tested, and their prompts edited via the UI.
+Workflows organize agents into logical pipelines.
 """
 
 from datetime import datetime
 from typing import Optional
 import enum
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Enum, Float, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.database import Base
@@ -25,13 +27,50 @@ class AgentCategory(str, enum.Enum):
     internal = "internal"
 
 
-class AgentWorkflow(str, enum.Enum):
-    """Workflow that an agent belongs to."""
-    report_generation = "report_generation"
-    country_assessment = "country_assessment"
-    metric_explanation = "metric_explanation"
-    data_collection = "data_collection"
+# =============================================================================
+# WORKFLOW MODEL
+# =============================================================================
 
+class Workflow(Base):
+    """
+    Workflow definition.
+    
+    Workflows organize agents into logical pipelines. Users can create
+    custom workflows or use the default system workflows.
+    """
+    __tablename__ = "workflows"
+    
+    id = Column(String(50), primary_key=True)  # e.g., "report-generation"
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    color = Column(String(20), nullable=True, default="cyan")  # Tailwind color
+    
+    # System vs user-created
+    is_default = Column(Boolean, default=False, nullable=False)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    agents = relationship("Agent", back_populates="workflow_rel", lazy="dynamic")
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary for API response."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "color": self.color,
+            "is_default": self.is_default,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# =============================================================================
+# AGENT MODEL
+# =============================================================================
 
 class Agent(Base):
     """
@@ -49,7 +88,7 @@ class Agent(Base):
     
     # Classification
     category = Column(Enum(AgentCategory), nullable=False, default=AgentCategory.analysis)
-    workflow = Column(Enum(AgentWorkflow), nullable=False, default=AgentWorkflow.report_generation)
+    workflow_id = Column(String(50), ForeignKey("workflows.id"), nullable=True)
     
     # Prompts
     system_prompt = Column(Text, nullable=True)
@@ -59,6 +98,14 @@ class Agent(Base):
     icon = Column(String(50), nullable=True, default="bot")  # Lucide icon name
     color = Column(String(20), nullable=True, default="cyan")  # Tailwind color
     order_in_workflow = Column(Integer, nullable=True, default=0)  # Display order
+    
+    # Canvas position for visual workflow builder
+    position_x = Column(Float, nullable=True, default=0)
+    position_y = Column(Float, nullable=True, default=0)
+    
+    # LLM Override (optional - uses global config if null)
+    llm_provider = Column(String(50), nullable=True)  # e.g., "openai", "anthropic"
+    llm_model_name = Column(String(100), nullable=True)  # e.g., "gpt-4o", "claude-3-opus"
     
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
@@ -70,6 +117,9 @@ class Agent(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
+    # Relationships
+    workflow_rel = relationship("Workflow", back_populates="agents")
+    
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
         return {
@@ -77,17 +127,50 @@ class Agent(Base):
             "name": self.name,
             "description": self.description,
             "category": self.category.value if self.category else None,
-            "workflow": self.workflow.value if self.workflow else None,
+            "workflow_id": self.workflow_id,
             "system_prompt": self.system_prompt,
             "user_prompt_template": self.user_prompt_template,
             "icon": self.icon,
             "color": self.color,
             "order_in_workflow": self.order_in_workflow,
+            "position_x": self.position_x,
+            "position_y": self.position_y,
+            "llm_provider": self.llm_provider,
+            "llm_model_name": self.llm_model_name,
             "is_active": self.is_active,
             "template_variables": self.template_variables or [],
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+# =============================================================================
+# DEFAULT WORKFLOWS
+# =============================================================================
+
+DEFAULT_WORKFLOWS = [
+    {
+        "id": "report-generation",
+        "name": "Report Generation",
+        "description": "Strategic deep dive report generation using multiple agents",
+        "color": "amber",
+        "is_default": True,
+    },
+    {
+        "id": "country-assessment",
+        "name": "Country Assessment",
+        "description": "Comprehensive country health assessment",
+        "color": "emerald",
+        "is_default": True,
+    },
+    {
+        "id": "metric-explanation",
+        "name": "Metric Explanation",
+        "description": "Explain individual metrics to users",
+        "color": "pink",
+        "is_default": True,
+    },
+]
 
 
 # =============================================================================
@@ -100,10 +183,12 @@ DEFAULT_AGENTS = [
         "name": "Data Agent",
         "description": "Retrieves internal GOHIP framework data including country metrics, pillar scores, and intelligence data.",
         "category": AgentCategory.internal,
-        "workflow": AgentWorkflow.report_generation,
+        "workflow_id": "report-generation",
         "icon": "database",
         "color": "blue",
         "order_in_workflow": 1,
+        "position_x": 100,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "ISO_CODE"],
         "system_prompt": "You are a data retrieval agent for the GOHIP platform. Your role is to gather and organize framework data for analysis.",
         "user_prompt_template": "Retrieve all available data for {{COUNTRY_NAME}} ({{ISO_CODE}}) including governance scores, pillar metrics, and intelligence indicators.",
@@ -113,10 +198,12 @@ DEFAULT_AGENTS = [
         "name": "Web Research Agent",
         "description": "Conducts deep web research on occupational health policies, regulations, and statistics.",
         "category": AgentCategory.research,
-        "workflow": AgentWorkflow.report_generation,
+        "workflow_id": "report-generation",
         "icon": "search",
         "color": "cyan",
         "order_in_workflow": 2,
+        "position_x": 350,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "TOPIC"],
         "system_prompt": "You are a specialized research agent focused on occupational health and safety. Your role is to gather current, relevant information from reliable sources.",
         "user_prompt_template": "Research the latest occupational health developments for {{COUNTRY_NAME}} focusing on {{TOPIC}}. Include policy changes, statistics, and regulatory updates.",
@@ -126,10 +213,12 @@ DEFAULT_AGENTS = [
         "name": "Intelligence Agent",
         "description": "Accesses multi-source intelligence data including ILO, WHO, World Bank, and other international sources.",
         "category": AgentCategory.internal,
-        "workflow": AgentWorkflow.report_generation,
+        "workflow_id": "report-generation",
         "icon": "globe",
         "color": "purple",
         "order_in_workflow": 3,
+        "position_x": 600,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "ISO_CODE"],
         "system_prompt": "You are an intelligence agent that synthesizes data from international organizations and research institutions.",
         "user_prompt_template": "Compile intelligence data for {{COUNTRY_NAME}} ({{ISO_CODE}}) from ILO, WHO, World Bank, CPI, HDI, EPI, GBD, and WJP sources.",
@@ -139,10 +228,12 @@ DEFAULT_AGENTS = [
         "name": "Strategic Deep Dive Agent",
         "description": "McKinsey Partner-style expert agent. Generates authoritative, succinct strategic country analyses with quantified insights and action-oriented recommendations.",
         "category": AgentCategory.synthesis,
-        "workflow": AgentWorkflow.report_generation,
+        "workflow_id": "report-generation",
         "icon": "sparkles",
         "color": "amber",
         "order_in_workflow": 4,
+        "position_x": 850,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "ISO_CODE", "METRICS_DATA", "INTELLIGENCE_DATA", "RESEARCH_DATA", "TOPIC"],
         "system_prompt": """You are a McKinsey Partner-level expert specializing in occupational health strategy. 
 Your analyses are authoritative, data-driven, and actionable.
@@ -178,10 +269,12 @@ Provide a comprehensive McKinsey-quality strategic analysis.""",
         "name": "Country Analysis Agent",
         "description": "Generates comprehensive occupational health assessments for countries using framework data and web research.",
         "category": AgentCategory.analysis,
-        "workflow": AgentWorkflow.country_assessment,
+        "workflow_id": "country-assessment",
         "icon": "map",
         "color": "emerald",
         "order_in_workflow": 1,
+        "position_x": 100,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "ISO_CODE", "COUNTRY_DATA"],
         "system_prompt": """You are an expert occupational health analyst for Arthur D. Little's Global Health Intelligence Platform.
 Your task is to generate a comprehensive strategic assessment based on the Sovereign OH Integrity Framework.""",
@@ -203,10 +296,12 @@ Your task is to generate a comprehensive strategic assessment based on the Sover
         "name": "Metric Explanation Agent",
         "description": "Explains individual metrics in plain language, providing context and actionable insights.",
         "category": AgentCategory.explanation,
-        "workflow": AgentWorkflow.metric_explanation,
+        "workflow_id": "metric-explanation",
         "icon": "help-circle",
         "color": "pink",
         "order_in_workflow": 1,
+        "position_x": 100,
+        "position_y": 100,
         "template_variables": ["COUNTRY_NAME", "METRIC_NAME", "METRIC_VALUE", "GLOBAL_AVERAGE", "PERCENTILE"],
         "system_prompt": """You are a helpful analyst who explains occupational health metrics in plain language.
 Your explanations are clear, contextual, and actionable.""",

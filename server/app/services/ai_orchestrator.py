@@ -1066,12 +1066,14 @@ def format_error_for_user(error: Exception) -> str:
 # LLM INTEGRATION (MULTI-PROVIDER)
 # =============================================================================
 
-def get_llm_from_config(config: AIConfig):
+def get_llm_from_config(config: AIConfig, override_provider: str = None, override_model: str = None):
     """
     Get the appropriate LangChain LLM based on configuration.
     
     Args:
         config: AIConfig from database
+        override_provider: Optional provider override (for per-agent LLM selection)
+        override_model: Optional model override (for per-agent LLM selection)
         
     Returns:
         LangChain chat model instance
@@ -1092,8 +1094,19 @@ def get_llm_from_config(config: AIConfig):
     else:
         logger.warning("[LLM Factory] No encrypted API key found in config")
     
-    provider = config.provider
-    model = config.model_name
+    # Use override values if provided, otherwise use config defaults
+    if override_provider:
+        provider = AIProvider(override_provider)
+        logger.info(f"[LLM Factory] Using provider override: {override_provider}")
+    else:
+        provider = config.provider
+    
+    if override_model:
+        model = override_model
+        logger.info(f"[LLM Factory] Using model override: {override_model}")
+    else:
+        model = config.model_name
+    
     temperature = config.temperature
     
     # For reasoning models (GPT-5, o1, o3), need much higher max_tokens
