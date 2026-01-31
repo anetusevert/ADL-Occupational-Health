@@ -157,6 +157,17 @@ async def startup_event():
                 
                 print("Agents table migration complete")
             
+            # Migrate workflows table - add lane_order column
+            if 'workflows' in table_names:
+                columns = [col['name'] for col in inspector.get_columns('workflows')]
+                
+                if 'lane_order' not in columns:
+                    print("Adding missing column to workflows: lane_order")
+                    conn.execute(text("ALTER TABLE workflows ADD COLUMN lane_order INTEGER DEFAULT 0"))
+                    conn.commit()
+                
+                print("Workflows table migration complete")
+            
             print("All migrations completed successfully")
                 
     except Exception as e:

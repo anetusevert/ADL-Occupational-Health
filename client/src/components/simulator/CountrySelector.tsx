@@ -13,10 +13,17 @@ import { MATURITY_STAGES } from './types';
 
 // Map 3-letter ISO codes to 2-letter codes for flags
 const ISO3_TO_ISO2: Record<string, string> = {
+  // GCC Countries
+  SAU: 'SA', ARE: 'AE', KWT: 'KW', QAT: 'QA', BHR: 'BH', OMN: 'OM',
+  // Europe
   DEU: 'DE', GBR: 'GB', FRA: 'FR', TUR: 'TR', POL: 'PL',
+  // Americas
   USA: 'US', CAN: 'CA', BRA: 'BR', MEX: 'MX',
-  JPN: 'JP', CHN: 'CN', IND: 'IN', SGP: 'SG', SAU: 'SA', IDN: 'ID',
+  // Asia
+  JPN: 'JP', CHN: 'CN', IND: 'IN', SGP: 'SG', IDN: 'ID',
+  // Oceania
   AUS: 'AU', NZL: 'NZ',
+  // Africa
   ZAF: 'ZA', NGA: 'NG', EGY: 'EG',
 };
 
@@ -36,29 +43,40 @@ function getCountryFlag(isoCode: string): string {
 
 // Sample country data
 export const SAMPLE_COUNTRIES: CountryData[] = [
+  // GCC Countries (First)
+  { iso_code: 'SAU', name: 'Saudi Arabia', region: 'GCC', gdp: 1108, population: 36.4, healthExpenditure: 7.5, laborForce: 15.8, formalSectorPct: 75, initialOHIScore: 2.3, initialPillars: { governance: 55, hazardControl: 42, healthVigilance: 45, restoration: 40 } },
+  { iso_code: 'ARE', name: 'United Arab Emirates', region: 'GCC', gdp: 507, population: 9.4, healthExpenditure: 5.5, laborForce: 7.2, formalSectorPct: 80, initialOHIScore: 2.5, initialPillars: { governance: 60, hazardControl: 48, healthVigilance: 50, restoration: 45 } },
+  { iso_code: 'QAT', name: 'Qatar', region: 'GCC', gdp: 221, population: 2.9, healthExpenditure: 5.8, laborForce: 2.3, formalSectorPct: 85, initialOHIScore: 2.6, initialPillars: { governance: 62, hazardControl: 50, healthVigilance: 52, restoration: 48 } },
+  { iso_code: 'KWT', name: 'Kuwait', region: 'GCC', gdp: 186, population: 4.3, healthExpenditure: 6.2, laborForce: 2.5, formalSectorPct: 78, initialOHIScore: 2.4, initialPillars: { governance: 58, hazardControl: 45, healthVigilance: 48, restoration: 42 } },
+  { iso_code: 'BHR', name: 'Bahrain', region: 'GCC', gdp: 44, population: 1.5, healthExpenditure: 5.0, laborForce: 0.9, formalSectorPct: 80, initialOHIScore: 2.5, initialPillars: { governance: 58, hazardControl: 48, healthVigilance: 50, restoration: 45 } },
+  { iso_code: 'OMN', name: 'Oman', region: 'GCC', gdp: 115, population: 5.1, healthExpenditure: 5.8, laborForce: 3.0, formalSectorPct: 72, initialOHIScore: 2.3, initialPillars: { governance: 55, hazardControl: 44, healthVigilance: 46, restoration: 40 } },
+  // Europe
   { iso_code: 'DEU', name: 'Germany', region: 'Europe', gdp: 4259, population: 83.2, healthExpenditure: 12.8, laborForce: 45.3, formalSectorPct: 92, initialOHIScore: 3.8, initialPillars: { governance: 85, hazardControl: 82, healthVigilance: 78, restoration: 88 } },
   { iso_code: 'GBR', name: 'United Kingdom', region: 'Europe', gdp: 3187, population: 67.5, healthExpenditure: 12.0, laborForce: 33.7, formalSectorPct: 88, initialOHIScore: 3.5, initialPillars: { governance: 78, hazardControl: 75, healthVigilance: 72, restoration: 80 } },
   { iso_code: 'FRA', name: 'France', region: 'Europe', gdp: 2937, population: 67.8, healthExpenditure: 12.2, laborForce: 30.2, formalSectorPct: 85, initialOHIScore: 3.3, initialPillars: { governance: 72, hazardControl: 70, healthVigilance: 68, restoration: 75 } },
   { iso_code: 'TUR', name: 'Turkey', region: 'Europe', gdp: 906, population: 85.3, healthExpenditure: 5.0, laborForce: 33.5, formalSectorPct: 55, initialOHIScore: 2.4, initialPillars: { governance: 50, hazardControl: 45, healthVigilance: 48, restoration: 52 } },
   { iso_code: 'POL', name: 'Poland', region: 'Europe', gdp: 688, population: 37.8, healthExpenditure: 6.5, laborForce: 18.4, formalSectorPct: 78, initialOHIScore: 2.8, initialPillars: { governance: 60, hazardControl: 58, healthVigilance: 55, restoration: 62 } },
+  // Americas
   { iso_code: 'USA', name: 'United States', region: 'Americas', gdp: 25464, population: 333.3, healthExpenditure: 18.3, laborForce: 164.0, formalSectorPct: 85, initialOHIScore: 3.2, initialPillars: { governance: 70, hazardControl: 72, healthVigilance: 68, restoration: 75 } },
   { iso_code: 'CAN', name: 'Canada', region: 'Americas', gdp: 2117, population: 40.1, healthExpenditure: 12.2, laborForce: 20.8, formalSectorPct: 88, initialOHIScore: 3.4, initialPillars: { governance: 75, hazardControl: 72, healthVigilance: 70, restoration: 78 } },
   { iso_code: 'BRA', name: 'Brazil', region: 'Americas', gdp: 1920, population: 215.3, healthExpenditure: 10.3, laborForce: 107.4, formalSectorPct: 55, initialOHIScore: 2.2, initialPillars: { governance: 45, hazardControl: 40, healthVigilance: 42, restoration: 48 } },
   { iso_code: 'MEX', name: 'Mexico', region: 'Americas', gdp: 1414, population: 128.9, healthExpenditure: 5.4, laborForce: 59.3, formalSectorPct: 45, initialOHIScore: 2.1, initialPillars: { governance: 40, hazardControl: 42, healthVigilance: 38, restoration: 45 } },
+  // Asia
   { iso_code: 'JPN', name: 'Japan', region: 'Asia', gdp: 4231, population: 125.1, healthExpenditure: 11.1, laborForce: 68.6, formalSectorPct: 90, initialOHIScore: 3.6, initialPillars: { governance: 82, hazardControl: 80, healthVigilance: 75, restoration: 78 } },
   { iso_code: 'CHN', name: 'China', region: 'Asia', gdp: 17963, population: 1425.9, healthExpenditure: 7.1, laborForce: 779.0, formalSectorPct: 45, initialOHIScore: 2.4, initialPillars: { governance: 50, hazardControl: 48, healthVigilance: 52, restoration: 45 } },
   { iso_code: 'IND', name: 'India', region: 'Asia', gdp: 3385, population: 1428.6, healthExpenditure: 3.3, laborForce: 501.0, formalSectorPct: 20, initialOHIScore: 2.0, initialPillars: { governance: 38, hazardControl: 35, healthVigilance: 40, restoration: 35 } },
   { iso_code: 'SGP', name: 'Singapore', region: 'Asia', gdp: 397, population: 5.5, healthExpenditure: 6.1, laborForce: 3.6, formalSectorPct: 95, initialOHIScore: 3.4, initialPillars: { governance: 88, hazardControl: 70, healthVigilance: 72, restoration: 68 } },
-  { iso_code: 'SAU', name: 'Saudi Arabia', region: 'Asia', gdp: 1108, population: 36.4, healthExpenditure: 7.5, laborForce: 15.8, formalSectorPct: 75, initialOHIScore: 2.3, initialPillars: { governance: 55, hazardControl: 42, healthVigilance: 45, restoration: 40 } },
   { iso_code: 'IDN', name: 'Indonesia', region: 'Asia', gdp: 1319, population: 277.5, healthExpenditure: 3.0, laborForce: 139.0, formalSectorPct: 40, initialOHIScore: 1.9, initialPillars: { governance: 35, hazardControl: 32, healthVigilance: 38, restoration: 30 } },
+  // Oceania
   { iso_code: 'AUS', name: 'Australia', region: 'Oceania', gdp: 1693, population: 26.0, healthExpenditure: 10.7, laborForce: 14.0, formalSectorPct: 88, initialOHIScore: 3.5, initialPillars: { governance: 80, hazardControl: 76, healthVigilance: 74, restoration: 78 } },
   { iso_code: 'NZL', name: 'New Zealand', region: 'Oceania', gdp: 252, population: 5.1, healthExpenditure: 9.7, laborForce: 2.9, formalSectorPct: 85, initialOHIScore: 3.3, initialPillars: { governance: 75, hazardControl: 72, healthVigilance: 70, restoration: 74 } },
+  // Africa
   { iso_code: 'ZAF', name: 'South Africa', region: 'Africa', gdp: 405, population: 60.4, healthExpenditure: 9.1, laborForce: 24.1, formalSectorPct: 55, initialOHIScore: 2.1, initialPillars: { governance: 42, hazardControl: 38, healthVigilance: 45, restoration: 40 } },
   { iso_code: 'NGA', name: 'Nigeria', region: 'Africa', gdp: 477, population: 223.8, healthExpenditure: 3.0, laborForce: 65.1, formalSectorPct: 15, initialOHIScore: 1.5, initialPillars: { governance: 25, hazardControl: 22, healthVigilance: 28, restoration: 20 } },
   { iso_code: 'EGY', name: 'Egypt', region: 'Africa', gdp: 476, population: 110.9, healthExpenditure: 4.7, laborForce: 32.2, formalSectorPct: 45, initialOHIScore: 2.0, initialPillars: { governance: 38, hazardControl: 35, healthVigilance: 40, restoration: 35 } },
 ];
 
-const REGIONS = ['All', 'Europe', 'Americas', 'Asia', 'Africa', 'Oceania'];
+const REGIONS = ['All', 'GCC', 'Europe', 'Americas', 'Asia', 'Africa', 'Oceania'];
 
 interface CountrySelectorProps {
   countries?: CountryData[];
@@ -75,7 +93,7 @@ export function CountrySelector({
   disabled = false,
   showStats = false,
 }: CountrySelectorProps) {
-  const [activeRegion, setActiveRegion] = useState('All');
+  const [activeRegion, setActiveRegion] = useState('GCC');
   const [scrollOffset, setScrollOffset] = useState(0);
 
   const filteredCountries = useMemo(() => {

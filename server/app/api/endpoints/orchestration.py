@@ -2,7 +2,7 @@
 GOHIP Platform - AI Orchestration Layer API
 ============================================
 
-Endpoints for managing AI agents, workflows, and prompts.
+Endpoints for managing AI agents, workflows, connections, and prompts.
 Full CRUD operations for the visual workflow builder.
 """
 
@@ -18,7 +18,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User, AIConfig, AIProvider, SUPPORTED_MODELS
-from app.models.agent import Agent, Workflow, AgentCategory, DEFAULT_AGENTS, DEFAULT_WORKFLOWS
+from app.models.agent import (
+    Agent, Workflow, AgentConnection, AgentCategory,
+    DEFAULT_AGENTS, DEFAULT_WORKFLOWS, DEFAULT_CONNECTIONS
+)
 
 router = APIRouter(prefix="/orchestration", tags=["AI Orchestration"])
 logger = logging.getLogger(__name__)
@@ -56,15 +59,26 @@ class WorkflowResponse(BaseModel):
     name: str
     description: Optional[str]
     color: Optional[str]
+    lane_order: Optional[int]
     is_default: bool
     created_at: Optional[str]
     updated_at: Optional[str]
 
 
+class ConnectionResponse(BaseModel):
+    """Connection between agents."""
+    id: str
+    source: str
+    target: str
+    workflow_id: Optional[str]
+    type: Optional[str]
+
+
 class AgentListResponse(BaseModel):
-    """List of agents and workflows."""
+    """List of agents, workflows, and connections."""
     agents: List[AgentResponse]
     workflows: List[WorkflowResponse]
+    connections: List[ConnectionResponse]
 
 
 class CreateAgentRequest(BaseModel):
@@ -121,6 +135,14 @@ class UpdateWorkflowRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     color: Optional[str] = None
+
+
+class CreateConnectionRequest(BaseModel):
+    """Request to create a connection."""
+    source: str
+    target: str
+    workflow_id: Optional[str] = None
+    type: str = "data"
 
 
 class AgentTestRequest(BaseModel):
@@ -187,14 +209,26 @@ def workflow_to_response(workflow: Workflow) -> WorkflowResponse:
         name=workflow.name,
         description=workflow.description,
         color=workflow.color,
+        lane_order=workflow.lane_order,
         is_default=workflow.is_default,
         created_at=workflow.created_at.isoformat() if workflow.created_at else None,
         updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
     )
 
 
+def connection_to_response(conn: AgentConnection) -> ConnectionResponse:
+    """Convert AgentConnection model to response."""
+    return ConnectionResponse(
+        id=conn.id,
+        source=conn.source_agent_id,
+        target=conn.target_agent_id,
+        workflow_id=conn.workflow_id,
+        type=conn.connection_type,
+    )
+
+
 def seed_defaults(db: Session):
-    """Seed default workflows and agents if they don't exist."""
+    """Seed default workflows, agents, and connections if they don't exist."""
     # Seed workflows first
     workflow_count = db.query(Workflow).count()
     if workflow_count == 0:
@@ -205,6 +239,7 @@ def seed_defaults(db: Session):
                 name=wf_data["name"],
                 description=wf_data["description"],
                 color=wf_data["color"],
+                lane_order=wf_data.get("lane_order", 0),
                 is_default=wf_data["is_default"],
             )
             db.add(workflow)
@@ -239,6 +274,22 @@ def seed_defaults(db: Session):
             db.add(agent)
         db.commit()
         logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
+    
+    # Seed connections
+    connection_count = db.query(AgentConnection).count()
+    if connection_count == 0:
+        logger.info("Seeding default connections...")
+        for conn_data in DEFAULT_CONNECTIONS:
+            connection = AgentConnection(
+                id=conn_data["id"],
+                source_agent_id=conn_data["source"],
+                target_agent_id=conn_data["target"],
+                workflow_id=conn_data.get("workflow_id"),
+                connection_type=conn_data.get("type", "data"),
+            )
+            db.add(connection)
+        db.commit()
+        logger.info(f"Seeded {len(DEFAULT_CONNECTIONS)} default connections")
 
 
 # =============================================================================
@@ -250,16 +301,18 @@ async def get_agents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
-    """Get all agents and workflows."""
+    """Get all agents, workflows, and connections."""
     # Seed defaults if needed
     seed_defaults(db)
     
     agents = db.query(Agent).order_by(Agent.workflow_id, Agent.order_in_workflow).all()
-    workflows = db.query(Workflow).order_by(Workflow.name).all()
+    workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
+    connections = db.query(AgentConnection).all()
     
     return AgentListResponse(
         agents=[agent_to_response(a) for a in agents],
         workflows=[workflow_to_response(w) for w in workflows],
+        connections=[connection_to_response(c) for c in connections],
     )
 
 
@@ -415,6 +468,12 @@ async def delete_agent(
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
     
+    # Delete related connections
+    db.query(AgentConnection).filter(
+        (AgentConnection.source_agent_id == agent_id) | 
+        (AgentConnection.target_agent_id == agent_id)
+    ).delete(synchronize_session=False)
+    
     db.delete(agent)
     db.commit()
     
@@ -452,7 +511,6 @@ async def test_agent(
     try:
         # Get LLM (use agent override if specified)
         if agent.llm_provider and agent.llm_model_name:
-            # Create a temporary config-like object for the override
             llm = get_llm_from_config(config, 
                                        override_provider=agent.llm_provider,
                                        override_model=agent.llm_model_name)
@@ -476,6 +534,15 @@ async def test_agent(
             "METRIC_VALUE": "2.1 per 100,000",
             "GLOBAL_AVERAGE": "3.5 per 100,000",
             "PERCENTILE": "75th",
+            "CONTEXT": "[Sample context data]",
+            "CURRENT_MONTH": "6",
+            "CURRENT_YEAR": "2026",
+            "OHI_SCORE": "72.5",
+            "BUDGET": "100",
+            "PILLAR_SCORES": "[Sample pillar scores]",
+            "RECENT_DECISIONS": "[Sample decisions]",
+            "STATISTICS": "[Sample statistics]",
+            "HISTORY": "[Sample history]",
             **(request.test_variables or {}),
         }
         
@@ -523,7 +590,7 @@ async def get_workflows(
 ):
     """Get all workflows."""
     seed_defaults(db)
-    workflows = db.query(Workflow).order_by(Workflow.name).all()
+    workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
     return [workflow_to_response(w) for w in workflows]
 
 
@@ -543,11 +610,15 @@ async def create_workflow(
     if existing:
         workflow_id = f"{workflow_id}-{uuid.uuid4().hex[:6]}"
     
+    # Get max lane order
+    max_order = db.query(Workflow).count()
+    
     workflow = Workflow(
         id=workflow_id,
         name=request.name,
         description=request.description,
         color=request.color,
+        lane_order=max_order,
         is_default=False,  # User-created workflows are not default
     )
     
@@ -619,6 +690,80 @@ async def delete_workflow(
 
 
 # =============================================================================
+# CONNECTION ENDPOINTS
+# =============================================================================
+
+@router.get("/connections", response_model=List[ConnectionResponse])
+async def get_connections(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Get all connections."""
+    connections = db.query(AgentConnection).all()
+    return [connection_to_response(c) for c in connections]
+
+
+@router.post("/connections", response_model=ConnectionResponse)
+async def create_connection(
+    request: CreateConnectionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Create a new connection between agents."""
+    # Verify source and target agents exist
+    source = db.query(Agent).filter(Agent.id == request.source).first()
+    target = db.query(Agent).filter(Agent.id == request.target).first()
+    
+    if not source:
+        raise HTTPException(status_code=404, detail=f"Source agent {request.source} not found")
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Target agent {request.target} not found")
+    
+    # Generate connection ID
+    conn_id = f"{request.source}-{request.target}"
+    
+    # Check for existing connection
+    existing = db.query(AgentConnection).filter(AgentConnection.id == conn_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Connection already exists")
+    
+    connection = AgentConnection(
+        id=conn_id,
+        source_agent_id=request.source,
+        target_agent_id=request.target,
+        workflow_id=request.workflow_id,
+        connection_type=request.type,
+    )
+    
+    db.add(connection)
+    db.commit()
+    db.refresh(connection)
+    
+    logger.info(f"Created connection {conn_id} by user {current_user.email}")
+    
+    return connection_to_response(connection)
+
+
+@router.delete("/connections/{connection_id}")
+async def delete_connection(
+    connection_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Delete a connection."""
+    connection = db.query(AgentConnection).filter(AgentConnection.id == connection_id).first()
+    if not connection:
+        raise HTTPException(status_code=404, detail=f"Connection {connection_id} not found")
+    
+    db.delete(connection)
+    db.commit()
+    
+    logger.info(f"Deleted connection {connection_id} by user {current_user.email}")
+    
+    return {"success": True, "message": f"Connection {connection_id} deleted"}
+
+
+# =============================================================================
 # PROVIDER ENDPOINTS
 # =============================================================================
 
@@ -663,8 +808,9 @@ async def seed_agents_and_workflows(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
-    """Re-seed default agents and workflows (resets all to defaults)."""
+    """Re-seed default agents, workflows, and connections (resets all to defaults)."""
     # Delete existing
+    db.query(AgentConnection).delete()
     db.query(Agent).delete()
     db.query(Workflow).delete()
     db.commit()
@@ -672,4 +818,7 @@ async def seed_agents_and_workflows(
     # Seed fresh
     seed_defaults(db)
     
-    return {"success": True, "message": f"Seeded {len(DEFAULT_WORKFLOWS)} workflows and {len(DEFAULT_AGENTS)} agents"}
+    return {
+        "success": True, 
+        "message": f"Seeded {len(DEFAULT_WORKFLOWS)} workflows, {len(DEFAULT_AGENTS)} agents, and {len(DEFAULT_CONNECTIONS)} connections"
+    }

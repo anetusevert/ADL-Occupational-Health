@@ -3,24 +3,26 @@
  * ======================
  * 
  * Visual workflow builder for managing AI agents.
- * Features a React Flow canvas for drag-and-drop agent management.
+ * Features a React Flow canvas with workflow lanes, drag-and-drop, and connection suggestions.
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
+  Panel,
   useNodesState,
   useEdgesState,
   addEdge,
-  Connection,
   Node,
   Edge,
   NodeTypes,
   BackgroundVariant,
+  useReactFlow,
+  ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -30,6 +32,11 @@ import {
   Loader2,
   XCircle,
   RefreshCw,
+  LayoutGrid,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Grid3X3,
 } from 'lucide-react';
 import { apiClient } from '../../services/api';
 import {
@@ -72,14 +79,24 @@ interface WorkflowType {
   name: string;
   description: string | null;
   color: string | null;
+  lane_order: number | null;
   is_default: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
 
+interface Connection {
+  id: string;
+  source: string;
+  target: string;
+  workflow_id: string | null;
+  type: string | null;
+}
+
 interface AgentListResponse {
   agents: Agent[];
   workflows: WorkflowType[];
+  connections: Connection[];
 }
 
 interface Provider {
@@ -139,6 +156,37 @@ async function testAgent(agentId: string): Promise<{ success: boolean; response?
   return response.data;
 }
 
+async function createConnection(data: { source: string; target: string; workflow_id?: string }): Promise<Connection> {
+  const response = await apiClient.post<Connection>('/api/v1/orchestration/connections', data);
+  return response.data;
+}
+
+async function deleteConnection(connectionId: string): Promise<void> {
+  await apiClient.delete(`/api/v1/orchestration/connections/${connectionId}`);
+}
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const LANE_HEIGHT = 200;
+const LANE_PADDING = 40;
+const GRID_SIZE = 25;
+const SNAP_DISTANCE = 80;
+
+const WORKFLOW_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  amber: { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.3)', text: '#f59e0b' },
+  emerald: { bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.3)', text: '#10b981' },
+  pink: { bg: 'rgba(236, 72, 153, 0.1)', border: 'rgba(236, 72, 153, 0.3)', text: '#ec4899' },
+  indigo: { bg: 'rgba(99, 102, 241, 0.1)', border: 'rgba(99, 102, 241, 0.3)', text: '#6366f1' },
+  rose: { bg: 'rgba(244, 63, 94, 0.1)', border: 'rgba(244, 63, 94, 0.3)', text: '#f43f5e' },
+  orange: { bg: 'rgba(249, 115, 22, 0.1)', border: 'rgba(249, 115, 22, 0.3)', text: '#f97316' },
+  teal: { bg: 'rgba(20, 184, 166, 0.1)', border: 'rgba(20, 184, 166, 0.3)', text: '#14b8a6' },
+  cyan: { bg: 'rgba(6, 182, 212, 0.1)', border: 'rgba(6, 182, 212, 0.3)', text: '#06b6d4' },
+  purple: { bg: 'rgba(139, 92, 246, 0.1)', border: 'rgba(139, 92, 246, 0.3)', text: '#8b5cf6' },
+  blue: { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#3b82f6' },
+};
+
 // =============================================================================
 // NODE TYPES
 // =============================================================================
@@ -148,29 +196,480 @@ const nodeTypes: NodeTypes = {
 };
 
 // =============================================================================
-// WORKFLOW GROUP COMPONENT
+// WORKFLOW LANE COMPONENT
 // =============================================================================
 
-interface WorkflowLabelProps {
+interface WorkflowLaneProps {
   workflow: WorkflowType;
-  agents: Agent[];
+  laneY: number;
+  width: number;
 }
 
-function WorkflowLabel({ workflow }: WorkflowLabelProps) {
-  const colorClasses: Record<string, string> = {
-    amber: 'border-amber-500/30 text-amber-400',
-    emerald: 'border-emerald-500/30 text-emerald-400',
-    pink: 'border-pink-500/30 text-pink-400',
-    cyan: 'border-cyan-500/30 text-cyan-400',
-    purple: 'border-purple-500/30 text-purple-400',
-    blue: 'border-blue-500/30 text-blue-400',
-  };
+function WorkflowLane({ workflow, laneY, width }: WorkflowLaneProps) {
+  const colors = WORKFLOW_COLORS[workflow.color || 'cyan'] || WORKFLOW_COLORS.cyan;
+  
+  return (
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        left: 0,
+        top: laneY,
+        width: width,
+        height: LANE_HEIGHT,
+      }}
+    >
+      {/* Lane Background */}
+      <div
+        className="absolute inset-0 rounded-lg"
+        style={{
+          background: colors.bg,
+          border: `1px dashed ${colors.border}`,
+        }}
+      />
+      
+      {/* Lane Header */}
+      <div
+        className="absolute -top-6 left-4 px-3 py-1 rounded-full text-xs font-medium"
+        style={{
+          backgroundColor: colors.bg,
+          border: `1px solid ${colors.border}`,
+          color: colors.text,
+        }}
+      >
+        {workflow.name}
+      </div>
+    </div>
+  );
+}
 
-  const colors = colorClasses[workflow.color || 'cyan'] || colorClasses.cyan;
+// =============================================================================
+// CONNECTION SUGGESTION OVERLAY
+// =============================================================================
+
+interface ConnectionSuggestionProps {
+  sourcePos: { x: number; y: number } | null;
+  targetPos: { x: number; y: number } | null;
+  isValid: boolean;
+}
+
+function ConnectionSuggestion({ sourcePos, targetPos, isValid }: ConnectionSuggestionProps) {
+  if (!sourcePos || !targetPos) return null;
+  
+  return (
+    <svg
+      className="absolute inset-0 pointer-events-none z-50"
+      style={{ overflow: 'visible' }}
+    >
+      <line
+        x1={sourcePos.x}
+        y1={sourcePos.y}
+        x2={targetPos.x}
+        y2={targetPos.y}
+        stroke={isValid ? '#10b981' : '#ef4444'}
+        strokeWidth={2}
+        strokeDasharray="8 4"
+        className="animate-pulse"
+      />
+      <circle
+        cx={targetPos.x}
+        cy={targetPos.y}
+        r={8}
+        fill={isValid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
+        stroke={isValid ? '#10b981' : '#ef4444'}
+        strokeWidth={2}
+      />
+    </svg>
+  );
+}
+
+// =============================================================================
+// FLOW COMPONENT (Inner)
+// =============================================================================
+
+interface FlowComponentProps {
+  data: AgentListResponse;
+  providersData: ProvidersResponse | undefined;
+  selectedAgentId: string | null;
+  setSelectedAgentId: (id: string | null) => void;
+  showCreateAgent: boolean;
+  setShowCreateAgent: (show: boolean) => void;
+  showCreateWorkflow: boolean;
+  setShowCreateWorkflow: (show: boolean) => void;
+  createAgentMutation: any;
+  updateAgentMutation: any;
+  updatePositionMutation: any;
+  deleteAgentMutation: any;
+  createWorkflowMutation: any;
+  testAgentMutation: any;
+  createConnectionMutation: any;
+  deleteConnectionMutation: any;
+  testResult: { success: boolean; response?: string; error?: string } | null;
+  setTestResult: (result: any) => void;
+}
+
+function FlowComponent({
+  data,
+  providersData,
+  selectedAgentId,
+  setSelectedAgentId,
+  showCreateAgent,
+  setShowCreateAgent,
+  showCreateWorkflow,
+  setShowCreateWorkflow,
+  createAgentMutation,
+  updateAgentMutation,
+  updatePositionMutation,
+  deleteAgentMutation,
+  createWorkflowMutation,
+  testAgentMutation,
+  createConnectionMutation,
+  deleteConnectionMutation,
+  testResult,
+  setTestResult,
+}: FlowComponentProps) {
+  const reactFlowInstance = useReactFlow();
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [showGrid, setShowGrid] = useState(true);
+  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const [nearbyNode, setNearbyNode] = useState<string | null>(null);
+
+  // Calculate lane positions
+  const lanePositions = useMemo(() => {
+    const positions: Record<string, number> = {};
+    data.workflows
+      .sort((a, b) => (a.lane_order || 0) - (b.lane_order || 0))
+      .forEach((wf, idx) => {
+        positions[wf.id] = idx * (LANE_HEIGHT + LANE_PADDING) + LANE_PADDING;
+      });
+    return positions;
+  }, [data.workflows]);
+
+  // Convert agents to React Flow nodes
+  useEffect(() => {
+    if (!data?.agents) return;
+
+    const newNodes: Node<AgentNodeData>[] = data.agents.map((agent) => {
+      const laneY = agent.workflow_id ? lanePositions[agent.workflow_id] || 100 : 100;
+      
+      return {
+        id: agent.id,
+        type: 'agent',
+        position: {
+          x: agent.position_x || 100,
+          y: agent.position_y || laneY + 50,
+        },
+        data: {
+          id: agent.id,
+          name: agent.name,
+          description: agent.description || undefined,
+          icon: agent.icon || undefined,
+          color: agent.color || undefined,
+          category: agent.category,
+          llm_provider: agent.llm_provider || undefined,
+          llm_model_name: agent.llm_model_name || undefined,
+          is_active: agent.is_active,
+        },
+        selected: agent.id === selectedAgentId,
+      };
+    });
+
+    setNodes(newNodes);
+
+    // Create edges from connections
+    const newEdges: Edge[] = data.connections.map(conn => ({
+      id: conn.id,
+      source: conn.source,
+      target: conn.target,
+      animated: true,
+      style: { stroke: '#06b6d4', strokeWidth: 2 },
+      type: 'smoothstep',
+    }));
+
+    setEdges(newEdges);
+  }, [data?.agents, data?.connections, selectedAgentId, lanePositions, setNodes, setEdges]);
+
+  // Handle connection creation
+  const onConnect = useCallback(
+    (params: any) => {
+      // Create connection in backend
+      createConnectionMutation.mutate({
+        source: params.source,
+        target: params.target,
+      });
+    },
+    [createConnectionMutation]
+  );
+
+  // Handle node drag for proximity detection
+  const onNodeDrag = useCallback(
+    (_: any, node: Node) => {
+      setDraggedNode(node.id);
+      
+      // Find nearby nodes for connection suggestion
+      const otherNodes = nodes.filter(n => n.id !== node.id);
+      let closest: string | null = null;
+      let minDistance = SNAP_DISTANCE;
+      
+      otherNodes.forEach(other => {
+        const dx = (node.position.x + 100) - other.position.x;
+        const dy = node.position.y - other.position.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closest = other.id;
+        }
+      });
+      
+      setNearbyNode(closest);
+    },
+    [nodes]
+  );
+
+  const onNodeDragStop = useCallback(
+    (_: any, node: Node) => {
+      // Snap to grid
+      const snappedX = Math.round(node.position.x / GRID_SIZE) * GRID_SIZE;
+      const snappedY = Math.round(node.position.y / GRID_SIZE) * GRID_SIZE;
+      
+      updatePositionMutation.mutate({
+        agentId: node.id,
+        position: { position_x: snappedX, position_y: snappedY },
+      });
+      
+      // Create connection if near another node
+      if (nearbyNode && draggedNode) {
+        const existingConnection = data.connections.find(
+          c => (c.source === draggedNode && c.target === nearbyNode) ||
+               (c.source === nearbyNode && c.target === draggedNode)
+        );
+        
+        if (!existingConnection) {
+          createConnectionMutation.mutate({
+            source: draggedNode,
+            target: nearbyNode,
+          });
+        }
+      }
+      
+      setDraggedNode(null);
+      setNearbyNode(null);
+    },
+    [updatePositionMutation, nearbyNode, draggedNode, data.connections, createConnectionMutation]
+  );
+
+  const onNodeClick = useCallback((_: any, node: Node) => {
+    setSelectedAgentId(node.id);
+    setTestResult(null);
+  }, [setSelectedAgentId, setTestResult]);
+
+  const handleSaveAgent = useCallback((agentId: string, updates: Partial<Agent>) => {
+    updateAgentMutation.mutate({ agentId, updates });
+  }, [updateAgentMutation]);
+
+  const handleDeleteAgent = useCallback((agentId: string) => {
+    deleteAgentMutation.mutate(agentId);
+  }, [deleteAgentMutation]);
+
+  const handleTestAgent = useCallback((agentId: string) => {
+    setTestResult(null);
+    testAgentMutation.mutate(agentId);
+  }, [testAgentMutation, setTestResult]);
+
+  const handleAutoLayout = useCallback(() => {
+    // Auto-arrange agents within their workflow lanes
+    const agentsByWorkflow: Record<string, Agent[]> = {};
+    
+    data.agents.forEach(agent => {
+      const wfId = agent.workflow_id || 'unassigned';
+      if (!agentsByWorkflow[wfId]) agentsByWorkflow[wfId] = [];
+      agentsByWorkflow[wfId].push(agent);
+    });
+    
+    Object.entries(agentsByWorkflow).forEach(([wfId, agents]) => {
+      const laneY = lanePositions[wfId] || 100;
+      const sortedAgents = agents.sort((a, b) => (a.order_in_workflow || 0) - (b.order_in_workflow || 0));
+      
+      sortedAgents.forEach((agent, idx) => {
+        updatePositionMutation.mutate({
+          agentId: agent.id,
+          position: {
+            position_x: 100 + idx * 250,
+            position_y: laneY + 50,
+          },
+        });
+      });
+    });
+  }, [data.agents, lanePositions, updatePositionMutation]);
+
+  const selectedAgent = useMemo(() => {
+    if (!data?.agents || !selectedAgentId) return null;
+    return data.agents.find(a => a.id === selectedAgentId) || null;
+  }, [data?.agents, selectedAgentId]);
+
+  // Calculate canvas width
+  const canvasWidth = Math.max(
+    1500,
+    ...data.agents.map(a => (a.position_x || 0) + 400)
+  );
 
   return (
-    <div className={`absolute -top-8 left-0 px-3 py-1 border rounded-full text-xs font-medium ${colors}`}>
-      {workflow.name}
+    <div className="flex-1 flex overflow-hidden">
+      {/* Canvas */}
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDrag={onNodeDrag}
+          onNodeDragStop={onNodeDragStop}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          snapToGrid={showGrid}
+          snapGrid={[GRID_SIZE, GRID_SIZE]}
+          fitView
+          className="bg-slate-900"
+          proOptions={{ hideAttribution: true }}
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#06b6d4', strokeWidth: 2 },
+          }}
+        >
+          <Background
+            variant={showGrid ? BackgroundVariant.Dots : BackgroundVariant.Lines}
+            gap={GRID_SIZE}
+            size={1}
+            color="#334155"
+          />
+          <Controls className="bg-slate-800 border-slate-700" />
+          <MiniMap
+            nodeColor={(node) => {
+              const colors: Record<string, string> = {
+                blue: '#3b82f6',
+                cyan: '#06b6d4',
+                purple: '#8b5cf6',
+                amber: '#f59e0b',
+                emerald: '#10b981',
+                pink: '#ec4899',
+                indigo: '#6366f1',
+                rose: '#f43f5e',
+                orange: '#f97316',
+                teal: '#14b8a6',
+              };
+              return colors[(node.data as AgentNodeData).color || 'cyan'] || '#06b6d4';
+            }}
+            className="bg-slate-800 border-slate-700"
+          />
+          
+          {/* Custom Panel for Toolbar */}
+          <Panel position="top-right" className="flex gap-2">
+            <button
+              onClick={() => setShowGrid(!showGrid)}
+              className={`p-2 rounded-lg transition-colors ${
+                showGrid ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'
+              }`}
+              title="Toggle Grid"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleAutoLayout}
+              className="p-2 bg-slate-700 text-slate-400 rounded-lg hover:bg-slate-600 transition-colors"
+              title="Auto Layout"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.zoomIn()}
+              className="p-2 bg-slate-700 text-slate-400 rounded-lg hover:bg-slate-600 transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.zoomOut()}
+              className="p-2 bg-slate-700 text-slate-400 rounded-lg hover:bg-slate-600 transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.fitView()}
+              className="p-2 bg-slate-700 text-slate-400 rounded-lg hover:bg-slate-600 transition-colors"
+              title="Fit View"
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+          </Panel>
+        </ReactFlow>
+
+        {/* Workflow Lanes Overlay */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {data.workflows.map(workflow => (
+            <WorkflowLane
+              key={workflow.id}
+              workflow={workflow}
+              laneY={lanePositions[workflow.id] || 0}
+              width={canvasWidth}
+            />
+          ))}
+        </div>
+
+        {/* Connection Suggestion */}
+        {draggedNode && nearbyNode && (
+          <ConnectionSuggestion
+            sourcePos={null}
+            targetPos={null}
+            isValid={true}
+          />
+        )}
+        
+        {/* Nearby Node Indicator */}
+        {nearbyNode && (
+          <div className="absolute bottom-4 left-4 px-3 py-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm border border-emerald-500/30">
+            Drop to connect with nearby agent
+          </div>
+        )}
+      </div>
+
+      {/* Config Panel */}
+      <AgentConfigPanel
+        agent={selectedAgent}
+        workflows={data?.workflows || []}
+        providers={providersData?.providers || []}
+        globalProvider={providersData?.global_provider || undefined}
+        globalModel={providersData?.global_model || undefined}
+        onSave={handleSaveAgent}
+        onTest={handleTestAgent}
+        onDelete={handleDeleteAgent}
+        onClose={() => setSelectedAgentId(null)}
+        isSaving={updateAgentMutation.isPending}
+        isTesting={testAgentMutation.isPending}
+        testResult={testResult}
+      />
+
+      {/* Modals */}
+      <CreateAgentModal
+        isOpen={showCreateAgent}
+        onClose={() => setShowCreateAgent(false)}
+        onSubmit={(agentData) => createAgentMutation.mutate(agentData)}
+        isLoading={createAgentMutation.isPending}
+        workflows={data?.workflows || []}
+        providers={providersData?.providers || []}
+        globalProvider={providersData?.global_provider || undefined}
+        globalModel={providersData?.global_model || undefined}
+      />
+
+      <CreateWorkflowModal
+        isOpen={showCreateWorkflow}
+        onClose={() => setShowCreateWorkflow(false)}
+        onSubmit={(wfData) => createWorkflowMutation.mutate(wfData)}
+        isLoading={createWorkflowMutation.isPending}
+      />
     </div>
   );
 }
@@ -188,10 +687,6 @@ export function AIOrchestrationLayer() {
   const [showCreateWorkflow, setShowCreateWorkflow] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; response?: string; error?: string } | null>(null);
 
-  // React Flow State
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
   // Fetch agents and workflows
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['orchestration-agents'],
@@ -205,62 +700,6 @@ export function AIOrchestrationLayer() {
     queryFn: getProviders,
     staleTime: 60000,
   });
-
-  // Convert agents to React Flow nodes
-  useEffect(() => {
-    if (!data?.agents) return;
-
-    const newNodes: Node<AgentNodeData>[] = data.agents.map((agent) => ({
-      id: agent.id,
-      type: 'agent',
-      position: {
-        x: agent.position_x || 100,
-        y: agent.position_y || 100,
-      },
-      data: {
-        id: agent.id,
-        name: agent.name,
-        description: agent.description || undefined,
-        icon: agent.icon || undefined,
-        color: agent.color || undefined,
-        category: agent.category,
-        llm_provider: agent.llm_provider || undefined,
-        llm_model_name: agent.llm_model_name || undefined,
-        is_active: agent.is_active,
-      },
-      selected: agent.id === selectedAgentId,
-    }));
-
-    setNodes(newNodes);
-
-    // Create edges between agents in the same workflow (by order)
-    const newEdges: Edge[] = [];
-    const workflowGroups: Record<string, Agent[]> = {};
-    
-    data.agents.forEach(agent => {
-      if (agent.workflow_id) {
-        if (!workflowGroups[agent.workflow_id]) {
-          workflowGroups[agent.workflow_id] = [];
-        }
-        workflowGroups[agent.workflow_id].push(agent);
-      }
-    });
-
-    Object.values(workflowGroups).forEach(agents => {
-      const sorted = agents.sort((a, b) => (a.order_in_workflow || 0) - (b.order_in_workflow || 0));
-      for (let i = 0; i < sorted.length - 1; i++) {
-        newEdges.push({
-          id: `${sorted[i].id}-${sorted[i + 1].id}`,
-          source: sorted[i].id,
-          target: sorted[i + 1].id,
-          animated: true,
-          style: { stroke: '#06b6d4', strokeWidth: 2 },
-        });
-      }
-    });
-
-    setEdges(newEdges);
-  }, [data?.agents, selectedAgentId, setNodes, setEdges]);
 
   // Mutations
   const createAgentMutation = useMutation({
@@ -306,44 +745,19 @@ export function AIOrchestrationLayer() {
     onError: (err: any) => setTestResult({ success: false, error: err.message || 'Test failed' }),
   });
 
-  // Handlers
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#06b6d4' } }, eds)),
-    [setEdges]
-  );
-
-  const onNodeDragStop = useCallback(
-    (_: any, node: Node) => {
-      updatePositionMutation.mutate({
-        agentId: node.id,
-        position: { position_x: node.position.x, position_y: node.position.y },
-      });
+  const createConnectionMutation = useMutation({
+    mutationFn: createConnection,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orchestration-agents'] });
     },
-    [updatePositionMutation]
-  );
+  });
 
-  const onNodeClick = useCallback((_: any, node: Node) => {
-    setSelectedAgentId(node.id);
-    setTestResult(null);
-  }, []);
-
-  const handleSaveAgent = useCallback((agentId: string, updates: Partial<Agent>) => {
-    updateAgentMutation.mutate({ agentId, updates });
-  }, [updateAgentMutation]);
-
-  const handleDeleteAgent = useCallback((agentId: string) => {
-    deleteAgentMutation.mutate(agentId);
-  }, [deleteAgentMutation]);
-
-  const handleTestAgent = useCallback((agentId: string) => {
-    setTestResult(null);
-    testAgentMutation.mutate(agentId);
-  }, [testAgentMutation]);
-
-  const selectedAgent = useMemo(() => {
-    if (!data?.agents || !selectedAgentId) return null;
-    return data.agents.find(a => a.id === selectedAgentId) || null;
-  }, [data?.agents, selectedAgentId]);
+  const deleteConnectionMutation = useMutation({
+    mutationFn: deleteConnection,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orchestration-agents'] });
+    },
+  });
 
   // Loading state
   if (isLoading) {
@@ -377,6 +791,8 @@ export function AIOrchestrationLayer() {
     );
   }
 
+  if (!data) return null;
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
@@ -387,7 +803,7 @@ export function AIOrchestrationLayer() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">AI Orchestration Layer</h1>
-            <p className="text-xs text-slate-400">Drag agents to position them, click to configure</p>
+            <p className="text-xs text-slate-400">Drag agents to position, connect to create workflows</p>
           </div>
         </div>
 
@@ -417,96 +833,29 @@ export function AIOrchestrationLayer() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Canvas */}
-        <div className="flex-1 relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeDragStop={onNodeDragStop}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            fitView
-            className="bg-slate-900"
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
-            <Controls className="bg-slate-800 border-slate-700" />
-            <MiniMap
-              nodeColor={(node) => {
-                const colors: Record<string, string> = {
-                  blue: '#3b82f6',
-                  cyan: '#06b6d4',
-                  purple: '#8b5cf6',
-                  amber: '#f59e0b',
-                  emerald: '#10b981',
-                  pink: '#ec4899',
-                };
-                return colors[(node.data as AgentNodeData).color || 'cyan'] || '#06b6d4';
-              }}
-              className="bg-slate-800 border-slate-700"
-            />
-          </ReactFlow>
-
-          {/* Workflow Labels */}
-          {data?.workflows.map(workflow => {
-            const workflowAgents = data.agents.filter(a => a.workflow_id === workflow.id);
-            if (workflowAgents.length === 0) return null;
-            
-            const minX = Math.min(...workflowAgents.map(a => a.position_x || 0));
-            const minY = Math.min(...workflowAgents.map(a => a.position_y || 0));
-            
-            return (
-              <div
-                key={workflow.id}
-                className="absolute pointer-events-none"
-                style={{ left: minX + 100, top: minY + 50 }}
-              >
-                <WorkflowLabel workflow={workflow} agents={workflowAgents} />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Config Panel */}
-        <AgentConfigPanel
-          agent={selectedAgent}
-          workflows={data?.workflows || []}
-          providers={providersData?.providers || []}
-          globalProvider={providersData?.global_provider || undefined}
-          globalModel={providersData?.global_model || undefined}
-          onSave={handleSaveAgent}
-          onTest={handleTestAgent}
-          onDelete={handleDeleteAgent}
-          onClose={() => setSelectedAgentId(null)}
-          isSaving={updateAgentMutation.isPending}
-          isTesting={testAgentMutation.isPending}
+      {/* Main Content with ReactFlowProvider */}
+      <ReactFlowProvider>
+        <FlowComponent
+          data={data}
+          providersData={providersData}
+          selectedAgentId={selectedAgentId}
+          setSelectedAgentId={setSelectedAgentId}
+          showCreateAgent={showCreateAgent}
+          setShowCreateAgent={setShowCreateAgent}
+          showCreateWorkflow={showCreateWorkflow}
+          setShowCreateWorkflow={setShowCreateWorkflow}
+          createAgentMutation={createAgentMutation}
+          updateAgentMutation={updateAgentMutation}
+          updatePositionMutation={updatePositionMutation}
+          deleteAgentMutation={deleteAgentMutation}
+          createWorkflowMutation={createWorkflowMutation}
+          testAgentMutation={testAgentMutation}
+          createConnectionMutation={createConnectionMutation}
+          deleteConnectionMutation={deleteConnectionMutation}
           testResult={testResult}
+          setTestResult={setTestResult}
         />
-      </div>
-
-      {/* Modals */}
-      <CreateAgentModal
-        isOpen={showCreateAgent}
-        onClose={() => setShowCreateAgent(false)}
-        onSubmit={(data) => createAgentMutation.mutate(data)}
-        isLoading={createAgentMutation.isPending}
-        workflows={data?.workflows || []}
-        providers={providersData?.providers || []}
-        globalProvider={providersData?.global_provider || undefined}
-        globalModel={providersData?.global_model || undefined}
-      />
-
-      <CreateWorkflowModal
-        isOpen={showCreateWorkflow}
-        onClose={() => setShowCreateWorkflow(false)}
-        onSubmit={(data) => createWorkflowMutation.mutate(data)}
-        isLoading={createWorkflowMutation.isPending}
-      />
+      </ReactFlowProvider>
     </div>
   );
 }

@@ -39,11 +39,33 @@ import type { CountryData, GameEvent, CountryBriefing, DecisionCard, NewsItem } 
 // API functions
 import { researchCountry, generateDecisions, generateNews } from '../../services/api';
 
-// Country flag helper
+// Map 3-letter ISO codes to 2-letter codes for flags
+const ISO3_TO_ISO2: Record<string, string> = {
+  // GCC Countries
+  SAU: 'SA', ARE: 'AE', KWT: 'KW', QAT: 'QA', BHR: 'BH', OMN: 'OM',
+  // Europe
+  DEU: 'DE', GBR: 'GB', FRA: 'FR', TUR: 'TR', POL: 'PL',
+  // Americas
+  USA: 'US', CAN: 'CA', BRA: 'BR', MEX: 'MX',
+  // Asia
+  JPN: 'JP', CHN: 'CN', IND: 'IN', SGP: 'SG', IDN: 'ID',
+  // Oceania
+  AUS: 'AU', NZL: 'NZ',
+  // Africa
+  ZAF: 'ZA', NGA: 'NG', EGY: 'EG',
+};
+
+// Get flag image URL from CDN
+function getFlagUrl(isoCode: string): string {
+  const iso2 = ISO3_TO_ISO2[isoCode.toUpperCase()] || isoCode.slice(0, 2);
+  return `https://flagcdn.com/w80/${iso2.toLowerCase()}.png`;
+}
+
+// Country flag emoji helper (fallback)
 function getCountryFlag(isoCode: string): string {
   if (!isoCode || isoCode.length < 2) return '🏳️';
-  const code = isoCode.toUpperCase().slice(0, 2);
-  const codePoints = code.split('').map(char => 127397 + char.charCodeAt(0));
+  const iso2 = ISO3_TO_ISO2[isoCode.toUpperCase()] || isoCode.slice(0, 2);
+  const codePoints = iso2.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
   return String.fromCodePoint(...codePoints);
 }
 
@@ -480,8 +502,20 @@ function SetupScreen({
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/5 border border-white/10 rounded-xl p-4"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{getCountryFlag(localSelected.iso_code)}</span>
+            <div className="flex items-center gap-3">
+              {/* Flag Image */}
+              <img
+                src={getFlagUrl(localSelected.iso_code)}
+                alt={`${localSelected.name} flag`}
+                className="w-12 h-8 object-cover rounded shadow-sm border border-white/20"
+                onError={(e) => {
+                  // Fallback to emoji if image fails
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <span className="hidden text-3xl">{getCountryFlag(localSelected.iso_code)}</span>
               <div>
                 <h3 className="text-lg font-semibold text-white">{localSelected.name}</h3>
                 <p className="text-xs text-white/40">{localSelected.region}</p>
