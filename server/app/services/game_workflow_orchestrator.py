@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import decrypt_api_key
 from app.models.user import AIConfig, AIProvider
-from app.models.agent import Agent, Workflow
+from app.models.agent import Agent
 from app.data.country_contexts import get_country_context, CountryContext
 from app.services.ai_orchestrator import (
     perform_web_search,

@@ -1425,11 +1425,11 @@ def call_openai_with_web_search(
         if hasattr(response, 'output') and response.output:
             for item in response.output:
                 if hasattr(item, 'type') and item.type == 'web_search_call':
-                    if hasattr(item, 'action') and hasattr(item.action, 'sources'):
+                    if hasattr(item, 'action') and hasattr(item.action, 'sources') and item.action.sources:
                         sources.extend(item.action.sources)
-                elif hasattr(item, 'content'):
+                elif hasattr(item, 'content') and item.content:
                     for content_item in item.content:
-                        if hasattr(content_item, 'annotations'):
+                        if hasattr(content_item, 'annotations') and content_item.annotations:
                             for annotation in content_item.annotations:
                                 if hasattr(annotation, 'url'):
                                     sources.append({

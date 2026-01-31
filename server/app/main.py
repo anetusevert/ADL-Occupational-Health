@@ -157,33 +157,6 @@ async def startup_event():
                 
                 print("Agents table migration complete")
             
-            # Migrate workflows table - add lane_order column
-            if 'workflows' in table_names:
-                columns = [col['name'] for col in inspector.get_columns('workflows')]
-                
-                if 'lane_order' not in columns:
-                    print("Adding missing column to workflows: lane_order")
-                    conn.execute(text("ALTER TABLE workflows ADD COLUMN lane_order INTEGER DEFAULT 0"))
-                    conn.commit()
-                
-                print("Workflows table migration complete")
-            
-            # Create agent_connections table if it doesn't exist
-            if 'agent_connections' not in table_names:
-                print("Creating agent_connections table...")
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS agent_connections (
-                        id VARCHAR(100) PRIMARY KEY,
-                        source_agent_id VARCHAR(50),
-                        target_agent_id VARCHAR(50),
-                        workflow_id VARCHAR(50),
-                        connection_type VARCHAR(20) DEFAULT 'data',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """))
-                conn.commit()
-                print("Created agent_connections table successfully")
-            
             print("All migrations completed successfully")
                 
     except Exception as e:
