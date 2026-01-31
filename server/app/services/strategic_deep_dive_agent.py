@@ -433,17 +433,23 @@ class StrategicDeepDiveAgent:
                 
                 # Call OpenAI Responses API with native web search
                 api_key = get_openai_api_key_from_config(self.config)
-                analysis = call_openai_with_web_search(
-                    system_prompt=STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT,
-                    user_prompt=user_prompt,
-                    country_iso_code=iso_code,
-                    api_key=api_key,
-                    model=self.config.model_name,
-                    temperature=self.config.temperature,
-                    db=self.db,
-                    topic=topic,
-                    user_id=int(user_id) if user_id else None,
-                )
+                try:
+                    analysis = call_openai_with_web_search(
+                        system_prompt=STRATEGIC_DEEP_DIVE_SYSTEM_PROMPT,
+                        user_prompt=user_prompt,
+                        country_iso_code=iso_code,
+                        api_key=api_key,
+                        model=self.config.model_name,
+                        temperature=self.config.temperature,
+                        db=self.db,
+                        topic=topic,
+                        user_id=int(user_id) if user_id else None,
+                    )
+                except Exception as openai_error:
+                    logger.error(f"[SynthesisAgent] OpenAI web search error: {type(openai_error).__name__}: {str(openai_error)}")
+                    self._log("SynthesisAgent", AgentStatus.ERROR,
+                              f"OpenAI error: {str(openai_error)[:200]}", "❌")
+                    raise ValueError(f"OpenAI synthesis failed: {str(openai_error)[:200]}")
                 
                 self._log("ResearchAgent", AgentStatus.COMPLETE,
                           "OpenAI native web research completed", "✅")

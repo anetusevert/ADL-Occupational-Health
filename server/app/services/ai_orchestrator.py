@@ -1395,14 +1395,15 @@ def call_openai_with_web_search(
             if last_error:
                 raise last_error
             logger.error("[OpenAI Web Search] No response after retries")
-            return None
+            raise ValueError("OpenAI API returned no response after retries")
         
         # Extract the output text
         output_text = response.output_text
         
         if not output_text:
             logger.error("[OpenAI Web Search] Empty response from API")
-            return None
+            logger.error(f"[OpenAI Web Search] Full response object: {response}")
+            raise ValueError("OpenAI API returned empty output. The model may have rejected the request or timed out.")
         
         logger.info(f"[OpenAI Web Search] Response received: {len(output_text)} chars")
         
@@ -1453,15 +1454,15 @@ def call_openai_with_web_search(
         logger.error(f"[OpenAI Web Search] JSON parse error: {e}")
         logger.error(f"[OpenAI Web Search] Content: {content[:500] if content else 'EMPTY'}")
         error_message = f"JSON parse error: {str(e)}"
-        return None
+        raise ValueError(f"OpenAI returned non-JSON response. Content preview: {content[:200] if content else 'EMPTY'}")
     except ImportError as e:
         logger.error(f"[OpenAI Web Search] OpenAI package not installed or outdated: {e}")
         error_message = f"Import error: {str(e)}"
-        return None
+        raise ValueError(f"OpenAI package not installed or outdated: {e}")
     except Exception as e:
         logger.error(f"[OpenAI Web Search] API call failed: {type(e).__name__}: {e}")
         error_message = f"{type(e).__name__}: {str(e)}"
-        return None
+        raise ValueError(f"OpenAI API error: {type(e).__name__}: {str(e)[:200]}")
     finally:
         # Log the trace if db session is available
         if db:
