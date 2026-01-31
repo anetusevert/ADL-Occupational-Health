@@ -354,7 +354,7 @@ export function MetricDetailModal({
               duration: 0.4, 
               ease: [0.25, 0.46, 0.45, 0.94] 
             }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[700px] md:max-h-[85vh] bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed inset-2 sm:inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] lg:w-[700px] max-h-[calc(100vh-16px)] sm:max-h-[calc(100vh-32px)] md:max-h-[85vh] bg-slate-900 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className={cn(

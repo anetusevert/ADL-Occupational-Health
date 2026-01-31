@@ -774,7 +774,7 @@ function ContentPanel({ slide }: { slide: GuideSlide }) {
   const c = colors[slide.color || "cyan"];
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col p-4 sm:p-6">
       {/* ADL Logo */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -1023,13 +1023,13 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
             className="fixed inset-0 bg-black/95 z-50"
           />
 
-          {/* Modal */}
+          {/* Modal - Full screen on mobile, centered on desktop */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-4 md:inset-6 lg:inset-10 xl:inset-12 bg-slate-900 rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col"
+            className="fixed inset-2 sm:inset-4 md:inset-6 lg:inset-10 xl:inset-12 bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col"
           >
             {/* Loader */}
             <AnimatePresence>
@@ -1048,11 +1048,11 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
               </button>
             )}
 
-            {/* Main Content - Content Left, Visual Right */}
+            {/* Main Content - Stacked on mobile, side-by-side on desktop */}
             {!showLoader && slide && (
-              <div className="flex-1 flex min-h-0">
-                {/* Left - Content (40%) */}
-                <div className="w-2/5 flex flex-col min-h-0 border-r border-slate-700/50 bg-slate-900">
+              <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+                {/* Left - Content (full width mobile, 40% desktop) */}
+                <div className="w-full lg:w-2/5 flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-700/50 bg-slate-900 max-h-[50%] lg:max-h-none overflow-auto">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={slide.id}
@@ -1097,7 +1097,7 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
 
             {/* Navigation Bar */}
             {!showLoader && (
-              <div className="flex-shrink-0 px-6 py-4 bg-slate-800/80 border-t border-slate-700/50 flex items-center justify-between">
+              <div className="flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 bg-slate-800/80 border-t border-slate-700/50 flex items-center justify-between">
                 {/* Previous */}
                 <button
                   onClick={prevSlide}
@@ -1155,13 +1155,13 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
               </div>
             )}
 
-            {/* Skip Tour Link */}
+            {/* Skip Tour Link - Hidden on mobile for space */}
             {!showLoader && (
-              <div className="flex-shrink-0 px-6 py-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+              <div className="flex-shrink-0 px-3 sm:px-6 py-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
                 <button onClick={onClose} className="hover:text-white transition-colors">
                   Skip Tour
                 </button>
-                <div className="flex gap-4">
+                <div className="hidden sm:flex gap-4">
                   <span>← → Navigate</span>
                   <span>Space = Next</span>
                   <span>Esc = Close</span>

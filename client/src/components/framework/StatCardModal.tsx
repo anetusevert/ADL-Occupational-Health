@@ -514,13 +514,13 @@ export function StatCardModal({ isOpen, onClose, cardType }: StatCardModalProps)
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
+          {/* Modal - Full screen on mobile with small margins */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[700px] md:max-h-[85vh] bg-slate-900/95 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col backdrop-blur-xl"
+            className="fixed inset-2 sm:inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] lg:w-[700px] max-h-[calc(100vh-16px)] sm:max-h-[calc(100vh-32px)] md:max-h-[85vh] bg-slate-900/95 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col backdrop-blur-xl"
           >
             {/* Header */}
             <div className={cn(
@@ -578,7 +578,7 @@ export function StatCardModal({ isOpen, onClose, cardType }: StatCardModalProps)
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
               {/* Description */}
               <motion.p
                 initial={{ opacity: 0 }}

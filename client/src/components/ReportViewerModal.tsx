@@ -102,7 +102,7 @@ export function ReportViewerModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-4 md:inset-8 lg:inset-12 bg-slate-900 rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl"
+            className="fixed inset-2 sm:inset-4 md:inset-8 lg:inset-12 bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl max-h-[calc(100vh-16px)] sm:max-h-[calc(100vh-32px)]"
           >
             {/* Loading State */}
             {isLoading && (

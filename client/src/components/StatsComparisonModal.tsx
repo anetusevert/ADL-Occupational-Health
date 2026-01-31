@@ -98,7 +98,7 @@ export function StatsComparisonModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-8 md:inset-16 lg:inset-24 bg-slate-900 rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl max-w-3xl mx-auto"
+            className="fixed inset-2 sm:inset-4 md:inset-8 lg:inset-16 xl:inset-24 bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col shadow-2xl max-w-3xl mx-auto max-h-[calc(100vh-16px)] sm:max-h-[calc(100vh-32px)]"
           >
             {/* Header */}
             <div className="flex-shrink-0 bg-gradient-to-r from-cyan-900/50 to-purple-900/50 backdrop-blur-sm border-b border-slate-700/50 px-6 py-4">
