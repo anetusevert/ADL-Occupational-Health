@@ -105,11 +105,11 @@ export function FrameworkPage() {
       <div className="flex-shrink-0 mb-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30 overflow-hidden">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
               <img 
                 src="/adl-logo.png" 
                 alt="ADL" 
-                className="w-8 h-8 object-contain"
+                className="w-full h-full object-contain brightness-0 invert"
               />
             </div>
             <div>
