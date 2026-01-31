@@ -159,8 +159,11 @@ export function DeepDiveWizard() {
         
         const generated = await generateStrategicDeepDive(countryIso, topic);
         setReport(generated.report?.report || null);
-      } catch (err) {
-        setReportError(err instanceof Error ? err : new Error("Failed to load report"));
+      } catch (err: any) {
+        // Extract detailed error message from server response if available
+        const serverMessage = err?.response?.data?.detail || err?.response?.data?.message;
+        const errorMessage = serverMessage || (err instanceof Error ? err.message : "Failed to load report");
+        setReportError(new Error(errorMessage));
       } finally {
         setIsFetching(false);
         setIsGenerating(false);
@@ -213,8 +216,10 @@ export function DeepDiveWizard() {
       try {
         const generated = await generateStrategicDeepDive(selectedCountries[0], selectedTopic);
         setReport(generated.report?.report || null);
-      } catch (err) {
-        setReportError(err instanceof Error ? err : new Error("Failed to regenerate report"));
+      } catch (err: any) {
+        const serverMessage = err?.response?.data?.detail || err?.response?.data?.message;
+        const errorMessage = serverMessage || (err instanceof Error ? err.message : "Failed to regenerate report");
+        setReportError(new Error(errorMessage));
       } finally {
         setIsGenerating(false);
       }
