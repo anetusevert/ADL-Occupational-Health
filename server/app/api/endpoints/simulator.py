@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.services.game_events import generate_event, generate_end_game_summary
 from app.services.simulator_agents import (
     generate_country_briefing,
@@ -316,7 +316,7 @@ class CountryContextResponse(BaseModel):
 async def research_country(
     request: ResearchCountryRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Research a country and generate a comprehensive briefing for game start.
@@ -327,10 +327,12 @@ async def research_country(
     - Generate socioeconomic and cultural analysis
     - Identify key stakeholders and challenges
     - Create an immersive mission briefing
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
-        # Get user's AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        # Get AI config (user's or global fallback)
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         briefing = await generate_country_briefing(
             iso_code=request.iso_code,
@@ -361,7 +363,7 @@ async def research_country(
 async def generate_decisions(
     request: GenerateDecisionsRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Generate 4-5 decision cards for the current month.
@@ -371,6 +373,8 @@ async def generate_decisions(
     - Budget availability
     - Recent decisions and events
     - Country-specific context (real institutions, cities)
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
         # Get country context
@@ -379,8 +383,8 @@ async def generate_decisions(
             from app.data.country_contexts import generate_fallback_context
             context = generate_fallback_context(request.iso_code, request.country_name, "Unknown")
         
-        # Get AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        # Get AI config (user's or global fallback)
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         pillar_scores = {
             "governance": request.pillars.governance,
@@ -421,7 +425,7 @@ async def generate_decisions(
 async def generate_news(
     request: GenerateNewsRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Generate realistic news headlines for the newsfeed.
@@ -430,6 +434,8 @@ async def generate_news(
     - Recent player decisions
     - Country-specific institutions and locations
     - Realistic sources (media, government, unions)
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
         context = get_country_context(request.iso_code)
@@ -551,7 +557,7 @@ async def list_available_countries():
 async def generate_game_event(
     request: GenerateEventRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Generate a game event based on the current country state.
@@ -559,6 +565,8 @@ async def generate_game_event(
     Events are contextually generated based on:
     - Country characteristics
     - Current pillar scores
+    
+    Note: Works for both authenticated and anonymous users.
     - Active policies
     - Recent event history
     """
@@ -599,7 +607,7 @@ async def generate_game_event(
 async def generate_game_summary(
     request: GenerateSummaryRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Generate an end-game summary with AI narrative.
@@ -607,6 +615,8 @@ async def generate_game_summary(
     Includes:
     - Personalized narrative based on performance
     - Key highlights and achievements
+    
+    Note: Works for both authenticated and anonymous users.
     - Strategic recommendations
     - Letter grade
     """
@@ -657,6 +667,32 @@ async def health_check():
 # WORKFLOW-BASED ENDPOINTS (Enhanced AI Integration)
 # =============================================================================
 
+def get_ai_config_with_fallback(db: Session, user: Optional[User]) -> Optional[AIConfig]:
+    """
+    Get AI configuration with global fallback.
+    
+    Priority:
+    1. User's personal AI config (if authenticated)
+    2. Global/admin AI config (first active config found)
+    3. None (will use default settings in orchestrator)
+    """
+    # Try user's config first
+    if user:
+        user_config = db.query(AIConfig).filter(
+            AIConfig.user_id == user.id,
+            AIConfig.is_active == True
+        ).first()
+        if user_config:
+            return user_config
+    
+    # Fall back to any active global config (admin's config)
+    global_config = db.query(AIConfig).filter(
+        AIConfig.is_active == True
+    ).first()
+    
+    return global_config
+
+
 class WorkflowRequest(BaseModel):
     """Base request for workflow execution."""
     iso_code: str = Field(..., min_length=3, max_length=3)
@@ -704,7 +740,7 @@ class WorkflowResponse(BaseModel):
 async def run_intelligence_briefing_workflow(
     request: WorkflowRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Run the enhanced Intelligence Briefing workflow.
@@ -714,10 +750,13 @@ async def run_intelligence_briefing_workflow(
     2. Retrieves country metrics from the database
     3. Uses AI to synthesize a comprehensive briefing
     4. Returns structured data with agent activity log
+    
+    Note: Works for both authenticated and anonymous users.
+    Uses global AI config as fallback.
     """
     try:
-        # Get user's AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        # Get AI config (user's or global fallback)
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         # Get country and context
         country = db.query(Country).filter(Country.iso_code == request.iso_code).first()
@@ -788,15 +827,17 @@ async def run_intelligence_briefing_workflow(
 async def run_strategic_advisor_workflow(
     request: AdvisorWorkflowRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Run the Strategic Advisor workflow.
     
     Generates conversational advice and contextual decision options.
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         context = get_country_context(request.iso_code)
         if not context:
@@ -850,15 +891,17 @@ async def run_strategic_advisor_workflow(
 async def run_news_generator_workflow(
     request: NewsWorkflowRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Run the News Generator workflow.
     
     Generates realistic news items based on game events and decisions.
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         context = get_country_context(request.iso_code)
         if not context:
@@ -904,15 +947,17 @@ async def run_news_generator_workflow(
 async def run_final_report_workflow(
     request: GenerateSummaryRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Run the Final Report workflow.
     
     Generates comprehensive end-game assessment.
+    
+    Note: Works for both authenticated and anonymous users.
     """
     try:
-        ai_config = db.query(AIConfig).filter(AIConfig.user_id == current_user.id).first()
+        ai_config = get_ai_config_with_fallback(db, current_user)
         
         history_dicts = [h.dict() for h in request.history]
         stats_dict = request.statistics.dict()
