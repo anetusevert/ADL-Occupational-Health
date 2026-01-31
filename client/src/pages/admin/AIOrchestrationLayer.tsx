@@ -203,6 +203,10 @@ const nodeTypes: NodeTypes = {
   agent: AgentNode,
 };
 
+const edgeTypes: EdgeTypes = {
+  custom: CustomEdge,
+};
+
 // =============================================================================
 // CONNECTION SUGGESTION OVERLAY
 // =============================================================================
@@ -344,7 +348,12 @@ function FlowComponent({
     }));
 
     setEdges(newEdges);
-  }, [data?.agents, data?.connections, selectedAgentId, setNodes, setEdges]);
+
+    // Fit view to show all nodes after a short delay
+    setTimeout(() => {
+      reactFlowInstance?.fitView({ padding: 0.2, duration: 300 });
+    }, 100);
+  }, [data?.agents, data?.connections, selectedAgentId, setNodes, setEdges, reactFlowInstance]);
 
   // Handle connection creation
   const onConnect = useCallback(

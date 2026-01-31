@@ -38,52 +38,61 @@ const ICON_MAP: Record<string, React.ElementType> = {
   message: MessageSquare,
 };
 
-// n8n-style color accents (subtle, professional)
-const COLOR_ACCENTS: Record<string, { accent: string; bg: string; iconBg: string }> = {
+// n8n-style color accents (light background, colored accents)
+const COLOR_ACCENTS: Record<string, { accent: string; bg: string; iconBg: string; handleColor: string }> = {
   blue: {
     accent: '#3b82f6',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-blue-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-blue-100',
+    handleColor: '#3b82f6',
   },
   cyan: {
     accent: '#06b6d4',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-cyan-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-cyan-100',
+    handleColor: '#06b6d4',
   },
   purple: {
     accent: '#8b5cf6',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-purple-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-purple-100',
+    handleColor: '#8b5cf6',
   },
   amber: {
     accent: '#f59e0b',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-amber-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-amber-100',
+    handleColor: '#f59e0b',
   },
   emerald: {
     accent: '#10b981',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-emerald-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-emerald-100',
+    handleColor: '#10b981',
   },
   pink: {
     accent: '#ec4899',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-pink-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-pink-100',
+    handleColor: '#ec4899',
   },
   slate: {
     accent: '#64748b',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-slate-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-slate-200',
+    handleColor: '#64748b',
   },
   orange: {
     accent: '#f97316',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-orange-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-orange-100',
+    handleColor: '#f97316',
   },
   teal: {
     accent: '#14b8a6',
-    bg: 'bg-slate-800',
-    iconBg: 'bg-teal-500/20',
+    bg: 'bg-slate-100',
+    iconBg: 'bg-teal-100',
+    handleColor: '#14b8a6',
   },
 };
 
@@ -106,36 +115,41 @@ function AgentNodeComponent({ data, selected }: NodeProps<AgentNodeData>) {
   return (
     <div
       className={`
-        relative rounded-lg shadow-lg
+        relative rounded-xl shadow-md
         transition-all duration-150
         ${colors.bg}
+        border border-slate-200
         ${selected 
-          ? 'ring-2 ring-offset-2 ring-offset-slate-900' 
-          : 'hover:shadow-xl'
+          ? 'ring-2 ring-offset-2 ring-offset-slate-900 shadow-lg' 
+          : 'hover:shadow-lg hover:border-slate-300'
         }
       `}
       style={{
-        borderLeft: `4px solid ${colors.accent}`,
-        minWidth: '160px',
-        maxWidth: '200px',
+        minWidth: '140px',
+        maxWidth: '180px',
         ...(selected ? { '--tw-ring-color': colors.accent } as React.CSSProperties : {}),
       }}
     >
-      {/* Input Handle - Left side */}
+      {/* Input Handle - Left side (n8n-style circle) */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-3 !h-3 !bg-slate-400 !border-2 !border-slate-600 hover:!bg-white hover:!border-slate-400 transition-colors"
-        style={{ left: -6 }}
+        className="!w-3.5 !h-3.5 !rounded-full !border-2 transition-all"
+        style={{ 
+          left: -7,
+          backgroundColor: '#fff',
+          borderColor: colors.handleColor,
+        }}
       />
       
       {/* Node Content */}
       <div className="px-3 py-2.5">
         {/* Header with icon and name */}
         <div className="flex items-center gap-2.5">
-          {/* Icon container */}
+          {/* Icon container - n8n style colored box */}
           <div 
-            className={`p-1.5 rounded ${colors.iconBg} flex-shrink-0`}
+            className={`p-2 rounded-lg ${colors.iconBg} flex-shrink-0`}
+            style={{ border: `1px solid ${colors.accent}30` }}
           >
             <IconComponent 
               className="w-4 h-4" 
@@ -145,11 +159,11 @@ function AgentNodeComponent({ data, selected }: NodeProps<AgentNodeData>) {
           
           {/* Name and category */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-white truncate leading-tight">
+            <h3 className="text-sm font-semibold text-slate-800 truncate leading-tight">
               {data.name}
             </h3>
             {data.category && (
-              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
+              <p className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
                 {data.category}
               </p>
             )}
@@ -158,7 +172,7 @@ function AgentNodeComponent({ data, selected }: NodeProps<AgentNodeData>) {
         
         {/* LLM Override - compact display */}
         {data.llm_provider && (
-          <div className="mt-2 flex items-center gap-1 text-[10px] text-slate-500">
+          <div className="mt-2 flex items-center gap-1 text-[10px] text-slate-400 border-t border-slate-200 pt-1.5">
             <Cpu className="w-3 h-3" />
             <span className="truncate">{data.llm_model_name || data.llm_provider}</span>
           </div>
@@ -168,17 +182,21 @@ function AgentNodeComponent({ data, selected }: NodeProps<AgentNodeData>) {
       {/* Status Indicator - inactive */}
       {data.is_active === false && (
         <div 
-          className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900"
+          className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-sm"
           title="Inactive"
         />
       )}
       
-      {/* Output Handle - Right side */}
+      {/* Output Handle - Right side (n8n-style circle) */}
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-3 !h-3 !bg-slate-400 !border-2 !border-slate-600 hover:!bg-white hover:!border-slate-400 transition-colors"
-        style={{ right: -6 }}
+        className="!w-3.5 !h-3.5 !rounded-full !border-2 transition-all"
+        style={{ 
+          right: -7,
+          backgroundColor: '#fff',
+          borderColor: colors.handleColor,
+        }}
       />
     </div>
   );
