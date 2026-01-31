@@ -6,16 +6,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Target,
-  Globe,
-  Play,
-  Settings,
-  HelpCircle,
-  Volume2,
-  VolumeX,
-  Maximize2,
-} from 'lucide-react';
+import { Globe, Play, HelpCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Import game components
@@ -34,6 +25,15 @@ import { ParticleEffects } from './ParticleEffects';
 import { useGame, GameProvider } from '../../hooks/useGameSimulation';
 import type { CountryData, GameEvent } from './types';
 
+// Country flag helper - handles 3-letter ISO codes
+function getCountryFlag(isoCode: string): string {
+  if (!isoCode || isoCode.length < 2) return '🏳️';
+  // Use first 2 characters for flag emoji
+  const code = isoCode.toUpperCase().slice(0, 2);
+  const codePoints = code.split('').map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
 // Sample events for demo
 const SAMPLE_EVENTS: GameEvent[] = [
   {
@@ -41,30 +41,12 @@ const SAMPLE_EVENTS: GameEvent[] = [
     type: 'crisis',
     severity: 'major',
     title: 'Industrial Disaster at Chemical Plant',
-    description: 'An explosion at a major chemical facility has injured 50 workers and caused a toxic leak affecting nearby communities.',
-    narrative: 'The incident highlights gaps in your hazard control systems and has drawn international media attention.',
+    description: 'An explosion at a major chemical facility has injured 50 workers.',
+    narrative: 'This incident highlights gaps in your hazard control systems.',
     choices: [
-      {
-        id: 'c1',
-        label: 'Emergency Response & Investigation',
-        description: 'Deploy emergency teams and launch a full investigation. Compensate victims immediately.',
-        cost: 50,
-        impacts: { governance: 2, hazardControl: -3, healthVigilance: 1, restoration: -2 },
-      },
-      {
-        id: 'c2',
-        label: 'Regulatory Crackdown',
-        description: 'Suspend similar operations nationwide for safety audits. May impact economic output.',
-        cost: 30,
-        impacts: { governance: 4, hazardControl: 2, healthVigilance: 0, restoration: -1 },
-      },
-      {
-        id: 'c3',
-        label: 'Minimal Response',
-        description: 'Let local authorities handle it. Focus resources elsewhere.',
-        cost: 0,
-        impacts: { governance: -5, hazardControl: -2, healthVigilance: -1, restoration: -3 },
-      },
+      { id: 'c1', label: 'Emergency Response', description: 'Deploy emergency teams and investigate.', cost: 50, impacts: { governance: 2, hazardControl: -3, healthVigilance: 1, restoration: -2 } },
+      { id: 'c2', label: 'Regulatory Crackdown', description: 'Suspend similar operations for audits.', cost: 30, impacts: { governance: 4, hazardControl: 2, healthVigilance: 0, restoration: -1 } },
+      { id: 'c3', label: 'Minimal Response', description: 'Let local authorities handle it.', cost: 0, impacts: { governance: -5, hazardControl: -2, healthVigilance: -1, restoration: -3 } },
     ],
     deadline: 60,
     triggeredYear: 2025,
@@ -75,33 +57,12 @@ const SAMPLE_EVENTS: GameEvent[] = [
     type: 'opportunity',
     severity: 'moderate',
     title: 'WHO Partnership Opportunity',
-    description: 'The World Health Organization offers technical assistance to strengthen your surveillance systems.',
-    narrative: 'This partnership could accelerate your health vigilance capabilities significantly.',
+    description: 'The WHO offers technical assistance for surveillance systems.',
+    narrative: 'This partnership could accelerate your health vigilance capabilities.',
     choices: [
-      {
-        id: 'c1',
-        label: 'Accept Full Partnership',
-        description: 'Commit resources to implement WHO recommendations across all regions.',
-        cost: 40,
-        impacts: { governance: 2, hazardControl: 1, healthVigilance: 5, restoration: 1 },
-        longTermEffects: [
-          { pillar: 'healthVigilance', delta: 2, duration: 2, description: 'WHO capacity building' },
-        ],
-      },
-      {
-        id: 'c2',
-        label: 'Pilot Program',
-        description: 'Start with a smaller pilot in select regions to test effectiveness.',
-        cost: 15,
-        impacts: { governance: 1, hazardControl: 0, healthVigilance: 2, restoration: 0 },
-      },
-      {
-        id: 'c3',
-        label: 'Decline Politely',
-        description: 'Focus on domestic solutions instead.',
-        cost: 0,
-        impacts: { governance: -1, hazardControl: 0, healthVigilance: 0, restoration: 0 },
-      },
+      { id: 'c1', label: 'Accept Partnership', description: 'Commit resources to implement WHO recommendations.', cost: 40, impacts: { governance: 2, hazardControl: 1, healthVigilance: 5, restoration: 1 } },
+      { id: 'c2', label: 'Pilot Program', description: 'Start with a smaller pilot.', cost: 15, impacts: { governance: 1, hazardControl: 0, healthVigilance: 2, restoration: 0 } },
+      { id: 'c3', label: 'Decline', description: 'Focus on domestic solutions.', cost: 0, impacts: { governance: -1, hazardControl: 0, healthVigilance: 0, restoration: 0 } },
     ],
     deadline: 0,
     triggeredYear: 2030,
@@ -128,38 +89,37 @@ function GameInner() {
     resolveEvent,
     dismissEvent,
     selectPillar,
-    toggleWorldMap,
     resetGame,
   } = useGame();
-  
+
   const [showWorldMap, setShowWorldMap] = useState(false);
-  
-  // Handle event triggering (demo - would be from API in production)
-  useEffect(() => {
-    if (state.phase === 'playing' && state.cycleNumber > 0 && Math.random() < 0.3) {
-      const eventIndex = state.cycleNumber % SAMPLE_EVENTS.length;
-      const event = { ...SAMPLE_EVENTS[eventIndex], id: `evt_${Date.now()}` };
-      // Don't trigger immediately, let user advance manually for demo
-    }
-  }, [state.cycleNumber, state.phase]);
-  
+
+  // Start game with auto-advance enabled
+  const handleStartGame = useCallback(() => {
+    startGame();
+    // Auto-start simulation after a short delay
+    setTimeout(() => {
+      toggleAutoAdvance();
+    }, 500);
+  }, [startGame, toggleAutoAdvance]);
+
   const handleTriggerDemoEvent = useCallback(() => {
     const eventIndex = Math.floor(Math.random() * SAMPLE_EVENTS.length);
     const event = { ...SAMPLE_EVENTS[eventIndex], id: `evt_${Date.now()}` };
     triggerEvent(event);
   }, [triggerEvent]);
-  
+
   // Setup Phase
   if (state.phase === 'setup') {
     return (
       <SetupScreen
         selectedCountry={state.selectedCountry}
         onSelectCountry={selectCountry}
-        onStartGame={startGame}
+        onStartGame={handleStartGame}
       />
     );
   }
-  
+
   // Game Over Phase
   if (state.phase === 'ended' && state.selectedCountry) {
     return (
@@ -171,13 +131,13 @@ function GameInner() {
         onPlayAgain={() => {
           resetGame();
           selectCountry(state.selectedCountry!);
-          startGame();
+          handleStartGame();
         }}
         onNewCountry={resetGame}
       />
     );
   }
-  
+
   // Main Game
   return (
     <div className="h-full flex flex-col">
@@ -191,7 +151,7 @@ function GameInner() {
           />
         )}
       </AnimatePresence>
-      
+
       {/* World Map Modal */}
       <AnimatePresence>
         {showWorldMap && (
@@ -202,7 +162,7 @@ function GameInner() {
           />
         )}
       </AnimatePresence>
-      
+
       {/* Header */}
       <GameHeader
         country={state.selectedCountry}
@@ -211,12 +171,12 @@ function GameInner() {
         onShowMap={() => setShowWorldMap(true)}
         onTriggerEvent={handleTriggerDemoEvent}
       />
-      
+
       {/* Main 3-Panel Layout */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-4 p-4">
         {/* Left Panel - Policy Controls */}
-        <div className="col-span-4 flex flex-col gap-4 overflow-hidden">
-          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 overflow-hidden">
+        <div className="col-span-4 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 overflow-hidden">
             <PolicyTemple
               pillars={state.pillars}
               policies={state.policies}
@@ -229,7 +189,7 @@ function GameInner() {
               disabled={state.phase !== 'playing' && state.phase !== 'paused'}
             />
           </div>
-          
+
           {state.selectedCountry && (
             <BudgetAllocator
               budget={state.budget}
@@ -240,7 +200,7 @@ function GameInner() {
             />
           )}
         </div>
-        
+
         {/* Center Panel - Rankings */}
         <div className="col-span-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex flex-col">
           <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/5">
@@ -260,7 +220,7 @@ function GameInner() {
             />
           </div>
         </div>
-        
+
         {/* Right Panel - Statistics */}
         <div className="col-span-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 overflow-hidden">
           <StatsDashboard
@@ -275,7 +235,7 @@ function GameInner() {
           />
         </div>
       </div>
-      
+
       {/* Timeline Controls */}
       <div className="flex-shrink-0 p-4 pt-0">
         <TimelineControl
@@ -310,18 +270,17 @@ function SetupScreen({
 }) {
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 relative">
-      {/* Background particles */}
       <ParticleEffects intensity="low" />
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg space-y-8 relative z-10"
+        className="w-full max-w-md space-y-6 relative z-10"
       >
-        {/* Title */}
+        {/* Title with ADL Logo */}
         <div className="text-center">
           <motion.div
-            animate={{ 
+            animate={{
               boxShadow: [
                 '0 0 20px rgba(6,182,212,0.2)',
                 '0 0 40px rgba(6,182,212,0.4)',
@@ -329,32 +288,66 @@ function SetupScreen({
               ]
             }}
             transition={{ duration: 3, repeat: Infinity }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-adl-accent/20 rounded-2xl border border-adl-accent/30 mb-6"
+            className="inline-flex items-center justify-center w-16 h-16 bg-adl-accent/20 rounded-2xl border border-adl-accent/30 mb-4"
           >
-            <Target className="w-10 h-10 text-adl-accent" />
+            <img src="/adl-logo.png" alt="ADL" className="h-10 w-10 object-contain" />
           </motion.div>
-          
-          <h1 className="text-3xl font-bold text-white mb-2">
+
+          <h1 className="text-2xl font-bold text-white mb-1">
             Sovereign Health
           </h1>
-          <p className="text-white/60">
+          <p className="text-white/50 text-sm">
             Lead a nation's occupational health transformation
           </p>
-          <p className="text-xs text-white/40 mt-2">
+          <p className="text-[10px] text-white/30 mt-1">
             Powered by Arthur D. Little • ADL OHI Framework
           </p>
         </div>
-        
+
         {/* Country Selector */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Choose Your Nation</h2>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-white mb-3">Choose Your Nation</h2>
           <CountrySelector
             countries={SAMPLE_COUNTRIES}
             selectedCountry={selectedCountry}
             onSelect={onSelectCountry}
+            showStats={false}
           />
         </div>
-        
+
+        {/* Selected Country Preview */}
+        {selectedCountry && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/5 border border-white/10 rounded-xl p-4"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">{getCountryFlag(selectedCountry.iso_code)}</span>
+              <div>
+                <h3 className="text-lg font-semibold text-white">{selectedCountry.name}</h3>
+                <p className="text-xs text-white/40">{selectedCountry.region}</p>
+              </div>
+              <div className="ml-auto text-right">
+                <p className="text-xl font-bold text-adl-accent">{selectedCountry.initialOHIScore.toFixed(1)}</p>
+                <p className="text-[10px] text-white/40">OHI Score</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {(['governance', 'hazardControl', 'healthVigilance', 'restoration'] as const).map(key => (
+                <div key={key} className="bg-white/5 rounded p-2">
+                  <p className="text-sm font-bold text-white">{selectedCountry.initialPillars[key]}</p>
+                  <p className="text-[9px] text-white/40">
+                    {key === 'hazardControl' ? 'Hazard' :
+                     key === 'healthVigilance' ? 'Vigil' :
+                     key === 'restoration' ? 'Resto' : 'Gov'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Start Button */}
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -362,21 +355,19 @@ function SetupScreen({
           onClick={onStartGame}
           disabled={!selectedCountry}
           className={cn(
-            'w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3 transition-all',
+            'w-full py-3 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all',
             selectedCountry
               ? 'bg-adl-accent text-white hover:bg-adl-blue-light'
               : 'bg-white/10 text-white/40 cursor-not-allowed'
           )}
         >
           <Play className="w-5 h-5" />
-          Begin Simulation
+          Start Simulation
         </motion.button>
-        
-        {/* Info */}
-        <div className="text-center text-xs text-white/30 space-y-1">
-          <p>5-year policy cycles • AI-powered events • Real country data</p>
-          <p>Goal: Improve your nation's ADL OHI Score through strategic policy decisions</p>
-        </div>
+
+        <p className="text-center text-[10px] text-white/20">
+          Yearly rounds • 2025-2050 • Real country data
+        </p>
       </motion.div>
     </div>
   );
@@ -398,86 +389,70 @@ function GameHeader({
   onShowMap: () => void;
   onTriggerEvent: () => void;
 }) {
-  // Country flag emoji helper
-  const getCountryFlag = (isoCode: string): string => {
-    if (!isoCode || isoCode.length < 2) return '🏳️';
-    const codePoints = isoCode
-      .toUpperCase()
-      .slice(0, 2)
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  };
-  
   return (
     <div className="flex-shrink-0 flex items-center justify-between gap-4 p-4 border-b border-white/5">
-      <div className="flex items-center gap-4">
-        {/* Logo */}
-        <motion.div 
-          className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30"
-          animate={{ 
+      {/* Logo and Title */}
+      <div className="flex items-center gap-3">
+        <motion.div
+          className="w-10 h-10 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30"
+          animate={{
             boxShadow: [
-              '0 0 20px rgba(6,182,212,0.2)',
-              '0 0 30px rgba(6,182,212,0.4)',
-              '0 0 20px rgba(6,182,212,0.2)',
+              '0 0 15px rgba(6,182,212,0.2)',
+              '0 0 25px rgba(6,182,212,0.4)',
+              '0 0 15px rgba(6,182,212,0.2)',
             ]
           }}
           transition={{ duration: 3, repeat: Infinity }}
         >
-          <Target className="w-5 h-5 text-adl-accent" />
+          <img src="/adl-logo.png" alt="ADL" className="h-6 w-6 object-contain" />
         </motion.div>
-        
+
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
-            Sovereign Health
-            <span className="px-2 py-0.5 text-[10px] font-mono bg-adl-accent/20 text-adl-accent rounded-full">
-              Simulator
-            </span>
+          <h1 className="text-lg font-semibold text-white tracking-tight">
+            ADL Occupational Health Simulator
           </h1>
-          <p className="text-white/40 text-sm">
-            ADL Occupational Health Intelligence Platform
+          <p className="text-white/40 text-xs">
+            Policy Strategy Game
           </p>
         </div>
       </div>
-      
+
       {/* Country Info */}
       {country && (
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{getCountryFlag(country.iso_code)}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{getCountryFlag(country.iso_code)}</span>
             <div>
-              <p className="text-white font-medium">{country.name}</p>
-              <p className="text-xs text-white/40">{country.region}</p>
+              <p className="text-white font-medium text-sm">{country.name}</p>
+              <p className="text-[10px] text-white/40">{country.region}</p>
             </div>
           </div>
-          
-          <div className="h-8 w-px bg-white/10" />
-          
+
+          <div className="h-6 w-px bg-white/10" />
+
           <div className="text-center">
-            <p className="text-2xl font-bold text-adl-accent">{ohiScore.toFixed(2)}</p>
-            <p className="text-[10px] text-white/40">OHI Score</p>
+            <p className="text-lg font-bold text-adl-accent">{ohiScore.toFixed(2)}</p>
+            <p className="text-[9px] text-white/40">OHI Score</p>
           </div>
-          
+
           <div className="text-center">
-            <p className="text-2xl font-bold text-white">{year}</p>
-            <p className="text-[10px] text-white/40">Year</p>
+            <p className="text-lg font-bold text-white">{year}</p>
+            <p className="text-[9px] text-white/40">Year</p>
           </div>
         </div>
       )}
-      
+
       {/* Actions */}
       <div className="flex items-center gap-2">
         <button
           onClick={onTriggerEvent}
           className="px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          title="Trigger Demo Event"
         >
           Demo Event
         </button>
         <button
           onClick={onShowMap}
           className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          title="View World Map"
         >
           <Globe className="w-5 h-5" />
         </button>

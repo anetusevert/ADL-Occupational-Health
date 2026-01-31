@@ -267,9 +267,9 @@ export const PILLAR_WEIGHTS: Record<PillarId, number> = {
 };
 
 export const SPEED_DURATIONS: Record<GameSpeed, number> = {
-  slow: 30000,
-  medium: 15000,
-  fast: 5000,
+  slow: 3000,   // 3 seconds per year
+  medium: 1500, // 1.5 seconds per year
+  fast: 750,    // 0.75 seconds per year
 };
 
 export const MATURITY_STAGES: MaturityStage[] = [
@@ -288,5 +288,5 @@ export const PILLAR_CONFIGS: PillarConfig[] = [
 
 export const DEFAULT_START_YEAR = 2025;
 export const DEFAULT_END_YEAR = 2050;
-export const YEARS_PER_CYCLE = 5;
-export const MAX_CYCLES = (DEFAULT_END_YEAR - DEFAULT_START_YEAR) / YEARS_PER_CYCLE;
+export const YEARS_PER_CYCLE = 1; // Yearly rounds
+export const MAX_CYCLES = DEFAULT_END_YEAR - DEFAULT_START_YEAR;
