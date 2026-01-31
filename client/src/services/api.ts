@@ -29,12 +29,13 @@ export const apiClient = axios.create({
 });
 
 // AI-specialized client with longer timeout for LLM operations
+// GPT-5 with web search can take 3-5 minutes for complex strategic reports
 export const aiApiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 180000, // 3 minute timeout for AI generation (LLM can be slow)
+  timeout: 360000, // 6 minute timeout for AI generation (GPT-5 + web search is slow)
 });
 
 // Request interceptor for auth and logging (standard client)
