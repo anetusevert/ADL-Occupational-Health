@@ -33,7 +33,7 @@ import {
   Flag,
 } from "lucide-react";
 import { type CountryDeepDiveItem } from "../../services/api";
-import { cn } from "../../lib/utils";
+import { cn, getApiBaseUrl } from "../../lib/utils";
 import { FloatingParticles, GradientOrbs, PulseWaves, SelectionSummary } from "./shared";
 import { REGIONS, SORTED_REGIONS, type RegionDefinition } from "../../data/regions";
 
@@ -332,18 +332,25 @@ interface CountryFlagProps {
 }
 
 function CountryFlag({ country, size = "md" }: CountryFlagProps) {
+  const [imgError, setImgError] = useState(false);
+  const apiBaseUrl = getApiBaseUrl();
+  
   const sizeClasses = {
     sm: "w-5 h-3.5",
     md: "w-6 h-4",
     lg: "w-8 h-5",
   };
 
-  if (country.flag_url) {
+  // Construct full URL: flag_url is like "/static/flags/usa.svg"
+  const fullFlagUrl = country.flag_url ? `${apiBaseUrl}${country.flag_url}` : null;
+
+  if (fullFlagUrl && !imgError) {
     return (
       <img 
-        src={country.flag_url} 
+        src={fullFlagUrl} 
         alt={country.name} 
-        className={cn("object-cover rounded shadow-sm", sizeClasses[size])} 
+        className={cn("object-cover rounded shadow-sm", sizeClasses[size])}
+        onError={() => setImgError(true)}
       />
     );
   }
@@ -351,10 +358,10 @@ function CountryFlag({ country, size = "md" }: CountryFlagProps) {
   // Fallback: styled placeholder with country code
   return (
     <div className={cn(
-      "flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40",
+      "flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40 text-[8px] font-medium text-slate-400",
       sizeClasses[size]
     )}>
-      <Flag className="w-2.5 h-2.5 text-slate-500" />
+      {country.iso_code.slice(0, 2)}
     </div>
   );
 }

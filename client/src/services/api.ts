@@ -1645,11 +1645,49 @@ export async function runNewsGeneratorWorkflow(
 }
 
 /**
+ * Request for final report workflow
+ */
+export interface FinalReportWorkflowRequest {
+  country_name: string;
+  history: Array<{
+    cycleNumber: number;
+    year: number;
+    pillars: {
+      governance: number;
+      hazardControl: number;
+      healthVigilance: number;
+      restoration: number;
+    };
+    ohiScore: number;
+    rank: number;
+    budgetSpent: Record<string, number>;
+    policiesActive: string[];
+    eventsOccurred: string[];
+    choicesMade: Record<string, string>;
+  }>;
+  statistics: {
+    totalCyclesPlayed: number;
+    startingOHIScore: number;
+    currentOHIScore: number;
+    peakOHIScore: number;
+    lowestOHIScore: number;
+    startingRank: number;
+    currentRank: number;
+    bestRank: number;
+    totalBudgetSpent: number;
+    policiesMaxed: number;
+    eventsHandled: number;
+    criticalEventsManaged: number;
+  };
+  final_rank: number;
+}
+
+/**
  * Run the Final Report workflow
  * Generates end-game summary and assessment
  */
 export async function runFinalReportWorkflow(
-  request: GameSummaryRequest
+  request: FinalReportWorkflowRequest
 ): Promise<WorkflowResponse> {
   const response = await aiApiClient.post<WorkflowResponse>(
     "/api/v1/simulator/workflow/final-report",

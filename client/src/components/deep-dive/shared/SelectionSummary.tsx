@@ -6,9 +6,10 @@
  * Re-applied: 2026-01-31
  */
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, Globe, Users, Flag } from "lucide-react";
-import { cn } from "../../../lib/utils";
+import { X, ChevronRight, Globe, Users } from "lucide-react";
+import { cn, getApiBaseUrl } from "../../../lib/utils";
 
 interface SelectedCountry {
   iso_code: string;
@@ -71,31 +72,7 @@ export function SelectionSummary({
         <div className="flex flex-wrap gap-2">
           <AnimatePresence mode="popLayout">
             {selectedCountries.map((country) => (
-              <motion.button
-                key={country.iso_code}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={() => onRemove(country.iso_code)}
-                className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800/80 border border-slate-700/50 rounded-lg hover:bg-red-500/20 hover:border-red-500/40 transition-all group"
-              >
-                {country.flag_url ? (
-                  <img
-                    src={country.flag_url}
-                    alt={country.name}
-                    className="w-5 h-3.5 object-cover rounded shadow-sm"
-                  />
-                ) : (
-                  <div className="w-5 h-3.5 flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40">
-                    <Flag className="w-2 h-2 text-slate-500" />
-                  </div>
-                )}
-                <span className="text-xs text-slate-300 group-hover:text-red-300 transition-colors">
-                  {country.name}
-                </span>
-                <X className="w-3 h-3 text-slate-500 group-hover:text-red-400 transition-colors" />
-              </motion.button>
+              <CountryChip key={country.iso_code} country={country} onRemove={onRemove} />
             ))}
           </AnimatePresence>
         </div>
@@ -115,6 +92,41 @@ export function SelectionSummary({
         </motion.button>
       </div>
     </motion.div>
+  );
+}
+
+// Country Chip with proper flag URL handling
+function CountryChip({ country, onRemove }: { country: SelectedCountry; onRemove: (iso: string) => void }) {
+  const [imgError, setImgError] = useState(false);
+  const apiBaseUrl = getApiBaseUrl();
+  const fullFlagUrl = country.flag_url ? `${apiBaseUrl}${country.flag_url}` : null;
+
+  return (
+    <motion.button
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      onClick={() => onRemove(country.iso_code)}
+      className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800/80 border border-slate-700/50 rounded-lg hover:bg-red-500/20 hover:border-red-500/40 transition-all group"
+    >
+      {fullFlagUrl && !imgError ? (
+        <img
+          src={fullFlagUrl}
+          alt={country.name}
+          className="w-5 h-3.5 object-cover rounded shadow-sm"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-5 h-3.5 flex items-center justify-center rounded bg-slate-700/60 border border-slate-600/40 text-[7px] font-medium text-slate-400">
+          {country.iso_code.slice(0, 2)}
+        </div>
+      )}
+      <span className="text-xs text-slate-300 group-hover:text-red-300 transition-colors">
+        {country.name}
+      </span>
+      <X className="w-3 h-3 text-slate-500 group-hover:text-red-400 transition-colors" />
+    </motion.button>
   );
 }
 
