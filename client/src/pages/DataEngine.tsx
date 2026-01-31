@@ -889,7 +889,7 @@ export function DataEngine() {
             <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
               Data Engine
               <span className="px-2 py-0.5 text-[10px] font-mono bg-emerald-500/20 text-emerald-400 rounded-full">
-                v3.0
+                v2.0
               </span>
             </h1>
             <p className="text-white/40 text-sm">

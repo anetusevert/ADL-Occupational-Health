@@ -82,7 +82,7 @@ export function Layout({ children }: LayoutProps) {
               <span>GOHIP — Global Occupational Health Intelligence Platform</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-600">
-              <span>Sovereign OH Integrity Framework v3.0</span>
+              <span>ADL Occupational Health Framework v2.0</span>
               <span>•</span>
               <span>Phase 25: Deep Dive AI</span>
             </div>

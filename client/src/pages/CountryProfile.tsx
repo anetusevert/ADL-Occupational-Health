@@ -355,7 +355,7 @@ export function CountryProfile() {
                 <Shield className="w-3.5 h-3.5 text-adl-accent" />
                 <h2 className="text-xs font-semibold text-white">Framework Analysis</h2>
               </div>
-              <span className="text-[9px] text-white/30">ADL OH Framework v3.0</span>
+              <span className="text-[9px] text-white/30">ADL OH Framework v2.0</span>
             </div>
 
             {/* Temple Structure: Governance on top, 3 pillars below */}

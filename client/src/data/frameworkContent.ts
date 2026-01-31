@@ -323,12 +323,27 @@ export interface DataSourceDetail {
   description: string;
   sourceType: 'international' | 'government' | 'registry' | 'survey' | 'research';
   organization: string;
+  logoUrl: string;  // Organization logo URL (external or local)
   feedsInto: string[];
   updateFrequency: string;
   coverage: string;
   reliability: 'High' | 'Medium' | 'Variable';
-  url?: string;
+  url: string;  // Required URL to the source
 }
+
+// Organization logo URLs (using official sources where possible)
+const ORG_LOGOS = {
+  ILO: "https://www.ilo.org/images/logo.svg",
+  WHO: "https://www.who.int/images/default-source/infographics/who-emblem.png",
+  WORLDBANK: "https://www.worldbank.org/content/dam/wbr-redesign/logos/logo-wb-header-en.svg",
+  OECD: "https://www.oecd.org/media/oecdorg/styleassets/images/logo_en.svg",
+  TRANSPARENCY: "https://images.transparencycdn.org/images/TI_logo_stacked_black.svg",
+  UNDP: "https://www.undp.org/sites/g/files/zskgke326/files/2021-07/UNDP_Logo-Blue-Medium.png",
+  YALE: "https://epi.yale.edu/themes/custom/epi_theme/logo.svg",
+  IHME: "https://www.healthdata.org/sites/default/files/IHME_logo_rgb.png",
+  EUROSTAT: "https://ec.europa.eu/eurostat/documents/747709/753176/logo_RGB.jpg",
+  ACGIH: "https://www.acgih.org/images/logo.png",
+};
 
 export const dataSourceDetails: Record<string, DataSourceDetail> = {
   // Governance Data Sources
@@ -338,6 +353,7 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     description: "Official ratification status of the Promotional Framework for Occupational Safety and Health Convention. This convention establishes the national policy and system for OSH, requiring countries to develop and maintain coherent national policies.",
     sourceType: "international",
     organization: "International Labour Organization (ILO)",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Governance Score", "Policy Compliance Index", "International Standards Alignment"],
     updateFrequency: "Real-time (upon ratification)",
     coverage: "All ILO member states (187 countries)",
@@ -350,6 +366,7 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     description: "The ratio of labor inspectors to employed workers, measuring enforcement capacity. ILO recommends 1 inspector per 10,000 workers in developed economies and 1:20,000 in transitioning economies.",
     sourceType: "international",
     organization: "ILOSTAT",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Enforcement Capacity", "Governance Score", "Regulatory Effectiveness"],
     updateFrequency: "Annual",
     coverage: "120+ countries with reporting",
@@ -361,22 +378,26 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     name: "Whistleblower Protection Index",
     description: "Composite index measuring the strength of legal protections for workers who report safety violations, including anti-retaliation provisions, anonymous reporting channels, and enforcement mechanisms.",
     sourceType: "research",
-    organization: "Government Accountability Project / Transparency International",
+    organization: "Transparency International",
+    logoUrl: ORG_LOGOS.TRANSPARENCY,
     feedsInto: ["Governance Score", "Worker Rights Index", "Reporting Culture"],
     updateFrequency: "Biennial",
     coverage: "OECD and major economies",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://www.transparency.org"
   },
   "enforcement_budget": {
     id: "enforcement_budget",
     name: "Regulatory Enforcement Budget (% GDP)",
     description: "National budget allocation for occupational health enforcement as a percentage of GDP, indicating government commitment to workplace safety oversight.",
     sourceType: "government",
-    organization: "National Labor Ministries / OECD",
+    organization: "OECD",
+    logoUrl: ORG_LOGOS.OECD,
     feedsInto: ["Governance Score", "Enforcement Capacity", "Political Commitment Index"],
     updateFrequency: "Annual",
     coverage: "OECD countries + major economies",
-    reliability: "High"
+    reliability: "High",
+    url: "https://stats.oecd.org"
   },
   "tripartite_mechanisms": {
     id: "tripartite_mechanisms",
@@ -384,10 +405,12 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     description: "Assessment of formal structures for government, employer, and worker collaboration on OH policy, including national OH councils, advisory bodies, and collective bargaining frameworks.",
     sourceType: "international",
     organization: "ILO Social Dialogue Department",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Governance Score", "Stakeholder Engagement", "Policy Legitimacy"],
     updateFrequency: "Periodic assessment",
     coverage: "ILO member states",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://www.ilo.org/dialogue"
   },
   
   // Pillar 1: Hazard Prevention Data Sources
@@ -396,55 +419,65 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     name: "Chemical Exposure Limits (PELs/OELs)",
     description: "National permissible exposure limits for hazardous substances including chemicals, dust, and biological agents. Compared against international standards (ACGIH TLVs, EU OELs).",
     sourceType: "government",
-    organization: "National OSH Authorities / ACGIH",
+    organization: "ACGIH",
+    logoUrl: ORG_LOGOS.ACGIH,
     feedsInto: ["Hazard Prevention Score", "Chemical Safety Index", "Regulatory Completeness"],
     updateFrequency: "Varies by country (1-5 years)",
     coverage: "Industrialized nations (50+)",
-    reliability: "High"
+    reliability: "High",
+    url: "https://www.acgih.org"
   },
   "safety_training_coverage": {
     id: "safety_training_coverage",
     name: "Safety Training Coverage Rate",
     description: "Percentage of workers receiving mandatory safety training annually, measured through employer surveys and labor inspectorate audits.",
     sourceType: "survey",
-    organization: "National Labor Force Surveys",
+    organization: "ILOSTAT",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Hazard Prevention Score", "Training Effectiveness", "Worker Preparedness"],
     updateFrequency: "Annual",
     coverage: "Varies by country",
-    reliability: "Variable"
+    reliability: "Variable",
+    url: "https://ilostat.ilo.org"
   },
   "ppe_compliance": {
     id: "ppe_compliance",
     name: "PPE Compliance Audits",
     description: "Results from workplace inspections measuring personal protective equipment provision and usage rates in high-risk industries.",
     sourceType: "government",
-    organization: "National Labor Inspectorates",
+    organization: "EUROSTAT",
+    logoUrl: ORG_LOGOS.EUROSTAT,
     feedsInto: ["Hazard Prevention Score", "Control Effectiveness", "Employer Compliance"],
     updateFrequency: "Continuous (aggregated annually)",
     coverage: "Inspected workplaces",
-    reliability: "High"
+    reliability: "High",
+    url: "https://ec.europa.eu/eurostat"
   },
   "risk_assessment_docs": {
     id: "risk_assessment_docs",
     name: "Risk Assessment Documentation",
     description: "Compliance rates for mandatory workplace risk assessments, including hazard identification, control measures, and review schedules.",
     sourceType: "government",
-    organization: "National OSH Authorities",
+    organization: "EUROSTAT",
+    logoUrl: ORG_LOGOS.EUROSTAT,
     feedsInto: ["Hazard Prevention Score", "Systematic Prevention", "Documentation Quality"],
     updateFrequency: "Annual (inspection cycle)",
     coverage: "Regulated workplaces",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://ec.europa.eu/eurostat/web/health/data/database"
   },
   "hazardous_substance_registry": {
     id: "hazardous_substance_registry",
     name: "Hazardous Substance Registry",
     description: "National database of hazardous chemicals used in workplaces, including safety data sheets, exposure pathways, and required control measures.",
     sourceType: "registry",
-    organization: "National Chemical Agencies",
+    organization: "ECHA (European Chemicals Agency)",
+    logoUrl: "https://echa.europa.eu/o/echa-theme/images/echa_logo.png",
     feedsInto: ["Hazard Prevention Score", "Chemical Tracking", "Exposure Prevention"],
     updateFrequency: "Continuous updates",
     coverage: "Registered chemicals",
-    reliability: "High"
+    reliability: "High",
+    url: "https://echa.europa.eu"
   },
   
   // Pillar 2: Surveillance & Detection Data Sources
@@ -453,55 +486,65 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     name: "Occupational Health Examination Coverage",
     description: "Percentage of workers in hazardous occupations receiving periodic health examinations, including pre-employment, periodic, and exit examinations.",
     sourceType: "registry",
-    organization: "National Health Insurance / OSH Authorities",
+    organization: "World Health Organization (WHO)",
+    logoUrl: ORG_LOGOS.WHO,
     feedsInto: ["Surveillance Score", "Early Detection Rate", "Worker Health Monitoring"],
     updateFrequency: "Annual",
     coverage: "Workers in regulated hazardous jobs",
-    reliability: "High"
+    reliability: "High",
+    url: "https://www.who.int/data/gho"
   },
   "disease_registry": {
     id: "disease_registry",
     name: "Disease Registry Completeness",
     description: "Completeness and quality of national occupational disease registries, measuring case capture rate, diagnostic accuracy, and exposure linkage.",
     sourceType: "registry",
-    organization: "National Disease Registries / WHO",
+    organization: "World Health Organization (WHO)",
+    logoUrl: ORG_LOGOS.WHO,
     feedsInto: ["Surveillance Score", "Epidemiological Capacity", "Trend Analysis"],
     updateFrequency: "Continuous",
     coverage: "Reported cases",
-    reliability: "Variable"
+    reliability: "Variable",
+    url: "https://www.who.int/data/gho"
   },
   "incident_reporting": {
     id: "incident_reporting",
     name: "Incident Reporting Rate (RIDDOR equivalents)",
     description: "Workplace incident notification rates under mandatory reporting schemes, measuring both fatal and non-fatal injuries with standardized definitions.",
     sourceType: "government",
-    organization: "National Labor Inspectorates / EUROSTAT",
+    organization: "EUROSTAT",
+    logoUrl: ORG_LOGOS.EUROSTAT,
     feedsInto: ["Surveillance Score", "Incident Tracking", "Trend Identification"],
     updateFrequency: "Real-time with annual aggregation",
     coverage: "Formal sector workplaces",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://ec.europa.eu/eurostat/web/health/data/database"
   },
   "biomarker_monitoring": {
     id: "biomarker_monitoring",
     name: "Biomarker Monitoring Programs",
     description: "Biological monitoring programs tracking exposure through blood, urine, or other biomarkers for workers exposed to specific hazards (lead, benzene, etc.).",
     sourceType: "registry",
-    organization: "Occupational Health Services",
+    organization: "IHME (Global Burden of Disease)",
+    logoUrl: ORG_LOGOS.IHME,
     feedsInto: ["Surveillance Score", "Exposure Verification", "Health Outcome Prediction"],
     updateFrequency: "Per protocol (monthly to annual)",
     coverage: "High-risk exposed workers",
-    reliability: "High"
+    reliability: "High",
+    url: "https://www.healthdata.org/gbd"
   },
   "surveillance_frequency": {
     id: "surveillance_frequency",
     name: "Health Surveillance Frequency",
     description: "Frequency and regularity of health surveillance activities by sector and hazard type, measuring systematic monitoring coverage.",
     sourceType: "survey",
-    organization: "Occupational Health Networks",
+    organization: "ILOSTAT",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Surveillance Score", "Program Coverage", "Detection Timeliness"],
     updateFrequency: "Annual assessment",
     coverage: "Monitored populations",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://ilostat.ilo.org"
   },
   
   // Pillar 3: Restoration & Compensation Data Sources
@@ -510,55 +553,65 @@ export const dataSourceDetails: Record<string, DataSourceDetail> = {
     name: "Workers' Compensation Coverage Rate",
     description: "Percentage of workforce covered by workers' compensation insurance, including formal and informal sector coverage gaps.",
     sourceType: "government",
-    organization: "Social Security Administration / ILO",
+    organization: "International Labour Organization (ILO)",
+    logoUrl: ORG_LOGOS.ILO,
     feedsInto: ["Restoration Score", "Social Protection", "Coverage Equity"],
     updateFrequency: "Annual",
     coverage: "National workforce",
-    reliability: "High"
+    reliability: "High",
+    url: "https://www.ilo.org/global/statistics-and-databases"
   },
   "claim_settlement_time": {
     id: "claim_settlement_time",
     name: "Average Claim Settlement Time",
     description: "Average duration from claim filing to benefit payment, measuring administrative efficiency and worker support timeliness.",
     sourceType: "government",
-    organization: "Workers' Compensation Authorities",
+    organization: "OECD",
+    logoUrl: ORG_LOGOS.OECD,
     feedsInto: ["Restoration Score", "Administrative Efficiency", "Worker Support"],
     updateFrequency: "Quarterly/Annual",
     coverage: "Processed claims",
-    reliability: "High"
+    reliability: "High",
+    url: "https://stats.oecd.org"
   },
   "rehabilitation_services": {
     id: "rehabilitation_services",
     name: "Rehabilitation Service Availability",
     description: "Availability and accessibility of medical, vocational, and social rehabilitation services for injured workers.",
     sourceType: "survey",
-    organization: "WHO / National Health Systems",
+    organization: "World Health Organization (WHO)",
+    logoUrl: ORG_LOGOS.WHO,
     feedsInto: ["Restoration Score", "Recovery Support", "Service Quality"],
     updateFrequency: "Periodic assessment",
     coverage: "Injured workers",
-    reliability: "Medium"
+    reliability: "Medium",
+    url: "https://www.who.int/data/gho"
   },
   "rtw_success_rate": {
     id: "rtw_success_rate",
     name: "Return-to-Work Success Rate",
     description: "Percentage of injured workers who successfully return to work within defined timeframes (typically 1 year), measuring rehabilitation effectiveness.",
     sourceType: "registry",
-    organization: "Workers' Compensation Insurers",
+    organization: "OECD",
+    logoUrl: ORG_LOGOS.OECD,
     feedsInto: ["Restoration Score", "Rehabilitation Effectiveness", "Economic Reintegration"],
     updateFrequency: "Annual",
     coverage: "Compensated injuries",
-    reliability: "High"
+    reliability: "High",
+    url: "https://stats.oecd.org"
   },
   "no_fault_adoption": {
     id: "no_fault_adoption",
     name: "No-Fault Insurance Adoption",
     description: "Assessment of whether the compensation system operates on no-fault principles, removing the need to prove employer negligence for benefits.",
     sourceType: "research",
-    organization: "Legal/Policy Research",
+    organization: "World Bank",
+    logoUrl: ORG_LOGOS.WORLDBANK,
     feedsInto: ["Restoration Score", "Access to Justice", "System Efficiency"],
     updateFrequency: "Policy changes only",
     coverage: "National systems",
-    reliability: "High"
+    reliability: "High",
+    url: "https://data.worldbank.org"
   }
 };
 
@@ -624,73 +677,74 @@ export const statCardContent: Record<string, StatCardContent> = {
   },
   metrics: {
     title: "Assessment Metrics",
-    subtitle: "25+ indicators across all pillars",
-    description: "The framework uses a comprehensive set of quantitative and qualitative metrics to assess national occupational health performance.",
+    subtitle: "25 indicators across all pillars",
+    description: "The framework uses a comprehensive set of quantitative and qualitative metrics to assess national occupational health performance, sourced from international databases.",
     items: [
-      { name: "C187 Ratification", description: "ILO Promotional Framework Convention status", color: "purple", value: "Binary" },
-      { name: "Inspector Coverage Ratio", description: "Labor inspectors per 10,000 workers", color: "purple", value: "Ratio" },
-      { name: "Enforcement Actions/Year", description: "Number of regulatory enforcement actions", color: "purple", value: "Count" },
-      { name: "Penalty Collection Rate", description: "Percentage of imposed fines collected", color: "purple", value: "%" },
-      { name: "Exposure Limit Compliance", description: "Workplaces meeting OEL standards", color: "blue", value: "%" },
-      { name: "Training Hours/Worker", description: "Average annual safety training hours", color: "blue", value: "Hours" },
-      { name: "Hazard Reports Filed", description: "Workplace hazard reports submitted", color: "blue", value: "Count" },
-      { name: "Prevention Investment Ratio", description: "Prevention spend vs. treatment costs", color: "blue", value: "Ratio" },
-      { name: "Medical Exam Coverage", description: "Workers receiving health surveillance", color: "emerald", value: "%" },
-      { name: "Disease Detection Rate", description: "Occupational diseases identified early", color: "emerald", value: "Rate" },
-      { name: "Reporting Latency", description: "Days from incident to official report", color: "emerald", value: "Days" },
-      { name: "Surveillance Investment/Worker", description: "Per-worker monitoring investment", color: "emerald", value: "$" },
-      { name: "Coverage Rate", description: "Workforce with compensation coverage", color: "amber", value: "%" },
-      { name: "Claim Processing Days", description: "Average time to settle claims", color: "amber", value: "Days" },
-      { name: "Benefit Adequacy Ratio", description: "Benefits vs. wage replacement needs", color: "amber", value: "Ratio" },
-      { name: "RTW Success Rate", description: "Injured workers returning to work", color: "amber", value: "%" }
+      // Governance Layer (5 metrics)
+      { name: "ILO C187 Status", description: "Promotional Framework for OSH Convention ratification", color: "purple", value: "Binary" },
+      { name: "ILO C155 Status", description: "Occupational Safety & Health Convention ratification", color: "purple", value: "Binary" },
+      { name: "Inspector Density", description: "Labor inspectors per 10,000 workers", color: "purple", value: "Ratio" },
+      { name: "Mental Health Policy", description: "National workplace mental health policy exists", color: "purple", value: "Binary" },
+      { name: "Strategic Capacity Score", description: "Aggregate governance capacity index", color: "purple", value: "0-100" },
+      // Pillar 1: Hazard Control (7 metrics)
+      { name: "Fatal Accident Rate", description: "Fatal accidents per 100,000 workers", color: "blue", value: "Rate" },
+      { name: "Carcinogen Exposure %", description: "Workforce exposed to carcinogens", color: "blue", value: "%" },
+      { name: "Heat Stress Regulation", description: "Type of heat stress regulation (Strict/Advisory/None)", color: "blue", value: "Type" },
+      { name: "OEL Compliance %", description: "Occupational Exposure Limit compliance rate", color: "blue", value: "%" },
+      { name: "NIHL Rate", description: "Noise-induced hearing loss per 100,000 workers", color: "blue", value: "Rate" },
+      { name: "Safety Training Hours", description: "Average annual training hours per worker", color: "blue", value: "Hours" },
+      { name: "Control Maturity Score", description: "Hazard control maturity index", color: "blue", value: "0-100" },
+      // Pillar 2: Health Vigilance (6 metrics)
+      { name: "Surveillance Logic", description: "Surveillance system type (Risk-Based/Mandatory/etc.)", color: "emerald", value: "Type" },
+      { name: "Disease Detection Rate", description: "Occupational disease early detection rate", color: "emerald", value: "Rate" },
+      { name: "Vulnerability Index", description: "Worker vulnerability score", color: "emerald", value: "0-100" },
+      { name: "Migrant Worker %", description: "Migrant workforce percentage", color: "emerald", value: "%" },
+      { name: "Lead Screening Rate", description: "Lead exposure screening per 100,000 workers", color: "emerald", value: "Rate" },
+      { name: "Disease Reporting Rate", description: "Occupational disease reporting compliance", color: "emerald", value: "%" },
+      // Pillar 3: Restoration (7 metrics)
+      { name: "Payer Mechanism", description: "Compensation system type (No-Fault/Litigation/etc.)", color: "amber", value: "Type" },
+      { name: "Reintegration Law", description: "Mandatory return-to-work legislation exists", color: "amber", value: "Binary" },
+      { name: "Sickness Absence Days", description: "Average sickness absence days per worker/year", color: "amber", value: "Days" },
+      { name: "Rehab Access Score", description: "Rehabilitation access index", color: "amber", value: "0-100" },
+      { name: "RTW Success Rate", description: "Return-to-work program success rate", color: "amber", value: "%" },
+      { name: "Claim Settlement Days", description: "Average days to settle workers' comp claim", color: "amber", value: "Days" },
+      { name: "Rehab Participation Rate", description: "Rehabilitation program participation rate", color: "amber", value: "%" }
     ]
   },
   bestPractices: {
-    title: "Best Practice Examples",
-    subtitle: "9 global case studies of excellence",
-    description: "These countries demonstrate world-leading approaches to occupational health that serve as benchmarks for the framework.",
-    items: [
-      { name: "Germany - Berufsgenossenschaften", description: "Sector-specific insurance associations combining prevention, insurance, and rehabilitation under one roof with employer funding.", color: "purple" },
-      { name: "Sweden - Tripartite Cooperation", description: "Swedish Work Environment Authority with legally mandated worker safety representatives in every workplace.", color: "purple" },
-      { name: "Singapore - Escalating Penalties", description: "Workplace Safety and Health Act with escalating penalties and 'Name and Shame' public registry for repeat offenders.", color: "purple" },
-      { name: "Netherlands - Arbocatalogus", description: "Sector-specific catalogs of solutions developed jointly by employers and unions for practical hazard control.", color: "blue" },
-      { name: "Japan - OSHMS Certification", description: "Occupational Safety and Health Management System certification with government incentives for certified companies.", color: "blue" },
-      { name: "Australia - Model Codes", description: "Safe Work Australia's model codes of practice with detailed, industry-specific guidance on hazard control.", color: "blue" },
-      { name: "Finland - FIOH Registries", description: "Finnish Institute of Occupational Health maintains comprehensive exposure and health registries for epidemiological studies.", color: "emerald" },
-      { name: "South Korea - Special Health Exams", description: "Mandatory examinations for workers in 179 hazardous job categories with government database reporting.", color: "emerald" },
-      { name: "UK - RIDDOR", description: "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations with standardized incident reporting.", color: "emerald" },
-      { name: "Canada (Ontario) - WSIB RTW", description: "Return to Work program with employer accommodation obligations and financial incentives for reintegration.", color: "amber" },
-      { name: "New Zealand - ACC", description: "Accident Compensation Corporation provides universal no-fault coverage for all injuries, eliminating litigation.", color: "amber" }
-    ]
+    title: "Global Leaders",
+    subtitle: "Top performers by ADL OHI Score",
+    description: "Countries ranked by their ADL Occupational Health Index (OHI) score, demonstrating world-leading approaches to occupational health. These nations serve as benchmarks for the framework.",
+    items: [] // Dynamic content loaded from leaderboard API
   },
   maturityLevels: {
-    title: "Maturity Levels",
+    title: "ADL OHI Score",
     subtitle: "4 stages of occupational health development",
-    description: "Countries are assessed on a four-stage maturity model that reflects their progression from reactive to resilient occupational health systems.",
+    description: "Countries are assessed on the ADL Occupational Health Index (OHI), a four-stage maturity model (1.0-4.0 scale) that reflects their progression from reactive to resilient occupational health systems.",
     items: [
       {
-        name: "Critical (0-25)",
-        description: "No comprehensive OSH law, minimal inspection capacity, no whistleblower protection, governance fragmented or absent. Ad-hoc responses to incidents with no systematic prevention.",
-        color: "red",
-        value: "0-25"
-      },
-      {
-        name: "Developing (26-50)",
-        description: "Basic OSH law exists, inspector ratio below ILO standards, limited enforcement capacity. Prevention efforts exist but inconsistent. Informal sector largely uncovered.",
-        color: "orange",
-        value: "26-50"
-      },
-      {
-        name: "Advancing (51-75)",
-        description: "C187 ratified, functioning enforcement with moderate inspector density. Risk assessments required but inconsistently enforced. Compensation systems operational with some gaps.",
-        color: "yellow",
-        value: "51-75"
-      },
-      {
-        name: "Leading (76-100)",
+        name: "Leading (3.5-4.0)",
         description: "Comprehensive framework with strong enforcement, >1:10,000 inspector ratio, universal surveillance coverage. No-fault compensation with <30 day processing. >80% return-to-work success.",
         color: "emerald",
-        value: "76-100"
+        value: "3.5-4.0"
+      },
+      {
+        name: "Advancing (2.5-3.4)",
+        description: "C187 ratified, functioning enforcement with moderate inspector density. Risk assessments required but inconsistently enforced. Compensation systems operational with some gaps.",
+        color: "yellow",
+        value: "2.5-3.4"
+      },
+      {
+        name: "Developing (2.0-2.4)",
+        description: "Basic OSH law exists, inspector ratio below ILO standards, limited enforcement capacity. Prevention efforts exist but inconsistent. Informal sector largely uncovered.",
+        color: "orange",
+        value: "2.0-2.4"
+      },
+      {
+        name: "Critical (1.0-1.9)",
+        description: "No comprehensive OSH law, minimal inspection capacity, no whistleblower protection, governance fragmented or absent. Ad-hoc responses to incidents with no systematic prevention.",
+        color: "red",
+        value: "1.0-1.9"
       }
     ]
   }

@@ -208,7 +208,7 @@ function IntroVisual() {
           className="mt-8 flex items-center justify-center gap-2 text-white/50 text-sm"
         >
           <Layers className="w-4 h-4" />
-          <span>Sovereign OH Integrity Framework v3.0</span>
+          <span>ADL Occupational Health Framework v2.0</span>
         </motion.div>
       </motion.div>
     </div>
@@ -940,7 +940,7 @@ function CinematicLoader({ onComplete, onSkip }: { onComplete: () => void; onSki
           transition={{ delay: 0.8 }}
           className="mt-6 text-white font-semibold text-lg"
         >
-          Sovereign OH Integrity Framework
+          ADL Occupational Health Framework
         </motion.p>
         <motion.p
           initial={{ opacity: 0 }}
@@ -948,7 +948,7 @@ function CinematicLoader({ onComplete, onSkip }: { onComplete: () => void; onSki
           transition={{ delay: 1 }}
           className="mt-2 text-cyan-400 text-sm"
         >
-          Version 3.0 — Interactive Guide
+          Version 2.0 — Interactive Guide
         </motion.p>
       </motion.div>
 

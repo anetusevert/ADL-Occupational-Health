@@ -101,7 +101,7 @@ export function Login() {
           </h1>
           <p className="text-white/60 text-lg leading-relaxed">
             Strategic insights and policy simulation for sovereign occupational health frameworks.
-            Powered by the Sovereign OH Integrity Framework v3.0.
+            Powered by the ADL Occupational Health Framework v2.0.
           </p>
           
           {/* Feature highlights */}
@@ -111,7 +111,7 @@ export function Login() {
               { label: "Framework Pillars", value: "4", desc: "OH Assessment" },
               { label: "Key Metrics", value: "50+", desc: "Data Points" },
               { label: "Data Sources", value: "WB, ILO", desc: "WHO & More" },
-              { label: "Deep Dive", value: "AI", desc: "Strategic Reports" },
+              { label: "Strategic", value: "Insights", desc: "Expert Analysis" },
               { label: "Comparisons", value: "Live", desc: "Country Rankings" },
             ].map((item, index) => (
               <motion.div 
@@ -298,7 +298,7 @@ export function Login() {
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
               <p className="text-xs text-white/30">
-                Sovereign OH Integrity Framework v3.0
+                ADL Occupational Health Framework v2.0
               </p>
               <p className="text-xs text-white/20 mt-1">
                 Authorized personnel only

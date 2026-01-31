@@ -12,3 +12,4 @@ export { Simulator } from "./Simulator";
 export { DeepDive } from "./DeepDive";
 export { Login } from "./Login";
 export { CountryData } from "./CountryData";
+export { LandingPage } from "./LandingPage";

@@ -6,6 +6,7 @@
  */
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   X,
   Crown,
@@ -17,9 +18,14 @@ import {
   Award,
   TrendingUp,
   ChevronRight,
+  Loader2,
+  Trophy,
 } from "lucide-react";
 import { statCardContent, type StatCardContent } from "../../data/frameworkContent";
-import { cn } from "../../lib/utils";
+import { cn, getEffectiveOHIScore, getMaturityStage } from "../../lib/utils";
+import { fetchComparisonCountries } from "../../services/api";
+import { CountryFlag } from "../CountryFlag";
+import type { Country } from "../../types/country";
 
 type StatCardType = "components" | "metrics" | "bestPractices" | "maturityLevels";
 
@@ -203,7 +209,7 @@ function MetricCard({ item, index }: { item: StatCardContent["items"][0]; index:
 }
 
 /**
- * Best Practice Card - For displaying country examples
+ * Best Practice Card - For displaying country examples (legacy static content)
  */
 function BestPracticeCard({ item, index }: { item: StatCardContent["items"][0]; index: number }) {
   const colors = item.color ? colorMap[item.color] : colorMap.cyan;
@@ -237,6 +243,146 @@ function BestPracticeCard({ item, index }: { item: StatCardContent["items"][0]; 
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * Best Practice Country Card - For displaying top-ranked countries from leaderboard
+ */
+function BestPracticeCountryCard({ 
+  country, 
+  rank, 
+  ohiScore,
+  index 
+}: { 
+  country: Country; 
+  rank: number;
+  ohiScore: number;
+  index: number;
+}) {
+  const maturityStage = getMaturityStage(ohiScore);
+  
+  // Get color based on rank
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return { bg: "bg-amber-500/20", border: "border-amber-500/40", text: "text-amber-400" };
+    if (rank === 2) return { bg: "bg-slate-400/20", border: "border-slate-400/40", text: "text-slate-300" };
+    if (rank === 3) return { bg: "bg-amber-600/20", border: "border-amber-600/40", text: "text-amber-600" };
+    if (rank <= 5) return { bg: "bg-emerald-500/15", border: "border-emerald-500/30", text: "text-emerald-400" };
+    return { bg: "bg-slate-800/50", border: "border-slate-700/50", text: "text-slate-400" };
+  };
+  
+  const colors = getRankColor(rank);
+  
+  // Get rank icon
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Crown className="w-4 h-4 text-amber-400" />;
+    if (rank === 2) return <Trophy className="w-4 h-4 text-slate-300" />;
+    if (rank === 3) return <Award className="w-4 h-4 text-amber-600" />;
+    return <span className="text-xs font-bold text-slate-400">#{rank}</span>;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.05 + index * 0.03, duration: 0.3 }}
+      className={cn(
+        "p-4 rounded-xl border backdrop-blur-sm transition-all hover:scale-[1.01]",
+        colors.bg,
+        colors.border
+      )}
+    >
+      <div className="flex items-center gap-4">
+        {/* Rank Badge */}
+        <div className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+          "bg-slate-900/50 border",
+          colors.border
+        )}>
+          {getRankIcon(rank)}
+        </div>
+        
+        {/* Country Flag & Name */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <CountryFlag 
+            isoCode={country.iso_code} 
+            flagUrl={country.flag_url} 
+            size="md" 
+          />
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-white truncate">{country.name}</h4>
+            <p className="text-xs text-slate-400">{maturityStage.label}</p>
+          </div>
+        </div>
+        
+        {/* ADL OHI Score */}
+        <div className="flex flex-col items-end flex-shrink-0">
+          <span className={cn("text-lg font-bold", colors.text)}>
+            {ohiScore.toFixed(1)}
+          </span>
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">OHI Score</span>
+        </div>
+      </div>
+      
+      {/* Strategic Summary Preview (if available) */}
+      {country.strategic_summary_text && (
+        <p className="mt-3 text-xs text-slate-400 leading-relaxed line-clamp-2 pl-14">
+          {country.strategic_summary_text}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * Best Practices Content - Fetches and displays top countries from leaderboard
+ */
+function BestPracticesContent() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["comparison-countries-best-practices"],
+    queryFn: fetchComparisonCountries,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <span className="ml-3 text-slate-400">Loading top performers...</span>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="text-center py-8 text-slate-400">
+        <p>Unable to load country data. Please try again.</p>
+      </div>
+    );
+  }
+
+  // Calculate OHI scores and sort by score (best to lowest)
+  const countriesWithScores = data.countries
+    .map(country => ({
+      country,
+      ohiScore: getEffectiveOHIScore(country)
+    }))
+    .filter(item => item.ohiScore !== null && item.ohiScore > 0)
+    .sort((a, b) => (b.ohiScore ?? 0) - (a.ohiScore ?? 0))
+    .slice(0, 15); // Top 15 countries
+
+  return (
+    <div className="space-y-3">
+      {countriesWithScores.map((item, index) => (
+        <BestPracticeCountryCard
+          key={item.country.iso_code}
+          country={item.country}
+          rank={index + 1}
+          ohiScore={item.ohiScore!}
+          index={index}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -325,13 +471,7 @@ export function StatCardModal({ isOpen, onClose, cardType }: StatCardModalProps)
           </div>
         );
       case "bestPractices":
-        return (
-          <div className="space-y-3">
-            {content.items.map((item, index) => (
-              <BestPracticeCard key={item.name} item={item} index={index} />
-            ))}
-          </div>
-        );
+        return <BestPracticesContent />;
       case "maturityLevels":
         return (
           <div className="space-y-4">
@@ -384,13 +524,21 @@ export function StatCardModal({ isOpen, onClose, cardType }: StatCardModalProps)
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.1, duration: 0.5, type: "spring", stiffness: 200 }}
                   className={cn(
-                    "w-14 h-14 rounded-xl flex items-center justify-center",
+                    "w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden",
                     colorMap[config.color].bg,
                     colorMap[config.color].border,
                     "border"
                   )}
                 >
-                  <Icon className={cn("w-7 h-7", colorMap[config.color].text)} />
+                  {cardType === "maturityLevels" ? (
+                    <img 
+                      src="/adl-logo.png" 
+                      alt="ADL" 
+                      className="w-10 h-10 object-contain"
+                    />
+                  ) : (
+                    <Icon className={cn("w-7 h-7", colorMap[config.color].text)} />
+                  )}
                 </motion.div>
                 <div>
                   <motion.h2

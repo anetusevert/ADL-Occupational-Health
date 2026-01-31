@@ -87,16 +87,33 @@ function DataSourceCard({
       className={cn(
         "w-full p-4 rounded-xl border text-left transition-all duration-200",
         "bg-slate-800/50 border-slate-700/50",
-        detail && "hover:bg-slate-700/50 hover:border-slate-600/50 cursor-pointer",
+        detail && "hover:bg-slate-700/50 hover:border-slate-600/50 cursor-pointer group",
         !detail && "opacity-60 cursor-default"
       )}
     >
       <div className="flex items-start gap-3">
+        {/* Organization Logo or Icon */}
         <div className={cn(
-          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-          `bg-${color}-500/20`
+          "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/5 border border-slate-700/50 overflow-hidden",
+          detail?.logoUrl && "p-1.5"
         )}>
-          <Database className={cn("w-5 h-5", `text-${color}-400`)} />
+          {detail?.logoUrl ? (
+            <img 
+              src={detail.logoUrl} 
+              alt={detail.organization}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback to icon on image load error
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+          ) : null}
+          <Database className={cn(
+            "w-5 h-5", 
+            `text-${color}-400`,
+            detail?.logoUrl && "hidden"
+          )} />
         </div>
         <div className="flex-1 min-w-0">
           <h5 className="text-sm font-medium text-white truncate">
@@ -131,7 +148,10 @@ function DataSourceCard({
           )}
         </div>
         {detail && (
-          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <ExternalLink className="w-3.5 h-3.5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+          </div>
         )}
       </div>
     </motion.button>
@@ -167,19 +187,30 @@ function DataSourceDetailView({
         Back to Data Sources
       </button>
 
-      {/* Header */}
+      {/* Header with Logo */}
       <div className={cn(
         "p-4 rounded-xl border",
         `bg-${color}-500/10 border-${color}-500/20`
       )}>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
+          {/* Organization Logo */}
           <div className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center",
-            `bg-${color}-500/30`
+            "w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 border border-white/20 overflow-hidden p-2"
           )}>
-            <Database className={cn("w-6 h-6", `text-${color}-400`)} />
+            {detail.logoUrl ? (
+              <img 
+                src={detail.logoUrl} 
+                alt={detail.organization}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <Database className={cn("w-6 h-6", `text-${color}-400`)} />
+            )}
           </div>
-          <div>
+          <div className="flex-1">
             <h4 className="text-lg font-semibold text-white">{detail.name}</h4>
             <p className={cn("text-sm", `text-${color}-300/80`)}>{detail.organization}</p>
           </div>
@@ -255,22 +286,30 @@ function DataSourceDetailView({
         </div>
       </div>
 
-      {/* URL Link */}
-      {detail.url && (
-        <a
-          href={detail.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "flex items-center justify-center gap-2 p-3 rounded-lg border transition-all",
-            `bg-${color}-500/10 border-${color}-500/20 hover:bg-${color}-500/20`,
-            `text-${color}-300`
-          )}
-        >
-          <ExternalLink className="w-4 h-4" />
-          <span className="text-sm font-medium">View Source</span>
-        </a>
-      )}
+      {/* URL Link - Always visible and prominent */}
+      <a
+        href={detail.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          "flex items-center justify-center gap-3 p-4 rounded-xl border transition-all group",
+          `bg-${color}-500/10 border-${color}-500/30 hover:bg-${color}-500/20 hover:border-${color}-500/50`,
+          `text-${color}-300`
+        )}
+      >
+        {detail.logoUrl && (
+          <div className="w-6 h-6 flex items-center justify-center bg-white/10 rounded overflow-hidden p-0.5">
+            <img 
+              src={detail.logoUrl} 
+              alt="" 
+              className="w-full h-full object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
+        )}
+        <span className="text-sm font-semibold">Visit {detail.organization}</span>
+        <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+      </a>
     </motion.div>
   );
 }

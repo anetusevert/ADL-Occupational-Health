@@ -1,6 +1,6 @@
 /**
  * GOHIP Platform - TypeScript Type Definitions
- * Sovereign OH Integrity Framework v3.0
+ * ADL Occupational Health Framework v2.0
  * 
  * These types match the backend Pydantic schemas for type-safe API communication.
  */

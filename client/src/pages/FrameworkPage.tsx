@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Layers, Info, BookOpen, Sparkles } from "lucide-react";
+import { Info, BookOpen, Sparkles } from "lucide-react";
 import { InteractiveTemple, DetailPanel, StatCardModal, InteractionGuideModal } from "../components/framework";
 import { cn } from "../lib/utils";
 
@@ -40,7 +40,7 @@ const statCards: StatCard[] = [
   { 
     id: "metrics",
     label: "Metrics", 
-    value: "25+", 
+    value: "25", 
     color: "text-emerald-400", 
     bg: "bg-emerald-500/10", 
     border: "border-emerald-500/20",
@@ -49,8 +49,8 @@ const statCards: StatCard[] = [
   },
   { 
     id: "bestPractices",
-    label: "Best Practices", 
-    value: "11", 
+    label: "Global Leaders", 
+    value: "Top 15", 
     color: "text-amber-400", 
     bg: "bg-amber-500/10", 
     border: "border-amber-500/20",
@@ -105,15 +105,19 @@ export function FrameworkPage() {
       <div className="flex-shrink-0 mb-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30">
-              <Layers className="w-5 h-5 text-adl-accent" />
+            <div className="w-11 h-11 bg-adl-accent/20 rounded-xl flex items-center justify-center border border-adl-accent/30 overflow-hidden">
+              <img 
+                src="/adl-logo.png" 
+                alt="ADL" 
+                className="w-8 h-8 object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xl font-semibold text-white tracking-tight">
                 ADL Occupational Health Framework
               </h1>
               <p className="text-white/40 text-sm">
-                Version 3.0 — Comprehensive Assessment Architecture
+                Version 2.0 — Comprehensive Assessment Architecture
               </p>
             </div>
           </div>

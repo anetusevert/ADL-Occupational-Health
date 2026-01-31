@@ -758,7 +758,7 @@ export function DeepDive() {
       <div className="text-xs text-slate-500 text-center py-4 border-t border-slate-800">
         Powered by Multi-Agent AI Orchestration | DataAgent + ResearchAgent + Orchestrator (GPT-4o)
         <br />
-        Sovereign OH Integrity Framework v3.0 | Phase 25
+        ADL Occupational Health Framework v2.0
       </div>
     </div>
   );

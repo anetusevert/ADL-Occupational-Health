@@ -641,7 +641,7 @@ function StatsModal({
   
   const titles: Record<NonNullable<ModalType>, string> = {
     countries: "Countries Tracked",
-    maturity: "ADL OHI Distribution",
+    maturity: "ADL OHI Score Distribution",
     data: "Data Coverage Analysis",
   };
 
@@ -662,7 +662,10 @@ function StatsModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-xl font-semibold text-white">{titles[type!]}</h2>
+          <div className="flex items-center gap-3">
+            {type === "maturity" && <ADLIcon size="sm" animate={false} />}
+            <h2 className="text-xl font-semibold text-white">{titles[type!]}</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
