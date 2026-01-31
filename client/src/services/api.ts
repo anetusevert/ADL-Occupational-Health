@@ -1254,3 +1254,115 @@ export async function fetchPivotTable(
   const response = await apiClient.get<PivotTableResponse>(`/api/v1/country-data/pivot?${params.toString()}`);
   return response.data;
 }
+
+// ============================================================================
+// POLICY SIMULATOR API FUNCTIONS
+// ============================================================================
+
+export interface GenerateEventRequest {
+  country_iso: string;
+  country_name: string;
+  current_year: number;
+  ohi_score: number;
+  pillars: {
+    governance: number;
+    hazardControl: number;
+    healthVigilance: number;
+    restoration: number;
+  };
+  recent_events: string[];
+  active_policies: string[];
+}
+
+export interface GameEventResponse {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  description: string;
+  narrative: string;
+  choices: Array<{
+    id: string;
+    label: string;
+    description: string;
+    cost: number;
+    impacts: Record<string, number>;
+    long_term_effects?: Array<{
+      pillar: string;
+      delta: number;
+      duration: number;
+      description: string;
+    }>;
+  }>;
+  deadline: number;
+  triggeredYear: number;
+  isResolved: boolean;
+}
+
+export interface GenerateSummaryRequest {
+  country_name: string;
+  history: Array<{
+    cycleNumber: number;
+    year: number;
+    pillars: {
+      governance: number;
+      hazardControl: number;
+      healthVigilance: number;
+      restoration: number;
+    };
+    ohiScore: number;
+    rank: number;
+    budgetSpent: Record<string, number>;
+    policiesActive: string[];
+    eventsOccurred: string[];
+    choicesMade: Record<string, string>;
+  }>;
+  statistics: {
+    totalCyclesPlayed: number;
+    startingOHIScore: number;
+    currentOHIScore: number;
+    peakOHIScore: number;
+    lowestOHIScore: number;
+    startingRank: number;
+    currentRank: number;
+    bestRank: number;
+    totalBudgetSpent: number;
+    policiesMaxed: number;
+    eventsHandled: number;
+    criticalEventsManaged: number;
+  };
+  final_rank: number;
+}
+
+export interface GameSummaryResponse {
+  narrative: string;
+  highlights: string[];
+  recommendations: string[];
+  grade: string;
+}
+
+/**
+ * Generate a contextual game event for the policy simulator
+ */
+export async function generateSimulatorEvent(
+  request: GenerateEventRequest
+): Promise<GameEventResponse> {
+  const response = await aiApiClient.post<GameEventResponse>(
+    "/api/v1/simulator/generate-event",
+    request
+  );
+  return response.data;
+}
+
+/**
+ * Generate end-game summary with AI narrative
+ */
+export async function generateGameSummary(
+  request: GenerateSummaryRequest
+): Promise<GameSummaryResponse> {
+  const response = await aiApiClient.post<GameSummaryResponse>(
+    "/api/v1/simulator/generate-summary",
+    request
+  );
+  return response.data;
+}
