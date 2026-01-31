@@ -89,8 +89,12 @@ CRITICAL REQUIREMENTS:
 3. Name actual ministries, unions, and employer federations
 4. Include specific statistics and recent developments
 5. Create a compelling narrative that motivates action
+6. Include REAL government officials and their positions
+7. Describe the REAL political system accurately
+8. Reference iconic landmarks and cultural elements
 
 The briefing must feel like classified intelligence, not a Wikipedia article.
+You MUST return valid JSON only. No markdown, no explanation, just the JSON object.
 """
 
 STRATEGIC_ADVISOR_SYSTEM_PROMPT = """You are the Strategic Advisor to the Health Minister of {country_name}.
@@ -304,10 +308,46 @@ class GameWorkflowOrchestrator:
 
             execution_time = int((datetime.utcnow() - start_time).total_seconds() * 1000)
 
+            # Enrich briefing data with country context for frontend display
+            enriched_data = {
+                **briefing_data,
+                "country_context": {
+                    "capital": context.capital,
+                    "major_cities": context.major_cities[:5],
+                    "industrial_regions": context.industrial_regions[:4],
+                    "key_industries": context.key_industries[:5],
+                    "high_risk_sectors": context.high_risk_sectors[:4] if context.high_risk_sectors else [],
+                    "ministry_name": context.ministry_name,
+                    "ministry_abbreviation": context.ministry_abbreviation,
+                    "labor_inspection_body": context.labor_inspection_body,
+                    "health_authority": context.health_authority,
+                    "social_insurance_body": context.social_insurance_body,
+                    "major_unions": context.major_unions[:3],
+                    "employer_federation": context.employer_federation,
+                    "iconic_landmark": context.iconic_landmark,
+                    "landmark_city": context.landmark_city,
+                    "typical_work_week": context.typical_work_week,
+                    "official_languages": context.official_languages[:2] if context.official_languages else [],
+                    "currency": context.currency,
+                    "work_culture_notes": context.work_culture_notes[:3] if context.work_culture_notes else [],
+                },
+                "key_statistics": {
+                    "gdp_per_capita": metrics_data.get("gdp_per_capita"),
+                    "population": metrics_data.get("population"),
+                    "health_expenditure": metrics_data.get("health_expenditure"),
+                    "labor_force": metrics_data.get("labor_force"),
+                    "maturity_score": metrics_data.get("maturity_score"),
+                    "governance_score": metrics_data.get("governance_score"),
+                    "pillar1_score": metrics_data.get("pillar1_score"),
+                    "pillar2_score": metrics_data.get("pillar2_score"),
+                    "pillar3_score": metrics_data.get("pillar3_score"),
+                },
+            }
+
             return WorkflowResult(
                 workflow_type=GameWorkflowType.INTELLIGENCE_BRIEFING,
                 success=True,
-                data=briefing_data,
+                data=enriched_data,
                 agent_log=self.agent_log.copy(),
                 execution_time_ms=execution_time,
             )
@@ -347,29 +387,65 @@ class GameWorkflowOrchestrator:
 {json.dumps(metrics_data, indent=2)}
 
 ## COUNTRY CONTEXT (Real Institutions):
+- Capital: {context.capital}
+- Currency: {context.currency}
+- Official Languages: {', '.join(context.official_languages[:2]) if context.official_languages else 'N/A'}
 - Ministry: {context.ministry_name} ({context.ministry_abbreviation})
+- Labor Ministry: {context.labor_ministry}
+- Health Authority: {context.health_authority}
 - Inspection Body: {context.labor_inspection_body}
+- Social Insurance: {context.social_insurance_body}
 - Major Unions: {', '.join(context.major_unions[:3])}
+- Employer Federation: {context.employer_federation}
 - Key Industries: {', '.join(context.key_industries[:4])}
+- High Risk Sectors: {', '.join(context.high_risk_sectors[:4]) if context.high_risk_sectors else 'Manufacturing, Construction'}
 - Major Cities: {', '.join(context.major_cities[:4])}
 - Industrial Regions: {', '.join(context.industrial_regions[:3])}
+- Iconic Landmark: {context.iconic_landmark} in {context.landmark_city}
+- Work Week: {context.typical_work_week}
 
 ## RECENT WEB RESEARCH:
 {research_text}
 
-## GENERATE BRIEFING:
-Create a compelling intelligence briefing as valid JSON with these fields:
-- executive_summary: 3-4 sentence overview
-- socioeconomic_context: 2-3 paragraphs on economy and OH implications
-- cultural_factors: 1-2 paragraphs on work culture
-- future_outlook: 1-2 paragraphs on emerging challenges
-- pillar_insights: Analysis for governance, hazardControl, healthVigilance, restoration
-- key_challenges: Array of 3-5 main challenges
-- key_stakeholders: Array of key players with name, role, institution, stance
-- recent_articles: Summary of relevant articles from research
-- mission_statement: Inspiring mission for the player
-- political_system: Brief description of government structure
-- key_government_officials: Array of key ministers/officials
+## GENERATE BRIEFING (Return ONLY valid JSON, no markdown):
+{{
+  "executive_summary": "3-4 compelling sentences about {country_name}'s OH landscape and the minister's mission",
+  "socioeconomic_context": "2-3 paragraphs on {country_name}'s economy, workforce demographics, and OH implications",
+  "cultural_factors": "1-2 paragraphs on {country_name}'s work culture, labor traditions, and social attitudes",
+  "future_outlook": "1-2 paragraphs on emerging challenges: technology, climate, demographics",
+  "pillar_insights": {{
+    "governance": {{"analysis": "...", "key_issues": ["..."], "opportunities": ["..."]}},
+    "hazardControl": {{"analysis": "...", "key_issues": ["..."], "opportunities": ["..."]}},
+    "healthVigilance": {{"analysis": "...", "key_issues": ["..."], "opportunities": ["..."]}},
+    "restoration": {{"analysis": "...", "key_issues": ["..."], "opportunities": ["..."]}}
+  }},
+  "key_challenges": ["Challenge 1 specific to {country_name}", "Challenge 2", "Challenge 3"],
+  "key_stakeholders": [
+    {{"name": "Real Name", "role": "Minister of Health/Labor", "institution": "Real Ministry", "stance": "supportive/neutral/critical"}},
+    {{"name": "Union Leader", "role": "Secretary General", "institution": "Major Union", "stance": "..."}}
+  ],
+  "recent_articles": [
+    {{"title": "...", "summary": "...", "source": "Real news outlet", "relevance": "high/medium"}}
+  ],
+  "mission_statement": "As {country_name}'s new Health Minister, your mission is to [specific, inspiring goal]",
+  "political_system": "Describe {country_name}'s actual government structure (e.g., Federal Republic, Constitutional Monarchy)",
+  "key_government_officials": [
+    {{"name": "Real Name", "position": "Prime Minister/President", "party": "..."}}
+  ],
+  "country_profile": {{
+    "capital": "{context.capital}",
+    "population_description": "e.g., 36.4 million with X% in workforce",
+    "gdp_description": "e.g., $X billion, oil-dependent economy",
+    "government_type": "Federal Parliamentary Republic / Constitutional Monarchy / etc.",
+    "head_of_state": "Name and title",
+    "head_of_government": "Name and title"
+  }},
+  "visual_content": {{
+    "landmark_description": "Brief description of {context.iconic_landmark}",
+    "culture_highlights": ["Traditional aspect 1", "Modern aspect 2"],
+    "industry_icons": ["Key industry 1", "Key industry 2"]
+  }}
+}}
 """
 
         if self.ai_config and self.ai_config.provider == AIProvider.OPENAI:
@@ -432,58 +508,92 @@ Create a compelling intelligence briefing as valid JSON with these fields:
         else:
             difficulty = "critical"
         
-        # Build fallback briefing
+        # Get population and GDP from metrics
+        population = metrics_data.get("population") or 10000000
+        gdp = metrics_data.get("gdp_per_capita") or 15000
+        
+        # Format population
+        if population >= 1000000000:
+            pop_str = f"{population / 1000000000:.1f} billion"
+        elif population >= 1000000:
+            pop_str = f"{population / 1000000:.1f} million"
+        else:
+            pop_str = f"{population / 1000:.0f} thousand"
+        
+        # Build fallback briefing with complete data
         return {
-            "executive_summary": f"{country_name} presents a {difficulty} challenge for occupational health transformation. As the new Health Minister, you will need to balance improving worker safety with economic development priorities.",
+            "executive_summary": f"{country_name} presents a {difficulty} challenge for occupational health transformation. With a workforce of {pop_str} people and key industries including {', '.join(context.key_industries[:2]) if context.key_industries else 'manufacturing'}, the country requires strategic reforms in workplace safety. As the new Health Minister, you will work with {context.ministry_name} to balance improving worker safety with economic development priorities.",
             
-            "socioeconomic_context": f"{country_name}'s economy is driven by {', '.join(context.key_industries[:3]) if context.key_industries else 'diverse industries'}. The workforce faces particular risks in {', '.join(context.high_risk_sectors[:2]) if context.high_risk_sectors else 'various sectors'}.",
+            "socioeconomic_context": f"{country_name}'s economy, centered in cities like {', '.join(context.major_cities[:2]) if context.major_cities else context.capital}, is driven by {', '.join(context.key_industries[:3]) if context.key_industries else 'diverse industries'}. The workforce faces particular risks in {', '.join(context.high_risk_sectors[:2]) if context.high_risk_sectors else 'manufacturing and construction sectors'}. Industrial regions such as {', '.join(context.industrial_regions[:2]) if context.industrial_regions else 'major metropolitan areas'} concentrate much of the occupational health burden.",
             
-            "cultural_factors": f"Work culture in {country_name} reflects local traditions and economic priorities. Understanding these cultural factors is essential for effective policy implementation.",
+            "cultural_factors": f"Work culture in {country_name} reflects local traditions and economic priorities. The typical work week is {context.typical_work_week}, and worker rights are championed by organizations like {context.major_unions[0] if context.major_unions else 'national labor unions'}. Employers are represented by {context.employer_federation}. Understanding these social dynamics is essential for effective policy implementation.",
             
-            "future_outlook": f"Looking ahead, {country_name} faces evolving challenges including technological disruption, climate-related workplace hazards, and demographic shifts.",
+            "future_outlook": f"Looking ahead, {country_name} faces evolving challenges including technological disruption, climate-related workplace hazards, and demographic shifts. The {context.health_authority} will need to modernize surveillance systems while {context.social_insurance_body} adapts compensation frameworks for emerging occupational diseases.",
             
             "pillar_insights": {
                 "governance": {
-                    "analysis": f"Current governance score indicates {'strong foundation' if (metrics_data.get('governance_score') or 50) >= 70 else 'room for improvement'}.",
-                    "key_issues": ["Enforcement capacity", "Policy coordination"],
-                    "opportunities": ["Strengthen regulatory framework"]
+                    "analysis": f"Current governance through {context.ministry_name} indicates {'strong foundation' if (metrics_data.get('governance_score') or 50) >= 70 else 'room for improvement'}. The {context.labor_inspection_body} leads enforcement efforts.",
+                    "key_issues": ["Enforcement capacity", "Policy coordination", "Inter-ministerial cooperation"],
+                    "opportunities": ["Strengthen regulatory framework", "Digital transformation of inspections"]
                 },
                 "hazardControl": {
-                    "analysis": f"Hazard control measures show {'good progress' if (metrics_data.get('pillar1_score') or 50) >= 70 else 'areas needing attention'}.",
-                    "key_issues": ["Risk assessment coverage", "PPE compliance"],
-                    "opportunities": ["Modernize inspection systems"]
+                    "analysis": f"Hazard control in {', '.join(context.high_risk_sectors[:2]) if context.high_risk_sectors else 'key sectors'} shows {'good progress' if (metrics_data.get('pillar1_score') or 50) >= 70 else 'areas needing attention'}.",
+                    "key_issues": ["Risk assessment coverage", "PPE compliance", "Chemical hazard management"],
+                    "opportunities": ["Modernize inspection systems", "Industry partnerships"]
                 },
                 "healthVigilance": {
-                    "analysis": f"Health surveillance systems are {'well-developed' if (metrics_data.get('pillar2_score') or 50) >= 70 else 'developing'}.",
-                    "key_issues": ["Disease reporting", "Early detection"],
-                    "opportunities": ["Digital health monitoring"]
+                    "analysis": f"Health surveillance through {context.health_authority} is {'well-developed' if (metrics_data.get('pillar2_score') or 50) >= 70 else 'still developing'}.",
+                    "key_issues": ["Disease reporting", "Early detection", "Data integration"],
+                    "opportunities": ["Digital health monitoring", "Regional surveillance networks"]
                 },
                 "restoration": {
-                    "analysis": f"Worker rehabilitation and compensation {'functions effectively' if (metrics_data.get('pillar3_score') or 50) >= 70 else 'needs strengthening'}.",
-                    "key_issues": ["Return-to-work programs", "Compensation coverage"],
-                    "opportunities": ["Expand mental health support"]
+                    "analysis": f"The {context.social_insurance_body} manages compensation that {'functions effectively' if (metrics_data.get('pillar3_score') or 50) >= 70 else 'needs strengthening'}.",
+                    "key_issues": ["Return-to-work programs", "Compensation coverage", "Rehabilitation access"],
+                    "opportunities": ["Expand mental health support", "Vocational training programs"]
                 }
             },
             
             "key_challenges": [
-                "Improving enforcement capacity",
-                "Expanding coverage to all workers",
-                "Modernizing surveillance systems"
+                f"Improving enforcement capacity of {context.labor_inspection_body}",
+                f"Expanding coverage to informal workers in {context.industrial_regions[0] if context.industrial_regions else 'industrial zones'}",
+                "Modernizing occupational disease surveillance systems",
+                f"Strengthening coordination between {context.ministry_abbreviation} and health authorities"
             ],
             
             "key_stakeholders": [
                 {"name": "Minister of Labour", "role": "Government Lead", "institution": context.ministry_name, "stance": "supportive"},
-                {"name": "Chief Labour Inspector", "role": "Enforcement", "institution": context.labor_inspection_body, "stance": "supportive"},
-                {"name": "Union Federation", "role": "Worker Representative", "institution": context.major_unions[0] if context.major_unions else "National Union", "stance": "neutral"},
+                {"name": "Chief Labour Inspector", "role": "Enforcement Head", "institution": context.labor_inspection_body, "stance": "supportive"},
+                {"name": "Health Authority Director", "role": "Public Health Lead", "institution": context.health_authority, "stance": "supportive"},
+                {"name": "Union Federation Leader", "role": "Worker Representative", "institution": context.major_unions[0] if context.major_unions else "National Union", "stance": "neutral"},
+                {"name": "Employer Federation Chair", "role": "Business Representative", "institution": context.employer_federation, "stance": "cautious"},
             ],
             
-            "recent_articles": [],
+            "recent_articles": [
+                {"title": f"Workplace Safety Reform Debate Intensifies in {country_name}", "summary": f"Stakeholders discuss proposed changes to occupational health regulations", "source": "National News", "relevance": "high"},
+            ],
             
-            "mission_statement": f"Transform {country_name}'s occupational health system into a model framework that protects every worker while supporting economic growth.",
+            "mission_statement": f"As {country_name}'s new Health Minister, transform the national occupational health system into a world-class framework. Working from {context.capital} with {context.ministry_name}, your goal is to protect every worker while supporting {country_name}'s economic growth.",
             
-            "political_system": "Government structure with dedicated ministry for labour and health matters.",
+            "political_system": f"Government with {context.ministry_name} ({context.ministry_abbreviation}) overseeing occupational health policy, supported by {context.health_authority} and enforced by {context.labor_inspection_body}.",
             
-            "key_government_officials": []
+            "key_government_officials": [
+                {"name": "Minister of Labour", "position": f"Head of {context.ministry_name}", "party": "Government"},
+            ],
+            
+            "country_profile": {
+                "capital": context.capital,
+                "population_description": pop_str,
+                "gdp_description": f"${gdp:,.0f} GDP per capita",
+                "government_type": "Government with dedicated labour ministry",
+                "head_of_state": "Head of State",
+                "head_of_government": "Head of Government"
+            },
+            
+            "visual_content": {
+                "landmark_description": f"{context.iconic_landmark} in {context.landmark_city} - iconic symbol of {country_name}",
+                "culture_highlights": context.work_culture_notes[:3] if context.work_culture_notes else ["Diverse workforce", "Growing economy", "Regional variation"],
+                "industry_icons": context.key_industries[:3] if context.key_industries else ["Manufacturing", "Services", "Agriculture"]
+            }
         }
 
     async def run_strategic_advisor(

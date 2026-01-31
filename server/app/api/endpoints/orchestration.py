@@ -917,31 +917,59 @@ async def get_workflow_dashboard(
         # Seed defaults if needed
         seed_defaults(db)
         
-        workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
+        # Query workflows with fallback for missing columns
+        try:
+            workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
+        except Exception as query_error:
+            logger.warning(f"Query with lane_order failed, trying without order: {query_error}")
+            workflows = db.query(Workflow).all()
         
         result = []
         for w in workflows:
-            # Count agents for this workflow
-            agent_count = db.query(Agent).filter(Agent.workflow_id == w.id).count()
-            
-            # Calculate success rate
-            exec_count = w.execution_count or 0
-            succ_count = w.success_count if hasattr(w, 'success_count') and w.success_count else 0
-            success_rate = (succ_count / exec_count * 100) if exec_count > 0 else 0.0
-            
-            result.append(WorkflowDashboardItem(
-                id=w.id,
-                name=w.name,
-                description=w.description,
-                color=w.color or "cyan",
-                is_active=w.is_active if w.is_active is not None else True,
-                is_default=w.is_default,
-                agent_count=agent_count,
-                execution_count=exec_count,
-                success_count=succ_count,
-                success_rate=round(success_rate, 1),
-                last_run_at=w.last_run_at.isoformat() if w.last_run_at else None,
-            ))
+            try:
+                # Count agents for this workflow
+                agent_count = db.query(Agent).filter(Agent.workflow_id == w.id).count()
+                
+                # Safely get values with defaults (handles missing DB columns)
+                exec_count = getattr(w, 'execution_count', 0) or 0
+                succ_count = getattr(w, 'success_count', 0) or 0
+                is_active = getattr(w, 'is_active', True)
+                if is_active is None:
+                    is_active = True
+                last_run = getattr(w, 'last_run_at', None)
+                
+                # Calculate success rate
+                success_rate = (succ_count / exec_count * 100) if exec_count > 0 else 0.0
+                
+                result.append(WorkflowDashboardItem(
+                    id=w.id,
+                    name=w.name,
+                    description=w.description,
+                    color=w.color or "cyan",
+                    is_active=is_active,
+                    is_default=getattr(w, 'is_default', True),
+                    agent_count=agent_count,
+                    execution_count=exec_count,
+                    success_count=succ_count,
+                    success_rate=round(success_rate, 1),
+                    last_run_at=last_run.isoformat() if last_run else None,
+                ))
+            except Exception as item_error:
+                logger.warning(f"Error processing workflow {w.id}: {item_error}")
+                # Add minimal item on error
+                result.append(WorkflowDashboardItem(
+                    id=w.id,
+                    name=w.name,
+                    description=w.description,
+                    color=w.color or "cyan",
+                    is_active=True,
+                    is_default=True,
+                    agent_count=0,
+                    execution_count=0,
+                    success_count=0,
+                    success_rate=0.0,
+                    last_run_at=None,
+                ))
         
         return result
     except Exception as e:
