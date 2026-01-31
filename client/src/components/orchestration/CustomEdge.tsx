@@ -34,13 +34,13 @@ export function CustomEdge({
 
   return (
     <>
-      {/* Main edge path - n8n style gray line */}
+      {/* Main edge path - white for visibility on dark canvas */}
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
         strokeWidth={3}
-        stroke="#94a3b8"
+        stroke="#ffffff"
         fill="none"
         markerEnd={markerEnd}
         style={{

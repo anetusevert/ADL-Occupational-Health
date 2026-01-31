@@ -19,9 +19,15 @@ import {
   Settings,
   FileText,
   MessageSquare,
+  UserCheck,
+  Newspaper,
+  Award,
+  Users,
+  Target,
+  TrendingUp,
 } from 'lucide-react';
 
-// Icon mapping
+// Icon mapping - includes all agent icons from database
 const ICON_MAP: Record<string, React.ElementType> = {
   database: Database,
   search: Search,
@@ -36,6 +42,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   settings: Settings,
   'file-text': FileText,
   message: MessageSquare,
+  'user-check': UserCheck,
+  newspaper: Newspaper,
+  award: Award,
+  users: Users,
+  target: Target,
+  'trending-up': TrendingUp,
 };
 
 // n8n-style color accents (light background, colored accents)
