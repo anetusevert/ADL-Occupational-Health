@@ -1,0 +1,12 @@
+# GOHIP Frontend - Railway Configuration
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Use root path for healthcheck (serves index.html)
+healthcheckPath = "/"
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
