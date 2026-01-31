@@ -474,14 +474,20 @@ class StrategicDeepDiveAgent:
                           f"Generating strategic analysis with {self.config.provider.value}...", "🧠")
                 
                 # Call LangChain LLM with pre-gathered research
-                analysis = self._call_llm(
-                    country_name=country.name,
-                    iso_code=iso_code,
-                    metrics_text=metrics_text,
-                    intelligence_text=intelligence_text,
-                    research_text=research_text,
-                    topic=topic,
-                )
+                try:
+                    analysis = self._call_llm(
+                        country_name=country.name,
+                        iso_code=iso_code,
+                        metrics_text=metrics_text,
+                        intelligence_text=intelligence_text,
+                        research_text=research_text,
+                        topic=topic,
+                    )
+                except Exception as llm_error:
+                    logger.error(f"[SynthesisAgent] LLM call exception: {type(llm_error).__name__}: {str(llm_error)}")
+                    self._log("SynthesisAgent", AgentStatus.ERROR,
+                              f"LLM error: {type(llm_error).__name__}: {str(llm_error)[:200]}", "❌")
+                    raise ValueError(f"LLM synthesis error: {type(llm_error).__name__}: {str(llm_error)[:200]}")
                 
                 data_sources = [
                     "GOHIP Framework (Governance + 3 Pillars)",
@@ -490,7 +496,8 @@ class StrategicDeepDiveAgent:
                 ]
             
             if not analysis:
-                raise ValueError("LLM synthesis failed. Check AI configuration.")
+                logger.error("[SynthesisAgent] Analysis is None or empty after LLM call")
+                raise ValueError("LLM synthesis returned empty result. Check AI configuration and logs.")
             
             self._log("SynthesisAgent", AgentStatus.COMPLETE,
                       "Strategic analysis generated successfully", "✨")
@@ -699,10 +706,10 @@ class StrategicDeepDiveAgent:
         except json.JSONDecodeError as e:
             logger.error(f"[SynthesisAgent] Failed to parse LLM response as JSON: {e}")
             logger.error(f"[SynthesisAgent] Content that failed to parse: {content[:1000] if content else 'EMPTY'}")
-            return None
+            raise ValueError(f"Failed to parse LLM response as JSON: {str(e)[:100]}")
         except ImportError as e:
             logger.error(f"[SynthesisAgent] Missing LangChain dependency: {e}")
-            return None
+            raise ValueError(f"Missing LangChain dependency: {e}")
         except Exception as e:
             import traceback
             # Use detailed error logging for better debugging
@@ -716,7 +723,7 @@ class StrategicDeepDiveAgent:
             logger.error(f"[SynthesisAgent] Is invalid model: {error_info['is_invalid_model']}")
             logger.error(f"[SynthesisAgent] HTTP status: {error_info['http_status']}")
             logger.error(f"[SynthesisAgent] Traceback: {traceback.format_exc()}")
-            return None
+            raise ValueError(f"LLM error: {user_message}")
 
 
 # =============================================================================
