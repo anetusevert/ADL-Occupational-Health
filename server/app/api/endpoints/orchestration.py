@@ -238,50 +238,70 @@ def connection_to_response(conn: AgentConnection) -> ConnectionResponse:
 def seed_defaults(db: Session):
     """Seed default workflows, agents, and connections if they don't exist."""
     # Seed workflows first
-    workflow_count = db.query(Workflow).count()
+    try:
+        workflow_count = db.query(Workflow).count()
+    except Exception as e:
+        logger.warning(f"Could not count workflows (table may not exist): {e}")
+        db.rollback()
+        return  # Exit early if tables don't exist
+    
     if workflow_count == 0:
         logger.info("Seeding default workflows...")
-        for wf_data in DEFAULT_WORKFLOWS:
-            workflow = Workflow(
-                id=wf_data["id"],
-                name=wf_data["name"],
-                description=wf_data["description"],
-                color=wf_data["color"],
-                lane_order=wf_data.get("lane_order", 0),
-                is_default=wf_data["is_default"],
-            )
-            db.add(workflow)
-        db.commit()
-        logger.info(f"Seeded {len(DEFAULT_WORKFLOWS)} default workflows")
+        try:
+            for wf_data in DEFAULT_WORKFLOWS:
+                workflow = Workflow(
+                    id=wf_data["id"],
+                    name=wf_data["name"],
+                    description=wf_data["description"],
+                    color=wf_data["color"],
+                    lane_order=wf_data.get("lane_order", 0),
+                    is_default=wf_data["is_default"],
+                )
+                db.add(workflow)
+            db.commit()
+            logger.info(f"Seeded {len(DEFAULT_WORKFLOWS)} default workflows")
+        except Exception as e:
+            logger.warning(f"Could not seed workflows: {e}")
+            db.rollback()
     
     # Seed agents
-    agent_count = db.query(Agent).count()
+    try:
+        agent_count = db.query(Agent).count()
+    except Exception as e:
+        logger.warning(f"Could not count agents (table may not exist): {e}")
+        db.rollback()
+        return
+    
     if agent_count == 0:
         logger.info("Seeding default agents...")
-        for agent_data in DEFAULT_AGENTS:
-            category = agent_data.get("category", AgentCategory.analysis)
-            if isinstance(category, str):
-                category = AgentCategory(category)
-            
-            agent = Agent(
-                id=agent_data["id"],
-                name=agent_data["name"],
-                description=agent_data["description"],
-                category=category,
-                workflow_id=agent_data.get("workflow_id"),
-                icon=agent_data["icon"],
-                color=agent_data["color"],
-                order_in_workflow=agent_data["order_in_workflow"],
-                position_x=agent_data.get("position_x", 100),
-                position_y=agent_data.get("position_y", 100),
-                template_variables=agent_data["template_variables"],
-                system_prompt=agent_data["system_prompt"],
-                user_prompt_template=agent_data["user_prompt_template"],
-                is_active=True,
-            )
-            db.add(agent)
-        db.commit()
-        logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
+        try:
+            for agent_data in DEFAULT_AGENTS:
+                category = agent_data.get("category", AgentCategory.analysis)
+                if isinstance(category, str):
+                    category = AgentCategory(category)
+                
+                agent = Agent(
+                    id=agent_data["id"],
+                    name=agent_data["name"],
+                    description=agent_data["description"],
+                    category=category,
+                    workflow_id=agent_data.get("workflow_id"),
+                    icon=agent_data["icon"],
+                    color=agent_data["color"],
+                    order_in_workflow=agent_data["order_in_workflow"],
+                    position_x=agent_data.get("position_x", 100),
+                    position_y=agent_data.get("position_y", 100),
+                    template_variables=agent_data["template_variables"],
+                    system_prompt=agent_data["system_prompt"],
+                    user_prompt_template=agent_data["user_prompt_template"],
+                    is_active=True,
+                )
+                db.add(agent)
+            db.commit()
+            logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
+        except Exception as e:
+            logger.warning(f"Could not seed agents: {e}")
+            db.rollback()
     
     # Seed connections (with error handling for missing table)
     try:
@@ -914,21 +934,39 @@ async def get_workflow_dashboard(
     This is a public endpoint that returns workflow data for the dashboard.
     """
     try:
-        # Seed defaults if needed
-        seed_defaults(db)
+        # Try to seed defaults, but don't fail if tables don't exist
+        try:
+            seed_defaults(db)
+        except Exception as seed_error:
+            logger.warning(f"Could not seed defaults (tables may not exist): {seed_error}")
+            db.rollback()
         
-        # Query workflows with fallback for missing columns
+        # Query workflows with multiple fallbacks
+        workflows = []
         try:
             workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
         except Exception as query_error:
-            logger.warning(f"Query with lane_order failed, trying without order: {query_error}")
-            workflows = db.query(Workflow).all()
+            logger.warning(f"Query with lane_order failed: {query_error}")
+            db.rollback()
+            try:
+                workflows = db.query(Workflow).all()
+            except Exception as e2:
+                logger.warning(f"Workflow query failed completely: {e2}")
+                db.rollback()
+                # Return empty list if tables don't exist
+                return []
+        
+        if not workflows:
+            return []
         
         result = []
         for w in workflows:
             try:
                 # Count agents for this workflow
-                agent_count = db.query(Agent).filter(Agent.workflow_id == w.id).count()
+                try:
+                    agent_count = db.query(Agent).filter(Agent.workflow_id == w.id).count()
+                except Exception:
+                    agent_count = 0
                 
                 # Safely get values with defaults (handles missing DB columns)
                 exec_count = getattr(w, 'execution_count', 0) or 0
@@ -959,9 +997,9 @@ async def get_workflow_dashboard(
                 # Add minimal item on error
                 result.append(WorkflowDashboardItem(
                     id=w.id,
-                    name=w.name,
-                    description=w.description,
-                    color=w.color or "cyan",
+                    name=getattr(w, 'name', 'Unknown'),
+                    description=getattr(w, 'description', None),
+                    color=getattr(w, 'color', 'cyan') or "cyan",
                     is_active=True,
                     is_default=True,
                     agent_count=0,
@@ -973,7 +1011,7 @@ async def get_workflow_dashboard(
         
         return result
     except Exception as e:
-        logger.error(f"Failed to get workflow dashboard: {e}")
+        logger.error(f"Failed to get workflow dashboard: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

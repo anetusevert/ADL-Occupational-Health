@@ -104,15 +104,25 @@ function GameInner() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [isLoadingDecisions, setIsLoadingDecisions] = useState(false);
+  const [agentLog, setAgentLog] = useState<Array<{timestamp: string; agent: string; status: string; message: string; emoji: string}>>([]);
+  const [isWorkflowComplete, setIsWorkflowComplete] = useState(false);
 
   // Handle country selection and start research using enhanced workflow
   const handleSelectAndResearch = useCallback(async (country: CountryData) => {
     selectCountry(country);
     setGamePhase('loading');
+    setAgentLog([]);
+    setIsWorkflowComplete(false);
 
     try {
       // Use enhanced Intelligence Briefing workflow (with web search)
       const workflowResult = await runIntelligenceBriefingWorkflow(country.iso_code);
+      
+      // Set agent log for display
+      if (workflowResult.agent_log) {
+        setAgentLog(workflowResult.agent_log);
+      }
+      setIsWorkflowComplete(true);
       
       if (workflowResult.success && workflowResult.data) {
         // Map workflow response to briefing format
@@ -141,9 +151,11 @@ function GameInner() {
       } else {
         throw new Error(workflowResult.errors?.[0] || 'Workflow failed');
       }
-      setGamePhase('briefing');
+      // Don't immediately transition - let LoadingBriefing show the agent log first
+      // setGamePhase('briefing') is called by LoadingBriefing.onComplete
     } catch (error) {
       console.error('Failed to research country:', error);
+      setIsWorkflowComplete(true);
       // Create fallback briefing
       setBriefing({
         country_name: country.name,
@@ -179,7 +191,7 @@ function GameInner() {
           major_cities: [],
         },
       });
-      setGamePhase('briefing');
+      // LoadingBriefing.onComplete will handle the transition
     }
   }, [selectCountry]);
 
@@ -293,7 +305,9 @@ function GameInner() {
       <LoadingBriefing
         countryName={state.selectedCountry.name}
         countryFlag={getCountryFlag(state.selectedCountry.iso_code)}
-        onComplete={() => {}}
+        agentLog={agentLog}
+        isComplete={isWorkflowComplete}
+        onComplete={() => setGamePhase('briefing')}
       />
     );
   }

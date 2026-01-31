@@ -240,12 +240,12 @@ export function EconomicIndicators({
               transition={{ delay: 0.5 }}
               className="mt-4 pt-4 border-t border-white/10"
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <Globe2 className="w-3.5 h-3.5 text-white/40" />
-                <span className="text-xs text-white/60">Economic Profile</span>
+                <span className="text-xs text-white/60">Country Profile</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-white/40">Capital</span>
                   <span className="text-white">{briefing.country_context.capital || 'N/A'}</span>
@@ -262,18 +262,66 @@ export function EconomicIndicators({
                     {briefing.difficulty_rating}
                   </span>
                 </div>
+                {briefing.country_context.currency && (
+                  <div className="flex justify-between">
+                    <span className="text-white/40">Currency</span>
+                    <span className="text-white">{briefing.country_context.currency}</span>
+                  </div>
+                )}
+                {briefing.country_context.typical_work_week && (
+                  <div className="flex justify-between">
+                    <span className="text-white/40">Work Week</span>
+                    <span className="text-white">{briefing.country_context.typical_work_week}</span>
+                  </div>
+                )}
               </div>
 
+              {/* Ministry Information */}
+              {briefing.country_context.ministry_name && (
+                <div className="mt-3 p-2 bg-white/5 rounded-lg">
+                  <p className="text-[10px] text-white/40 mb-1">Lead Ministry</p>
+                  <p className="text-xs text-white font-medium">
+                    {briefing.country_context.ministry_name}
+                  </p>
+                  {briefing.country_context.ministry_abbreviation && (
+                    <p className="text-[10px] text-adl-accent">
+                      ({briefing.country_context.ministry_abbreviation})
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Key Industries */}
               {briefing.country_context.key_industries && briefing.country_context.key_industries.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {briefing.country_context.key_industries.slice(0, 4).map((industry, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 text-[10px] bg-white/5 rounded text-white/50"
-                    >
-                      {industry}
-                    </span>
-                  ))}
+                <div className="mt-3">
+                  <p className="text-[10px] text-white/40 mb-1.5">Key Industries</p>
+                  <div className="flex flex-wrap gap-1">
+                    {briefing.country_context.key_industries.slice(0, 5).map((industry, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 text-[10px] bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-300"
+                      >
+                        {industry}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* High Risk Sectors */}
+              {briefing.country_context.high_risk_sectors && briefing.country_context.high_risk_sectors.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[10px] text-white/40 mb-1.5">High Risk Sectors</p>
+                  <div className="flex flex-wrap gap-1">
+                    {briefing.country_context.high_risk_sectors.slice(0, 4).map((sector, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 text-[10px] bg-red-500/10 border border-red-500/20 rounded text-red-300"
+                      >
+                        {sector}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </motion.div>

@@ -56,22 +56,28 @@ export interface ArticleSummary {
 }
 
 export interface CountryContext {
-  iso_code: string;
-  name: string;
+  iso_code?: string;
+  name?: string;
   capital: string;
-  major_cities: string[];
-  industrial_regions: string[];
-  key_industries: string[];
-  high_risk_sectors: string[];
-  ministry_name: string;
-  ministry_abbreviation: string;
-  labor_inspection_body: string;
-  major_unions: string[];
-  industry_associations: string[];
-  employer_federation: string;
-  iconic_landmark: string;
-  landmark_city: string;
-  iso2_code: string;
+  major_cities?: string[];
+  industrial_regions?: string[];
+  key_industries?: string[];
+  high_risk_sectors?: string[];
+  ministry_name?: string;
+  ministry_abbreviation?: string;
+  labor_inspection_body?: string;
+  health_authority?: string;
+  social_insurance_body?: string;
+  major_unions?: string[];
+  industry_associations?: string[];
+  employer_federation?: string;
+  iconic_landmark?: string;
+  landmark_city?: string;
+  iso2_code?: string;
+  typical_work_week?: string;
+  official_languages?: string[];
+  currency?: string;
+  work_culture_notes?: string[];
 }
 
 export interface DecisionCard {
