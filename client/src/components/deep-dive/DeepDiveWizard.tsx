@@ -16,6 +16,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   getStrategicDeepDiveCountries,
   generateStrategicDeepDive,
+  getStrategicDeepDiveReport,
   type CountryDeepDiveItem, 
   type TopicStatus 
 } from "../../services/api";
@@ -52,7 +53,7 @@ const stepTransition = {
 };
 
 export function DeepDiveWizard() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -64,6 +65,9 @@ export function DeepDiveWizard() {
   
   // Report state
   const [report, setReport] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false); // true when AI is generating
+  const [isFetching, setIsFetching] = useState(false); // true when fetching existing report
+  const [reportError, setReportError] = useState<Error | null>(null);
   const [topicStatusMap, setTopicStatusMap] = useState<Record<string, TopicStatus>>({});
 
   // Fetch countries
@@ -130,21 +134,53 @@ export function DeepDiveWizard() {
     }
   }, [selectedCountries]);
 
+  // Fetch or generate report for a country/topic
+  const fetchOrGenerateReport = useCallback(
+    async (countryIso: string, topic: string) => {
+      setReport(null);
+      setReportError(null);
+      setIsFetching(true);
+      setIsGenerating(false);
+
+      try {
+        // First, check if report already exists
+        const existingReport = await getStrategicDeepDiveReport(countryIso, topic);
+        
+        if (existingReport && existingReport.report) {
+          // Report exists - display it immediately
+          setReport(existingReport.report);
+          setIsFetching(false);
+          return;
+        }
+        
+        // No existing report - auto-generate
+        setIsFetching(false);
+        setIsGenerating(true);
+        
+        const generated = await generateStrategicDeepDive(countryIso, topic);
+        setReport(generated.report?.report || null);
+      } catch (err) {
+        setReportError(err instanceof Error ? err : new Error("Failed to load report"));
+      } finally {
+        setIsFetching(false);
+        setIsGenerating(false);
+      }
+    },
+    []
+  );
+
   const handleSelectTopic = useCallback(
     (topic: string) => {
       setSelectedTopic(topic);
       setDirection(1);
       setCurrentStep(3);
       
-      // Generate report for first selected country
+      // Fetch or generate report for first selected country
       if (selectedCountries.length > 0) {
-        generateReportMutation.mutate({
-          countryIso: selectedCountries[0],
-          topic,
-        });
+        fetchOrGenerateReport(selectedCountries[0], topic);
       }
     },
-    [selectedCountries, generateReportMutation]
+    [selectedCountries, fetchOrGenerateReport]
   );
 
   const handleBackToCountries = useCallback(() => {
@@ -160,14 +196,30 @@ export function DeepDiveWizard() {
     setReport(null);
   }, []);
 
+  // Retry fetching/generating report (on error)
   const handleRetryReport = useCallback(() => {
     if (selectedCountries.length > 0 && selectedTopic) {
-      generateReportMutation.mutate({
-        countryIso: selectedCountries[0],
-        topic: selectedTopic,
-      });
+      fetchOrGenerateReport(selectedCountries[0], selectedTopic);
     }
-  }, [selectedCountries, selectedTopic, generateReportMutation]);
+  }, [selectedCountries, selectedTopic, fetchOrGenerateReport]);
+
+  // Force regenerate report (admin only)
+  const handleRegenerateReport = useCallback(async () => {
+    if (selectedCountries.length > 0 && selectedTopic) {
+      setReport(null);
+      setReportError(null);
+      setIsGenerating(true);
+      
+      try {
+        const generated = await generateStrategicDeepDive(selectedCountries[0], selectedTopic);
+        setReport(generated.report?.report || null);
+      } catch (err) {
+        setReportError(err instanceof Error ? err : new Error("Failed to regenerate report"));
+      } finally {
+        setIsGenerating(false);
+      }
+    }
+  }, [selectedCountries, selectedTopic]);
 
   // Export handlers
   const handleExportPDF = useCallback(async () => {
@@ -268,10 +320,13 @@ export function DeepDiveWizard() {
                 country={selectedCountriesData[0] || null}
                 topic={selectedTopic}
                 report={report}
-                isLoading={generateReportMutation.isPending}
-                error={generateReportMutation.error as Error | null}
+                isLoading={isFetching || isGenerating}
+                isGenerating={isGenerating}
+                error={reportError}
+                isAdmin={isAdmin}
                 onBack={handleBackToTopics}
                 onRetry={handleRetryReport}
+                onRegenerate={handleRegenerateReport}
                 onExportPDF={handleExportPDF}
                 onExportWord={handleExportWord}
               />

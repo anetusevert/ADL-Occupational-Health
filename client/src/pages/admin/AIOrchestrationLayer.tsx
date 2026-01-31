@@ -352,19 +352,26 @@ function FlowComponent({
     return positions;
   }, [data.workflows]);
 
-  // Convert agents to React Flow nodes
+  // Convert agents to React Flow nodes with horizontal layout
   useEffect(() => {
     if (!data?.agents) return;
 
-    const newNodes: Node<AgentNodeData>[] = data.agents.map((agent) => {
-      const laneY = agent.workflow_id ? lanePositions[agent.workflow_id] || 100 : 100;
+    // Sort agents by order_in_workflow for proper left-to-right arrangement
+    const sortedAgents = [...data.agents].sort((a, b) => 
+      (a.order_in_workflow || 0) - (b.order_in_workflow || 0)
+    );
+
+    const newNodes: Node<AgentNodeData>[] = sortedAgents.map((agent, index) => {
+      // Use horizontal layout: left-to-right with consistent Y
+      const horizontalX = 150 + index * 280;
+      const horizontalY = 200;
       
       return {
         id: agent.id,
         type: 'agent',
         position: {
-          x: agent.position_x || 100,
-          y: agent.position_y || laneY + 50,
+          x: agent.position_x || horizontalX,
+          y: agent.position_y || horizontalY,
         },
         data: {
           id: agent.id,
@@ -383,18 +390,21 @@ function FlowComponent({
 
     setNodes(newNodes);
 
-    // Create edges from connections
+    // Create edges from connections - improved styling
     const newEdges: Edge[] = data.connections.map(conn => ({
       id: conn.id,
       source: conn.source,
       target: conn.target,
-      animated: true,
-      style: { stroke: '#06b6d4', strokeWidth: 2 },
-      type: 'smoothstep',
+      animated: false,
+      style: { stroke: '#64748b', strokeWidth: 2.5 },
+      type: 'bezier',
+      label: '',
+      labelStyle: { fill: '#94a3b8', fontSize: 11 },
+      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8 },
     }));
 
     setEdges(newEdges);
-  }, [data?.agents, data?.connections, selectedAgentId, lanePositions, setNodes, setEdges]);
+  }, [data?.agents, data?.connections, selectedAgentId, setNodes, setEdges]);
 
   // Handle connection creation
   const onConnect = useCallback(
@@ -485,30 +495,26 @@ function FlowComponent({
   }, [testAgentMutation, setTestResult]);
 
   const handleAutoLayout = useCallback(() => {
-    // Auto-arrange agents within their workflow lanes
-    const agentsByWorkflow: Record<string, Agent[]> = {};
+    // Auto-arrange agents in horizontal left-to-right flow
+    const sortedAgents = [...data.agents].sort((a, b) => 
+      (a.order_in_workflow || 0) - (b.order_in_workflow || 0)
+    );
     
-    data.agents.forEach(agent => {
-      const wfId = agent.workflow_id || 'unassigned';
-      if (!agentsByWorkflow[wfId]) agentsByWorkflow[wfId] = [];
-      agentsByWorkflow[wfId].push(agent);
-    });
-    
-    Object.entries(agentsByWorkflow).forEach(([wfId, agents]) => {
-      const laneY = lanePositions[wfId] || 100;
-      const sortedAgents = agents.sort((a, b) => (a.order_in_workflow || 0) - (b.order_in_workflow || 0));
-      
-      sortedAgents.forEach((agent, idx) => {
-        updatePositionMutation.mutate({
-          agentId: agent.id,
-          position: {
-            position_x: 100 + idx * 250,
-            position_y: laneY + 50,
-          },
-        });
+    sortedAgents.forEach((agent, idx) => {
+      updatePositionMutation.mutate({
+        agentId: agent.id,
+        position: {
+          position_x: 150 + idx * 280,
+          position_y: 200,
+        },
       });
     });
-  }, [data.agents, lanePositions, updatePositionMutation]);
+    
+    // Fit view after layout
+    setTimeout(() => {
+      reactFlowInstance.fitView({ padding: 0.2 });
+    }, 100);
+  }, [data.agents, updatePositionMutation, reactFlowInstance]);
 
   const selectedAgent = useMemo(() => {
     if (!data?.agents || !selectedAgentId) return null;
@@ -541,9 +547,9 @@ function FlowComponent({
           className="bg-slate-900"
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: '#06b6d4', strokeWidth: 2 },
+            type: 'bezier',
+            animated: false,
+            style: { stroke: '#64748b', strokeWidth: 2.5 },
           }}
         >
           <Background
@@ -613,18 +619,6 @@ function FlowComponent({
             </button>
           </Panel>
         </ReactFlow>
-
-        {/* Workflow Lanes Overlay */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {data.workflows.map(workflow => (
-            <WorkflowLane
-              key={workflow.id}
-              workflow={workflow}
-              laneY={lanePositions[workflow.id] || 0}
-              width={canvasWidth}
-            />
-          ))}
-        </div>
 
         {/* Connection Suggestion */}
         {draggedNode && nearbyNode && (

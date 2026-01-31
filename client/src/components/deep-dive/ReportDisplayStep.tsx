@@ -39,9 +39,12 @@ interface ReportDisplayStepProps {
   topic: string | null;
   report: string | null;
   isLoading: boolean;
+  isGenerating?: boolean; // true when AI is generating (vs just fetching)
   error: Error | null;
+  isAdmin?: boolean;
   onBack: () => void;
   onRetry: () => void;
+  onRegenerate?: () => void; // Admin-only regenerate
   onExportPDF: () => void;
   onExportWord: () => void;
 }
@@ -107,9 +110,12 @@ export function ReportDisplayStep({
   topic,
   report,
   isLoading,
+  isGenerating = false,
   error,
+  isAdmin = false,
   onBack,
   onRetry,
+  onRegenerate,
   onExportPDF,
   onExportWord,
 }: ReportDisplayStepProps) {
@@ -160,14 +166,25 @@ export function ReportDisplayStep({
         <GradientOrbs count={3} />
         <FloatingParticles color="emerald" count={30} />
         <motion.div className="text-center max-w-md px-6 relative z-10" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-          <motion.div className="w-24 h-24 mx-auto mb-6 relative" animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
+          <motion.div className="w-24 h-24 mx-auto mb-6 relative" animate={{ rotate: isGenerating ? 360 : 0 }} transition={{ duration: 8, repeat: isGenerating ? Infinity : 0, ease: "linear" }}>
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/30 to-indigo-500/30 border border-purple-500/40" />
             <div className="absolute inset-2 rounded-xl bg-slate-900/80 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-purple-400" />
+              {isGenerating ? (
+                <Sparkles className="w-8 h-8 text-purple-400" />
+              ) : (
+                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+              )}
             </div>
           </motion.div>
-          <h3 className="text-xl font-semibold text-white mb-2">Generating Your Report</h3>
-          <p className="text-slate-400 text-sm mb-4">AI is analyzing occupational health data for {country?.name || "your selection"}...</p>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            {isGenerating ? "Generating Your Report" : "Loading Report"}
+          </h3>
+          <p className="text-slate-400 text-sm mb-4">
+            {isGenerating 
+              ? `AI is analyzing occupational health data for ${country?.name || "your selection"}...`
+              : `Fetching report for ${country?.name || "your selection"}...`
+            }
+          </p>
           <div className="flex justify-center gap-1">
             {[0, 1, 2].map((i) => (
               <motion.div key={i} className="w-2 h-2 rounded-full bg-purple-500" animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
@@ -228,6 +245,21 @@ export function ReportDisplayStep({
             <motion.button onClick={() => setShowSidebar(!showSidebar)} className={cn("p-2 rounded-lg border transition-all", showSidebar ? "bg-purple-500/20 border-purple-500/40 text-purple-400" : "bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-white")} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <ListTree className="w-4 h-4" />
             </motion.button>
+            
+            {/* Admin-only Regenerate button */}
+            {isAdmin && onRegenerate && (
+              <motion.button
+                onClick={onRegenerate}
+                className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-sm font-medium hover:bg-amber-500/30 transition-all"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                title="Regenerate report with AI"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Regenerate
+              </motion.button>
+            )}
+            
             <div className="relative">
               <motion.button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white text-sm font-medium shadow-lg shadow-purple-500/25" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Download className="w-4 h-4" />
