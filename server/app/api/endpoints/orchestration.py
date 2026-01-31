@@ -306,24 +306,39 @@ async def get_agents(
     current_user: User = Depends(get_current_admin_user),
 ):
     """Get all agents, workflows, and connections."""
-    # Seed defaults if needed
-    seed_defaults(db)
-    
-    agents = db.query(Agent).order_by(Agent.workflow_id, Agent.order_in_workflow).all()
-    workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
-    
-    # Get connections (with fallback if table doesn't exist)
     try:
-        connections = db.query(AgentConnection).all()
+        # Seed defaults if needed
+        seed_defaults(db)
+        
+        # Query agents
+        try:
+            agents = db.query(Agent).order_by(Agent.workflow_id, Agent.order_in_workflow).all()
+        except Exception as e:
+            logger.warning(f"Could not order agents properly: {e}")
+            agents = db.query(Agent).all()
+        
+        # Query workflows (with fallback if lane_order doesn't exist)
+        try:
+            workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
+        except Exception as e:
+            logger.warning(f"Could not order workflows by lane_order: {e}")
+            workflows = db.query(Workflow).all()
+        
+        # Get connections (with fallback if table doesn't exist)
+        try:
+            connections = db.query(AgentConnection).all()
+        except Exception as e:
+            logger.warning(f"Could not query connections: {e}")
+            connections = []
+        
+        return AgentListResponse(
+            agents=[agent_to_response(a) for a in agents],
+            workflows=[workflow_to_response(w) for w in workflows],
+            connections=[connection_to_response(c) for c in connections],
+        )
     except Exception as e:
-        logger.warning(f"Could not query connections: {e}")
-        connections = []
-    
-    return AgentListResponse(
-        agents=[agent_to_response(a) for a in agents],
-        workflows=[workflow_to_response(w) for w in workflows],
-        connections=[connection_to_response(c) for c in connections],
-    )
+        logger.error(f"Failed to get agents: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load agents: {str(e)}")
 
 
 @router.get("/agents/{agent_id}", response_model=AgentResponse)
