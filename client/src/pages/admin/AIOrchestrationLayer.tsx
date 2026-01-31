@@ -47,6 +47,13 @@ import {
   CreateWorkflowModal,
   CreateWorkflowData,
   AgentConfigPanel,
+  WorkflowTabs,
+  NodePalette,
+  CanvasToolbar,
+  ExecutionPanel,
+  type NodeTemplate,
+  type ExecutionLogEntry,
+  type ExecutionRun,
 } from '../../components/orchestration';
 
 // =============================================================================
@@ -686,6 +693,15 @@ export function AIOrchestrationLayer() {
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const [showCreateWorkflow, setShowCreateWorkflow] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; response?: string; error?: string } | null>(null);
+  
+  // n8n-style UI state
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
+  const [isExecutionPanelExpanded, setIsExecutionPanelExpanded] = useState(false);
+  const [executionRuns, setExecutionRuns] = useState<ExecutionRun[]>([]);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(true);
 
   // Fetch agents and workflows
   const { data, isLoading, error, refetch } = useQuery({
@@ -793,69 +809,116 @@ export function AIOrchestrationLayer() {
 
   if (!data) return null;
 
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/80">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30">
-            <Brain className="w-5 h-5 text-cyan-400" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-white">AI Orchestration Layer</h1>
-            <p className="text-xs text-slate-400">Drag agents to position, connect to create workflows</p>
-          </div>
-        </div>
+  // Filter agents based on selected workflow
+  const filteredData = selectedWorkflowId
+    ? {
+        ...data,
+        agents: data.agents.filter(a => a.workflow_id === selectedWorkflowId),
+        connections: data.connections.filter(c => {
+          const sourceAgent = data.agents.find(a => a.id === c.source);
+          const targetAgent = data.agents.find(a => a.id === c.target);
+          return sourceAgent?.workflow_id === selectedWorkflowId || 
+                 targetAgent?.workflow_id === selectedWorkflowId;
+        }),
+      }
+    : data;
 
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded text-sm">
-            {data?.agents.filter(a => a.is_active).length || 0} Agents
-          </span>
-          <span className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-sm">
-            {data?.workflows.length || 0} Workflows
-          </span>
-          
-          <button
-            onClick={() => setShowCreateWorkflow(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors text-sm"
-          >
-            <Workflow className="w-4 h-4" />
-            Add Workflow
-          </button>
-          
-          <button
-            onClick={() => setShowCreateAgent(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-400 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Agent
-          </button>
-        </div>
+  // Get workflows with agent counts
+  const workflowsWithCounts = data.workflows.map(wf => ({
+    ...wf,
+    agent_count: data.agents.filter(a => a.workflow_id === wf.id).length,
+  }));
+
+  // Get selected workflow name
+  const selectedWorkflowName = selectedWorkflowId
+    ? data.workflows.find(wf => wf.id === selectedWorkflowId)?.name || 'Workflow'
+    : 'All Workflows';
+
+  // Handle node palette drag
+  const handlePaletteDragStart = (event: React.DragEvent, template: NodeTemplate) => {
+    event.dataTransfer.setData('application/reactflow', JSON.stringify(template));
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  // Handle adding node from palette
+  const handleAddNodeFromPalette = (template: NodeTemplate) => {
+    setShowCreateAgent(true);
+    // Pre-fill with template data could be added here
+  };
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden bg-slate-900">
+      {/* Workflow Tabs - n8n style */}
+      <WorkflowTabs
+        workflows={workflowsWithCounts}
+        activeWorkflowId={selectedWorkflowId}
+        onSelectWorkflow={setSelectedWorkflowId}
+        onCreateWorkflow={() => setShowCreateWorkflow(true)}
+        onDeleteWorkflow={(id) => {
+          // Could add delete workflow mutation here
+          console.log('Delete workflow:', id);
+        }}
+      />
+
+      {/* Canvas Toolbar - n8n style */}
+      <CanvasToolbar
+        workflowName={selectedWorkflowName}
+        saveStatus="saved"
+        runStatus="idle"
+        showGrid={showGrid}
+        onToggleGrid={() => setShowGrid(!showGrid)}
+        snapToGrid={snapToGrid}
+        onToggleSnap={() => setSnapToGrid(!snapToGrid)}
+        showMiniMap={showMiniMap}
+        onToggleMiniMap={() => setShowMiniMap(!showMiniMap)}
+        onRun={() => {
+          // Trigger workflow execution
+          console.log('Run workflow');
+        }}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Node Palette - n8n style sidebar */}
+        <NodePalette
+          onDragStart={handlePaletteDragStart}
+          onAddNode={handleAddNodeFromPalette}
+          isCollapsed={isPaletteCollapsed}
+          onToggleCollapse={() => setIsPaletteCollapsed(!isPaletteCollapsed)}
+        />
+
+        {/* Canvas with ReactFlowProvider */}
+        <ReactFlowProvider>
+          <FlowComponent
+            data={filteredData}
+            providersData={providersData}
+            selectedAgentId={selectedAgentId}
+            setSelectedAgentId={setSelectedAgentId}
+            showCreateAgent={showCreateAgent}
+            setShowCreateAgent={setShowCreateAgent}
+            showCreateWorkflow={showCreateWorkflow}
+            setShowCreateWorkflow={setShowCreateWorkflow}
+            createAgentMutation={createAgentMutation}
+            updateAgentMutation={updateAgentMutation}
+            updatePositionMutation={updatePositionMutation}
+            deleteAgentMutation={deleteAgentMutation}
+            createWorkflowMutation={createWorkflowMutation}
+            testAgentMutation={testAgentMutation}
+            createConnectionMutation={createConnectionMutation}
+            deleteConnectionMutation={deleteConnectionMutation}
+            testResult={testResult}
+            setTestResult={setTestResult}
+          />
+        </ReactFlowProvider>
       </div>
 
-      {/* Main Content with ReactFlowProvider */}
-      <ReactFlowProvider>
-        <FlowComponent
-          data={data}
-          providersData={providersData}
-          selectedAgentId={selectedAgentId}
-          setSelectedAgentId={setSelectedAgentId}
-          showCreateAgent={showCreateAgent}
-          setShowCreateAgent={setShowCreateAgent}
-          showCreateWorkflow={showCreateWorkflow}
-          setShowCreateWorkflow={setShowCreateWorkflow}
-          createAgentMutation={createAgentMutation}
-          updateAgentMutation={updateAgentMutation}
-          updatePositionMutation={updatePositionMutation}
-          deleteAgentMutation={deleteAgentMutation}
-          createWorkflowMutation={createWorkflowMutation}
-          testAgentMutation={testAgentMutation}
-          createConnectionMutation={createConnectionMutation}
-          deleteConnectionMutation={deleteConnectionMutation}
-          testResult={testResult}
-          setTestResult={setTestResult}
-        />
-      </ReactFlowProvider>
+      {/* Execution Panel - n8n style bottom panel */}
+      <ExecutionPanel
+        runs={executionRuns}
+        isExpanded={isExecutionPanelExpanded}
+        onToggleExpand={() => setIsExecutionPanelExpanded(!isExecutionPanelExpanded)}
+        onClearLogs={() => setExecutionRuns([])}
+      />
     </div>
   );
 }
