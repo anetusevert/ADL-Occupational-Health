@@ -54,7 +54,6 @@ const stepTransition = {
 
 export function DeepDiveWizard() {
   const { user, isAdmin } = useAuth();
-  const navigate = useNavigate();
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
