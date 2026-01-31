@@ -41,7 +41,7 @@ const queryClient = new QueryClient({
 });
 
 // Premium Loading Screen Component
-function PremiumLoadingScreen() {
+function PremiumLoadingScreen({ message = "Loading..." }: { message?: string }) {
   return (
     <div className="h-screen bg-adl-gradient flex items-center justify-center overflow-hidden">
       {/* Background Effects */}
@@ -106,9 +106,9 @@ function PremiumLoadingScreen() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-adl-accent text-sm font-medium tracking-wide"
+          className="text-adl-accent text-sm font-medium tracking-wide text-center max-w-xs"
         >
-          Loading...
+          {message}
         </motion.div>
       </motion.div>
     </div>
@@ -117,10 +117,10 @@ function PremiumLoadingScreen() {
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, loadingMessage } = useAuth();
 
   if (isLoading) {
-    return <PremiumLoadingScreen />;
+    return <PremiumLoadingScreen message={loadingMessage} />;
   }
 
   if (!isAuthenticated) {
@@ -132,10 +132,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Admin Route wrapper
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin, isLoading } = useAuth();
+  const { isAdmin, isLoading, loadingMessage } = useAuth();
 
   if (isLoading) {
-    return <PremiumLoadingScreen />;
+    return <PremiumLoadingScreen message={loadingMessage} />;
   }
 
   if (!isAdmin) {
@@ -148,10 +148,10 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 // Landing page route for unauthenticated users
 // Shows cinematic entrance + landing page with login modal
 function LandingRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, loadingMessage } = useAuth();
 
   if (isLoading) {
-    return <PremiumLoadingScreen />;
+    return <PremiumLoadingScreen message={loadingMessage} />;
   }
 
   if (isAuthenticated) {
@@ -165,10 +165,10 @@ function LandingRoute() {
 
 // Login redirect - now redirects to landing page
 function LoginRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, loadingMessage } = useAuth();
 
   if (isLoading) {
-    return <PremiumLoadingScreen />;
+    return <PremiumLoadingScreen message={loadingMessage} />;
   }
 
   if (isAuthenticated) {

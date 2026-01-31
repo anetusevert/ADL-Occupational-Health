@@ -30,6 +30,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  loadingMessage: string;
   authError: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -73,8 +74,8 @@ function getApiBaseUrl(): string {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Request timeout in milliseconds (15 seconds)
-const AUTH_TIMEOUT_MS = 15000;
+// Request timeout in milliseconds (45 seconds for Railway cold starts)
+const AUTH_TIMEOUT_MS = 45000;
 
 // Helper to create fetch with timeout
 async function fetchWithTimeout(
@@ -116,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem(TOKEN_KEY);
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>("Loading...");
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Computed values
@@ -206,7 +208,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
+    setLoadingMessage("Signing in...");
     setAuthError(null);
+    
+    // Show "server starting" message after 5 seconds (Railway cold start)
+    const slowServerTimer = setTimeout(() => {
+      setLoadingMessage("Server is starting up, please wait...");
+    }, 5000);
     
     try {
       const response = await fetchWithTimeout(
@@ -233,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(authToken);
 
       // Fetch user info
+      setLoadingMessage("Loading your profile...");
       const userData = await fetchUser(authToken);
       if (userData) {
         setUser(userData);
@@ -256,13 +265,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(USER_KEY, JSON.stringify(minimalUser));
       }
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        setAuthError("Connection timed out. Please check your internet connection.");
-        throw new Error("Connection timed out");
+      // Handle errors without re-throwing to prevent loading state from getting stuck
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          console.error("[Auth] Login timed out after 45 seconds");
+          setAuthError("Server took too long to respond. Please try again.");
+        } else {
+          console.error("[Auth] Login error:", error.message);
+          setAuthError(error.message || "Login failed. Please try again.");
+        }
+      } else {
+        setAuthError("An unexpected error occurred. Please try again.");
       }
-      throw error;
     } finally {
+      clearTimeout(slowServerTimer);
       setIsLoading(false);
+      setLoadingMessage("Loading...");
     }
   }, [fetchUser]);
 
@@ -293,6 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated,
     isAdmin,
     isLoading,
+    loadingMessage,
     authError,
     login,
     logout,
