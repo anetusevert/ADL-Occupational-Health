@@ -51,7 +51,7 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 
 // Analytics Suite - Data exploration and analysis
 const analyticsSuiteItems: NavItem[] = [
-  { path: "/", label: "Global Overview", icon: Map },
+  { path: "/home", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Deep Dive", icon: Brain },
   { path: "/deep-dive-reports", label: "Report Status", icon: Activity },

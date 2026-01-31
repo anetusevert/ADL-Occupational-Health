@@ -53,6 +53,7 @@ import { cn } from "../../lib/utils";
 interface InteractionGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigateToBlock?: (blockId: string) => void;
 }
 
 // Color system
@@ -1108,7 +1109,19 @@ function IntegrationVisual({ onInsightClick }: VisualProps) {
 // CONCLUSION VISUAL - Ready to explore
 // ============================================================================
 
-function ConclusionVisual() {
+interface ConclusionVisualProps {
+  onNavigate?: (blockId: string) => void;
+  onCloseAndExplore?: () => void;
+}
+
+function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualProps) {
+  const pillars = [
+    { icon: Crown, label: "Governance", color: "purple", blockId: "governance" },
+    { icon: Shield, label: "Prevention", color: "blue", blockId: "pillar-1" },
+    { icon: Eye, label: "Vigilance", color: "emerald", blockId: "pillar-2" },
+    { icon: Heart, label: "Restoration", color: "amber", blockId: "pillar-3" },
+  ];
+
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <FloatingParticles color="cyan" count={30} />
@@ -1119,16 +1132,25 @@ function ConclusionVisual() {
         transition={{ duration: 0.6, type: "spring" }}
         className="text-center"
       >
-        {/* Animated framework icon */}
+        {/* Animated framework icon - Clickable to explore full framework */}
         <motion.div
+          onClick={onCloseAndExplore}
           animate={{ 
             y: [0, -15, 0],
             boxShadow: ["0 0 40px rgba(6,182,212,0.2)", "0 0 60px rgba(6,182,212,0.4)", "0 0 40px rgba(6,182,212,0.2)"]
           }}
           transition={{ duration: 2.5, repeat: Infinity }}
-          className="w-36 h-36 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500 via-purple-500 to-cyan-600 flex items-center justify-center shadow-2xl"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-36 h-36 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500 via-purple-500 to-cyan-600 flex items-center justify-center shadow-2xl cursor-pointer relative"
         >
           <Layers className="w-20 h-20 text-white" />
+          {/* Pulse ring for clickability */}
+          <motion.div
+            className="absolute inset-0 rounded-3xl border-2 border-cyan-300/50"
+            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
         </motion.div>
         
         <motion.div
@@ -1141,34 +1163,56 @@ function ConclusionVisual() {
           <p className="text-cyan-400 mt-2">Click any component to dive deeper</p>
         </motion.div>
 
-        {/* Quick hints */}
+        {/* Pillar navigation buttons - Click to navigate directly to pillar details */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="mt-8 flex justify-center gap-4"
         >
-          {[
-            { icon: Crown, label: "Governance", color: "purple" },
-            { icon: Shield, label: "Prevention", color: "blue" },
-            { icon: Eye, label: "Vigilance", color: "emerald" },
-            { icon: Heart, label: "Restoration", color: "amber" },
-          ].map((item, i) => (
+          {pillars.map((item, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1 + i * 0.1 }}
+              onClick={() => onNavigate?.(item.blockId)}
+              whileHover={{ scale: 1.15, y: -5 }}
+              whileTap={{ scale: 0.95 }}
               className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center",
+                "w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer relative group",
                 colors[item.color].bgSolid,
-                "shadow-lg"
+                "shadow-lg hover:shadow-xl transition-shadow"
               )}
             >
               <item.icon className="w-6 h-6 text-white" />
+              
+              {/* Tooltip */}
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <span className="text-[10px] text-white/70 whitespace-nowrap bg-slate-800/80 px-2 py-1 rounded">
+                  {item.label}
+                </span>
+              </div>
+              
+              {/* Pulse indicator */}
+              <motion.div
+                className={cn("absolute inset-0 rounded-xl border-2", colors[item.color].border)}
+                animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+              />
             </motion.div>
           ))}
         </motion.div>
+        
+        {/* Hint text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="mt-6 text-xs text-white/40"
+        >
+          Click a pillar icon to jump directly to its details
+        </motion.p>
       </motion.div>
     </div>
   );
@@ -1178,16 +1222,24 @@ function ConclusionVisual() {
 // GET VISUAL FOR SLIDE
 // ============================================================================
 
-function getVisualForSlide(slideId: string) {
+interface GetVisualOptions {
+  onInsightClick?: (insightId: string) => void;
+  onNavigate?: (blockId: string) => void;
+  onCloseAndExplore?: () => void;
+}
+
+function getVisualForSlide(slideId: string, options: GetVisualOptions = {}) {
+  const { onInsightClick, onNavigate, onCloseAndExplore } = options;
+  
   switch (slideId) {
     case "intro": return <IntroVisual />;
     case "overview": return <TempleOverviewVisual />;
-    case "governance": return <GovernanceVisual />;
-    case "pillar-1": return <HazardPreventionVisual />;
-    case "pillar-2": return <SurveillanceVisual />;
-    case "pillar-3": return <RestorationVisual />;
-    case "integration": return <IntegrationVisual />;
-    case "conclusion": return <ConclusionVisual />;
+    case "governance": return <GovernanceVisual onInsightClick={onInsightClick} />;
+    case "pillar-1": return <HazardPreventionVisual onInsightClick={onInsightClick} />;
+    case "pillar-2": return <SurveillanceVisual onInsightClick={onInsightClick} />;
+    case "pillar-3": return <RestorationVisual onInsightClick={onInsightClick} />;
+    case "integration": return <IntegrationVisual onInsightClick={onInsightClick} />;
+    case "conclusion": return <ConclusionVisual onNavigate={onNavigate} onCloseAndExplore={onCloseAndExplore} />;
     default: return <IntroVisual />;
   }
 }
@@ -1396,18 +1448,44 @@ function CinematicLoader({ onComplete, onSkip }: { onComplete: () => void; onSki
 // MAIN MODAL
 // ============================================================================
 
-export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModalProps) {
+export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: InteractionGuideModalProps) {
   const [showLoader, setShowLoader] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [activeInsight, setActiveInsight] = useState<ElementInsight | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setShowLoader(true);
       setCurrentSlide(0);
+      setActiveInsight(null);
     }
   }, [isOpen]);
 
+  // Reset insight when changing slides
+  useEffect(() => {
+    setActiveInsight(null);
+  }, [currentSlide]);
+
   const handleLoaderComplete = useCallback(() => setShowLoader(false), []);
+
+  const handleInsightClick = useCallback((insightId: string) => {
+    const insight = elementInsights[insightId];
+    if (insight) setActiveInsight(insight);
+  }, []);
+
+  const handleCloseInsight = useCallback(() => {
+    setActiveInsight(null);
+  }, []);
+
+  const handleNavigateToBlock = useCallback((blockId: string) => {
+    if (onNavigateToBlock) {
+      onNavigateToBlock(blockId);
+    }
+  }, [onNavigateToBlock]);
+
+  const handleCloseAndExplore = useCallback(() => {
+    onClose();
+  }, [onClose]);
 
   const goToSlide = useCallback((idx: number) => {
     if (idx >= 0 && idx < guideSlides.length) setCurrentSlide(idx);
@@ -1504,9 +1582,20 @@ export function InteractionGuideModal({ isOpen, onClose }: InteractionGuideModal
                       transition={{ duration: 0.4 }}
                       className="absolute inset-0"
                     >
-                      {getVisualForSlide(slide.id)}
+                      {getVisualForSlide(slide.id, {
+                        onInsightClick: handleInsightClick,
+                        onNavigate: handleNavigateToBlock,
+                        onCloseAndExplore: handleCloseAndExplore
+                      })}
                     </motion.div>
                   </AnimatePresence>
+
+                  {/* Insight Overlay - Shows when user clicks on visual elements */}
+                  <InsightOverlay
+                    insight={activeInsight}
+                    onClose={handleCloseInsight}
+                    color={slide?.color || "cyan"}
+                  />
 
                   {/* Slide number */}
                   <div className="absolute bottom-4 right-4 flex items-baseline gap-1">
