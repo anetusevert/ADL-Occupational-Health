@@ -4,12 +4,12 @@
  * Viewport-fit layout: Map & Stats (left) | Framework Tiles & Pillars (right)
  */
 
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  Loader2,
   AlertTriangle,
   ShieldCheck,
   ShieldAlert,
@@ -18,11 +18,15 @@ import {
   Eye,
   HeartPulse,
   Crown,
+  ChevronRight,
 } from "lucide-react";
 import { CountryFlag } from "../components";
 import { CountryMiniMap } from "../components/CountryMiniMap";
 import { CountryStatsPanel } from "../components/CountryStatsPanel";
 import { FrameworkReportTiles } from "../components/FrameworkReportTiles";
+import { ADLLoader } from "../components/ADLLoader";
+import { FrameworkAnalysisModal, type PillarData, type MetricData } from "../components/FrameworkAnalysisModal";
+import { MetricDetailModal } from "../components/MetricDetailModal";
 import { fetchCountryWithMockFallback } from "../services/api";
 import { cn, getMaturityStage, getEffectiveOHIScore } from "../lib/utils";
 import { calculateDataCoverage } from "../lib/dataCoverage";
@@ -67,7 +71,7 @@ function DataConfidenceBadge({ score }: { score: number }) {
 }
 
 /**
- * Compact Pillar Card Component
+ * Clickable Pillar Card Component
  */
 interface PillarCardProps {
   title: string;
@@ -79,6 +83,7 @@ interface PillarCardProps {
   borderColor: string;
   metrics: { label: string; value: string | number | boolean | null | undefined }[];
   delay?: number;
+  onClick?: () => void;
 }
 
 function PillarCard({ 
@@ -90,18 +95,22 @@ function PillarCard({
   bgColor, 
   borderColor,
   metrics,
-  delay = 0 
+  delay = 0,
+  onClick,
 }: PillarCardProps) {
   const maturity = getMaturityStage(score);
 
   return (
-    <motion.div
+    <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3 }}
+      onClick={onClick}
       className={cn(
-        "bg-white/5 backdrop-blur-sm rounded-lg border overflow-hidden",
-        "hover:bg-white/8 transition-all duration-200",
+        "bg-white/5 backdrop-blur-sm rounded-lg border overflow-hidden text-left w-full",
+        "hover:bg-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer",
+        "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
+        "group",
         borderColor
       )}
     >
@@ -117,14 +126,18 @@ function PillarCard({
               <p className="text-[9px] text-white/40">{subtitle}</p>
             </div>
           </div>
-          {score !== null && (
-            <div className={cn(
-              "px-2 py-0.5 rounded text-[10px] font-bold",
-              maturity.bgColor, maturity.color
-            )}>
-              {score.toFixed(0)}%
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {score !== null && (
+              <div className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-bold",
+                maturity.bgColor, maturity.color
+              )}>
+                {score.toFixed(0)}%
+              </div>
+            )}
+            {/* Click indicator */}
+            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+          </div>
         </div>
       </div>
 
@@ -146,12 +159,22 @@ function PillarCard({
           </div>
         ))}
       </div>
-    </motion.div>
+
+      {/* Click hint */}
+      <div className="px-2 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <p className="text-[9px] text-cyan-400 text-center">Click for details</p>
+      </div>
+    </motion.button>
   );
 }
 
 export function CountryProfile() {
   const { iso } = useParams<{ iso: string }>();
+  
+  // Modal states
+  const [selectedPillar, setSelectedPillar] = useState<PillarData | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<MetricData | null>(null);
+  const [metricPillar, setMetricPillar] = useState<PillarData | null>(null);
 
   // Fetch country data
   const {
@@ -166,13 +189,15 @@ export function CountryProfile() {
     retry: 1,
   });
 
+  // Loading state with ADL branded loader
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="flex items-center gap-3 text-adl-accent">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading country profile...</span>
-        </div>
+        <ADLLoader 
+          size="lg" 
+          message="Loading Country Profile" 
+          subtitle={`Fetching data for ${iso?.toUpperCase()}...`}
+        />
       </div>
     );
   }
@@ -214,8 +239,8 @@ export function CountryProfile() {
   );
   const maturity = getMaturityStage(effectiveOHI);
 
-  // Prepare pillar data
-  const pillars = [
+  // Prepare comprehensive pillar data with full metrics
+  const pillars: PillarData[] = [
     {
       id: "governance",
       title: "Governance",
@@ -225,10 +250,14 @@ export function CountryProfile() {
       color: "text-purple-400",
       bgColor: "bg-purple-500/10",
       borderColor: "border-purple-500/20",
+      gradientFrom: "from-purple-500/20",
+      gradientTo: "to-purple-600/10",
       metrics: [
-        { label: "ILO C187 Ratified", value: country.governance?.ilo_c187_status },
-        { label: "ILO C155 Ratified", value: country.governance?.ilo_c155_status },
-        { label: "Inspector Density", value: country.governance?.inspector_density ? `${country.governance.inspector_density}/10k` : null },
+        { id: "ilo_c187_status", label: "ILO C187 Ratified", value: country.governance?.ilo_c187_status ? "Yes" : "No", rawValue: country.governance?.ilo_c187_status },
+        { id: "ilo_c155_status", label: "ILO C155 Ratified", value: country.governance?.ilo_c155_status ? "Yes" : "No", rawValue: country.governance?.ilo_c155_status },
+        { id: "inspector_density", label: "Inspector Density", value: country.governance?.inspector_density ? `${country.governance.inspector_density}/10k` : null, rawValue: country.governance?.inspector_density },
+        { id: "mental_health_policy", label: "Mental Health Policy", value: country.governance?.mental_health_policy ? "Yes" : "No", rawValue: country.governance?.mental_health_policy },
+        { id: "strategic_capacity_score", label: "Strategic Capacity Score", value: country.governance?.strategic_capacity_score ? `${country.governance.strategic_capacity_score.toFixed(1)}%` : null, rawValue: country.governance?.strategic_capacity_score },
       ],
     },
     {
@@ -240,10 +269,13 @@ export function CountryProfile() {
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/20",
+      gradientFrom: "from-blue-500/20",
+      gradientTo: "to-blue-600/10",
       metrics: [
-        { label: "Fatal Rate", value: country.pillar_1_hazard?.fatal_accident_rate ? `${country.pillar_1_hazard.fatal_accident_rate.toFixed(2)}/100k` : null },
-        { label: "Carcinogen Exp.", value: country.pillar_1_hazard?.carcinogen_exposure_pct ? `${country.pillar_1_hazard.carcinogen_exposure_pct}%` : null },
-        { label: "Heat Stress Reg.", value: country.pillar_1_hazard?.heat_stress_reg_type },
+        { id: "fatal_accident_rate", label: "Fatal Accident Rate", value: country.pillar_1_hazard?.fatal_accident_rate ? `${country.pillar_1_hazard.fatal_accident_rate.toFixed(2)}/100k` : null, rawValue: country.pillar_1_hazard?.fatal_accident_rate },
+        { id: "carcinogen_exposure_pct", label: "Carcinogen Exposure", value: country.pillar_1_hazard?.carcinogen_exposure_pct ? `${country.pillar_1_hazard.carcinogen_exposure_pct}%` : null, rawValue: country.pillar_1_hazard?.carcinogen_exposure_pct },
+        { id: "heat_stress_reg_type", label: "Heat Stress Regulation", value: country.pillar_1_hazard?.heat_stress_reg_type, rawValue: country.pillar_1_hazard?.heat_stress_reg_type },
+        { id: "control_maturity_score", label: "Control Maturity Score", value: country.pillar_1_hazard?.control_maturity_score ? `${country.pillar_1_hazard.control_maturity_score.toFixed(1)}%` : null, rawValue: country.pillar_1_hazard?.control_maturity_score },
       ],
     },
     {
@@ -255,10 +287,12 @@ export function CountryProfile() {
       color: "text-teal-400",
       bgColor: "bg-teal-500/10",
       borderColor: "border-teal-500/20",
+      gradientFrom: "from-teal-500/20",
+      gradientTo: "to-teal-600/10",
       metrics: [
-        { label: "Surveillance", value: country.pillar_2_vigilance?.surveillance_logic },
-        { label: "Detection Rate", value: country.pillar_2_vigilance?.disease_detection_rate ? `${country.pillar_2_vigilance.disease_detection_rate}%` : null },
-        { label: "Vulnerability", value: country.pillar_2_vigilance?.vulnerability_index ? `${country.pillar_2_vigilance.vulnerability_index}/100` : null },
+        { id: "surveillance_logic", label: "Surveillance System", value: country.pillar_2_vigilance?.surveillance_logic, rawValue: country.pillar_2_vigilance?.surveillance_logic },
+        { id: "disease_detection_rate", label: "Disease Detection Rate", value: country.pillar_2_vigilance?.disease_detection_rate ? `${country.pillar_2_vigilance.disease_detection_rate}%` : null, rawValue: country.pillar_2_vigilance?.disease_detection_rate },
+        { id: "vulnerability_index", label: "Vulnerability Index", value: country.pillar_2_vigilance?.vulnerability_index ? `${country.pillar_2_vigilance.vulnerability_index}/100` : null, rawValue: country.pillar_2_vigilance?.vulnerability_index },
       ],
     },
     {
@@ -270,118 +304,176 @@ export function CountryProfile() {
       color: "text-amber-400",
       bgColor: "bg-amber-500/10",
       borderColor: "border-amber-500/20",
+      gradientFrom: "from-amber-500/20",
+      gradientTo: "to-amber-600/10",
       metrics: [
-        { label: "Payer Mechanism", value: country.pillar_3_restoration?.payer_mechanism },
-        { label: "Reintegration Law", value: country.pillar_3_restoration?.reintegration_law },
-        { label: "Rehab Access", value: country.pillar_3_restoration?.rehab_access_score ? `${country.pillar_3_restoration.rehab_access_score}/100` : null },
+        { id: "payer_mechanism", label: "Payer Mechanism", value: country.pillar_3_restoration?.payer_mechanism, rawValue: country.pillar_3_restoration?.payer_mechanism },
+        { id: "reintegration_law", label: "Reintegration Law", value: country.pillar_3_restoration?.reintegration_law ? "Yes" : "No", rawValue: country.pillar_3_restoration?.reintegration_law },
+        { id: "rehab_access_score", label: "Rehabilitation Access", value: country.pillar_3_restoration?.rehab_access_score ? `${country.pillar_3_restoration.rehab_access_score}/100` : null, rawValue: country.pillar_3_restoration?.rehab_access_score },
+        { id: "sickness_absence_days", label: "Sickness Absence Days", value: country.pillar_3_restoration?.sickness_absence_days ? `${country.pillar_3_restoration.sickness_absence_days} days` : null, rawValue: country.pillar_3_restoration?.sickness_absence_days },
       ],
     },
   ];
 
+  // Handle pillar click
+  const handlePillarClick = (pillar: PillarData) => {
+    setSelectedPillar(pillar);
+  };
+
+  // Handle metric click from within the pillar modal
+  const handleMetricClick = (metric: MetricData, pillar: PillarData) => {
+    setSelectedMetric(metric);
+    setMetricPillar(pillar);
+  };
+
+  // Close metric modal
+  const handleCloseMetricModal = () => {
+    setSelectedMetric(null);
+    setMetricPillar(null);
+  };
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Compact Header */}
-      <div className="flex-shrink-0 mb-3">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs mb-2"
-        >
-          <ArrowLeft className="w-3 h-3" />
-          Back to Overview
-        </Link>
+    <>
+      <div className="h-full flex flex-col overflow-hidden">
+        {/* Compact Header */}
+        <div className="flex-shrink-0 mb-3">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs mb-2"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Back to Overview
+          </Link>
 
-        {/* Country Header - Compact */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CountryFlag 
+          {/* Country Header - Compact */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CountryFlag 
+                isoCode={country.iso_code} 
+                flagUrl={country.flag_url} 
+                size="lg" 
+                className="shadow-lg"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-white tracking-tight">
+                  {country.name}
+                </h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-white/40">{country.iso_code}</span>
+                  {effectiveOHI !== null && (
+                    <div className={cn(
+                      "px-1.5 py-0.5 rounded text-[10px] font-semibold",
+                      maturity.bgColor, maturity.color
+                    )}>
+                      Stage {maturity.stage}: {maturity.label}
+                    </div>
+                  )}
+                  <DataConfidenceBadge score={dataCoverage} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content - Two Column Layout - Optimized proportions */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[40%_60%] gap-4 overflow-hidden">
+          {/* LEFT COLUMN: Map & Country Stats */}
+          <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
+            {/* Mini Map - Taller */}
+            <CountryMiniMap 
               isoCode={country.iso_code} 
-              flagUrl={country.flag_url} 
-              size="lg" 
-              className="shadow-lg"
+              countryName={country.name}
+              className="h-44 flex-shrink-0"
             />
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                {country.name}
-              </h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] text-white/40">{country.iso_code}</span>
-                {effectiveOHI !== null && (
-                  <div className={cn(
-                    "px-1.5 py-0.5 rounded text-[10px] font-semibold",
-                    maturity.bgColor, maturity.color
-                  )}>
-                    Stage {maturity.stage}: {maturity.label}
-                  </div>
-                )}
-                <DataConfidenceBadge score={dataCoverage} />
+
+            {/* Country Statistics - From Database */}
+            <CountryStatsPanel 
+              isoCode={country.iso_code}
+              countryName={country.name}
+              className="flex-1 min-h-0"
+            />
+          </div>
+
+          {/* RIGHT COLUMN: Framework Tiles & Pillars */}
+          <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
+            {/* Framework Report Tiles - 2x2 Grid */}
+            <FrameworkReportTiles 
+              isoCode={country.iso_code} 
+              countryName={country.name}
+              className="flex-shrink-0"
+            />
+
+            {/* Framework Pillars - Compact Temple Layout with Click */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-adl-accent" />
+                  <h2 className="text-xs font-semibold text-white">Framework Analysis</h2>
+                  <span className="text-[9px] text-cyan-400 ml-2">Click for details</span>
+                </div>
+                <span className="text-[9px] text-white/30">ADL OH Framework v2.0</span>
+              </div>
+
+              {/* Temple Structure: Governance on top, 3 pillars below */}
+              <div className="flex flex-col gap-2 flex-1 min-h-0">
+                {/* Governance Layer - Full Width Top */}
+                <PillarCard 
+                  {...pillars[0]} 
+                  delay={0.1} 
+                  onClick={() => handlePillarClick(pillars[0])}
+                />
+                
+                {/* Connection Pillars Visual */}
+                <div className="flex justify-center gap-1.5 py-0.5">
+                  <div className="w-1 h-2 bg-purple-500/30 rounded-full" />
+                  <div className="w-1 h-2 bg-blue-500/30 rounded-full" />
+                  <div className="w-1 h-2 bg-teal-500/30 rounded-full" />
+                  <div className="w-1 h-2 bg-amber-500/30 rounded-full" />
+                </div>
+                
+                {/* Three Pillars - Equal Width Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-h-0">
+                  <PillarCard 
+                    {...pillars[1]} 
+                    delay={0.2} 
+                    onClick={() => handlePillarClick(pillars[1])}
+                  />
+                  <PillarCard 
+                    {...pillars[2]} 
+                    delay={0.3} 
+                    onClick={() => handlePillarClick(pillars[2])}
+                  />
+                  <PillarCard 
+                    {...pillars[3]} 
+                    delay={0.4} 
+                    onClick={() => handlePillarClick(pillars[3])}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - Two Column Layout - No Scroll */}
-      <div className="flex-1 min-h-0 grid lg:grid-cols-2 gap-3 overflow-hidden">
-        {/* LEFT COLUMN: Map & Country Stats */}
-        <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
-          {/* Mini Map - Compact */}
-          <CountryMiniMap 
-            isoCode={country.iso_code} 
-            countryName={country.name}
-            className="h-36 flex-shrink-0"
-          />
+      {/* Framework Analysis Modal */}
+      <FrameworkAnalysisModal
+        isOpen={!!selectedPillar}
+        onClose={() => setSelectedPillar(null)}
+        pillar={selectedPillar}
+        countryName={country.name}
+        isoCode={country.iso_code}
+        onMetricClick={handleMetricClick}
+      />
 
-          {/* Country Statistics - World Bank Data */}
-          <CountryStatsPanel 
-            isoCode={country.iso_code}
-            countryName={country.name}
-            className="flex-1 min-h-0"
-          />
-        </div>
-
-        {/* RIGHT COLUMN: Framework Tiles & Pillars */}
-        <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
-          {/* Framework Report Tiles - 2x2 Grid */}
-          <FrameworkReportTiles 
-            isoCode={country.iso_code} 
-            countryName={country.name}
-            className="flex-shrink-0"
-          />
-
-          {/* Framework Pillars - Compact Temple Layout */}
-          <div className="flex-1 min-h-0 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Shield className="w-3.5 h-3.5 text-adl-accent" />
-                <h2 className="text-xs font-semibold text-white">Framework Analysis</h2>
-              </div>
-              <span className="text-[9px] text-white/30">ADL OH Framework v2.0</span>
-            </div>
-
-            {/* Temple Structure: Governance on top, 3 pillars below */}
-            <div className="flex flex-col gap-2 flex-1 min-h-0">
-              {/* Governance Layer - Full Width Top */}
-              <PillarCard {...pillars[0]} delay={0.1} />
-              
-              {/* Connection Pillars Visual */}
-              <div className="flex justify-center gap-1.5 py-0.5">
-                <div className="w-1 h-2 bg-purple-500/30 rounded-full" />
-                <div className="w-1 h-2 bg-blue-500/30 rounded-full" />
-                <div className="w-1 h-2 bg-teal-500/30 rounded-full" />
-                <div className="w-1 h-2 bg-amber-500/30 rounded-full" />
-              </div>
-              
-              {/* Three Pillars - Equal Width Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-h-0">
-                <PillarCard {...pillars[1]} delay={0.2} />
-                <PillarCard {...pillars[2]} delay={0.3} />
-                <PillarCard {...pillars[3]} delay={0.4} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Metric Detail Modal */}
+      <MetricDetailModal
+        isOpen={!!selectedMetric}
+        onClose={handleCloseMetricModal}
+        metric={selectedMetric}
+        pillar={metricPillar}
+        countryName={country.name}
+      />
+    </>
   );
 }
 
