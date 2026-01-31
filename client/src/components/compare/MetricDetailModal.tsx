@@ -2,7 +2,10 @@
  * Arthur D. Little - Global Health Platform
  * Metric Detail Modal - Detailed metric comparison view
  * 
- * Opens when clicking on any metric tile in the Framework Comparison page
+ * Enhanced with:
+ * - Flag images from database
+ * - Premium animations matching Framework screen
+ * - ADL branding elements
  */
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +21,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { cn, formatNumber } from "../../lib/utils";
+import { cn, formatNumber, getApiBaseUrl, getCountryFlag } from "../../lib/utils";
 import type { Country } from "../../types/country";
 
 // ============================================================================
@@ -239,6 +242,44 @@ interface MetricDetailModalProps {
 }
 
 // ============================================================================
+// COUNTRY FLAG COMPONENT
+// ============================================================================
+
+function CountryFlag({ country, size = "md" }: { country: Country; size?: "sm" | "md" | "lg" }) {
+  const flagUrl = country.flag_url ? `${getApiBaseUrl()}${country.flag_url}` : null;
+  
+  const sizeClasses = {
+    sm: "w-6 h-4",
+    md: "w-8 h-6",
+    lg: "w-10 h-7",
+  };
+
+  if (flagUrl) {
+    return (
+      <img
+        src={flagUrl}
+        alt={country.name}
+        className={cn(sizeClasses[size], "object-cover rounded shadow-sm")}
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.display = "none";
+          const nextSibling = target.nextElementSibling;
+          if (nextSibling) {
+            (nextSibling as HTMLElement).style.display = "inline";
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <span className={cn(size === "sm" ? "text-lg" : size === "md" ? "text-xl" : "text-2xl")}>
+      {getCountryFlag(country.iso_code)}
+    </span>
+  );
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -299,16 +340,20 @@ export function MetricDetailModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ 
+              duration: 0.4, 
+              ease: [0.25, 0.46, 0.45, 0.94] 
+            }}
             className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[700px] md:max-h-[85vh] bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
@@ -324,12 +369,22 @@ export function MetricDetailModal({
               </button>
 
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center",
-                  `bg-${pillarColor}-500/20 border border-${pillarColor}-500/30`
-                )}>
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{
+                    delay: 0.2,
+                    duration: 0.5,
+                    type: "spring",
+                    stiffness: 200,
+                  }}
+                  className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center",
+                    `bg-${pillarColor}-500/20 border border-${pillarColor}-500/30`
+                  )}
+                >
                   <BarChart3 className={cn("w-6 h-6", `text-${pillarColor}-400`)} />
-                </div>
+                </motion.div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider">{pillarName}</p>
                   <h2 className="text-xl font-bold text-white">
@@ -341,8 +396,13 @@ export function MetricDetailModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Comparison Values */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Comparison Values with Flags */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+                className="grid grid-cols-2 gap-4"
+              >
                 {/* Left Country */}
                 <div className={cn(
                   "p-4 rounded-xl border",
@@ -350,11 +410,14 @@ export function MetricDetailModal({
                   rightWins ? "bg-red-500/10 border-red-500/30" : 
                   "bg-slate-800/50 border-slate-700/50"
                 )}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{leftCountry.iso_code}</span>
-                    <span className="text-sm font-medium text-white">{leftCountry.name}</span>
-                    {leftWins && <TrendingUp className="w-4 h-4 text-emerald-400 ml-auto" />}
-                    {rightWins && <TrendingDown className="w-4 h-4 text-red-400 ml-auto" />}
+                  <div className="flex items-center gap-2 mb-3">
+                    <CountryFlag country={leftCountry} size="md" />
+                    <div className="flex-1">
+                      <span className="text-xs text-slate-500">{leftCountry.iso_code}</span>
+                      <p className="text-sm font-medium text-white">{leftCountry.name}</p>
+                    </div>
+                    {leftWins && <TrendingUp className="w-5 h-5 text-emerald-400" />}
+                    {rightWins && <TrendingDown className="w-5 h-5 text-red-400" />}
                   </div>
                   <div className={cn(
                     "text-3xl font-bold",
@@ -371,11 +434,14 @@ export function MetricDetailModal({
                   leftWins ? "bg-red-500/10 border-red-500/30" : 
                   "bg-slate-800/50 border-slate-700/50"
                 )}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{rightCountry.iso_code}</span>
-                    <span className="text-sm font-medium text-white">{rightCountry.name}</span>
-                    {rightWins && <TrendingUp className="w-4 h-4 text-emerald-400 ml-auto" />}
-                    {leftWins && <TrendingDown className="w-4 h-4 text-red-400 ml-auto" />}
+                  <div className="flex items-center gap-2 mb-3">
+                    <CountryFlag country={rightCountry} size="md" />
+                    <div className="flex-1">
+                      <span className="text-xs text-slate-500">{rightCountry.iso_code}</span>
+                      <p className="text-sm font-medium text-white">{rightCountry.name}</p>
+                    </div>
+                    {rightWins && <TrendingUp className="w-5 h-5 text-emerald-400" />}
+                    {leftWins && <TrendingDown className="w-5 h-5 text-red-400" />}
                   </div>
                   <div className={cn(
                     "text-3xl font-bold",
@@ -384,16 +450,21 @@ export function MetricDetailModal({
                     {formatDisplayValue(rightValue)}
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Gap Analysis */}
               {hasNumericComparison && gapPercent > 0 && (
-                <div className={cn(
-                  "p-4 rounded-xl border",
-                  gapPercent > 100 ? "bg-red-500/10 border-red-500/30" : 
-                  gapPercent > 50 ? "bg-yellow-500/10 border-yellow-500/30" :
-                  "bg-slate-800/50 border-slate-700/50"
-                )}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  className={cn(
+                    "p-4 rounded-xl border",
+                    gapPercent > 100 ? "bg-red-500/10 border-red-500/30" : 
+                    gapPercent > 50 ? "bg-yellow-500/10 border-yellow-500/30" :
+                    "bg-slate-800/50 border-slate-700/50"
+                  )}
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className={cn(
                       "w-5 h-5",
@@ -416,13 +487,18 @@ export function MetricDetailModal({
                       Critical gap detected - significant policy divergence
                     </p>
                   )}
-                </div>
+                </motion.div>
               )}
 
               {/* Metric Description */}
               {metricInfo && (
                 <>
-                  <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.25, duration: 0.3 }}
+                    className="space-y-3"
+                  >
                     <div className="flex items-center gap-2 text-slate-300">
                       <Info className="w-4 h-4" />
                       <h4 className="text-sm font-semibold uppercase tracking-wide">Description</h4>
@@ -430,9 +506,14 @@ export function MetricDetailModal({
                     <p className="text-slate-300 text-sm leading-relaxed">
                       {metricInfo.description}
                     </p>
-                  </div>
+                  </motion.div>
 
-                  <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3, duration: 0.3 }}
+                    className="space-y-3"
+                  >
                     <div className="flex items-center gap-2 text-slate-300">
                       <CheckCircle2 className="w-4 h-4" />
                       <h4 className="text-sm font-semibold uppercase tracking-wide">Interpretation</h4>
@@ -440,10 +521,15 @@ export function MetricDetailModal({
                     <p className="text-slate-400 text-sm leading-relaxed">
                       {metricInfo.interpretation}
                     </p>
-                  </div>
+                  </motion.div>
 
                   {metricInfo.benchmark && (
-                    <div className="space-y-3">
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.35, duration: 0.3 }}
+                      className="space-y-3"
+                    >
                       <div className="flex items-center gap-2 text-slate-300">
                         <BarChart3 className="w-4 h-4" />
                         <h4 className="text-sm font-semibold uppercase tracking-wide">Benchmark</h4>
@@ -454,24 +540,34 @@ export function MetricDetailModal({
                       )}>
                         <p className="text-sm text-slate-200">{metricInfo.benchmark}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
 
-                  <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                    className="space-y-3"
+                  >
                     <div className="flex items-center gap-2 text-slate-300">
                       <Globe className="w-4 h-4" />
                       <h4 className="text-sm font-semibold uppercase tracking-wide">Data Source</h4>
                     </div>
                     <p className="text-slate-500 text-xs">{metricInfo.source}</p>
-                  </div>
+                  </motion.div>
                 </>
               )}
 
               {/* Migrant Workforce Context (special handling) */}
               {metricId === "migrant_worker" && (
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45, duration: 0.3 }}
+                  className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30"
+                >
                   <div className="flex items-center gap-3">
-                    <Users className="w-8 h-8 text-yellow-400" />
+                    <Users className="w-8 h-8 text-yellow-400 flex-shrink-0" />
                     <div>
                       <p className="text-white font-medium">Migrant Workforce Context</p>
                       <p className="text-sm text-slate-300 mt-1">
@@ -491,7 +587,7 @@ export function MetricDetailModal({
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </motion.div>

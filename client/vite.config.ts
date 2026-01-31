@@ -12,5 +12,22 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
-  }
+  },
+  // #region agent log - TDZ fix configuration
+  // Force pre-bundling of framer-motion to avoid TDZ issues in production
+  optimizeDeps: {
+    include: ['framer-motion'],
+  },
+  build: {
+    // Use consistent chunk naming for better caching
+    rollupOptions: {
+      output: {
+        // Separate framer-motion into its own chunk to avoid TDZ issues
+        manualChunks: {
+          'framer-motion': ['framer-motion'],
+        },
+      },
+    },
+  },
+  // #endregion
 })
