@@ -13,12 +13,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { 
   getStrategicDeepDiveCountries,
   generateStrategicDeepDive,
   getStrategicDeepDiveReport,
-  queueStrategicDeepDive,
   type CountryDeepDiveItem, 
   type TopicStatus 
 } from "../../services/api";
@@ -156,28 +154,21 @@ export function DeepDiveWizard() {
           return;
         }
         
-        // No existing report - queue for background generation
+        // No existing report
         setIsFetching(false);
         
-        const queueResult = await queueStrategicDeepDive(countryIso, topic);
-        
-        if (queueResult.status === "completed") {
-          // Report was already completed (race condition) - fetch and display
-          const freshReport = await getStrategicDeepDiveReport(countryIso, topic);
-          if (freshReport && freshReport.report) {
-            setReport(freshReport.report);
-            return;
+        if (isAdmin) {
+          // Admin can auto-generate the report
+          setIsGenerating(true);
+          const generated = await generateStrategicDeepDive(countryIso, topic);
+          setReport(generated.report?.report || null);
+          if (!generated.report?.report) {
+            setReportError(new Error("Report generation completed but no content was returned."));
           }
+        } else {
+          // Regular users see a message that report is not available
+          setReportError(new Error("This report is not yet available. Please check back later or contact an administrator to generate it."));
         }
-        
-        // Report queued or processing - redirect to dashboard
-        navigate("/deep-dive-reports", { 
-          state: { 
-            queuedCountry: countryIso, 
-            queuedTopic: topic,
-            message: `Report for ${queueResult.country_name} has been queued for generation.`
-          }
-        });
         
       } catch (err: any) {
         // Extract detailed error message from server response if available
@@ -189,7 +180,7 @@ export function DeepDiveWizard() {
         setIsGenerating(false);
       }
     },
-    [navigate]
+    [isAdmin]
   );
 
   const handleSelectTopic = useCallback(

@@ -28,6 +28,88 @@ interface CountryImage {
   title: string;
   description: string;
   icon: typeof Landmark;
+  imageUrl?: string;
+}
+
+// Curated image URLs for specific countries (Unsplash free images)
+const COUNTRY_IMAGES: Record<string, Record<string, string>> = {
+  SAU: {
+    landmark: 'https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&h=400&fit=crop', // Kingdom Tower Riyadh
+    culture: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=600&h=400&fit=crop', // Saudi culture
+    industry: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=600&h=400&fit=crop', // Oil industry
+    government: 'https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=600&h=400&fit=crop', // Riyadh skyline
+  },
+  UAE: {
+    landmark: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&h=400&fit=crop', // Burj Khalifa
+    culture: 'https://images.unsplash.com/photo-1526495124232-a04e1849168c?w=600&h=400&fit=crop', // Dubai culture
+    industry: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&h=400&fit=crop', // Modern industry
+    government: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=600&h=400&fit=crop', // Dubai
+  },
+  DEU: {
+    landmark: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=600&h=400&fit=crop', // Brandenburg Gate
+    culture: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&h=400&fit=crop', // German culture
+    industry: 'https://images.unsplash.com/photo-1565043666747-69f6646db940?w=600&h=400&fit=crop', // German industry
+    government: 'https://images.unsplash.com/photo-1599946347371-68eb71b16afc?w=600&h=400&fit=crop', // Berlin
+  },
+  GBR: {
+    landmark: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop', // Big Ben
+    culture: 'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=600&h=400&fit=crop', // British culture
+    industry: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop', // London financial
+    government: 'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=600&h=400&fit=crop', // Westminster
+  },
+  JPN: {
+    landmark: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&h=400&fit=crop', // Mt Fuji
+    culture: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop', // Japanese culture
+    industry: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop', // Tokyo industry
+    government: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&h=400&fit=crop', // Tokyo
+  },
+  USA: {
+    landmark: 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=600&h=400&fit=crop', // Statue of Liberty
+    culture: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=600&h=400&fit=crop', // American culture
+    industry: 'https://images.unsplash.com/photo-1494145904049-0dca59b4bbad?w=600&h=400&fit=crop', // Industry
+    government: 'https://images.unsplash.com/photo-1585063560940-e5a32ffdcf53?w=600&h=400&fit=crop', // DC Capitol
+  },
+  AUS: {
+    landmark: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=600&h=400&fit=crop', // Sydney Opera
+    culture: 'https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?w=600&h=400&fit=crop', // Australian culture
+    industry: 'https://images.unsplash.com/photo-1529455804998-9e79d19df6ba?w=600&h=400&fit=crop', // Mining
+    government: 'https://images.unsplash.com/photo-1524820197278-540916411e20?w=600&h=400&fit=crop', // Sydney
+  },
+  IND: {
+    landmark: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&h=400&fit=crop', // Taj Mahal
+    culture: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600&h=400&fit=crop', // Indian culture
+    industry: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&h=400&fit=crop', // Tech industry
+    government: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&h=400&fit=crop', // Delhi
+  },
+  CHN: {
+    landmark: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&h=400&fit=crop', // Great Wall
+    culture: 'https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?w=600&h=400&fit=crop', // Chinese culture
+    industry: 'https://images.unsplash.com/photo-1474181487882-5abf3f0ba6c2?w=600&h=400&fit=crop', // Industry
+    government: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&h=400&fit=crop', // Beijing
+  },
+  BRA: {
+    landmark: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=600&h=400&fit=crop', // Christ Redeemer
+    culture: 'https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?w=600&h=400&fit=crop', // Brazilian culture
+    industry: 'https://images.unsplash.com/photo-1518639192441-8fce0a366e2e?w=600&h=400&fit=crop', // Industry
+    government: 'https://images.unsplash.com/photo-1544989164-31dc3c645987?w=600&h=400&fit=crop', // Brasilia
+  },
+};
+
+// Default images for countries without specific mappings
+const DEFAULT_IMAGES: Record<string, string> = {
+  landmark: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&h=400&fit=crop',
+  culture: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop',
+  industry: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop',
+  city: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=400&fit=crop',
+  government: 'https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&h=400&fit=crop',
+};
+
+function getImageUrl(isoCode: string, category: string): string {
+  const countryImages = COUNTRY_IMAGES[isoCode.toUpperCase()];
+  if (countryImages && countryImages[category]) {
+    return countryImages[category];
+  }
+  return DEFAULT_IMAGES[category] || DEFAULT_IMAGES.landmark;
 }
 
 interface CountrySlideshowProps {
@@ -41,11 +123,12 @@ interface CountrySlideshowProps {
 function generateSlides(briefing: CountryBriefing | null): CountryImage[] {
   if (!briefing?.country_context) {
     return [
-      { id: 'default', category: 'landmark', title: 'National Monument', description: 'Iconic landmark', icon: Landmark }
+      { id: 'default', category: 'landmark', title: 'National Monument', description: 'Iconic landmark', icon: Landmark, imageUrl: DEFAULT_IMAGES.landmark }
     ];
   }
 
   const ctx = briefing.country_context;
+  const isoCode = briefing.iso_code;
   const slides: CountryImage[] = [];
 
   // Landmark slide
@@ -56,6 +139,7 @@ function generateSlides(briefing: CountryBriefing | null): CountryImage[] {
       title: ctx.iconic_landmark,
       description: ctx.landmark_city ? `${ctx.landmark_city}, ${briefing.country_name}` : briefing.country_name,
       icon: Landmark,
+      imageUrl: getImageUrl(isoCode, 'landmark'),
     });
   }
 
@@ -67,38 +151,7 @@ function generateSlides(briefing: CountryBriefing | null): CountryImage[] {
       title: ctx.capital,
       description: `Capital of ${briefing.country_name}`,
       icon: Building2,
-    });
-  }
-
-  // Industry slides
-  if (ctx.key_industries && ctx.key_industries.length > 0) {
-    slides.push({
-      id: 'industry-1',
-      category: 'industry',
-      title: ctx.key_industries[0],
-      description: 'Key economic sector',
-      icon: Factory,
-    });
-
-    if (ctx.key_industries.length > 1) {
-      slides.push({
-        id: 'industry-2',
-        category: 'industry',
-        title: ctx.key_industries[1],
-        description: 'Major industry',
-        icon: Factory,
-      });
-    }
-  }
-
-  // Industrial regions
-  if (ctx.industrial_regions && ctx.industrial_regions.length > 0) {
-    slides.push({
-      id: 'region',
-      category: 'city',
-      title: ctx.industrial_regions[0],
-      description: 'Major industrial region',
-      icon: MapPin,
+      imageUrl: getImageUrl(isoCode, 'government'),
     });
   }
 
@@ -109,10 +162,35 @@ function generateSlides(briefing: CountryBriefing | null): CountryImage[] {
     title: 'Cultural Heritage',
     description: briefing.cultural_factors?.substring(0, 80) || `Rich traditions of ${briefing.country_name}`,
     icon: Users,
+    imageUrl: getImageUrl(isoCode, 'culture'),
   });
 
+  // Industry slides
+  if (ctx.key_industries && ctx.key_industries.length > 0) {
+    slides.push({
+      id: 'industry-1',
+      category: 'industry',
+      title: ctx.key_industries[0],
+      description: 'Key economic sector',
+      icon: Factory,
+      imageUrl: getImageUrl(isoCode, 'industry'),
+    });
+  }
+
+  // Industrial regions / City
+  if (ctx.industrial_regions && ctx.industrial_regions.length > 0) {
+    slides.push({
+      id: 'region',
+      category: 'city',
+      title: ctx.industrial_regions[0],
+      description: 'Major industrial region',
+      icon: MapPin,
+      imageUrl: getImageUrl(isoCode, 'city'),
+    });
+  }
+
   return slides.length > 0 ? slides : [
-    { id: 'default', category: 'landmark', title: 'National Monument', description: 'Explore the nation', icon: Landmark }
+    { id: 'default', category: 'landmark', title: 'National Monument', description: 'Explore the nation', icon: Landmark, imageUrl: DEFAULT_IMAGES.landmark }
   ];
 }
 
@@ -177,12 +255,28 @@ export function CountrySlideshow({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.5 }}
-            className={cn(
-              'absolute inset-0 bg-gradient-to-br border',
-              categoryColors[currentSlide.category] || categoryColors.landmark
-            )}
+            className="absolute inset-0"
           >
-            {/* Icon Display */}
+            {/* Background Image */}
+            {currentSlide.imageUrl ? (
+              <img
+                src={currentSlide.imageUrl}
+                alt={currentSlide.title}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to gradient if image fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : null}
+            
+            {/* Gradient Overlay (always shown for text readability) */}
+            <div className={cn(
+              'absolute inset-0 bg-gradient-to-br opacity-60',
+              categoryColors[currentSlide.category] || categoryColors.landmark
+            )} />
+
+            {/* Icon Display (shown on top of image) */}
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
@@ -194,20 +288,22 @@ export function CountrySlideshow({
                 <motion.div
                   animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
                   transition={{ duration: 3, repeat: Infinity }}
-                  className="absolute inset-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2"
+                  className="absolute inset-0 w-24 h-24 bg-black/30 rounded-full blur-xl -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2"
                 />
-                <SlideIcon className={cn(
-                  'w-20 h-20 relative z-10',
-                  categoryIcons[currentSlide.category] || 'text-amber-400'
-                )} />
+                <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-4">
+                  <SlideIcon className={cn(
+                    'w-12 h-12 relative z-10',
+                    categoryIcons[currentSlide.category] || 'text-amber-400'
+                  )} />
+                </div>
               </motion.div>
             </div>
 
             {/* Category Badge */}
-            <div className="absolute top-3 left-3">
+            <div className="absolute top-3 left-3 z-10">
               <span className={cn(
                 'text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded-full',
-                'bg-white/10 backdrop-blur-sm border border-white/20 text-white/70'
+                'bg-black/40 backdrop-blur-sm border border-white/20 text-white'
               )}>
                 {currentSlide.category}
               </span>
@@ -218,10 +314,10 @@ export function CountrySlideshow({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-transparent"
+              className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent"
             >
-              <h3 className="text-lg font-bold text-white">{currentSlide.title}</h3>
-              <p className="text-sm text-white/60 line-clamp-2">{currentSlide.description}</p>
+              <h3 className="text-lg font-bold text-white drop-shadow-lg">{currentSlide.title}</h3>
+              <p className="text-sm text-white/80 line-clamp-2 drop-shadow">{currentSlide.description}</p>
             </motion.div>
           </motion.div>
         </AnimatePresence>
