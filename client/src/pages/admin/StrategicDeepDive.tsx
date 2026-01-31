@@ -798,7 +798,7 @@ function ReportPanel({
             </p>
             <div className="bg-slate-800/50 border border-slate-700/40 rounded-lg p-4">
               <p className="text-xs text-slate-400">
-                To generate reports, go to the <span className="text-cyan-400 font-medium">Generation Progress</span> tab in the Administration menu and select countries to generate.
+                To generate reports, go to the <span className="text-cyan-400 font-medium">Deep Dive Reports</span> tab in the Administration menu and select countries to generate.
               </p>
             </div>
           </div>

@@ -59,7 +59,7 @@ const toolSuiteItems: NavItem[] = [
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/generation-progress", label: "Generation Progress", icon: Activity, adminOnly: true },
+  { path: "/admin/generation-progress", label: "Deep Dive Reports", icon: Activity, adminOnly: true },
   { path: "/admin/agent-prompts", label: "Agent Prompts", icon: Bot, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
@@ -81,7 +81,7 @@ export function Sidebar() {
     >
       {/* Header with ADL Logo - Premium animated */}
       <div className="h-[72px] border-b border-white/5 flex items-center justify-between px-4">
-        <Link to="/framework" className="flex flex-col overflow-hidden group">
+        <Link to="/framework" className="flex-1 flex flex-col items-center overflow-hidden group">
           <AnimatePresence mode="wait">
             {isCollapsed ? (
               /* Compact Logo when collapsed */
@@ -112,12 +112,12 @@ export function Sidebar() {
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, x: -10, filter: "blur(4px)" }}
                 transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="flex flex-col"
+                className="flex flex-col items-center text-center"
               >
                 <motion.img 
                   src="/adl-logo.png" 
                   alt="Arthur D. Little"
-                  className="h-9 object-contain object-left"
+                  className="h-9 object-contain"
                   whileHover={{ 
                     filter: "drop-shadow(0 0 12px rgba(6,182,212,0.4))",
                   }}
@@ -127,7 +127,7 @@ export function Sidebar() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.15 }}
-                  className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide"
+                  className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center"
                 >
                   Global Health Intelligence
                 </motion.span>

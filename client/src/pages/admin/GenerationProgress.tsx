@@ -547,11 +547,12 @@ export function GenerationProgress() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
   // Queries
-  const { data: queueStatus, refetch: refetchQueue } = useQuery({
+  const { data: queueStatus, isLoading: isLoadingQueue, error: queueError, refetch: refetchQueue } = useQuery({
     queryKey: ['generation-queue-status'],
     queryFn: getQueueStatus,
     refetchInterval: isGenerating ? 5000 : 15000,
     staleTime: 5000,
+    retry: 2,
   });
   
   // Check for processing reports on mount
@@ -763,6 +764,40 @@ export function GenerationProgress() {
   const pendingCount = queueStatus?.pending_count || 0;
   const processingCount = queueStatus?.processing_count || 0;
   const queueItems = queueStatus?.queue_items || [];
+  
+  // Error state - show a friendly error UI instead of crashing
+  if (queueError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-8">
+        <div className="bg-slate-800/50 border border-red-500/30 rounded-2xl p-8 max-w-md text-center">
+          <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Connection Error</h2>
+          <p className="text-slate-400 mb-6">
+            Unable to connect to the server. This could be a network issue or the server may be temporarily unavailable.
+          </p>
+          <button
+            onClick={() => refetchQueue()}
+            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Loading state - show a spinner on initial load
+  if (isLoadingQueue && !queueStatus) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading queue status...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <>
