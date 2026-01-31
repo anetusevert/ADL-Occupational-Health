@@ -576,6 +576,7 @@ export async function getStrategicDeepDiveCountries(): Promise<AllCountriesDeepD
 
 /**
  * Get a specific deep dive report
+ * Uses AI client with extended timeout since reports can be large
  */
 export async function getStrategicDeepDiveReport(
   isoCode: string,
@@ -583,7 +584,7 @@ export async function getStrategicDeepDiveReport(
 ): Promise<StrategicDeepDiveReport | null> {
   try {
     const params = topic ? { topic } : {};
-    const response = await apiClient.get<StrategicDeepDiveReport>(
+    const response = await aiApiClient.get<StrategicDeepDiveReport>(
       `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}`,
       { params }
     );
