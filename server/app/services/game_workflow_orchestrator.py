@@ -203,24 +203,6 @@ class GameWorkflowOrchestrator:
         start_time = datetime.utcnow()
         self.agent_log = []
         
-        # Check if AI config is available
-        if not self.ai_config:
-            logger.warning("No AI configuration available - returning fallback data")
-            self._log_agent_activity(
-                "Orchestrator",
-                AgentStatus.ERROR,
-                "No AI configuration found. Please configure AI settings in Admin.",
-                "⚠️"
-            )
-            return WorkflowResult(
-                workflow_type=GameWorkflowType.INTELLIGENCE_BRIEFING,
-                success=False,
-                data={},
-                agent_log=self.agent_log.copy(),
-                errors=["No AI configuration found. Please configure AI settings in Admin > AI Settings."],
-                execution_time_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
-            )
-        
         self._log_agent_activity(
             "Orchestrator", 
             AgentStatus.STARTING,
@@ -229,41 +211,66 @@ class GameWorkflowOrchestrator:
         )
 
         try:
-            # Run web search and data preparation in parallel
-            self._log_agent_activity(
-                "ResearchAgent",
-                AgentStatus.RESEARCHING,
-                f"Searching for recent occupational health developments in {country_name}",
-                "🔍"
-            )
-
-            # Web search for recent articles
-            search_queries = [
-                f"{country_name} occupational health safety 2025 2026",
-                f"{country_name} workplace safety legislation reform",
-                f"{country_name} industrial accidents worker safety",
-            ]
+            # Check if AI config is available
+            use_ai = self.ai_config is not None
+            if not use_ai:
+                logger.warning("No AI configuration available - will use fallback data")
+                self._log_agent_activity(
+                    "Orchestrator",
+                    AgentStatus.ANALYZING,
+                    "Using template-based briefing (no AI configured)",
+                    "📋"
+                )
             
+            # Web search for recent articles (optional, with error handling)
             all_results = []
-            for query in search_queries[:2]:
-                results = await perform_web_search(query, max_results=3)
-                if results:
-                    all_results.extend(results)
+            research_text = "No recent articles found - using historical knowledge."
+            
+            if use_ai:
+                try:
+                    self._log_agent_activity(
+                        "ResearchAgent",
+                        AgentStatus.RESEARCHING,
+                        f"Searching for recent occupational health developments in {country_name}",
+                        "🔍"
+                    )
 
-            self._log_agent_activity(
-                "ResearchAgent",
-                AgentStatus.COMPLETE,
-                f"Found {len(all_results)} relevant articles",
-                "✅"
-            )
+                    search_queries = [
+                        f"{country_name} occupational health safety 2025 2026",
+                        f"{country_name} workplace safety legislation reform",
+                    ]
+                    
+                    for query in search_queries[:2]:
+                        try:
+                            results = await perform_web_search(query, max_results=3)
+                            if results:
+                                all_results.extend(results)
+                        except Exception as search_err:
+                            logger.warning(f"Web search failed for query '{query}': {search_err}")
 
-            # Format research results
-            research_text = "\n".join([
-                f"- {r.get('title', 'Unknown')}: {r.get('snippet', r.get('content', ''))[:200]}"
-                for r in all_results[:5]
-            ]) if all_results else "No recent articles found - using historical knowledge."
+                    self._log_agent_activity(
+                        "ResearchAgent",
+                        AgentStatus.COMPLETE,
+                        f"Found {len(all_results)} relevant articles",
+                        "✅"
+                    )
 
-            # Generate briefing with AI
+                    # Format research results
+                    if all_results:
+                        research_text = "\n".join([
+                            f"- {r.get('title', 'Unknown')}: {r.get('snippet', r.get('content', ''))[:200]}"
+                            for r in all_results[:5]
+                        ])
+                except Exception as research_err:
+                    logger.warning(f"Research phase failed: {research_err}")
+                    self._log_agent_activity(
+                        "ResearchAgent",
+                        AgentStatus.COMPLETE,
+                        "Web search unavailable - continuing with database data",
+                        "⚠️"
+                    )
+
+            # Generate briefing (with AI or fallback)
             self._log_agent_activity(
                 "BriefingAgent",
                 AgentStatus.SYNTHESIZING,
@@ -271,13 +278,22 @@ class GameWorkflowOrchestrator:
                 "🧠"
             )
 
-            briefing_data = await self._generate_briefing_content(
-                country_name=country_name,
-                iso_code=iso_code,
-                metrics_data=metrics_data,
-                context=context,
-                research_text=research_text,
-            )
+            if use_ai:
+                briefing_data = await self._generate_briefing_content(
+                    country_name=country_name,
+                    iso_code=iso_code,
+                    metrics_data=metrics_data,
+                    context=context,
+                    research_text=research_text,
+                )
+            else:
+                # Generate fallback briefing without AI
+                briefing_data = self._generate_fallback_briefing(
+                    country_name=country_name,
+                    iso_code=iso_code,
+                    metrics_data=metrics_data,
+                    context=context,
+                )
 
             self._log_agent_activity(
                 "Orchestrator",
@@ -395,6 +411,80 @@ Create a compelling intelligence briefing as valid JSON with these fields:
 
         # Return empty dict if AI fails
         return {}
+
+    def _generate_fallback_briefing(
+        self,
+        country_name: str,
+        iso_code: str,
+        metrics_data: Dict[str, Any],
+        context: CountryContext,
+    ) -> Dict[str, Any]:
+        """Generate a fallback briefing without AI."""
+        
+        # Determine difficulty based on maturity score
+        maturity = metrics_data.get("maturity_score", 2.5) or 2.5
+        if maturity >= 3.5:
+            difficulty = "manageable"
+        elif maturity >= 2.5:
+            difficulty = "moderate"
+        elif maturity >= 1.5:
+            difficulty = "significant"
+        else:
+            difficulty = "critical"
+        
+        # Build fallback briefing
+        return {
+            "executive_summary": f"{country_name} presents a {difficulty} challenge for occupational health transformation. As the new Health Minister, you will need to balance improving worker safety with economic development priorities.",
+            
+            "socioeconomic_context": f"{country_name}'s economy is driven by {', '.join(context.key_industries[:3]) if context.key_industries else 'diverse industries'}. The workforce faces particular risks in {', '.join(context.high_risk_sectors[:2]) if context.high_risk_sectors else 'various sectors'}.",
+            
+            "cultural_factors": f"Work culture in {country_name} reflects local traditions and economic priorities. Understanding these cultural factors is essential for effective policy implementation.",
+            
+            "future_outlook": f"Looking ahead, {country_name} faces evolving challenges including technological disruption, climate-related workplace hazards, and demographic shifts.",
+            
+            "pillar_insights": {
+                "governance": {
+                    "analysis": f"Current governance score indicates {'strong foundation' if (metrics_data.get('governance_score') or 50) >= 70 else 'room for improvement'}.",
+                    "key_issues": ["Enforcement capacity", "Policy coordination"],
+                    "opportunities": ["Strengthen regulatory framework"]
+                },
+                "hazardControl": {
+                    "analysis": f"Hazard control measures show {'good progress' if (metrics_data.get('pillar1_score') or 50) >= 70 else 'areas needing attention'}.",
+                    "key_issues": ["Risk assessment coverage", "PPE compliance"],
+                    "opportunities": ["Modernize inspection systems"]
+                },
+                "healthVigilance": {
+                    "analysis": f"Health surveillance systems are {'well-developed' if (metrics_data.get('pillar2_score') or 50) >= 70 else 'developing'}.",
+                    "key_issues": ["Disease reporting", "Early detection"],
+                    "opportunities": ["Digital health monitoring"]
+                },
+                "restoration": {
+                    "analysis": f"Worker rehabilitation and compensation {'functions effectively' if (metrics_data.get('pillar3_score') or 50) >= 70 else 'needs strengthening'}.",
+                    "key_issues": ["Return-to-work programs", "Compensation coverage"],
+                    "opportunities": ["Expand mental health support"]
+                }
+            },
+            
+            "key_challenges": [
+                "Improving enforcement capacity",
+                "Expanding coverage to all workers",
+                "Modernizing surveillance systems"
+            ],
+            
+            "key_stakeholders": [
+                {"name": "Minister of Labour", "role": "Government Lead", "institution": context.ministry_name, "stance": "supportive"},
+                {"name": "Chief Labour Inspector", "role": "Enforcement", "institution": context.labor_inspection_body, "stance": "supportive"},
+                {"name": "Union Federation", "role": "Worker Representative", "institution": context.major_unions[0] if context.major_unions else "National Union", "stance": "neutral"},
+            ],
+            
+            "recent_articles": [],
+            
+            "mission_statement": f"Transform {country_name}'s occupational health system into a model framework that protects every worker while supporting economic growth.",
+            
+            "political_system": "Government structure with dedicated ministry for labour and health matters.",
+            
+            "key_government_officials": []
+        }
 
     async def run_strategic_advisor(
         self,
