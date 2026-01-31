@@ -23,10 +23,54 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User, AIConfig
 from app.models.country import Country, CountryDeepDive, DeepDiveStatus
+from app.models.agent import Agent, DEFAULT_AGENTS
 from app.services.agent_runner import AgentRunner
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/strategic-deep-dive", tags=["Strategic Deep Dive"])
+
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def ensure_agents_exist(db: Session):
+    """
+    Ensure default agents are seeded in the database.
+    
+    This is called before running agents to ensure they exist,
+    since the orchestration page might not have been visited yet.
+    """
+    try:
+        # Check if report-generation agent exists
+        agent = db.query(Agent).filter(Agent.id == "report-generation").first()
+        if agent:
+            return  # Already exists
+        
+        logger.info("Seeding default agents for strategic deep dive...")
+        
+        # Seed all default agents
+        for agent_data in DEFAULT_AGENTS:
+            existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
+            if not existing:
+                new_agent = Agent(
+                    id=agent_data["id"],
+                    name=agent_data["name"],
+                    description=agent_data["description"],
+                    system_prompt=agent_data["system_prompt"],
+                    user_prompt_template=agent_data["user_prompt_template"],
+                    template_variables=agent_data["template_variables"],
+                    icon=agent_data["icon"],
+                    color=agent_data["color"],
+                    is_active=True,
+                )
+                db.add(new_agent)
+        
+        db.commit()
+        logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
+    except Exception as e:
+        logger.warning(f"Could not seed agents: {e}")
+        db.rollback()
 
 
 # =============================================================================
@@ -331,6 +375,7 @@ async def generate_report(
     """
     iso_code = iso_code.upper()
     agent_log = []
+    country = None  # Initialize for error handler
     
     def log_step(agent: str, status: str, message: str, emoji: str = ""):
         agent_log.append(AgentLogEntry(
@@ -341,51 +386,60 @@ async def generate_report(
             emoji=emoji,
         ))
     
-    # Get country
-    country = db.query(Country).filter(Country.iso_code == iso_code).first()
-    if not country:
-        raise HTTPException(status_code=404, detail=f"Country '{iso_code}' not found")
-    
-    log_step("System", "started", f"Generating report for {country.name}", "🚀")
-    
-    # Get AI config
-    ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
-    if not ai_config:
-        return GenerateResponse(
-            success=False,
-            iso_code=iso_code,
-            country_name=country.name,
-            report=None,
-            agent_log=agent_log,
-            error="No AI configuration found. Please configure AI settings first.",
-        )
-    
-    log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model}", "⚙️")
-    
-    # Create or update deep dive record
-    existing = db.query(CountryDeepDive).filter(
-        CountryDeepDive.country_iso_code == iso_code,
-        CountryDeepDive.topic == request.topic,
-    ).first()
-    
-    if existing:
-        dive = existing
-        dive.status = DeepDiveStatus.PROCESSING
-        dive.error_message = None
-    else:
-        dive = CountryDeepDive(
-            id=str(uuid.uuid4()),
-            country_iso_code=iso_code,
-            topic=request.topic,
-            status=DeepDiveStatus.PROCESSING,
-            generated_by_user_id=str(current_user.id),
-        )
-        db.add(dive)
-    
-    db.commit()
-    db.refresh(dive)
-    
     try:
+        # Ensure agents are seeded before running
+        ensure_agents_exist(db)
+        
+        # Get country
+        country = db.query(Country).filter(Country.iso_code == iso_code).first()
+        if not country:
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name="Unknown",
+                report=None,
+                agent_log=agent_log,
+                error=f"Country '{iso_code}' not found",
+            )
+        
+        log_step("System", "started", f"Generating report for {country.name}", "🚀")
+        
+        # Get AI config
+        ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+        if not ai_config:
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name=country.name,
+                report=None,
+                agent_log=agent_log,
+                error="No AI configuration found. Please configure AI settings first.",
+            )
+        
+        log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model}", "⚙️")
+        
+        # Create or update deep dive record
+        existing = db.query(CountryDeepDive).filter(
+            CountryDeepDive.country_iso_code == iso_code,
+            CountryDeepDive.topic == request.topic,
+        ).first()
+        
+        if existing:
+            dive = existing
+            dive.status = DeepDiveStatus.PROCESSING
+            dive.error_message = None
+        else:
+            dive = CountryDeepDive(
+                id=str(uuid.uuid4()),
+                country_iso_code=iso_code,
+                topic=request.topic,
+                status=DeepDiveStatus.PROCESSING,
+                generated_by_user_id=str(current_user.id),
+            )
+            db.add(dive)
+        
+        db.commit()
+        db.refresh(dive)
         # Run the report-generation agent SYNCHRONOUSLY with timeout
         # Railway has ~60s timeout, so we use 50s to ensure response is sent
         log_step("AgentRunner", "running", "Executing report-generation agent with database context", "🤖")
@@ -535,23 +589,28 @@ async def generate_report(
     except Exception as e:
         logger.error(f"Error generating report for {iso_code}: {e}", exc_info=True)
         
+        # Try to update dive status if it was created
         try:
-            dive.status = DeepDiveStatus.FAILED
-            dive.error_message = str(e)
-            dive.generated_at = datetime.utcnow()
-            db.commit()
+            if 'dive' in locals() and dive:
+                dive.status = DeepDiveStatus.FAILED
+                dive.error_message = str(e)
+                dive.generated_at = datetime.utcnow()
+                db.commit()
         except Exception:
             db.rollback()
         
         log_step("System", "failed", f"Exception: {str(e)}", "💥")
         
+        # Return error response with safe country name
+        country_name = country.name if country else "Unknown"
+        
         return GenerateResponse(
             success=False,
             iso_code=iso_code,
-            country_name=country.name,
+            country_name=country_name,
             report=None,
             agent_log=agent_log,
-            error=str(e),
+            error=f"Server error: {str(e)}",
         )
 
 
