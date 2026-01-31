@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
 import {
   X,
   ChevronLeft,
@@ -107,6 +107,195 @@ function FloatingParticles({ color = "cyan", count = 20 }: { color?: string; cou
 }
 
 // ============================================================================
+// INSIGHT OVERLAY - Glassmorphic panel for element insights
+// ============================================================================
+
+interface InsightOverlayProps {
+  insight: ElementInsight | null;
+  onClose: () => void;
+  color?: string;
+}
+
+function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProps) {
+  const c = colors[color] || colors.cyan;
+
+  // Handle escape key
+  useEffect(() => {
+    if (!insight) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [insight, onClose]);
+
+  return (
+    <AnimatePresence>
+      {insight && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm z-30"
+            onClick={onClose}
+          />
+
+          {/* Panel */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="absolute inset-4 sm:inset-8 md:inset-12 z-40 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={cn(
+              "h-full w-full rounded-2xl border backdrop-blur-xl",
+              "bg-slate-900/90 border-white/10",
+              "flex flex-col overflow-hidden"
+            )}>
+              {/* Header */}
+              <div className={cn("flex items-center justify-between p-4 border-b border-white/10", c.bg)}>
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    initial={{ rotate: -10, scale: 0.8 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", delay: 0.1 }}
+                    className={cn("w-10 h-10 rounded-xl flex items-center justify-center", c.bgSolid)}
+                  >
+                    <Lightbulb className="w-5 h-5 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{insight.label}</h3>
+                    <p className={cn("text-xs", c.text)}>Interactive Insight</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto p-5 space-y-5">
+                {/* Data Point - Hero stat */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className={cn("p-4 rounded-xl border", c.bg, c.border)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", c.bgSolid)}>
+                      <BarChart3 className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className={cn("text-xs font-semibold uppercase tracking-wider mb-1", c.text)}>Key Data Point</p>
+                      <p className="text-white font-medium leading-relaxed">{insight.dataPoint}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Perspective */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="p-4 rounded-xl bg-white/5 border border-white/10"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <Lightbulb className="w-4 h-4 text-white/80" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1 text-white/50">Perspective</p>
+                      <p className="text-white/90 leading-relaxed">{insight.perspective}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Quote */}
+                {insight.quote && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border-l-2 border-white/30"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Quote className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
+                      <p className="text-white/80 italic leading-relaxed">"{insight.quote}"</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Example */}
+                {insight.example && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.45 }}
+                    className={cn("p-4 rounded-xl border", c.bg, c.border)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", c.bgSolid)}>
+                        <Globe className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className={cn("text-xs font-semibold uppercase tracking-wider mb-1", c.text)}>Best Practice Example</p>
+                        <p className="text-white/90 leading-relaxed">{insight.example}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Source */}
+                {insight.source && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.55 }}
+                    className="flex items-center gap-2 text-xs text-white/40"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Source: {insight.source}</span>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex-shrink-0 p-4 border-t border-white/10 bg-slate-800/50">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onClose}
+                  className={cn(
+                    "w-full py-2.5 rounded-xl font-medium text-white flex items-center justify-center gap-2",
+                    c.bgSolid,
+                    "hover:brightness-110 transition-all"
+                  )}
+                >
+                  <span>Got it</span>
+                  <CheckCircle className="w-4 h-4" />
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
 // ORBITING ELEMENT
 // ============================================================================
 
@@ -118,13 +307,23 @@ interface OrbitingElementProps {
   total: number;
   delay?: number;
   radius?: number;
+  insightId?: string;
+  onInsightClick?: (insightId: string) => void;
 }
 
-function OrbitingElement({ Icon, label, color, index, total, delay = 0, radius = 130 }: OrbitingElementProps) {
+function OrbitingElement({ Icon, label, color, index, total, delay = 0, radius = 130, insightId, onInsightClick }: OrbitingElementProps) {
   const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
   const c = colors[color];
+  const isClickable = !!insightId && !!onInsightClick;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (insightId && onInsightClick) {
+      onInsightClick(insightId);
+    }
+  };
 
   return (
     <motion.div
@@ -140,14 +339,47 @@ function OrbitingElement({ Icon, label, color, index, total, delay = 0, radius =
         className="flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
       >
         <motion.div 
-          className={cn("w-14 h-14 rounded-xl flex items-center justify-center shadow-lg", c.bgSolid, c.glow)}
-          whileHover={{ scale: 1.1 }}
+          onClick={handleClick}
+          className={cn(
+            "w-14 h-14 rounded-xl flex items-center justify-center shadow-lg relative",
+            c.bgSolid, c.glow,
+            isClickable && "cursor-pointer"
+          )}
+          whileHover={{ scale: 1.15 }}
+          whileTap={isClickable ? { scale: 0.95 } : undefined}
         >
           <Icon className="w-7 h-7 text-white" />
+          
+          {/* Clickable indicator - subtle pulse ring */}
+          {isClickable && (
+            <motion.div
+              className={cn("absolute inset-0 rounded-xl border-2", c.border)}
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.5, 0, 0.5]
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
         </motion.div>
-        <span className="mt-2 text-[11px] font-medium text-white/80 text-center max-w-20 leading-tight">
+        <span className={cn(
+          "mt-2 text-[11px] font-medium text-white/80 text-center max-w-20 leading-tight",
+          isClickable && "group-hover:text-white"
+        )}>
           {label}
         </span>
+        
+        {/* Click hint */}
+        {isClickable && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay + index * 0.15 + 1 }}
+            className="mt-1 text-[9px] text-white/40"
+          >
+            Click to explore
+          </motion.span>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -324,19 +556,23 @@ function TempleOverviewVisual() {
 // GOVERNANCE VISUAL - Key governance elements orbiting
 // ============================================================================
 
-function GovernanceVisual() {
+interface VisualProps {
+  onInsightClick?: (insightId: string) => void;
+}
+
+function GovernanceVisual({ onInsightClick }: VisualProps) {
   const elements = [
-    { icon: Scale, label: "Legislative Backbone", sublabel: "ILO/National Laws" },
-    { icon: Users, label: "Enforcement", sublabel: "Inspectorate" },
-    { icon: Heart, label: "National Culture", sublabel: "Just Culture Safety" },
-    { icon: TrendingUp, label: "Strategic Capacity", sublabel: "Research & Professionals" },
+    { icon: Scale, label: "Legislative Backbone", sublabel: "ILO/National Laws", insightId: "legislative-backbone" },
+    { icon: Users, label: "Enforcement", sublabel: "Inspectorate", insightId: "enforcement" },
+    { icon: Heart, label: "National Culture", sublabel: "Just Culture Safety", insightId: "national-culture" },
+    { icon: TrendingUp, label: "Strategic Capacity", sublabel: "Research & Professionals", insightId: "strategic-capacity" },
   ];
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <FloatingParticles color="purple" count={20} />
       
-      {/* Central crown */}
+      {/* Central crown - clickable */}
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -344,13 +580,22 @@ function GovernanceVisual() {
         className="relative z-10"
       >
         <motion.div
+          onClick={() => onInsightClick?.("governance-central")}
           animate={{ 
             boxShadow: ["0 0 40px rgba(147,51,234,0.3)", "0 0 60px rgba(147,51,234,0.5)", "0 0 40px rgba(147,51,234,0.3)"]
           }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-xl"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-xl cursor-pointer relative"
         >
           <Crown className="w-14 h-14 text-white" />
+          {/* Pulse ring for clickability */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl border-2 border-purple-300/50"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
         </motion.div>
         <motion.p
           initial={{ opacity: 0 }}
@@ -359,6 +604,14 @@ function GovernanceVisual() {
           className="text-center mt-3 text-purple-300 font-semibold"
         >
           Governance
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-center text-[10px] text-purple-400/60"
+        >
+          Click to explore
         </motion.p>
       </motion.div>
 
@@ -373,6 +626,8 @@ function GovernanceVisual() {
           total={elements.length}
           delay={0.3}
           radius={150}
+          insightId={el.insightId}
+          onInsightClick={onInsightClick}
         />
       ))}
 
@@ -407,19 +662,19 @@ function GovernanceVisual() {
 // HAZARD PREVENTION VISUAL (Pillar 1)
 // ============================================================================
 
-function HazardPreventionVisual() {
+function HazardPreventionVisual({ onInsightClick }: VisualProps) {
   const elements = [
-    { icon: Beaker, label: "Hazard Registry", sublabel: "Physical/Chemical" },
-    { icon: HardHat, label: "Control Maturity", sublabel: "Engineering > PPE" },
-    { icon: Thermometer, label: "Climate Defense", sublabel: "Heat Protocols" },
-    { icon: FileCheck, label: "Risk Assessment", sublabel: "Documentation" },
+    { icon: Beaker, label: "Hazard Registry", sublabel: "Physical/Chemical", insightId: "hazard-registry" },
+    { icon: HardHat, label: "Control Maturity", sublabel: "Engineering > PPE", insightId: "control-maturity" },
+    { icon: Thermometer, label: "Climate Defense", sublabel: "Heat Protocols", insightId: "climate-defense" },
+    { icon: FileCheck, label: "Risk Assessment", sublabel: "Documentation", insightId: "risk-assessment" },
   ];
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <FloatingParticles color="blue" count={20} />
       
-      {/* Central shield */}
+      {/* Central shield - clickable */}
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -427,13 +682,22 @@ function HazardPreventionVisual() {
         className="relative z-10"
       >
         <motion.div
+          onClick={() => onInsightClick?.("prevention-central")}
           animate={{ 
             boxShadow: ["0 0 40px rgba(37,99,235,0.3)", "0 0 60px rgba(37,99,235,0.5)", "0 0 40px rgba(37,99,235,0.3)"]
           }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-xl"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-xl cursor-pointer relative"
         >
           <Shield className="w-14 h-14 text-white" />
+          {/* Pulse ring for clickability */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl border-2 border-blue-300/50"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
         </motion.div>
         <motion.div
           initial={{ opacity: 0 }}
@@ -443,6 +707,7 @@ function HazardPreventionVisual() {
         >
           <p className="text-blue-300 font-semibold">Prevention</p>
           <p className="text-blue-400/60 text-xs">$1 saves $4-6</p>
+          <p className="text-[10px] text-blue-400/50 mt-1">Click to explore</p>
         </motion.div>
       </motion.div>
 
@@ -457,6 +722,8 @@ function HazardPreventionVisual() {
           total={elements.length}
           delay={0.3}
           radius={150}
+          insightId={el.insightId}
+          onInsightClick={onInsightClick}
         />
       ))}
     </div>
@@ -467,12 +734,12 @@ function HazardPreventionVisual() {
 // SURVEILLANCE VISUAL (Pillar 2)
 // ============================================================================
 
-function SurveillanceVisual() {
+function SurveillanceVisual({ onInsightClick }: VisualProps) {
   const elements = [
-    { icon: Stethoscope, label: "Active Surveillance", sublabel: "Biomarkers" },
-    { icon: UserCheck, label: "Vulnerability Index", sublabel: "At-Risk Groups" },
-    { icon: Bell, label: "Early Warning", sublabel: "Predictive Analytics" },
-    { icon: Activity, label: "Health Monitoring", sublabel: "Continuous" },
+    { icon: Stethoscope, label: "Active Surveillance", sublabel: "Biomarkers", insightId: "active-surveillance" },
+    { icon: UserCheck, label: "Vulnerability Index", sublabel: "At-Risk Groups", insightId: "vulnerability-index" },
+    { icon: Bell, label: "Early Warning", sublabel: "Predictive Analytics", insightId: "early-warning" },
+    { icon: Activity, label: "Health Monitoring", sublabel: "Continuous", insightId: "health-monitoring" },
   ];
 
   return (
@@ -490,7 +757,7 @@ function SurveillanceVisual() {
         />
       ))}
       
-      {/* Central eye */}
+      {/* Central eye - clickable */}
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -498,13 +765,22 @@ function SurveillanceVisual() {
         className="relative z-10"
       >
         <motion.div
+          onClick={() => onInsightClick?.("surveillance-central")}
           animate={{ 
             boxShadow: ["0 0 40px rgba(5,150,105,0.3)", "0 0 60px rgba(5,150,105,0.5)", "0 0 40px rgba(5,150,105,0.3)"]
           }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-xl"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-xl cursor-pointer relative"
         >
           <Eye className="w-14 h-14 text-white" />
+          {/* Pulse ring for clickability */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl border-2 border-emerald-300/50"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
         </motion.div>
         <motion.div
           initial={{ opacity: 0 }}
@@ -514,6 +790,7 @@ function SurveillanceVisual() {
         >
           <p className="text-emerald-300 font-semibold">Vigilance</p>
           <p className="text-emerald-400/60 text-xs">60% cost reduction</p>
+          <p className="text-[10px] text-emerald-400/50 mt-1">Click to explore</p>
         </motion.div>
       </motion.div>
 
@@ -528,6 +805,8 @@ function SurveillanceVisual() {
           total={elements.length}
           delay={0.3}
           radius={150}
+          insightId={el.insightId}
+          onInsightClick={onInsightClick}
         />
       ))}
     </div>
@@ -538,19 +817,19 @@ function SurveillanceVisual() {
 // RESTORATION VISUAL (Pillar 3)
 // ============================================================================
 
-function RestorationVisual() {
+function RestorationVisual({ onInsightClick }: VisualProps) {
   const elements = [
-    { icon: Wallet, label: "Payer Mechanism", sublabel: "No-Fault Insurance" },
-    { icon: Building2, label: "Rehabilitation", sublabel: "Clinics/Training" },
-    { icon: RefreshCcw, label: "Return to Work", sublabel: "RTW Policy" },
-    { icon: Briefcase, label: "Compensation", sublabel: "Fair Benefits" },
+    { icon: Wallet, label: "Payer Mechanism", sublabel: "No-Fault Insurance", insightId: "payer-mechanism" },
+    { icon: Building2, label: "Rehabilitation", sublabel: "Clinics/Training", insightId: "rehabilitation" },
+    { icon: RefreshCcw, label: "Return to Work", sublabel: "RTW Policy", insightId: "return-to-work" },
+    { icon: Briefcase, label: "Compensation", sublabel: "Fair Benefits", insightId: "compensation" },
   ];
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <FloatingParticles color="amber" count={20} />
       
-      {/* Central heart */}
+      {/* Central heart - clickable */}
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -558,14 +837,23 @@ function RestorationVisual() {
         className="relative z-10"
       >
         <motion.div
+          onClick={() => onInsightClick?.("restoration-central")}
           animate={{ 
             scale: [1, 1.05, 1],
             boxShadow: ["0 0 40px rgba(245,158,11,0.3)", "0 0 60px rgba(245,158,11,0.5)", "0 0 40px rgba(245,158,11,0.3)"]
           }}
           transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl cursor-pointer relative"
         >
           <Heart className="w-14 h-14 text-white" />
+          {/* Pulse ring for clickability */}
+          <motion.div
+            className="absolute inset-0 rounded-2xl border-2 border-amber-300/50"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
         </motion.div>
         <motion.div
           initial={{ opacity: 0 }}
@@ -575,6 +863,7 @@ function RestorationVisual() {
         >
           <p className="text-amber-300 font-semibold">Restoration</p>
           <p className="text-amber-400/60 text-xs">Safety Net</p>
+          <p className="text-[10px] text-amber-400/50 mt-1">Click to explore</p>
         </motion.div>
       </motion.div>
 
@@ -589,6 +878,8 @@ function RestorationVisual() {
           total={elements.length}
           delay={0.3}
           radius={150}
+          insightId={el.insightId}
+          onInsightClick={onInsightClick}
         />
       ))}
     </div>
@@ -596,10 +887,82 @@ function RestorationVisual() {
 }
 
 // ============================================================================
-// INTEGRATION VISUAL - All components connected
+// INTEGRATION VISUAL - All components connected with animated feedback loop
 // ============================================================================
 
-function IntegrationVisual() {
+function IntegrationVisual({ onInsightClick }: VisualProps) {
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState(0);
+  
+  const governanceControls = useAnimationControls();
+  const pillar1Controls = useAnimationControls();
+  const pillar2Controls = useAnimationControls();
+  const pillar3Controls = useAnimationControls();
+  const arrowControls = useAnimationControls();
+
+  const pillars = [
+    { icon: Shield, color: "blue", bgColor: "bg-blue-600", shadowColor: "shadow-blue-500/30", glowColor: "rgba(37,99,235,0.6)", controls: pillar1Controls },
+    { icon: Eye, color: "emerald", bgColor: "bg-emerald-600", shadowColor: "shadow-emerald-500/30", glowColor: "rgba(5,150,105,0.6)", controls: pillar2Controls },
+    { icon: Heart, color: "amber", bgColor: "bg-amber-500", shadowColor: "shadow-amber-500/30", glowColor: "rgba(245,158,11,0.6)", controls: pillar3Controls },
+  ];
+
+  const triggerFeedbackAnimation = async () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    
+    // Phase 1: Highlight Governance
+    setAnimationPhase(1);
+    await governanceControls.start({
+      scale: [1, 1.2, 1],
+      boxShadow: ["0 0 20px rgba(147,51,234,0.3)", "0 0 60px rgba(147,51,234,0.8)", "0 0 20px rgba(147,51,234,0.3)"],
+      transition: { duration: 0.6 }
+    });
+    
+    // Phase 2: Arrow pulses down
+    setAnimationPhase(2);
+    await arrowControls.start({
+      y: [0, 15, 0],
+      opacity: [0.5, 1, 0.5],
+      transition: { duration: 0.4 }
+    });
+    
+    // Phase 3: Highlight pillars sequentially (Prevention → Surveillance → Restoration)
+    setAnimationPhase(3);
+    await pillar1Controls.start({
+      scale: [1, 1.25, 1],
+      boxShadow: ["0 0 20px rgba(37,99,235,0.3)", "0 0 50px rgba(37,99,235,0.8)", "0 0 20px rgba(37,99,235,0.3)"],
+      transition: { duration: 0.5 }
+    });
+    
+    setAnimationPhase(4);
+    await pillar2Controls.start({
+      scale: [1, 1.25, 1],
+      boxShadow: ["0 0 20px rgba(5,150,105,0.3)", "0 0 50px rgba(5,150,105,0.8)", "0 0 20px rgba(5,150,105,0.3)"],
+      transition: { duration: 0.5 }
+    });
+    
+    setAnimationPhase(5);
+    await pillar3Controls.start({
+      scale: [1, 1.25, 1],
+      boxShadow: ["0 0 20px rgba(245,158,11,0.3)", "0 0 50px rgba(245,158,11,0.8)", "0 0 20px rgba(245,158,11,0.3)"],
+      transition: { duration: 0.5 }
+    });
+    
+    // Phase 4: Back to Governance (completing the loop)
+    setAnimationPhase(6);
+    await governanceControls.start({
+      scale: [1, 1.15, 1],
+      boxShadow: ["0 0 20px rgba(147,51,234,0.3)", "0 0 50px rgba(147,51,234,0.8)", "0 0 30px rgba(147,51,234,0.4)"],
+      transition: { duration: 0.6 }
+    });
+    
+    setAnimationPhase(0);
+    setIsAnimating(false);
+    
+    // Show insight after animation
+    onInsightClick?.("feedback-loop");
+  };
+
   return (
     <div className="relative w-full h-full flex items-center justify-center p-8">
       <FloatingParticles color="cyan" count={25} />
@@ -610,9 +973,23 @@ function IntegrationVisual() {
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, type: "spring" }}
-          className="mx-auto w-20 h-20 rounded-xl bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30"
+          className="mx-auto w-20 h-20 rounded-xl bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 relative"
         >
-          <Crown className="w-10 h-10 text-white" />
+          <motion.div
+            animate={governanceControls}
+            className="absolute inset-0 rounded-xl bg-purple-600"
+          />
+          <Crown className="w-10 h-10 text-white relative z-10" />
+          
+          {/* Highlight ring during animation */}
+          {animationPhase === 1 && (
+            <motion.div
+              initial={{ scale: 1, opacity: 0 }}
+              animate={{ scale: 1.5, opacity: [0, 0.8, 0] }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 rounded-xl border-2 border-purple-300"
+            />
+          )}
         </motion.div>
 
         {/* Flow arrows */}
@@ -623,51 +1000,93 @@ function IntegrationVisual() {
           className="flex justify-center my-4"
         >
           <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            animate={isAnimating ? arrowControls : { y: [0, 8, 0] }}
+            transition={{ duration: 1.5, repeat: isAnimating ? 0 : Infinity }}
           >
-            <ArrowRight className="w-8 h-8 text-purple-400 rotate-90" />
+            <ArrowDown className={cn(
+              "w-8 h-8 transition-colors duration-300",
+              animationPhase === 2 ? "text-cyan-300" : "text-purple-400"
+            )} />
           </motion.div>
         </motion.div>
 
         {/* Three pillars */}
         <div className="flex justify-center gap-4">
-          {[
-            { icon: Shield, color: "blue", bgColor: "bg-blue-600", shadowColor: "shadow-blue-500/30" },
-            { icon: Eye, color: "emerald", bgColor: "bg-emerald-600", shadowColor: "shadow-emerald-500/30" },
-            { icon: Heart, color: "amber", bgColor: "bg-amber-500", shadowColor: "shadow-amber-500/30" },
-          ].map((p, i) => (
+          {pillars.map((p, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 + i * 0.15, type: "spring" }}
-              className={cn("w-16 h-16 rounded-xl flex items-center justify-center shadow-lg", p.bgColor, p.shadowColor)}
+              className="relative"
             >
-              <p.icon className="w-8 h-8 text-white" />
+              <motion.div
+                animate={p.controls}
+                className={cn("w-16 h-16 rounded-xl flex items-center justify-center shadow-lg", p.bgColor, p.shadowColor)}
+              >
+                <p.icon className="w-8 h-8 text-white" />
+              </motion.div>
+              
+              {/* Connecting arrows between pillars during animation */}
+              {animationPhase >= 3 && animationPhase <= 5 && i < 2 && (
+                <motion.div
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: animationPhase >= 3 + i ? 1 : 0, x: 0 }}
+                  className="absolute top-1/2 -right-3 transform -translate-y-1/2"
+                >
+                  <ArrowRight className="w-4 h-4 text-cyan-400" />
+                </motion.div>
+              )}
             </motion.div>
           ))}
         </div>
 
-        {/* Feedback loop */}
+        {/* Feedback loop - CLICKABLE */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
-          className="mt-8 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30"
+          onClick={triggerFeedbackAnimation}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "mt-8 p-4 rounded-xl border cursor-pointer transition-all",
+            isAnimating 
+              ? "bg-cyan-500/20 border-cyan-400/60 shadow-lg shadow-cyan-500/20" 
+              : "bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/15 hover:border-cyan-400/50"
+          )}
         >
           <div className="flex items-center justify-center gap-3">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+              animate={{ rotate: isAnimating ? 720 : 360 }}
+              transition={{ 
+                duration: isAnimating ? 1 : 4, 
+                repeat: Infinity, 
+                ease: isAnimating ? "easeInOut" : "linear" 
+              }}
             >
-              <RefreshCcw className="w-6 h-6 text-cyan-400" />
+              <RefreshCcw className={cn(
+                "w-6 h-6 transition-colors",
+                isAnimating ? "text-cyan-300" : "text-cyan-400"
+              )} />
             </motion.div>
             <div className="text-center">
               <p className="text-cyan-300 font-semibold text-sm">Continuous Feedback Loop</p>
-              <p className="text-cyan-400/60 text-xs">Data flows between all components</p>
+              <p className="text-cyan-400/60 text-xs">
+                {isAnimating ? "Watch the data flow..." : "Click to see the interaction"}
+              </p>
             </div>
           </div>
+          
+          {/* Pulsing border hint */}
+          {!isAnimating && (
+            <motion.div
+              className="absolute inset-0 rounded-xl border-2 border-cyan-400/50"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{ pointerEvents: 'none' }}
+            />
+          )}
         </motion.div>
 
         {/* Database foundation */}

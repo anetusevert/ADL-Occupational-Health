@@ -26,3 +26,7 @@ export { ExecutionPanel } from './ExecutionPanel';
 export type { ExecutionLogEntry, ExecutionResult } from './ExecutionPanel';
 
 export { CustomEdge } from './CustomEdge';
+
+// Dashboard components
+export { WorkflowCard } from './WorkflowCard';
+export type { WorkflowDashboardData } from './WorkflowCard';

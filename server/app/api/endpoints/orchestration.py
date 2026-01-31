@@ -63,6 +63,7 @@ class WorkflowResponse(BaseModel):
     is_default: bool
     is_active: bool
     execution_count: int
+    success_count: int
     last_run_at: Optional[str]
     created_at: Optional[str]
     updated_at: Optional[str]
@@ -216,6 +217,7 @@ def workflow_to_response(workflow: Workflow) -> WorkflowResponse:
         is_default=workflow.is_default,
         is_active=workflow.is_active if workflow.is_active is not None else True,
         execution_count=workflow.execution_count if workflow.execution_count is not None else 0,
+        success_count=workflow.success_count if hasattr(workflow, 'success_count') and workflow.success_count is not None else 0,
         last_run_at=workflow.last_run_at.isoformat() if workflow.last_run_at else None,
         created_at=workflow.created_at.isoformat() if workflow.created_at else None,
         updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
@@ -881,6 +883,70 @@ async def get_providers(
         global_provider=global_provider,
         global_model=global_model,
     )
+
+
+# =============================================================================
+# WORKFLOW DASHBOARD ENDPOINT (Public)
+# =============================================================================
+
+class WorkflowDashboardItem(BaseModel):
+    """Workflow dashboard item with usage stats."""
+    id: str
+    name: str
+    description: Optional[str]
+    color: str
+    is_active: bool
+    is_default: bool
+    agent_count: int
+    execution_count: int
+    success_count: int
+    success_rate: float
+    last_run_at: Optional[str]
+
+
+@router.get("/workflows/dashboard", response_model=List[WorkflowDashboardItem])
+async def get_workflow_dashboard(
+    db: Session = Depends(get_db),
+):
+    """
+    Get all workflows with usage statistics.
+    
+    This is a public endpoint that returns workflow data for the dashboard.
+    """
+    try:
+        # Seed defaults if needed
+        seed_defaults(db)
+        
+        workflows = db.query(Workflow).order_by(Workflow.lane_order).all()
+        
+        result = []
+        for w in workflows:
+            # Count agents for this workflow
+            agent_count = db.query(Agent).filter(Agent.workflow_id == w.id).count()
+            
+            # Calculate success rate
+            exec_count = w.execution_count or 0
+            succ_count = w.success_count if hasattr(w, 'success_count') and w.success_count else 0
+            success_rate = (succ_count / exec_count * 100) if exec_count > 0 else 0.0
+            
+            result.append(WorkflowDashboardItem(
+                id=w.id,
+                name=w.name,
+                description=w.description,
+                color=w.color or "cyan",
+                is_active=w.is_active if w.is_active is not None else True,
+                is_default=w.is_default,
+                agent_count=agent_count,
+                execution_count=exec_count,
+                success_count=succ_count,
+                success_rate=round(success_rate, 1),
+                last_run_at=w.last_run_at.isoformat() if w.last_run_at else None,
+            ))
+        
+        return result
+    except Exception as e:
+        logger.error(f"Failed to get workflow dashboard: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =============================================================================

@@ -55,6 +55,7 @@ class Workflow(Base):
     # Workflow status and usage tracking
     is_active = Column(Boolean, default=True, nullable=False)
     execution_count = Column(Integer, default=0, nullable=False)
+    success_count = Column(Integer, default=0, nullable=False)
     last_run_at = Column(DateTime, nullable=True)
     
     # Metadata
@@ -75,6 +76,7 @@ class Workflow(Base):
             "is_default": self.is_default,
             "is_active": self.is_active,
             "execution_count": self.execution_count,
+            "success_count": self.success_count,
             "last_run_at": self.last_run_at.isoformat() if self.last_run_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
