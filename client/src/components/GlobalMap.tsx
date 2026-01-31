@@ -194,10 +194,10 @@ const METRIC_CONFIGS: Record<MapMetric, MapMetricConfig> = {
     unit: "1-4",
     higherIsBetter: true,
     ranges: [
-      { value: 3.5, color: "#10b981", label: "3.5-4.0 — Resilient" },
-      { value: 3.0, color: "#84cc16", label: "3.0-3.4 — Proactive" },
-      { value: 2.0, color: "#f97316", label: "2.0-2.9 — Compliant" },
-      { value: 0, color: "#ef4444", label: "1.0-1.9 — Reactive" },
+      { value: 3.5, color: "#10b981", label: "3.5-4.0 — Leading" },
+      { value: 2.5, color: "#84cc16", label: "2.5-3.4 — Advancing" },
+      { value: 2.0, color: "#f97316", label: "2.0-2.4 — Developing" },
+      { value: 0, color: "#ef4444", label: "1.0-1.9 — Critical" },
     ],
   },
   // Governance Index (0-100 scale)
@@ -517,7 +517,7 @@ function GlobalMapComponent({
               ) : (
                 <div className="w-2 h-2 rounded-full bg-cyan-400" />
               )}
-              <span>{metricConfig.label}</span>
+              <span>{selectedMetric === "maturity_score" ? "OHI Score" : metricConfig.label}</span>
             </div>
             <ChevronDown className={cn("w-4 h-4 ml-3 text-slate-400 transition-transform", isDropdownOpen && "rotate-180")} />
           </button>
@@ -539,7 +539,7 @@ function GlobalMapComponent({
                   {selectedMetric === config.key && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
                   {selectedMetric !== config.key && <div className="w-1.5 h-1.5" />}
                   {config.key === "maturity_score" && <ADLIcon size="xs" animate={false} className="opacity-80" />}
-                  {config.label}
+                  {config.key === "maturity_score" ? "OHI Score" : config.label}
                 </button>
               ))}
             </div>
@@ -552,7 +552,7 @@ function GlobalMapComponent({
         <div className="flex items-center gap-2 mb-2">
           {selectedMetric === "maturity_score" && <ADLIcon size="xs" animate={false} className="opacity-80" />}
           <p className="text-xs font-medium text-slate-300">
-            {metricConfig.label} ({metricConfig.unit})
+            {selectedMetric === "maturity_score" ? `OHI Score (${metricConfig.unit})` : `${metricConfig.label} (${metricConfig.unit})`}
           </p>
         </div>
         <div className="space-y-1.5">
