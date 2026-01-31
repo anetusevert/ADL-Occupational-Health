@@ -851,3 +851,40 @@ async def seed_agents_and_workflows(
         "success": True, 
         "message": f"Seeded {len(DEFAULT_WORKFLOWS)} workflows, {len(DEFAULT_AGENTS)} agents, and {len(DEFAULT_CONNECTIONS)} connections"
     }
+
+
+@router.post("/init")
+async def initialize_orchestration(
+    db: Session = Depends(get_db),
+):
+    """
+    Public endpoint to initialize/seed orchestration data.
+    Only seeds if data doesn't exist (safe to call multiple times).
+    """
+    try:
+        # Check current counts
+        workflow_count = db.query(Workflow).count()
+        agent_count = db.query(Agent).count()
+        
+        if workflow_count == 0 or agent_count == 0:
+            # Force reseed if either is empty
+            db.query(AgentConnection).delete()
+            db.query(Agent).delete()
+            db.query(Workflow).delete()
+            db.commit()
+            seed_defaults(db)
+            
+            return {
+                "success": True,
+                "message": f"Initialized {len(DEFAULT_WORKFLOWS)} workflows, {len(DEFAULT_AGENTS)} agents, {len(DEFAULT_CONNECTIONS)} connections",
+                "was_empty": True,
+            }
+        else:
+            return {
+                "success": True,
+                "message": f"Already initialized with {workflow_count} workflows and {agent_count} agents",
+                "was_empty": False,
+            }
+    except Exception as e:
+        logger.error(f"Failed to initialize orchestration: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
