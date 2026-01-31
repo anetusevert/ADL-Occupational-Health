@@ -13,10 +13,12 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { 
   getStrategicDeepDiveCountries,
   generateStrategicDeepDive,
   getStrategicDeepDiveReport,
+  queueStrategicDeepDive,
   type CountryDeepDiveItem, 
   type TopicStatus 
 } from "../../services/api";
@@ -54,6 +56,7 @@ const stepTransition = {
 
 export function DeepDiveWizard() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -153,12 +156,29 @@ export function DeepDiveWizard() {
           return;
         }
         
-        // No existing report - auto-generate
+        // No existing report - queue for background generation
         setIsFetching(false);
-        setIsGenerating(true);
         
-        const generated = await generateStrategicDeepDive(countryIso, topic);
-        setReport(generated.report?.report || null);
+        const queueResult = await queueStrategicDeepDive(countryIso, topic);
+        
+        if (queueResult.status === "completed") {
+          // Report was already completed (race condition) - fetch and display
+          const freshReport = await getStrategicDeepDiveReport(countryIso, topic);
+          if (freshReport && freshReport.report) {
+            setReport(freshReport.report);
+            return;
+          }
+        }
+        
+        // Report queued or processing - redirect to dashboard
+        navigate("/deep-dive-reports", { 
+          state: { 
+            queuedCountry: countryIso, 
+            queuedTopic: topic,
+            message: `Report for ${queueResult.country_name} has been queued for generation.`
+          }
+        });
+        
       } catch (err: any) {
         // Extract detailed error message from server response if available
         const serverMessage = err?.response?.data?.detail || err?.response?.data?.message;
@@ -169,7 +189,7 @@ export function DeepDiveWizard() {
         setIsGenerating(false);
       }
     },
-    []
+    [navigate]
   );
 
   const handleSelectTopic = useCallback(
@@ -206,7 +226,7 @@ export function DeepDiveWizard() {
     }
   }, [selectedCountries, selectedTopic, fetchOrGenerateReport]);
 
-  // Force regenerate report (admin only)
+  // Force regenerate report (admin only) - uses synchronous generation for immediate feedback
   const handleRegenerateReport = useCallback(async () => {
     if (selectedCountries.length > 0 && selectedTopic) {
       setReport(null);
@@ -214,6 +234,7 @@ export function DeepDiveWizard() {
       setIsGenerating(true);
       
       try {
+        // Admin regenerate uses synchronous endpoint for immediate feedback
         const generated = await generateStrategicDeepDive(selectedCountries[0], selectedTopic);
         setReport(generated.report?.report || null);
       } catch (err: any) {

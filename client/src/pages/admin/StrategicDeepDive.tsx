@@ -1059,8 +1059,8 @@ export function StrategicDeepDive() {
   const { data: countriesData, isLoading: isLoadingCountries, error: countriesError, refetch: refetchCountries } = useQuery({
     queryKey: ["strategic-deep-dive-countries"],
     queryFn: getStrategicDeepDiveCountries,
-    staleTime: 10 * 1000,
-    refetchInterval: 15 * 1000, // Auto-refresh every 15s to show real-time generation status
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000, // Auto-refresh every 5s for real-time status
     retry: 2,
   });
   
@@ -1084,8 +1084,8 @@ export function StrategicDeepDive() {
     queryKey: ["strategic-deep-dive-topic-statuses", selectedCountry],
     queryFn: () => selectedCountry ? getCountryTopicStatuses(selectedCountry) : null,
     enabled: !!selectedCountry,
-    staleTime: 30 * 1000,
-    refetchInterval: 15 * 1000, // Auto-refresh to track generation progress
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000, // Auto-refresh every 5s for real-time status
   });
   
   // Build a map of topic name -> status for quick lookup

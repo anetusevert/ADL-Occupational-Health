@@ -26,6 +26,7 @@ import { AIOrchestrationLayer } from "./pages/admin/AIOrchestrationLayer";
 import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
 import { MetricCalculator } from "./pages/admin/MetricCalculator";
 import CountryDeepDive from "./pages/CountryDeepDive";
+import { DeepDiveReports } from "./pages/DeepDiveReports";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
 
 // Create React Query client with optimized defaults
@@ -271,6 +272,17 @@ function AppContent() {
               <AppLayout>
                 <ProtectedRoute>
                   <CountryDeepDive />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/deep-dive-reports"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <DeepDiveReports />
                 </ProtectedRoute>
               </AppLayout>
             }

@@ -58,12 +58,13 @@ ALL_TOPICS = [
 # PARALLEL EXECUTION CONFIGURATION
 # =============================================================================
 
-# Maximum concurrent report generations (reduced to avoid API rate limits)
-# With 2 concurrent + throttling, we stay well under typical RPM limits
-MAX_CONCURRENT_GENERATIONS = 2
+# Maximum concurrent report generations
+# With 3 concurrent + throttling, we balance speed with API rate limits
+MAX_CONCURRENT_GENERATIONS = 3
 
 # Delay between batches to avoid rate limit bursts (seconds)
-THROTTLE_DELAY_SECONDS = 3
+# Reduced from 3s to 1s for faster throughput
+THROTTLE_DELAY_SECONDS = 1
 
 # European countries (44)
 EU_COUNTRIES = [
@@ -488,6 +489,105 @@ async def generate_country_deep_dive(
         )
     
     return result
+
+
+class QueueDeepDiveResponse(BaseModel):
+    """Response for queue single topic endpoint."""
+    success: bool
+    queued: bool
+    iso_code: str
+    country_name: str
+    topic: str
+    status: str
+    message: str
+
+
+@router.post("/{iso_code}/queue", response_model=QueueDeepDiveResponse)
+async def queue_country_deep_dive(
+    iso_code: str,
+    request: GenerateDeepDiveRequest = None,
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Queue a single topic report for background generation.
+    
+    This endpoint returns immediately after queuing the task, allowing the user
+    to navigate away while the report generates in the background.
+    
+    Use GET /{iso_code}/topics to poll for status updates.
+    """
+    from app.services.strategic_deep_dive_agent import StrategicDeepDiveAgent
+    
+    iso_code = iso_code.upper()
+    
+    # Verify country exists
+    country = db.query(Country).filter(
+        Country.iso_code == iso_code
+    ).first()
+    
+    if not country:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Country {iso_code} not found in database"
+        )
+    
+    topic = request.topic if request else "Comprehensive Occupational Health Assessment"
+    
+    # Check if report already exists (completed)
+    existing = db.query(CountryDeepDive).filter(
+        CountryDeepDive.country_iso_code == iso_code,
+        CountryDeepDive.topic == topic
+    ).first()
+    
+    if existing and existing.status == DeepDiveStatus.COMPLETED:
+        return QueueDeepDiveResponse(
+            success=True,
+            queued=False,
+            iso_code=iso_code,
+            country_name=country.name,
+            topic=topic,
+            status="completed",
+            message="Report already exists"
+        )
+    
+    if existing and existing.status == DeepDiveStatus.PROCESSING:
+        return QueueDeepDiveResponse(
+            success=True,
+            queued=False,
+            iso_code=iso_code,
+            country_name=country.name,
+            topic=topic,
+            status="processing",
+            message="Report is already being generated"
+        )
+    
+    # Create or update deep dive record with PENDING status
+    agent = StrategicDeepDiveAgent(db)
+    deep_dive = agent._get_or_create_deep_dive(iso_code, topic)
+    deep_dive.status = DeepDiveStatus.PENDING
+    db.commit()
+    
+    # Queue background task
+    background_tasks.add_task(
+        _generate_single_topic_task,
+        iso_code=iso_code,
+        topic=topic,
+        user_id=str(current_user.id),
+    )
+    
+    logger.info(f"[Queue] Queued generation: {iso_code} - {topic}")
+    
+    return QueueDeepDiveResponse(
+        success=True,
+        queued=True,
+        iso_code=iso_code,
+        country_name=country.name,
+        topic=topic,
+        status="pending",
+        message="Report queued for background generation"
+    )
 
 
 class GenerateAllTopicsResponse(BaseModel):

@@ -652,6 +652,32 @@ export async function generateStrategicDeepDive(
 }
 
 /**
+ * Queue a strategic deep dive for background generation
+ * Returns immediately - use getCountryTopicStatuses to poll for completion
+ */
+export interface QueueDeepDiveResponse {
+  success: boolean;
+  queued: boolean;
+  iso_code: string;
+  country_name: string;
+  topic: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  message: string;
+}
+
+export async function queueStrategicDeepDive(
+  isoCode: string,
+  topic: string = "Comprehensive Occupational Health Assessment"
+): Promise<QueueDeepDiveResponse> {
+  // Use standard client - this returns immediately
+  const response = await apiClient.post<QueueDeepDiveResponse>(
+    `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/queue`,
+    { iso_code: isoCode.toUpperCase(), topic }
+  );
+  return response.data;
+}
+
+/**
  * Generate all 13 topic reports for a single country (async)
  * Returns immediately after queuing - poll topic statuses to track progress
  */

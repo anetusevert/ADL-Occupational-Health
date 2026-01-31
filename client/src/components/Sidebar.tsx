@@ -54,6 +54,7 @@ const analyticsSuiteItems: NavItem[] = [
   { path: "/", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Deep Dive", icon: Brain },
+  { path: "/deep-dive-reports", label: "Report Status", icon: Activity },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/compare", label: "Compare", icon: GitCompare },
 ];
