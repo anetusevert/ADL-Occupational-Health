@@ -143,26 +143,30 @@ export function DeepDiveWizard() {
       setIsGenerating(false);
 
       try {
-        // First, check if report already exists
+        // First, check if report already exists and is completed
         const existingReport = await getStrategicDeepDiveReport(countryIso, topic);
         
-        if (existingReport && existingReport.report) {
-          // Report exists - display it immediately
-          setReport(existingReport.report);
+        if (existingReport && existingReport.status === 'completed') {
+          // Report exists and is completed - display it immediately
+          setReport(existingReport);
           setIsFetching(false);
           return;
         }
         
-        // No existing report
+        // No existing completed report
         setIsFetching(false);
         
         if (isAdmin) {
-          // Admin can auto-generate the report
+          // Admin can auto-generate the report (synchronous - returns full report)
           setIsGenerating(true);
           const generated = await generateStrategicDeepDive(countryIso, topic);
-          setReport(generated.report?.report || null);
-          if (!generated.report?.report) {
-            setReportError(new Error("Report generation completed but no content was returned."));
+          
+          if (generated.success && generated.report) {
+            setReport(generated.report);
+          } else {
+            // Check for error message from backend
+            const errorMsg = generated.error || "Report generation completed but no content was returned.";
+            setReportError(new Error(errorMsg));
           }
         } else {
           // Regular users see a message that report is not available

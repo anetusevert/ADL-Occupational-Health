@@ -625,7 +625,7 @@ export async function getCountryTopicStatuses(
 }
 
 /**
- * Generate a strategic deep dive for a country
+ * Generate a strategic deep dive for a country (synchronous - returns full report)
  */
 export async function generateStrategicDeepDive(
   isoCode: string,
@@ -634,7 +634,7 @@ export async function generateStrategicDeepDive(
   success: boolean;
   iso_code: string;
   country_name: string;
-  report: StrategicDeepDiveReport;
+  report: StrategicDeepDiveReport | null;
   agent_log: Array<{
     timestamp: string;
     agent: string;
@@ -642,12 +642,13 @@ export async function generateStrategicDeepDive(
     message: string;
     emoji: string;
   }>;
+  error: string | null;
 }> {
-  // Use AI-specialized client with extended timeout (3 minutes)
-  // AI generation involves: DataAgent -> ResearchAgent -> LLM Synthesis
+  // Use AI-specialized client with extended timeout (6 minutes)
+  // Agent runs synchronously and returns full report immediately
   const response = await aiApiClient.post(
     `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/generate`,
-    { iso_code: isoCode.toUpperCase(), topic }
+    { topic }
   );
   return response.data;
 }

@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -68,16 +68,6 @@ class GenerateRequest(BaseModel):
     enable_web_search: bool = False
 
 
-class GenerateResponse(BaseModel):
-    """Response from report generation."""
-    success: bool
-    iso_code: str
-    topic: str
-    status: str
-    message: Optional[str]
-    report_id: Optional[str]
-
-
 class ReportResponse(BaseModel):
     """Full report response."""
     iso_code: str
@@ -103,6 +93,25 @@ class ReportResponse(BaseModel):
     data_quality_notes: Optional[str]
     generated_at: Optional[str]
     error_message: Optional[str]
+
+
+class AgentLogEntry(BaseModel):
+    """Single entry in the agent activity log."""
+    timestamp: str
+    agent: str
+    status: str
+    message: str
+    emoji: str = ""
+
+
+class GenerateResponse(BaseModel):
+    """Response from synchronous report generation - matches frontend expectations."""
+    success: bool
+    iso_code: str
+    country_name: str
+    report: Optional[ReportResponse] = None
+    agent_log: List[AgentLogEntry] = []
+    error: Optional[str] = None
 
 
 # =============================================================================
@@ -309,48 +318,55 @@ async def get_report(
 async def generate_report(
     iso_code: str,
     request: GenerateRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
     """
-    Generate a strategic deep dive report using AgentRunner.
+    Generate a strategic deep dive report using AgentRunner - SYNCHRONOUS.
     
     Uses the report-generation agent with automatic database context injection.
+    Returns the full report immediately (not background processing).
     Admin only - requires authentication.
     """
     iso_code = iso_code.upper()
+    agent_log = []
+    
+    def log_step(agent: str, status: str, message: str, emoji: str = ""):
+        agent_log.append(AgentLogEntry(
+            timestamp=datetime.utcnow().isoformat(),
+            agent=agent,
+            status=status,
+            message=message,
+            emoji=emoji,
+        ))
     
     # Get country
     country = db.query(Country).filter(Country.iso_code == iso_code).first()
     if not country:
         raise HTTPException(status_code=404, detail=f"Country '{iso_code}' not found")
     
+    log_step("System", "started", f"Generating report for {country.name}", "🚀")
+    
     # Get AI config
     ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
     if not ai_config:
-        raise HTTPException(
-            status_code=400, 
-            detail="No AI configuration found. Please configure AI settings first."
+        return GenerateResponse(
+            success=False,
+            iso_code=iso_code,
+            country_name=country.name,
+            report=None,
+            agent_log=agent_log,
+            error="No AI configuration found. Please configure AI settings first.",
         )
     
-    # Check if report already exists
+    log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model}", "⚙️")
+    
+    # Create or update deep dive record
     existing = db.query(CountryDeepDive).filter(
         CountryDeepDive.country_iso_code == iso_code,
         CountryDeepDive.topic == request.topic,
     ).first()
     
-    if existing and existing.status == DeepDiveStatus.PROCESSING:
-        return GenerateResponse(
-            success=True,
-            iso_code=iso_code,
-            topic=request.topic,
-            status="processing",
-            message="Report generation already in progress",
-            report_id=existing.id,
-        )
-    
-    # Create or update deep dive record
     if existing:
         dive = existing
         dive.status = DeepDiveStatus.PROCESSING
@@ -368,67 +384,20 @@ async def generate_report(
     db.commit()
     db.refresh(dive)
     
-    # Run generation in background
-    background_tasks.add_task(
-        _generate_report_background,
-        dive.id,
-        iso_code,
-        request.topic,
-        request.enable_web_search,
-        ai_config.id,
-    )
-    
-    return GenerateResponse(
-        success=True,
-        iso_code=iso_code,
-        topic=request.topic,
-        status="processing",
-        message=f"Report generation started for {country.name}",
-        report_id=dive.id,
-    )
-
-
-async def _generate_report_background(
-    dive_id: str,
-    iso_code: str,
-    topic: str,
-    enable_web_search: bool,
-    ai_config_id: str,
-):
-    """
-    Background task to generate report using AgentRunner.
-    
-    This runs the report-generation agent with automatic database context.
-    """
-    from app.core.database import SessionLocal
-    
-    db = SessionLocal()
     try:
-        # Get the deep dive record
-        dive = db.query(CountryDeepDive).filter(CountryDeepDive.id == dive_id).first()
-        if not dive:
-            logger.error(f"Deep dive record {dive_id} not found")
-            return
+        # Run the report-generation agent SYNCHRONOUSLY
+        log_step("AgentRunner", "running", "Executing report-generation agent with database context", "🤖")
         
-        # Get AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.id == ai_config_id).first()
-        if not ai_config:
-            dive.status = DeepDiveStatus.FAILED
-            dive.error_message = "AI configuration not found"
-            db.commit()
-            return
-        
-        # Run the report-generation agent
         runner = AgentRunner(db, ai_config)
         result = await runner.run(
             agent_id="report-generation",
             variables={
                 "ISO_CODE": iso_code,
-                "TOPIC": topic,
+                "TOPIC": request.topic,
                 # DATABASE_CONTEXT and COUNTRY_NAME are auto-injected by AgentRunner
             },
             update_stats=True,
-            enable_web_search=enable_web_search,
+            enable_web_search=request.enable_web_search,
         )
         
         if not result["success"]:
@@ -436,8 +405,19 @@ async def _generate_report_background(
             dive.error_message = result["error"]
             dive.generated_at = datetime.utcnow()
             db.commit()
-            logger.error(f"Report generation failed for {iso_code}: {result['error']}")
-            return
+            
+            log_step("AgentRunner", "failed", f"Agent failed: {result['error']}", "❌")
+            
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name=country.name,
+                report=None,
+                agent_log=agent_log,
+                error=result["error"],
+            )
+        
+        log_step("AgentRunner", "completed", "Agent returned output, parsing JSON...", "✅")
         
         # Parse JSON response from agent
         output = result["output"]
@@ -448,8 +428,19 @@ async def _generate_report_background(
             dive.error_message = "Failed to parse agent output as JSON"
             dive.generated_at = datetime.utcnow()
             db.commit()
-            logger.error(f"Failed to parse report for {iso_code}")
-            return
+            
+            log_step("Parser", "failed", "Could not parse agent output as JSON", "❌")
+            
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name=country.name,
+                report=None,
+                agent_log=agent_log,
+                error="Failed to parse agent output as JSON",
+            )
+        
+        log_step("Parser", "completed", "JSON parsed successfully, storing report", "📋")
         
         # Update deep dive with parsed data
         dive.status = DeepDiveStatus.COMPLETED
@@ -476,21 +467,68 @@ async def _generate_report_background(
         dive.error_message = None
         
         db.commit()
-        logger.info(f"Report generation completed for {iso_code} - {topic}")
+        db.refresh(dive)
+        
+        log_step("System", "completed", f"Report generated successfully for {country.name}", "🎉")
+        logger.info(f"Report generation completed for {iso_code} - {request.topic}")
+        
+        # Build and return the full report response
+        report = ReportResponse(
+            iso_code=iso_code,
+            country_name=country.name,
+            topic=dive.topic,
+            status=dive.status.value,
+            strategy_name=dive.strategy_name,
+            executive_summary=dive.executive_summary,
+            strategic_narrative=dive.strategic_narrative,
+            health_profile=dive.health_profile,
+            workforce_insights=dive.workforce_insights,
+            key_findings=dive.key_findings or [],
+            strengths=dive.strengths or [],
+            weaknesses=dive.weaknesses or [],
+            opportunities=dive.opportunities or [],
+            threats=dive.threats or [],
+            strategic_recommendations=dive.strategic_recommendations or [],
+            action_items=dive.action_items or [],
+            priority_interventions=dive.priority_interventions or [],
+            peer_comparison=dive.peer_comparison,
+            global_ranking_context=dive.global_ranking_context,
+            benchmark_countries=dive.benchmark_countries or [],
+            data_quality_notes=dive.data_quality_notes,
+            generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
+            error_message=None,
+        )
+        
+        return GenerateResponse(
+            success=True,
+            iso_code=iso_code,
+            country_name=country.name,
+            report=report,
+            agent_log=agent_log,
+            error=None,
+        )
         
     except Exception as e:
         logger.error(f"Error generating report for {iso_code}: {e}", exc_info=True)
+        
         try:
-            dive = db.query(CountryDeepDive).filter(CountryDeepDive.id == dive_id).first()
-            if dive:
-                dive.status = DeepDiveStatus.FAILED
-                dive.error_message = str(e)
-                dive.generated_at = datetime.utcnow()
-                db.commit()
-        except Exception as e2:
-            logger.error(f"Could not update dive status: {e2}")
-    finally:
-        db.close()
+            dive.status = DeepDiveStatus.FAILED
+            dive.error_message = str(e)
+            dive.generated_at = datetime.utcnow()
+            db.commit()
+        except Exception:
+            db.rollback()
+        
+        log_step("System", "failed", f"Exception: {str(e)}", "💥")
+        
+        return GenerateResponse(
+            success=False,
+            iso_code=iso_code,
+            country_name=country.name,
+            report=None,
+            agent_log=agent_log,
+            error=str(e),
+        )
 
 
 def _parse_agent_output(output: str) -> Optional[dict]:
