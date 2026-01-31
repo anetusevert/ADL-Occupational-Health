@@ -43,14 +43,17 @@ def ensure_agents_exist(db: Session):
     """
     try:
         # Check if report-generation agent exists
+        print("Checking if report-generation agent exists...")
         agent = db.query(Agent).filter(Agent.id == "report-generation").first()
         if agent:
+            print(f"Agent 'report-generation' already exists: {agent.name}")
             return  # Already exists
         
-        logger.info("Seeding default agents for strategic deep dive...")
+        print("Agent not found, seeding default agents...")
         
         # Seed all default agents
         for agent_data in DEFAULT_AGENTS:
+            print(f"Seeding agent: {agent_data['id']}")
             existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
             if not existing:
                 new_agent = Agent(
@@ -65,12 +68,18 @@ def ensure_agents_exist(db: Session):
                     is_active=True,
                 )
                 db.add(new_agent)
+                print(f"Added agent: {agent_data['id']}")
         
         db.commit()
-        logger.info(f"Seeded {len(DEFAULT_AGENTS)} default agents")
+        print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+        
     except Exception as e:
-        logger.warning(f"Could not seed agents: {e}")
+        print(f"ERROR seeding agents: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
+        # Don't silently fail - raise the exception
+        raise
 
 
 # =============================================================================
