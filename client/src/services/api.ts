@@ -17,23 +17,24 @@ import type {
 // AXIOS INSTANCE
 // ============================================================================
 
+// Known Railway backend URL
+const RAILWAY_BACKEND_URL = "https://adl-occupational-health-production.up.railway.app";
+
 // Detect API base URL with Railway auto-detection
 function getApiBaseUrl(): string {
   // First priority: explicitly set environment variable
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    return envUrl;
   }
   
   // Second priority: auto-detect for Railway deployments
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     if (hostname.includes('.up.railway.app')) {
-      // For Railway, assume backend is on same project with "back-end" prefix
-      // Frontend: front-end-production-xxxx.up.railway.app
-      // Backend:  back-end-production-xxxx.up.railway.app
-      const backendHost = hostname.replace('front-end', 'back-end');
-      console.log(`[API] Auto-detected Railway backend: https://${backendHost}`);
-      return `https://${backendHost}`;
+      // Use the known Railway backend URL
+      console.log(`[API] Railway detected, using backend: ${RAILWAY_BACKEND_URL}`);
+      return RAILWAY_BACKEND_URL;
     }
   }
   

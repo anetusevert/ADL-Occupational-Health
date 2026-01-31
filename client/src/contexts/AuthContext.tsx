@@ -43,6 +43,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = "gohip_token";
 const USER_KEY = "gohip_user";
 
+// Known Railway backend URL
+const RAILWAY_BACKEND_URL = "https://adl-occupational-health-production.up.railway.app";
+
 // Detect API base URL
 function getApiBaseUrl(): string {
   // First priority: explicitly set environment variable
@@ -55,16 +58,11 @@ function getApiBaseUrl(): string {
   // Second priority: auto-detect for Railway deployments
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    console.log(`[Auth] Current hostname: ${hostname}`);
     
     if (hostname.includes('.up.railway.app')) {
-      // For Railway, assume backend is on same project with "back-end" prefix
-      // Frontend: front-end-production-xxxx.up.railway.app
-      // Backend:  back-end-production-xxxx.up.railway.app
-      const backendHost = hostname.replace('front-end', 'back-end');
-      console.log(`[Auth] Auto-detected Railway backend: https://${backendHost}`);
-      console.warn(`[Auth] If login fails, verify backend URL in Railway dashboard`);
-      return `https://${backendHost}`;
+      // Use the known Railway backend URL
+      console.log(`[Auth] Railway detected, using backend: ${RAILWAY_BACKEND_URL}`);
+      return RAILWAY_BACKEND_URL;
     }
   }
   
