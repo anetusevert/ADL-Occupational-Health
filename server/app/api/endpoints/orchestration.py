@@ -24,7 +24,7 @@ from app.models.agent import Agent, DEFAULT_AGENTS
 from app.services.agent_runner import AgentRunner
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/orchestration", tags=["AI Orchestration"])
 
 
 # =============================================================================
