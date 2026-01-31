@@ -331,9 +331,31 @@ interface CountryFlagProps {
   size?: "sm" | "md" | "lg";
 }
 
+// ISO3 to ISO2 mapping for flag CDN (only needed for non-standard codes)
+const ISO3_TO_ISO2: Record<string, string> = {
+  'SAU': 'sa', 'ARE': 'ae', 'QAT': 'qa', 'KWT': 'kw', 'BHR': 'bh', 'OMN': 'om',
+  'DEU': 'de', 'GBR': 'gb', 'USA': 'us', 'FRA': 'fr', 'ESP': 'es', 'ITA': 'it',
+  'NLD': 'nl', 'BEL': 'be', 'AUT': 'at', 'CHE': 'ch', 'POL': 'pl', 'CZE': 'cz',
+  'HUN': 'hu', 'ROU': 'ro', 'BGR': 'bg', 'GRC': 'gr', 'PRT': 'pt', 'SWE': 'se',
+  'NOR': 'no', 'DNK': 'dk', 'FIN': 'fi', 'IRL': 'ie', 'SVK': 'sk', 'SVN': 'si',
+  'HRV': 'hr', 'SRB': 'rs', 'BIH': 'ba', 'MKD': 'mk', 'ALB': 'al', 'MNE': 'me',
+  'LVA': 'lv', 'LTU': 'lt', 'EST': 'ee', 'UKR': 'ua', 'BLR': 'by', 'MDA': 'md',
+  'RUS': 'ru', 'ISL': 'is', 'LUX': 'lu', 'MLT': 'mt', 'CYP': 'cy', 'AND': 'ad',
+  'MCO': 'mc', 'SMR': 'sm', 'VAT': 'va', 'LIE': 'li',
+  'JPN': 'jp', 'CHN': 'cn', 'KOR': 'kr', 'IND': 'in', 'AUS': 'au', 'NZL': 'nz',
+  'BRA': 'br', 'MEX': 'mx', 'CAN': 'ca', 'ARG': 'ar', 'CHL': 'cl', 'COL': 'co',
+  'ZAF': 'za', 'EGY': 'eg', 'NGA': 'ng', 'KEN': 'ke', 'MAR': 'ma', 'TUN': 'tn',
+  'TUR': 'tr', 'ISR': 'il', 'JOR': 'jo', 'LBN': 'lb', 'IRN': 'ir', 'IRQ': 'iq',
+  'SGP': 'sg', 'MYS': 'my', 'THA': 'th', 'IDN': 'id', 'PHL': 'ph', 'VNM': 'vn',
+};
+
+function getISO2Code(iso3: string): string {
+  const upper = iso3.toUpperCase();
+  return ISO3_TO_ISO2[upper] || iso3.slice(0, 2).toLowerCase();
+}
+
 function CountryFlag({ country, size = "md" }: CountryFlagProps) {
   const [imgError, setImgError] = useState(false);
-  const apiBaseUrl = getApiBaseUrl();
   
   const sizeClasses = {
     sm: "w-5 h-3.5",
@@ -341,13 +363,14 @@ function CountryFlag({ country, size = "md" }: CountryFlagProps) {
     lg: "w-8 h-5",
   };
 
-  // Construct full URL: flag_url is like "/static/flags/usa.svg"
-  const fullFlagUrl = country.flag_url ? `${apiBaseUrl}${country.flag_url}` : null;
+  // Use external CDN for flags (more reliable)
+  const iso2 = getISO2Code(country.iso_code);
+  const flagUrl = `https://flagcdn.com/w80/${iso2}.png`;
 
-  if (fullFlagUrl && !imgError) {
+  if (!imgError) {
     return (
       <img 
-        src={fullFlagUrl} 
+        src={flagUrl} 
         alt={country.name} 
         className={cn("object-cover rounded shadow-sm", sizeClasses[size])}
         onError={() => setImgError(true)}

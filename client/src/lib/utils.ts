@@ -17,13 +17,37 @@ export function getApiBaseUrl(): string {
 }
 
 /**
- * Get the flag image URL for a country
+ * Get the flag image URL for a country using external CDN
  * @param isoCode - The 3-letter ISO country code (e.g., "DEU", "USA")
- * @param backendUrl - Optional backend URL, defaults to environment variable
+ * @param _backendUrl - Deprecated, kept for backward compatibility
  */
-export function getFlagImageUrl(isoCode: string, backendUrl?: string): string {
-  const baseUrl = backendUrl || getApiBaseUrl();
-  return `${baseUrl}/static/flags/${isoCode.toLowerCase()}.svg`;
+export function getFlagImageUrl(isoCode: string, _backendUrl?: string): string {
+  // Use external CDN for flags (more reliable than backend static files)
+  const iso2 = getCountryISO2(isoCode);
+  return `https://flagcdn.com/w80/${iso2.toLowerCase()}.png`;
+}
+
+/**
+ * Convert ISO 3166-1 alpha-3 to alpha-2 code
+ */
+function getCountryISO2(iso3: string): string {
+  const mapping: Record<string, string> = {
+    'SAU': 'sa', 'ARE': 'ae', 'QAT': 'qa', 'KWT': 'kw', 'BHR': 'bh', 'OMN': 'om',
+    'DEU': 'de', 'GBR': 'gb', 'USA': 'us', 'FRA': 'fr', 'ESP': 'es', 'ITA': 'it',
+    'NLD': 'nl', 'BEL': 'be', 'AUT': 'at', 'CHE': 'ch', 'POL': 'pl', 'CZE': 'cz',
+    'HUN': 'hu', 'ROU': 'ro', 'BGR': 'bg', 'GRC': 'gr', 'PRT': 'pt', 'SWE': 'se',
+    'NOR': 'no', 'DNK': 'dk', 'FIN': 'fi', 'IRL': 'ie', 'SVK': 'sk', 'SVN': 'si',
+    'HRV': 'hr', 'SRB': 'rs', 'BIH': 'ba', 'MKD': 'mk', 'ALB': 'al', 'MNE': 'me',
+    'LVA': 'lv', 'LTU': 'lt', 'EST': 'ee', 'UKR': 'ua', 'BLR': 'by', 'MDA': 'md',
+    'RUS': 'ru', 'ISL': 'is', 'LUX': 'lu', 'MLT': 'mt', 'CYP': 'cy', 'AND': 'ad',
+    'JPN': 'jp', 'CHN': 'cn', 'KOR': 'kr', 'IND': 'in', 'AUS': 'au', 'NZL': 'nz',
+    'BRA': 'br', 'MEX': 'mx', 'CAN': 'ca', 'ARG': 'ar', 'CHL': 'cl', 'COL': 'co',
+    'ZAF': 'za', 'EGY': 'eg', 'NGA': 'ng', 'KEN': 'ke', 'MAR': 'ma', 'TUN': 'tn',
+    'TUR': 'tr', 'ISR': 'il', 'JOR': 'jo', 'LBN': 'lb', 'SGP': 'sg', 'MYS': 'my',
+    'THA': 'th', 'IDN': 'id', 'PHL': 'ph', 'VNM': 'vn',
+  };
+  const upper = iso3.toUpperCase();
+  return mapping[upper] || iso3.slice(0, 2).toLowerCase();
 }
 
 /**
