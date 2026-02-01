@@ -212,7 +212,7 @@ export function ViewAnalysisPanel({
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "bg-gradient-to-b from-slate-800/50 to-slate-900/50 rounded-xl border border-slate-700/50",
-        "backdrop-blur-sm overflow-hidden",
+        "backdrop-blur-sm overflow-hidden h-full max-h-[400px] flex flex-col",
         className
       )}
     >
