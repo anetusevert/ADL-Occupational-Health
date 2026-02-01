@@ -118,9 +118,15 @@ function GameInner() {
       // Use enhanced Intelligence Briefing workflow (with web search)
       const workflowResult = await runIntelligenceBriefingWorkflow(country.iso_code);
       
-      // Set agent log for display
+      // Set agent log for display - filter to only valid entries with required fields
       if (workflowResult.agent_log) {
-        setAgentLog(workflowResult.agent_log);
+        const validLogs = workflowResult.agent_log.filter(
+          (entry): entry is typeof entry => 
+            entry != null && 
+            typeof entry.agent === 'string' && 
+            typeof entry.status === 'string'
+        );
+        setAgentLog(validLogs);
       }
       setIsWorkflowComplete(true);
       

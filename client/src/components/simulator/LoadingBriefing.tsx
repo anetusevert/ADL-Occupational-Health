@@ -371,6 +371,9 @@ export function LoadingBriefing({
             >
               <AnimatePresence>
                 {displayedLogs.map((entry, index) => {
+                  // Skip malformed entries
+                  if (!entry || !entry.agent) return null;
+                  
                   const Icon = AGENT_ICONS[entry.agent] || Sparkles;
                   const statusColor = STATUS_COLORS[entry.status] || 'text-slate-400';
                   const isLast = index === displayedLogs.length - 1;
