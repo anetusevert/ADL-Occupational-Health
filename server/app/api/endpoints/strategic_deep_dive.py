@@ -313,6 +313,17 @@ async def get_report(
         CountryDeepDive.topic == topic,
     ).first()
     
+    # DEBUG: Log what we found
+    if dive:
+        logger.info(f"GET /{iso_code} - Found dive record:")
+        logger.info(f"  status: {dive.status.value}")
+        logger.info(f"  key_findings type: {type(dive.key_findings)}")
+        logger.info(f"  key_findings sample: {str(dive.key_findings)[:200] if dive.key_findings else 'empty'}")
+        logger.info(f"  strengths type: {type(dive.strengths)}")
+        logger.info(f"  executive_summary: {dive.executive_summary[:100] if dive.executive_summary else 'None'}...")
+    else:
+        logger.info(f"GET /{iso_code} - No dive record found for topic: {topic}")
+    
     if not dive:
         # Return empty report with pending status
         return ReportResponse(
@@ -366,6 +377,99 @@ async def get_report(
         generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
         error_message=dive.error_message,
     )
+
+
+@router.get("/{iso_code}/debug")
+async def debug_report(
+    iso_code: str,
+    topic: str = "Comprehensive Occupational Health Assessment",
+    db: Session = Depends(get_db),
+):
+    """
+    Debug endpoint to inspect raw CountryDeepDive data.
+    
+    Use this to check if JSONB fields contain corrupted/unexpected data.
+    """
+    iso_code = iso_code.upper()
+    
+    dive = db.query(CountryDeepDive).filter(
+        CountryDeepDive.country_iso_code == iso_code,
+        CountryDeepDive.topic == topic,
+    ).first()
+    
+    if not dive:
+        return {
+            "status": "no_record",
+            "iso_code": iso_code,
+            "topic": topic,
+            "message": "No deep dive record found for this country and topic",
+        }
+    
+    # Inspect the data types and samples
+    return {
+        "status": "found",
+        "iso_code": iso_code,
+        "topic": topic,
+        "dive_id": dive.id,
+        "dive_status": dive.status.value,
+        "data_inspection": {
+            "executive_summary": {
+                "type": str(type(dive.executive_summary)),
+                "length": len(dive.executive_summary) if dive.executive_summary else 0,
+                "sample": dive.executive_summary[:300] if dive.executive_summary else None,
+            },
+            "key_findings": {
+                "type": str(type(dive.key_findings)),
+                "length": len(dive.key_findings) if dive.key_findings else 0,
+                "sample": str(dive.key_findings)[:500] if dive.key_findings else None,
+            },
+            "strengths": {
+                "type": str(type(dive.strengths)),
+                "length": len(dive.strengths) if dive.strengths else 0,
+                "sample": str(dive.strengths)[:500] if dive.strengths else None,
+            },
+            "weaknesses": {
+                "type": str(type(dive.weaknesses)),
+                "length": len(dive.weaknesses) if dive.weaknesses else 0,
+                "sample": str(dive.weaknesses)[:500] if dive.weaknesses else None,
+            },
+            "strategic_recommendations": {
+                "type": str(type(dive.strategic_recommendations)),
+                "length": len(dive.strategic_recommendations) if dive.strategic_recommendations else 0,
+                "sample": str(dive.strategic_recommendations)[:500] if dive.strategic_recommendations else None,
+            },
+        },
+        "generated_at": dive.generated_at.isoformat() if dive.generated_at else None,
+        "error_message": dive.error_message,
+    }
+
+
+@router.delete("/{iso_code}/clear-all")
+async def clear_all_reports(
+    iso_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Delete ALL deep dive records for a country to allow fresh generation.
+    
+    Admin only. Use this to clear corrupted data.
+    """
+    iso_code = iso_code.upper()
+    
+    deleted = db.query(CountryDeepDive).filter(
+        CountryDeepDive.country_iso_code == iso_code
+    ).delete()
+    db.commit()
+    
+    logger.info(f"Cleared {deleted} deep dive records for {iso_code}")
+    
+    return {
+        "success": True,
+        "iso_code": iso_code,
+        "deleted_count": deleted,
+        "message": f"Deleted {deleted} deep dive records for {iso_code}",
+    }
 
 
 @router.post("/{iso_code}/generate", response_model=GenerateResponse)
