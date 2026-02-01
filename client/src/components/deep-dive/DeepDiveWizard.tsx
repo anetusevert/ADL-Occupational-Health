@@ -18,7 +18,8 @@ import {
   generateStrategicDeepDive,
   getStrategicDeepDiveReport,
   type CountryDeepDiveItem, 
-  type TopicStatus 
+  type TopicStatus,
+  type StrategicDeepDiveReport,
 } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { exportToPDF, exportToWord } from "../../services/reportExport";
@@ -26,6 +27,146 @@ import { CountrySelectionStep } from "./CountrySelectionStep";
 import { TopicSelectionStep } from "./TopicSelectionStep";
 import { ReportDisplayStep } from "./ReportDisplayStep";
 import { StepIndicator, FloatingParticles } from "./shared";
+
+// =============================================================================
+// HELPER: Convert report object to markdown string for display
+// =============================================================================
+
+function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
+  const sections: string[] = [];
+  
+  // Title
+  sections.push(`# Strategic Intelligence Briefing: ${report.country_name || 'Unknown'}`);
+  sections.push(`**Topic:** ${report.topic || 'Comprehensive Analysis'}`);
+  sections.push('');
+  
+  // Executive Summary
+  if (report.executive_summary) {
+    sections.push('## Executive Summary');
+    sections.push(report.executive_summary);
+    sections.push('');
+  }
+  
+  // Strategy Name
+  if (report.strategy_name) {
+    sections.push('## Strategic Approach');
+    sections.push(`**${report.strategy_name}**`);
+    if (report.strategic_narrative) {
+      sections.push('');
+      sections.push(report.strategic_narrative);
+    }
+    sections.push('');
+  }
+  
+  // Key Findings
+  if (report.key_findings && report.key_findings.length > 0) {
+    sections.push('## Key Findings');
+    report.key_findings.forEach((finding: any) => {
+      sections.push(`### ${finding.title || 'Finding'}`);
+      sections.push(finding.description || '');
+      if (finding.impact_level) {
+        sections.push(`**Impact Level:** ${finding.impact_level}`);
+      }
+      sections.push('');
+    });
+  }
+  
+  // SWOT Analysis
+  const hasSwot = report.strengths?.length || report.weaknesses?.length || 
+                  report.opportunities?.length || report.threats?.length;
+  if (hasSwot) {
+    sections.push('## SWOT Analysis');
+    
+    if (report.strengths?.length) {
+      sections.push('### Strengths');
+      report.strengths.forEach((s: any) => {
+        const title = typeof s === 'string' ? s : (s.title || 'Strength');
+        const desc = typeof s === 'string' ? '' : (s.description || '');
+        sections.push(`- **${title}**${desc ? `: ${desc}` : ''}`);
+      });
+      sections.push('');
+    }
+    if (report.weaknesses?.length) {
+      sections.push('### Weaknesses');
+      report.weaknesses.forEach((w: any) => {
+        const title = typeof w === 'string' ? w : (w.title || 'Weakness');
+        const desc = typeof w === 'string' ? '' : (w.description || '');
+        sections.push(`- **${title}**${desc ? `: ${desc}` : ''}`);
+      });
+      sections.push('');
+    }
+    if (report.opportunities?.length) {
+      sections.push('### Opportunities');
+      report.opportunities.forEach((o: any) => {
+        const title = typeof o === 'string' ? o : (o.title || 'Opportunity');
+        const desc = typeof o === 'string' ? '' : (o.description || '');
+        sections.push(`- **${title}**${desc ? `: ${desc}` : ''}`);
+      });
+      sections.push('');
+    }
+    if (report.threats?.length) {
+      sections.push('### Threats');
+      report.threats.forEach((t: any) => {
+        const title = typeof t === 'string' ? t : (t.title || 'Threat');
+        const desc = typeof t === 'string' ? '' : (t.description || '');
+        sections.push(`- **${title}**${desc ? `: ${desc}` : ''}`);
+      });
+      sections.push('');
+    }
+  }
+  
+  // Strategic Recommendations
+  if (report.strategic_recommendations?.length) {
+    sections.push('## Strategic Recommendations');
+    report.strategic_recommendations.forEach((rec: any, index: number) => {
+      const title = rec.title || `Recommendation ${index + 1}`;
+      sections.push(`### ${title}`);
+      if (rec.description) sections.push(rec.description);
+      if (rec.priority) sections.push(`**Priority:** ${rec.priority}`);
+      if (rec.timeline) sections.push(`**Timeline:** ${rec.timeline}`);
+      sections.push('');
+    });
+  }
+  
+  // Action Items
+  if (report.action_items?.length) {
+    sections.push('## Action Items');
+    report.action_items.forEach((item: any) => {
+      const action = typeof item === 'string' ? item : (item.action || item.title || 'Action');
+      sections.push(`- ${action}`);
+    });
+    sections.push('');
+  }
+  
+  // Peer Comparison
+  if (report.peer_comparison) {
+    sections.push('## Peer Comparison');
+    sections.push(report.peer_comparison);
+    sections.push('');
+  }
+  
+  // Global Ranking Context
+  if (report.global_ranking_context) {
+    sections.push('## Global Ranking Context');
+    sections.push(report.global_ranking_context);
+    sections.push('');
+  }
+  
+  // Data Quality Notes
+  if (report.data_quality_notes) {
+    sections.push('## Data Quality Notes');
+    sections.push(report.data_quality_notes);
+    sections.push('');
+  }
+  
+  // Generated timestamp
+  if (report.generated_at) {
+    sections.push('---');
+    sections.push(`*Report generated: ${new Date(report.generated_at).toLocaleString()}*`);
+  }
+  
+  return sections.join('\n');
+}
 
 // Animation variants for step transitions
 const stepVariants = {
@@ -147,8 +288,8 @@ export function DeepDiveWizard() {
         const existingReport = await getStrategicDeepDiveReport(countryIso, topic);
         
         if (existingReport && existingReport.status === 'completed') {
-          // Report exists and is completed - display it immediately
-          setReport(existingReport);
+          // Report exists and is completed - convert to markdown and display
+          setReport(formatReportAsMarkdown(existingReport));
           setIsFetching(false);
           return;
         }
@@ -162,7 +303,8 @@ export function DeepDiveWizard() {
           const generated = await generateStrategicDeepDive(countryIso, topic);
           
           if (generated.success && generated.report) {
-            setReport(generated.report);
+            // Convert report object to markdown for display
+            setReport(formatReportAsMarkdown(generated.report));
           } else {
             // Check for error message from backend
             const errorMsg = generated.error || "Report generation completed but no content was returned.";
