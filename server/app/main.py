@@ -207,39 +207,67 @@ async def startup_event():
         import traceback
         traceback.print_exc()
     
-    # Seed default agents on startup
+    # Seed default agents on startup using RAW SQL to avoid ORM/schema mismatches
     try:
-        from app.models.agent import Agent, DEFAULT_AGENTS
-        db = SessionLocal()
+        from app.models.agent import DEFAULT_AGENTS
+        import json
         
-        # Check if report-generation agent exists
-        existing_agent = db.query(Agent).filter(Agent.id == "report-generation").first()
-        
-        if not existing_agent:
-            print("Seeding default agents on startup...")
-            for agent_data in DEFAULT_AGENTS:
-                existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
-                if not existing:
-                    new_agent = Agent(
-                        id=agent_data["id"],
-                        name=agent_data["name"],
-                        description=agent_data["description"],
-                        system_prompt=agent_data["system_prompt"],
-                        user_prompt_template=agent_data["user_prompt_template"],
-                        template_variables=agent_data["template_variables"],
-                        icon=agent_data["icon"],
-                        color=agent_data["color"],
-                        is_active=True,
-                    )
-                    db.add(new_agent)
-                    print(f"  Added agent: {agent_data['id']}")
+        with engine.connect() as conn:
+            # First, make ALL potentially problematic columns nullable
+            legacy_columns = ['category', 'workflow', 'input_schema', 'output_schema']
+            for col in legacy_columns:
+                try:
+                    conn.execute(text(f"ALTER TABLE agents ALTER COLUMN {col} DROP NOT NULL"))
+                    conn.commit()
+                    print(f"Made column {col} nullable")
+                except Exception:
+                    pass  # Column doesn't exist or already nullable
             
-            db.commit()
-            print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
-        else:
-            print(f"Agents already exist ({existing_agent.name})")
-        
-        db.close()
+            # Check if report-generation agent exists
+            result = conn.execute(text("SELECT id FROM agents WHERE id = 'report-generation'"))
+            existing = result.fetchone()
+            
+            if not existing:
+                print("Seeding default agents on startup using raw SQL...")
+                
+                for agent_data in DEFAULT_AGENTS:
+                    # Check if this agent exists
+                    check = conn.execute(text(f"SELECT id FROM agents WHERE id = :id"), {"id": agent_data["id"]})
+                    if check.fetchone():
+                        continue
+                    
+                    # Insert using raw SQL with only the columns we know exist
+                    insert_sql = text("""
+                        INSERT INTO agents (
+                            id, name, description, system_prompt, user_prompt_template,
+                            template_variables, icon, color, is_active, execution_count,
+                            created_at, updated_at
+                        ) VALUES (
+                            :id, :name, :description, :system_prompt, :user_prompt_template,
+                            :template_variables, :icon, :color, :is_active, :execution_count,
+                            NOW(), NOW()
+                        )
+                    """)
+                    
+                    conn.execute(insert_sql, {
+                        "id": agent_data["id"],
+                        "name": agent_data["name"],
+                        "description": agent_data["description"],
+                        "system_prompt": agent_data["system_prompt"],
+                        "user_prompt_template": agent_data["user_prompt_template"],
+                        "template_variables": json.dumps(agent_data["template_variables"]),
+                        "icon": agent_data["icon"],
+                        "color": agent_data["color"],
+                        "is_active": True,
+                        "execution_count": 0,
+                    })
+                    conn.commit()
+                    print(f"  Added agent: {agent_data['id']}")
+                
+                print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+            else:
+                print("Agents already exist (report-generation found)")
+                
     except Exception as e:
         print(f"Agent seeding error on startup: {e}")
         import traceback
