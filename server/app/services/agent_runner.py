@@ -235,6 +235,11 @@ class AgentRunner:
             response = await llm.ainvoke(messages)
             output = response.content
             
+            # Log the LLM output for debugging
+            logger.info(f"[AgentRunner] LLM response type: {type(output)}")
+            logger.info(f"[AgentRunner] LLM response length: {len(output) if output else 0}")
+            logger.info(f"[AgentRunner] LLM response sample: {str(output)[:300] if output else 'None'}...")
+            
             # 7. Update agent stats
             if update_stats:
                 try:

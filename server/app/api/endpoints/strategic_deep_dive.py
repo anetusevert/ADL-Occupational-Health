@@ -501,10 +501,13 @@ async def generate_report(
     
     try:
         # Ensure agents are seeded before running
+        logger.info(f"[GENERATE] Starting generation for {iso_code}")
         ensure_agents_exist(db)
+        logger.info(f"[GENERATE] ensure_agents_exist completed successfully")
         
         # Get country
         country = db.query(Country).filter(Country.iso_code == iso_code).first()
+        logger.info(f"[GENERATE] Country query result: {country.name if country else 'Not found'}")
         if not country:
             return GenerateResponse(
                 success=False,
@@ -612,7 +615,13 @@ async def generate_report(
         
         # Parse JSON response from agent
         output = result["output"]
+        logger.info(f"[GENERATE] AgentRunner output type: {type(output)}")
+        logger.info(f"[GENERATE] AgentRunner output length: {len(output) if output else 0}")
+        logger.info(f"[GENERATE] AgentRunner output sample: {str(output)[:500] if output else 'None'}...")
+        
         report_data = _parse_agent_output(output)
+        logger.info(f"[GENERATE] Parsed report_data type: {type(report_data)}")
+        logger.info(f"[GENERATE] Parsed report_data keys: {list(report_data.keys()) if report_data else 'None'}")
         
         if not report_data:
             dive.status = DeepDiveStatus.FAILED
@@ -690,7 +699,19 @@ async def generate_report(
             error_message=None,
         )
         
-        return GenerateResponse(
+        # Validate report before returning - check for unexpected data
+        logger.info(f"[GENERATE] Building final response with report")
+        logger.info(f"[GENERATE] Report iso_code: {report.iso_code}, status: {report.status}")
+        logger.info(f"[GENERATE] Report executive_summary length: {len(report.executive_summary) if report.executive_summary else 0}")
+        logger.info(f"[GENERATE] Report key_findings count: {len(report.key_findings)}")
+        
+        # Check for suspicious agent-like data in the report
+        report_dict = report.dict() if hasattr(report, 'dict') else {}
+        suspicious_keys = [k for k in report_dict.keys() if 'system_prompt' in str(k).lower() or '__' in str(k)]
+        if suspicious_keys:
+            logger.error(f"[GENERATE] ALERT: Report contains suspicious keys: {suspicious_keys}")
+        
+        final_response = GenerateResponse(
             success=True,
             iso_code=iso_code,
             country_name=country.name,
@@ -698,6 +719,9 @@ async def generate_report(
             agent_log=agent_log,
             error=None,
         )
+        
+        logger.info(f"[GENERATE] Returning successful GenerateResponse")
+        return final_response
         
     except Exception as e:
         logger.error(f"Error generating report for {iso_code}: {e}", exc_info=True)
