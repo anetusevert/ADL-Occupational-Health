@@ -31,7 +31,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalMap } from "../components";
 import { ADLIcon } from "../components/ADLLogo";
-import { ViewSelectionModal } from "../components/ViewSelectionModal";
+import { PillarSelectionModal } from "../components/PillarSelectionModal";
 import { apiClient } from "../services/api";
 import { cn, getApiBaseUrl, getEffectiveOHIScore } from "../lib/utils";
 import type { MapCountryData, MapMetric, GeoJSONMetadataResponse } from "../types/country";
@@ -621,13 +621,19 @@ export function Home() {
         )}
       </AnimatePresence>
 
-      {/* View Selection Modal */}
-      <ViewSelectionModal
+      {/* Pillar Selection Modal */}
+      <PillarSelectionModal
         isOpen={!!viewSelectionCountry}
         onClose={() => setViewSelectionCountry(null)}
-        countryIso={viewSelectionCountry?.iso_code ?? ""}
-        countryName={viewSelectionCountry?.name ?? ""}
-        countryFlagUrl={viewSelectionCountry?.flag_url}
+        country={viewSelectionCountry ? {
+          iso_code: viewSelectionCountry.iso_code,
+          name: viewSelectionCountry.name,
+          flag_url: viewSelectionCountry.flag_url,
+          governance_score: viewSelectionCountry.governance_score,
+          pillar1_score: viewSelectionCountry.pillar1_score,
+          pillar2_score: viewSelectionCountry.pillar2_score,
+          pillar3_score: viewSelectionCountry.pillar3_score,
+        } : null}
       />
     </div>
   );

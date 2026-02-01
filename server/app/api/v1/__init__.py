@@ -27,6 +27,16 @@ except Exception as e:
     logger.error(f"Failed to import view_analysis router: {e}")
     view_analysis_router = None
 
+# Import pillar_analysis routers with error handling
+try:
+    from app.api.endpoints.pillar_analysis import router as pillar_analysis_router
+    from app.api.endpoints.pillar_analysis import summary_router as summary_report_router
+    logger.info("Pillar analysis routers imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import pillar_analysis routers: {e}")
+    pillar_analysis_router = None
+    summary_report_router = None
+
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -49,3 +59,16 @@ if view_analysis_router:
     logger.info("View analysis router registered at /api/v1/view-analysis")
 else:
     logger.warning("View analysis router not available")
+
+# Include pillar_analysis routers if they loaded successfully
+if pillar_analysis_router:
+    api_router.include_router(pillar_analysis_router)
+    logger.info("Pillar analysis router registered at /api/v1/pillar-analysis")
+else:
+    logger.warning("Pillar analysis router not available")
+
+if summary_report_router:
+    api_router.include_router(summary_report_router)
+    logger.info("Summary report router registered at /api/v1/summary-report")
+else:
+    logger.warning("Summary report router not available")

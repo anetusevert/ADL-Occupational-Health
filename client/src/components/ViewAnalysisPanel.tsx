@@ -11,11 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Lightbulb, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { ADLIcon } from "./ADLLogo";
-import type { ViewType } from "./ViewSelectionModal";
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+export type ViewType = "layers" | "flow" | "radar" | "summary";
 
 interface KeyInsight {
   insight: string;

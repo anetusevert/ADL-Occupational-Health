@@ -12,7 +12,6 @@ import { AppLayout } from "./components/AppLayout";
 import { LandingPage } from "./pages/LandingPage";
 import {
   Home,
-  CountryProfile,
   FrameworkPage,
   DataEngine,
   Leaderboard,
@@ -28,6 +27,8 @@ import { MetricCalculator } from "./pages/admin/MetricCalculator";
 import CountryDeepDive from "./pages/CountryDeepDive";
 import { DeepDiveReports } from "./pages/DeepDiveReports";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
+import { PillarPage } from "./pages/PillarPage";
+import { OverallSummary } from "./pages/OverallSummary";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -211,12 +212,63 @@ function AppContent() {
             }
           />
 
+          {/* Redirect old country route to summary */}
           <Route
             path="/country/:iso"
+            element={<Navigate to="summary" replace />}
+          />
+
+          {/* Pillar-specific routes */}
+          <Route
+            path="/country/:iso/governance"
             element={
               <AppLayout>
                 <ProtectedRoute>
-                  <CountryProfile />
+                  <PillarPage />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/country/:iso/hazard-control"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <PillarPage />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/country/:iso/vigilance"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <PillarPage />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/country/:iso/restoration"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <PillarPage />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/country/:iso/summary"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <OverallSummary />
                 </ProtectedRoute>
               </AppLayout>
             }
