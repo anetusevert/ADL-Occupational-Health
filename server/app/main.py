@@ -223,20 +223,42 @@ async def startup_event():
                 except Exception:
                     pass  # Column doesn't exist or already nullable
             
-            # Check if report-generation agent exists
-            result = conn.execute(text("SELECT id FROM agents WHERE id = 'report-generation'"))
-            existing = result.fetchone()
+            # ALWAYS sync agents with DEFAULT_AGENTS - update prompts if changed
+            print("Syncing agents with DEFAULT_AGENTS (insert or update)...")
             
-            if not existing:
-                print("Seeding default agents on startup using raw SQL...")
+            for agent_data in DEFAULT_AGENTS:
+                # Check if this agent exists
+                check = conn.execute(text("SELECT id FROM agents WHERE id = :id"), {"id": agent_data["id"]})
+                exists = check.fetchone()
                 
-                for agent_data in DEFAULT_AGENTS:
-                    # Check if this agent exists
-                    check = conn.execute(text(f"SELECT id FROM agents WHERE id = :id"), {"id": agent_data["id"]})
-                    if check.fetchone():
-                        continue
-                    
-                    # Insert using raw SQL with only the columns we know exist
+                if exists:
+                    # UPDATE existing agent with latest prompts from code
+                    update_sql = text("""
+                        UPDATE agents SET
+                            name = :name,
+                            description = :description,
+                            system_prompt = :system_prompt,
+                            user_prompt_template = :user_prompt_template,
+                            template_variables = :template_variables,
+                            icon = :icon,
+                            color = :color,
+                            updated_at = NOW()
+                        WHERE id = :id
+                    """)
+                    conn.execute(update_sql, {
+                        "id": agent_data["id"],
+                        "name": agent_data["name"],
+                        "description": agent_data["description"],
+                        "system_prompt": agent_data["system_prompt"],
+                        "user_prompt_template": agent_data["user_prompt_template"],
+                        "template_variables": json.dumps(agent_data["template_variables"]),
+                        "icon": agent_data["icon"],
+                        "color": agent_data["color"],
+                    })
+                    conn.commit()
+                    print(f"  Updated agent: {agent_data['id']}")
+                else:
+                    # INSERT new agent
                     insert_sql = text("""
                         INSERT INTO agents (
                             id, name, description, system_prompt, user_prompt_template,
@@ -248,7 +270,6 @@ async def startup_event():
                             NOW(), NOW()
                         )
                     """)
-                    
                     conn.execute(insert_sql, {
                         "id": agent_data["id"],
                         "name": agent_data["name"],
@@ -263,10 +284,8 @@ async def startup_event():
                     })
                     conn.commit()
                     print(f"  Added agent: {agent_data['id']}")
-                
-                print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
-            else:
-                print("Agents already exist (report-generation found)")
+            
+            print(f"Successfully synced {len(DEFAULT_AGENTS)} agents with latest prompts")
                 
     except Exception as e:
         print(f"Agent seeding error on startup: {e}")
