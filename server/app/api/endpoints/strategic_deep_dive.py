@@ -188,20 +188,45 @@ class GenerateRequest(BaseModel):
 
 
 class ReportResponse(BaseModel):
-    """Full report response - simplified for faster generation."""
+    """Premium report response with comprehensive SWOT analysis and strategic recommendations."""
+    # Core identification
     iso_code: str
     country_name: str
     topic: str
     status: str
+    
+    # Executive Section
+    strategy_name: Optional[str] = None
     executive_summary: Optional[str] = None
-    key_findings: List[str] = []
-    strengths: List[str] = []
-    weaknesses: List[str] = []
-    recommendations: List[str] = []
+    strategic_narrative: Optional[str] = None
+    
+    # Context Sections
+    health_profile: Optional[str] = None
+    workforce_insights: Optional[str] = None
+    
+    # Key Findings (each: {title, description, impact_level})
+    key_findings: List[Any] = []
+    
+    # SWOT Analysis (each item: {title, description, ...})
+    strengths: List[Any] = []
+    weaknesses: List[Any] = []
+    opportunities: List[Any] = []
+    threats: List[Any] = []
+    
+    # Recommendations and Actions
+    strategic_recommendations: List[Any] = []  # {title, description, priority, timeline}
+    priority_interventions: List[str] = []
+    action_items: List[Any] = []  # {action, responsible_party, timeline}
+    
+    # Benchmarking
     peer_comparison: Optional[str] = None
+    global_ranking_context: Optional[str] = None
+    benchmark_countries: List[Any] = []  # {iso_code, name, reason}
+    
+    # Metadata
     generated_at: Optional[str] = None
     error_message: Optional[str] = None
-    model_used: Optional[str] = None  # Which AI model generated this report
+    model_used: Optional[str] = None
 
 
 class AgentLogEntry(BaseModel):
@@ -388,33 +413,46 @@ async def get_report(
             status="not_started",
         )
     
-    # Convert complex fields to simple strings if needed
-    def to_string_list(items):
-        if not items:
-            return []
-        result = []
-        for item in items:
-            if isinstance(item, dict):
-                # Extract title or description from dict
-                result.append(item.get("title") or item.get("description") or str(item))
-            else:
-                result.append(str(item))
-        return result
-    
+    # Return PREMIUM report with all fields preserved as objects
     return ReportResponse(
+        # Core identification
         iso_code=iso_code,
         country_name=country.name,
         topic=dive.topic,
         status=dive.status.value,
+        
+        # Executive Section
+        strategy_name=dive.strategy_name,
         executive_summary=dive.executive_summary,
-        key_findings=to_string_list(dive.key_findings),
-        strengths=to_string_list(dive.strengths),
-        weaknesses=to_string_list(dive.weaknesses),
-        recommendations=to_string_list(dive.strategic_recommendations),
+        strategic_narrative=dive.strategic_narrative,
+        
+        # Context Sections
+        health_profile=dive.health_profile,
+        workforce_insights=dive.workforce_insights,
+        
+        # Key Findings (preserve full objects)
+        key_findings=dive.key_findings or [],
+        
+        # SWOT Analysis (preserve full objects)
+        strengths=dive.strengths or [],
+        weaknesses=dive.weaknesses or [],
+        opportunities=dive.opportunities or [],
+        threats=dive.threats or [],
+        
+        # Recommendations and Actions
+        strategic_recommendations=dive.strategic_recommendations or [],
+        priority_interventions=dive.priority_interventions or [],
+        action_items=dive.action_items or [],
+        
+        # Benchmarking
         peer_comparison=dive.peer_comparison,
+        global_ranking_context=dive.global_ranking_context,
+        benchmark_countries=dive.benchmark_countries or [],
+        
+        # Metadata
         generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
         error_message=dive.error_message,
-        model_used=dive.ai_provider,  # Stored when report was generated
+        model_used=dive.ai_provider,
     )
 
 
@@ -796,17 +834,40 @@ async def generate_report(
                 error="Failed to parse agent output as JSON",
             )
         
-        log_step("Parser", "completed", "JSON parsed successfully, storing report", "📋")
+        log_step("Parser", "completed", "JSON parsed successfully, storing premium report", "📋")
         
-        # Update deep dive with parsed data (simplified schema)
+        # Update deep dive with parsed data (PREMIUM schema - all fields)
         dive.status = DeepDiveStatus.COMPLETED
+        
+        # Executive Section
+        dive.strategy_name = report_data.get("strategy_name")
         dive.executive_summary = report_data.get("executive_summary")
+        dive.strategic_narrative = report_data.get("strategic_narrative")
+        
+        # Context Sections
+        dive.health_profile = report_data.get("health_profile")
+        dive.workforce_insights = report_data.get("workforce_insights")
+        
+        # Key Findings
         dive.key_findings = report_data.get("key_findings", [])
+        
+        # SWOT Analysis
         dive.strengths = report_data.get("strengths", [])
         dive.weaknesses = report_data.get("weaknesses", [])
-        # Handle both "recommendations" (new) and "strategic_recommendations" (old)
-        dive.strategic_recommendations = report_data.get("recommendations") or report_data.get("strategic_recommendations", [])
+        dive.opportunities = report_data.get("opportunities", [])
+        dive.threats = report_data.get("threats", [])
+        
+        # Recommendations and Actions
+        dive.strategic_recommendations = report_data.get("strategic_recommendations") or report_data.get("recommendations", [])
+        dive.priority_interventions = report_data.get("priority_interventions", [])
+        dive.action_items = report_data.get("action_items", [])
+        
+        # Benchmarking
         dive.peer_comparison = report_data.get("peer_comparison")
+        dive.global_ranking_context = report_data.get("global_ranking_context")
+        dive.benchmark_countries = report_data.get("benchmark_countries", [])
+        
+        # Metadata
         dive.ai_provider = model_used  # Track which model was used (may include "fallback")
         dive.generated_at = datetime.utcnow()
         dive.error_message = None
@@ -817,33 +878,46 @@ async def generate_report(
         log_step("System", "completed", f"Report generated successfully for {country.name}", "🎉")
         logger.info(f"Report generation completed for {iso_code} - {request.topic}")
         
-        # Helper to convert complex fields to simple strings
-        def to_string_list(items):
-            if not items:
-                return []
-            result = []
-            for item in items:
-                if isinstance(item, dict):
-                    result.append(item.get("title") or item.get("description") or str(item))
-                else:
-                    result.append(str(item))
-            return result
-        
-        # Build and return the simplified report response
+        # Build and return the PREMIUM report response with all fields
         report = ReportResponse(
+            # Core identification
             iso_code=iso_code,
             country_name=country.name,
             topic=dive.topic,
             status=dive.status.value,
+            
+            # Executive Section
+            strategy_name=dive.strategy_name,
             executive_summary=dive.executive_summary,
-            key_findings=to_string_list(dive.key_findings),
-            strengths=to_string_list(dive.strengths),
-            weaknesses=to_string_list(dive.weaknesses),
-            recommendations=to_string_list(dive.strategic_recommendations),
+            strategic_narrative=dive.strategic_narrative,
+            
+            # Context Sections
+            health_profile=dive.health_profile,
+            workforce_insights=dive.workforce_insights,
+            
+            # Key Findings (preserve full objects)
+            key_findings=dive.key_findings or [],
+            
+            # SWOT Analysis (preserve full objects)
+            strengths=dive.strengths or [],
+            weaknesses=dive.weaknesses or [],
+            opportunities=dive.opportunities or [],
+            threats=dive.threats or [],
+            
+            # Recommendations and Actions
+            strategic_recommendations=dive.strategic_recommendations or [],
+            priority_interventions=dive.priority_interventions or [],
+            action_items=dive.action_items or [],
+            
+            # Benchmarking
             peer_comparison=dive.peer_comparison,
+            global_ranking_context=dive.global_ranking_context,
+            benchmark_countries=dive.benchmark_countries or [],
+            
+            # Metadata
             generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
             error_message=None,
-            model_used=model_used,  # Track which model generated this report
+            model_used=model_used,
         )
         
         # Validate report before returning - check for unexpected data

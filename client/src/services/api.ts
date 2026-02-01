@@ -488,7 +488,42 @@ export interface KeyFinding {
 }
 
 /**
- * SWOT item
+ * SWOT item - Strength
+ */
+export interface StrengthItem {
+  title: string;
+  description: string;
+}
+
+/**
+ * SWOT item - Weakness with severity
+ */
+export interface WeaknessItem {
+  title: string;
+  description: string;
+  severity?: "critical" | "high" | "medium" | "low";
+}
+
+/**
+ * SWOT item - Opportunity with potential
+ */
+export interface OpportunityItem {
+  title: string;
+  description: string;
+  potential?: "high" | "medium" | "low";
+}
+
+/**
+ * SWOT item - Threat with risk level
+ */
+export interface ThreatItem {
+  title: string;
+  description: string;
+  risk_level?: "high" | "medium" | "low";
+}
+
+/**
+ * Generic SWOT item (backwards compatibility)
  */
 export interface SWOTItem {
   title: string;
@@ -524,22 +559,47 @@ export interface BenchmarkCountry {
 }
 
 /**
- * Full Strategic Deep Dive Report - Simplified for faster generation
+ * Full Strategic Deep Dive Report - Premium consulting-grade format
  */
 export interface StrategicDeepDiveReport {
+  // Core identification
   iso_code: string;
   topic: string;
   country_name?: string;
   status: string;
+  
+  // Executive Section
+  strategy_name?: string;
   executive_summary?: string;
-  key_findings?: string[];
-  strengths?: string[];
-  weaknesses?: string[];
-  recommendations?: string[];
+  strategic_narrative?: string;
+  
+  // Context Sections
+  health_profile?: string;
+  workforce_insights?: string;
+  
+  // Key Findings (structured objects)
+  key_findings?: KeyFinding[] | string[];
+  
+  // SWOT Analysis (structured objects)
+  strengths?: StrengthItem[] | string[];
+  weaknesses?: WeaknessItem[] | string[];
+  opportunities?: OpportunityItem[] | string[];
+  threats?: ThreatItem[] | string[];
+  
+  // Recommendations and Actions
+  strategic_recommendations?: StrategicRecommendation[] | string[];
+  priority_interventions?: string[];
+  action_items?: ActionItem[];
+  
+  // Benchmarking
   peer_comparison?: string;
+  global_ranking_context?: string;
+  benchmark_countries?: BenchmarkCountry[];
+  
+  // Metadata
   generated_at?: string;
   error_message?: string;
-  model_used?: string;  // Which AI model generated this report
+  model_used?: string;
 }
 
 /**

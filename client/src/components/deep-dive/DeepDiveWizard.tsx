@@ -32,6 +32,27 @@ import { StepIndicator, FloatingParticles } from "./shared";
 // HELPER: Convert report object to markdown string for display
 // =============================================================================
 
+// Helper to extract text from structured item or string
+function getItemText(item: any): { title: string; description: string; meta?: string } {
+  if (typeof item === 'string') {
+    return { title: '', description: item };
+  }
+  if (typeof item === 'object' && item !== null) {
+    const title = item.title || '';
+    const description = item.description || '';
+    // Build meta info from various possible fields
+    const metaParts: string[] = [];
+    if (item.impact_level) metaParts.push(`Impact: ${item.impact_level}`);
+    if (item.severity) metaParts.push(`Severity: ${item.severity}`);
+    if (item.potential) metaParts.push(`Potential: ${item.potential}`);
+    if (item.risk_level) metaParts.push(`Risk: ${item.risk_level}`);
+    if (item.priority) metaParts.push(`Priority: ${item.priority}`);
+    if (item.timeline) metaParts.push(`Timeline: ${item.timeline}`);
+    return { title, description, meta: metaParts.join(' | ') };
+  }
+  return { title: '', description: String(item) };
+}
+
 function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
   // Validate input has expected structure
   if (!report || typeof report !== 'object') {
@@ -39,7 +60,7 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
     return '# Error\n\nInvalid report data received. Please try regenerating the report.';
   }
   
-  // Check for expected fields - report should have iso_code, country_name, or status
+  // Check for expected fields
   if (!report.iso_code && !report.country_name && !report.status) {
     console.error('[DeepDive] Report missing expected fields. Keys received:', Object.keys(report));
     return '# Error\n\nReport data is malformed. The response does not contain expected fields.\n\nPlease try regenerating the report.';
@@ -52,69 +73,231 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
   
   const sections: string[] = [];
   
-  // Title
-  sections.push(`# Strategic Intelligence Briefing: ${report.country_name || 'Unknown'}`);
+  // ==========================================================================
+  // COVER / TITLE SECTION
+  // ==========================================================================
+  if (report.strategy_name) {
+    sections.push(`# ${report.strategy_name}`);
+    sections.push(`## Strategic Intelligence Briefing: ${report.country_name || 'Unknown'}`);
+  } else {
+    sections.push(`# Strategic Intelligence Briefing: ${report.country_name || 'Unknown'}`);
+  }
   sections.push(`**Topic:** ${report.topic || 'Comprehensive Analysis'}`);
   sections.push('');
   
-  // Executive Summary
+  // ==========================================================================
+  // EXECUTIVE SUMMARY
+  // ==========================================================================
   if (report.executive_summary) {
     sections.push('## Executive Summary');
     sections.push(report.executive_summary);
     sections.push('');
   }
   
-  // Key Findings
+  // Strategic Narrative (additional context)
+  if (report.strategic_narrative) {
+    sections.push('### Strategic Context');
+    sections.push(report.strategic_narrative);
+    sections.push('');
+  }
+  
+  // ==========================================================================
+  // COUNTRY CONTEXT
+  // ==========================================================================
+  if (report.health_profile || report.workforce_insights) {
+    sections.push('## Country Context');
+    
+    if (report.health_profile) {
+      sections.push('### Health Profile');
+      sections.push(report.health_profile);
+      sections.push('');
+    }
+    
+    if (report.workforce_insights) {
+      sections.push('### Workforce Insights');
+      sections.push(report.workforce_insights);
+      sections.push('');
+    }
+  }
+  
+  // ==========================================================================
+  // KEY FINDINGS
+  // ==========================================================================
   if (report.key_findings && report.key_findings.length > 0) {
     sections.push('## Key Findings');
-    report.key_findings.forEach((finding: string) => {
-      sections.push(`- ${finding}`);
+    sections.push('');
+    report.key_findings.forEach((finding: any, index: number) => {
+      const { title, description, meta } = getItemText(finding);
+      if (title) {
+        sections.push(`### ${index + 1}. ${title}`);
+        if (meta) sections.push(`*${meta}*`);
+        sections.push(description);
+      } else {
+        sections.push(`**${index + 1}.** ${description}`);
+      }
+      sections.push('');
+    });
+  }
+  
+  // ==========================================================================
+  // SWOT ANALYSIS
+  // ==========================================================================
+  const hasSwot = (report.strengths && report.strengths.length > 0) ||
+                  (report.weaknesses && report.weaknesses.length > 0) ||
+                  (report.opportunities && report.opportunities.length > 0) ||
+                  (report.threats && report.threats.length > 0);
+  
+  if (hasSwot) {
+    sections.push('## SWOT Analysis');
+    sections.push('');
+    
+    // Strengths
+    if (report.strengths && report.strengths.length > 0) {
+      sections.push('### Strengths');
+      report.strengths.forEach((item: any) => {
+        const { title, description } = getItemText(item);
+        if (title) {
+          sections.push(`- **${title}:** ${description}`);
+        } else {
+          sections.push(`- ${description}`);
+        }
+      });
+      sections.push('');
+    }
+    
+    // Weaknesses
+    if (report.weaknesses && report.weaknesses.length > 0) {
+      sections.push('### Weaknesses');
+      report.weaknesses.forEach((item: any) => {
+        const { title, description, meta } = getItemText(item);
+        if (title) {
+          sections.push(`- **${title}${meta ? ` (${meta})` : ''}:** ${description}`);
+        } else {
+          sections.push(`- ${description}`);
+        }
+      });
+      sections.push('');
+    }
+    
+    // Opportunities
+    if (report.opportunities && report.opportunities.length > 0) {
+      sections.push('### Opportunities');
+      report.opportunities.forEach((item: any) => {
+        const { title, description, meta } = getItemText(item);
+        if (title) {
+          sections.push(`- **${title}${meta ? ` (${meta})` : ''}:** ${description}`);
+        } else {
+          sections.push(`- ${description}`);
+        }
+      });
+      sections.push('');
+    }
+    
+    // Threats
+    if (report.threats && report.threats.length > 0) {
+      sections.push('### Threats');
+      report.threats.forEach((item: any) => {
+        const { title, description, meta } = getItemText(item);
+        if (title) {
+          sections.push(`- **${title}${meta ? ` (${meta})` : ''}:** ${description}`);
+        } else {
+          sections.push(`- ${description}`);
+        }
+      });
+      sections.push('');
+    }
+  }
+  
+  // ==========================================================================
+  // STRATEGIC RECOMMENDATIONS
+  // ==========================================================================
+  if (report.strategic_recommendations && report.strategic_recommendations.length > 0) {
+    sections.push('## Strategic Recommendations');
+    sections.push('');
+    report.strategic_recommendations.forEach((rec: any, index: number) => {
+      const { title, description, meta } = getItemText(rec);
+      if (title) {
+        sections.push(`### ${index + 1}. ${title}`);
+        if (meta) sections.push(`*${meta}*`);
+        sections.push(description);
+      } else {
+        sections.push(`**${index + 1}.** ${description}`);
+      }
+      sections.push('');
+    });
+  }
+  
+  // ==========================================================================
+  // PRIORITY INTERVENTIONS
+  // ==========================================================================
+  if (report.priority_interventions && report.priority_interventions.length > 0) {
+    sections.push('## Priority Interventions');
+    sections.push('*Immediate actions for the first 90 days*');
+    sections.push('');
+    report.priority_interventions.forEach((intervention: string, index: number) => {
+      sections.push(`${index + 1}. ${intervention}`);
     });
     sections.push('');
   }
   
-  // Strengths
-  if (report.strengths && report.strengths.length > 0) {
-    sections.push('## Strengths');
-    report.strengths.forEach((s: string) => {
-      sections.push(`- ${s}`);
+  // ==========================================================================
+  // ACTION ITEMS / IMPLEMENTATION ROADMAP
+  // ==========================================================================
+  if (report.action_items && report.action_items.length > 0) {
+    sections.push('## Implementation Roadmap');
+    sections.push('');
+    sections.push('| Action | Responsible Party | Timeline |');
+    sections.push('|--------|-------------------|----------|');
+    report.action_items.forEach((item: any) => {
+      const action = item.action || '';
+      const party = item.responsible_party || '';
+      const timeline = item.timeline || '';
+      sections.push(`| ${action} | ${party} | ${timeline} |`);
     });
     sections.push('');
   }
   
-  // Weaknesses
-  if (report.weaknesses && report.weaknesses.length > 0) {
-    sections.push('## Weaknesses');
-    report.weaknesses.forEach((w: string) => {
-      sections.push(`- ${w}`);
-    });
+  // ==========================================================================
+  // BENCHMARKING
+  // ==========================================================================
+  if (report.peer_comparison || report.global_ranking_context || (report.benchmark_countries && report.benchmark_countries.length > 0)) {
+    sections.push('## Benchmarking & Peer Analysis');
     sections.push('');
+    
+    if (report.peer_comparison) {
+      sections.push('### Regional Peer Comparison');
+      sections.push(report.peer_comparison);
+      sections.push('');
+    }
+    
+    if (report.global_ranking_context) {
+      sections.push('### Global Ranking Context');
+      sections.push(report.global_ranking_context);
+      sections.push('');
+    }
+    
+    if (report.benchmark_countries && report.benchmark_countries.length > 0) {
+      sections.push('### Benchmark Countries');
+      sections.push('*Countries to learn from:*');
+      sections.push('');
+      report.benchmark_countries.forEach((country: any) => {
+        const name = country.name || country.iso_code || 'Unknown';
+        const reason = country.reason || '';
+        sections.push(`- **${name}:** ${reason}`);
+      });
+      sections.push('');
+    }
   }
   
-  // Recommendations
-  if (report.recommendations && report.recommendations.length > 0) {
-    sections.push('## Recommendations');
-    report.recommendations.forEach((rec: string, index: number) => {
-      sections.push(`${index + 1}. ${rec}`);
-    });
-    sections.push('');
-  }
-  
-  // Peer Comparison
-  if (report.peer_comparison) {
-    sections.push('## Peer Comparison');
-    sections.push(report.peer_comparison);
-    sections.push('');
-  }
-  
-  // Footer with generation info
+  // ==========================================================================
+  // FOOTER
+  // ==========================================================================
   sections.push('---');
   const footerParts: string[] = [];
   if (report.generated_at) {
     footerParts.push(`Generated: ${new Date(report.generated_at).toLocaleString()}`);
   }
   if (report.model_used) {
-    // Show fallback indicator if applicable
     const modelDisplay = report.model_used.includes('fallback') 
       ? `${report.model_used} (faster model used due to timeout)`
       : report.model_used;
