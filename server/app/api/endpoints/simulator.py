@@ -1184,28 +1184,12 @@ async def workflow_news_generator(
 
 def get_ai_config_with_fallback(db: Session, user: Optional[User]) -> Optional[AIConfig]:
     """
-    Get AI configuration with global fallback.
+    Get the active AI configuration.
     
-    Priority:
-    1. User's personal AI config (if authenticated)
-    2. Global/admin AI config (first active config found)
-    3. None (will use default settings in orchestrator)
+    AIConfig is global (not per-user), so we just return the active config.
+    The user parameter is kept for potential future per-user configs.
     """
-    # Try user's config first
-    if user:
-        user_config = db.query(AIConfig).filter(
-            AIConfig.user_id == user.id,
-            AIConfig.is_active == True
-        ).first()
-        if user_config:
-            return user_config
-    
-    # Fall back to any active global config (admin's config)
-    global_config = db.query(AIConfig).filter(
-        AIConfig.is_active == True
-    ).first()
-    
-    return global_config
+    return db.query(AIConfig).filter(AIConfig.is_active == True).first()
 
 
 # =============================================================================
