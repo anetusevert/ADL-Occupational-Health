@@ -524,35 +524,21 @@ export interface BenchmarkCountry {
 }
 
 /**
- * Full Strategic Deep Dive Report
+ * Full Strategic Deep Dive Report - Simplified for faster generation
  */
 export interface StrategicDeepDiveReport {
   iso_code: string;
   topic: string;
   country_name?: string;
   status: string;
-  strategy_name?: string;
   executive_summary?: string;
-  strategic_narrative?: string;
-  health_profile?: string;
-  workforce_insights?: string;
-  key_findings: KeyFinding[];
-  strengths: SWOTItem[];
-  weaknesses: SWOTItem[];
-  opportunities: SWOTItem[];
-  threats: SWOTItem[];
-  strategic_recommendations: StrategicRecommendation[];
-  action_items: ActionItem[];
-  priority_interventions: string[];
+  key_findings?: string[];
+  strengths?: string[];
+  weaknesses?: string[];
+  recommendations?: string[];
   peer_comparison?: string;
-  global_ranking_context?: string;
-  benchmark_countries: BenchmarkCountry[];
-  data_sources_used: string[];
-  external_research_summary?: string;
-  data_quality_notes?: string;
-  ai_provider?: string;
   generated_at?: string;
-  updated_at?: string;
+  error_message?: string;
 }
 
 /**

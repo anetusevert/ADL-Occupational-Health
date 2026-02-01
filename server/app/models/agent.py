@@ -93,56 +93,32 @@ DEFAULT_AGENTS = [
     {
         "id": "report-generation",
         "name": "Report Generation Agent",
-        "description": "Generates high-end strategic intelligence reports for country deep dives. Produces McKinsey/ADL-quality analysis using comprehensive database knowledge.",
+        "description": "Generates strategic intelligence reports for country deep dives. Fast, focused analysis.",
         "icon": "file-text",
         "color": "amber",
         "template_variables": ["ISO_CODE", "TOPIC", "DATABASE_CONTEXT", "WEB_RESEARCH"],
-        "system_prompt": """You are a Senior Principal at Arthur D. Little's Global Business Unit for Health & Life Sciences, specializing in occupational health policy advisory.
+        "system_prompt": """You are a Senior Consultant preparing a Strategic Brief for a Health Minister.
 
-You are preparing a CLIENT-READY Strategic Intelligence Briefing for a Ministry of Labor or Health Minister. This is a real consulting deliverable.
+Use the country data provided. Be concise and data-driven.
 
-## Your Knowledge Base:
-You have access to comprehensive country data from the GOHIP database, including:
-- Governance metrics (ILO ratifications, inspector density, strategic capacity)
-- Hazard control data (accident rates, carcinogen exposure, OEL compliance)
-- Health vigilance metrics (surveillance systems, disease detection)
-- Restoration data (compensation mechanisms, return-to-work rates)
-- Multi-source intelligence (CPI, HDI, EPI, DALYs, economic indicators)
+## Output Format (JSON only):
+{
+  "executive_summary": "2-3 sentences: key finding, supporting data, recommended action",
+  "key_findings": ["Finding 1 with metric", "Finding 2 with metric", "Finding 3 with metric"],
+  "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+  "weaknesses": ["Weakness 1", "Weakness 2", "Weakness 3"],
+  "recommendations": ["Action 1", "Action 2", "Action 3"],
+  "peer_comparison": "One sentence comparing to regional peers"
+}
 
-## Consulting Standards:
-1. **Authoritative Voice** - Write as a trusted advisor with deep domain expertise
-2. **Evidence-Based** - Every assertion must be backed by data from the database
-3. **Actionable Insights** - Move beyond description to prescription
-4. **Executive-Ready** - Respect the reader's time. Lead with conclusions
-5. **Global Context** - Position every finding against international benchmarks
-6. **Quantified Impact** - Recommendations must include expected outcomes
+Keep each item brief (1-2 sentences max). Focus on the most important insights.""",
+        "user_prompt_template": """Country: {COUNTRY_NAME} ({ISO_CODE})
+Topic: {TOPIC}
 
-## Output Format:
-Respond with valid JSON containing:
-- strategy_name: Strategic title for the analysis
-- executive_summary: 3 sentence overview (verdict, evidence, implication)
-- key_findings: Array of {title, description, impact_level}
-- strengths: Array of key strengths with supporting data
-- weaknesses: Array of critical gaps with metrics
-- opportunities: Array of strategic opportunities
-- threats: Array of risks and threats
-- strategic_recommendations: Array of {title, description, priority, timeline}
-- peer_comparison: How country compares to regional/global peers
-- data_quality_notes: Any caveats about data reliability""",
-        "user_prompt_template": """Generate a Strategic Intelligence Briefing for {COUNTRY_NAME} ({ISO_CODE}).
-
-## ANALYSIS FOCUS:
-{TOPIC}
-
-## COMPLETE COUNTRY DATABASE:
+Data:
 {DATABASE_CONTEXT}
 
-## WEB RESEARCH (if available):
-{WEB_RESEARCH}
-
-Using ALL the data above, produce a comprehensive, evidence-based strategic analysis that a Health Minister could use to inform policy decisions. Reference specific metrics and statistics from the database.
-
-Respond with valid JSON only.""",
+Generate a focused strategic brief as JSON. Be concise.""",
     },
 
     # =========================================================================

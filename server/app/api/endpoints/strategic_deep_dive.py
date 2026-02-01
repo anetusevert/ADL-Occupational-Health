@@ -188,30 +188,19 @@ class GenerateRequest(BaseModel):
 
 
 class ReportResponse(BaseModel):
-    """Full report response."""
+    """Full report response - simplified for faster generation."""
     iso_code: str
     country_name: str
     topic: str
     status: str
-    strategy_name: Optional[str]
-    executive_summary: Optional[str]
-    strategic_narrative: Optional[str]
-    health_profile: Optional[str]
-    workforce_insights: Optional[str]
-    key_findings: List[dict]
-    strengths: List[dict]
-    weaknesses: List[dict]
-    opportunities: List[dict]
-    threats: List[dict]
-    strategic_recommendations: List[dict]
-    action_items: List[dict]
-    priority_interventions: List[dict]
-    peer_comparison: Optional[str]
-    global_ranking_context: Optional[str]
-    benchmark_countries: List[dict]
-    data_quality_notes: Optional[str]
-    generated_at: Optional[str]
-    error_message: Optional[str]
+    executive_summary: Optional[str] = None
+    key_findings: List[str] = []
+    strengths: List[str] = []
+    weaknesses: List[str] = []
+    recommendations: List[str] = []
+    peer_comparison: Optional[str] = None
+    generated_at: Optional[str] = None
+    error_message: Optional[str] = None
 
 
 class AgentLogEntry(BaseModel):
@@ -396,49 +385,32 @@ async def get_report(
             country_name=country.name,
             topic=topic,
             status="not_started",
-            strategy_name=None,
-            executive_summary=None,
-            strategic_narrative=None,
-            health_profile=None,
-            workforce_insights=None,
-            key_findings=[],
-            strengths=[],
-            weaknesses=[],
-            opportunities=[],
-            threats=[],
-            strategic_recommendations=[],
-            action_items=[],
-            priority_interventions=[],
-            peer_comparison=None,
-            global_ranking_context=None,
-            benchmark_countries=[],
-            data_quality_notes=None,
-            generated_at=None,
-            error_message=None,
         )
+    
+    # Convert complex fields to simple strings if needed
+    def to_string_list(items):
+        if not items:
+            return []
+        result = []
+        for item in items:
+            if isinstance(item, dict):
+                # Extract title or description from dict
+                result.append(item.get("title") or item.get("description") or str(item))
+            else:
+                result.append(str(item))
+        return result
     
     return ReportResponse(
         iso_code=iso_code,
         country_name=country.name,
         topic=dive.topic,
         status=dive.status.value,
-        strategy_name=dive.strategy_name,
         executive_summary=dive.executive_summary,
-        strategic_narrative=dive.strategic_narrative,
-        health_profile=dive.health_profile,
-        workforce_insights=dive.workforce_insights,
-        key_findings=dive.key_findings or [],
-        strengths=dive.strengths or [],
-        weaknesses=dive.weaknesses or [],
-        opportunities=dive.opportunities or [],
-        threats=dive.threats or [],
-        strategic_recommendations=dive.strategic_recommendations or [],
-        action_items=dive.action_items or [],
-        priority_interventions=dive.priority_interventions or [],
+        key_findings=to_string_list(dive.key_findings),
+        strengths=to_string_list(dive.strengths),
+        weaknesses=to_string_list(dive.weaknesses),
+        recommendations=to_string_list(dive.strategic_recommendations),
         peer_comparison=dive.peer_comparison,
-        global_ranking_context=dive.global_ranking_context,
-        benchmark_countries=dive.benchmark_countries or [],
-        data_quality_notes=dive.data_quality_notes,
         generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
         error_message=dive.error_message,
     )
@@ -786,26 +758,15 @@ async def generate_report(
         
         log_step("Parser", "completed", "JSON parsed successfully, storing report", "📋")
         
-        # Update deep dive with parsed data
+        # Update deep dive with parsed data (simplified schema)
         dive.status = DeepDiveStatus.COMPLETED
-        dive.strategy_name = report_data.get("strategy_name")
         dive.executive_summary = report_data.get("executive_summary")
-        dive.strategic_narrative = report_data.get("strategic_narrative")
-        dive.health_profile = report_data.get("health_profile")
-        dive.workforce_insights = report_data.get("workforce_insights")
         dive.key_findings = report_data.get("key_findings", [])
         dive.strengths = report_data.get("strengths", [])
         dive.weaknesses = report_data.get("weaknesses", [])
-        dive.opportunities = report_data.get("opportunities", [])
-        dive.threats = report_data.get("threats", [])
-        dive.strategic_recommendations = report_data.get("strategic_recommendations", [])
-        dive.action_items = report_data.get("action_items", [])
-        dive.priority_interventions = report_data.get("priority_interventions", [])
+        # Handle both "recommendations" (new) and "strategic_recommendations" (old)
+        dive.strategic_recommendations = report_data.get("recommendations") or report_data.get("strategic_recommendations", [])
         dive.peer_comparison = report_data.get("peer_comparison")
-        dive.global_ranking_context = report_data.get("global_ranking_context")
-        dive.benchmark_countries = report_data.get("benchmark_countries", [])
-        dive.data_quality_notes = report_data.get("data_quality_notes")
-        dive.external_research_summary = report_data.get("external_research_summary")
         dive.ai_provider = f"{ai_config.provider}/{ai_config.model_name}"
         dive.generated_at = datetime.utcnow()
         dive.error_message = None
@@ -816,29 +777,30 @@ async def generate_report(
         log_step("System", "completed", f"Report generated successfully for {country.name}", "🎉")
         logger.info(f"Report generation completed for {iso_code} - {request.topic}")
         
-        # Build and return the full report response
+        # Helper to convert complex fields to simple strings
+        def to_string_list(items):
+            if not items:
+                return []
+            result = []
+            for item in items:
+                if isinstance(item, dict):
+                    result.append(item.get("title") or item.get("description") or str(item))
+                else:
+                    result.append(str(item))
+            return result
+        
+        # Build and return the simplified report response
         report = ReportResponse(
             iso_code=iso_code,
             country_name=country.name,
             topic=dive.topic,
             status=dive.status.value,
-            strategy_name=dive.strategy_name,
             executive_summary=dive.executive_summary,
-            strategic_narrative=dive.strategic_narrative,
-            health_profile=dive.health_profile,
-            workforce_insights=dive.workforce_insights,
-            key_findings=dive.key_findings or [],
-            strengths=dive.strengths or [],
-            weaknesses=dive.weaknesses or [],
-            opportunities=dive.opportunities or [],
-            threats=dive.threats or [],
-            strategic_recommendations=dive.strategic_recommendations or [],
-            action_items=dive.action_items or [],
-            priority_interventions=dive.priority_interventions or [],
+            key_findings=to_string_list(dive.key_findings),
+            strengths=to_string_list(dive.strengths),
+            weaknesses=to_string_list(dive.weaknesses),
+            recommendations=to_string_list(dive.strategic_recommendations),
             peer_comparison=dive.peer_comparison,
-            global_ranking_context=dive.global_ranking_context,
-            benchmark_countries=dive.benchmark_countries or [],
-            data_quality_notes=dive.data_quality_notes,
             generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
             error_message=None,
         )
