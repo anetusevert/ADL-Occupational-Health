@@ -102,6 +102,15 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
   }
   
   // ==========================================================================
+  // SITUATION ANALYSIS (McKinsey-grade deep analysis)
+  // ==========================================================================
+  if (report.situation_analysis) {
+    sections.push('## Situation Analysis');
+    sections.push(report.situation_analysis);
+    sections.push('');
+  }
+  
+  // ==========================================================================
   // COUNTRY CONTEXT
   // ==========================================================================
   if (report.health_profile || report.workforce_insights) {
@@ -118,6 +127,15 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
       sections.push(report.workforce_insights);
       sections.push('');
     }
+  }
+  
+  // ==========================================================================
+  // DEEP DIVE ANALYSIS (McKinsey-grade topic-specific analysis)
+  // ==========================================================================
+  if (report.deep_dive_analysis) {
+    sections.push('## Deep Dive Analysis');
+    sections.push(report.deep_dive_analysis);
+    sections.push('');
   }
   
   // ==========================================================================
@@ -241,10 +259,10 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
   }
   
   // ==========================================================================
-  // ACTION ITEMS / IMPLEMENTATION ROADMAP
+  // ACTION ITEMS TABLE
   // ==========================================================================
   if (report.action_items && report.action_items.length > 0) {
-    sections.push('## Implementation Roadmap');
+    sections.push('## Action Items');
     sections.push('');
     sections.push('| Action | Responsible Party | Timeline |');
     sections.push('|--------|-------------------|----------|');
@@ -254,6 +272,45 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
       const timeline = item.timeline || '';
       sections.push(`| ${action} | ${party} | ${timeline} |`);
     });
+    sections.push('');
+  }
+  
+  // ==========================================================================
+  // IMPLEMENTATION & RISK SECTIONS (McKinsey-grade)
+  // ==========================================================================
+  
+  // Implementation Roadmap (narrative)
+  if (report.implementation_roadmap) {
+    sections.push('## Implementation Roadmap');
+    sections.push(report.implementation_roadmap);
+    sections.push('');
+  }
+  
+  // Stakeholder Analysis
+  if (report.stakeholder_analysis) {
+    sections.push('## Stakeholder Analysis');
+    sections.push(report.stakeholder_analysis);
+    sections.push('');
+  }
+  
+  // Risk Assessment
+  if (report.risk_assessment) {
+    sections.push('## Risk Assessment');
+    sections.push(report.risk_assessment);
+    sections.push('');
+  }
+  
+  // Resource Requirements
+  if (report.resource_requirements) {
+    sections.push('## Resource Requirements');
+    sections.push(report.resource_requirements);
+    sections.push('');
+  }
+  
+  // Success Metrics
+  if (report.success_metrics) {
+    sections.push('## Success Metrics & KPIs');
+    sections.push(report.success_metrics);
     sections.push('');
   }
   

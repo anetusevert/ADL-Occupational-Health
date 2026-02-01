@@ -559,7 +559,7 @@ export interface BenchmarkCountry {
 }
 
 /**
- * Full Strategic Deep Dive Report - Premium consulting-grade format
+ * Full Strategic Deep Dive Report - McKinsey-grade comprehensive format
  */
 export interface StrategicDeepDiveReport {
   // Core identification
@@ -572,6 +572,10 @@ export interface StrategicDeepDiveReport {
   strategy_name?: string;
   executive_summary?: string;
   strategic_narrative?: string;
+  
+  // Deep Analysis Sections (McKinsey-grade)
+  situation_analysis?: string;
+  deep_dive_analysis?: string;
   
   // Context Sections
   health_profile?: string;
@@ -590,6 +594,13 @@ export interface StrategicDeepDiveReport {
   strategic_recommendations?: StrategicRecommendation[] | string[];
   priority_interventions?: string[];
   action_items?: ActionItem[];
+  
+  // Implementation & Risk (McKinsey-grade)
+  implementation_roadmap?: string;
+  stakeholder_analysis?: string;
+  risk_assessment?: string;
+  resource_requirements?: string;
+  success_metrics?: string;
   
   // Benchmarking
   peer_comparison?: string;

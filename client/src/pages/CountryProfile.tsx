@@ -2,9 +2,12 @@
  * Arthur D. Little - Global Health Platform
  * Country Profile Page - Comprehensive Country Assessment View
  * Viewport-fit layout: Map & Stats (left) | Framework Tiles & Pillars (right)
+ * 
+ * Enhanced with Pillar Deep Dive Modal for comprehensive pillar analysis
+ * and automatic leader comparison.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -25,11 +28,29 @@ import { CountryMiniMap } from "../components/CountryMiniMap";
 import { CountryStatsPanel } from "../components/CountryStatsPanel";
 import { FrameworkReportTiles } from "../components/FrameworkReportTiles";
 import { ADLLoader } from "../components/ADLLoader";
-import { FrameworkAnalysisModal, type PillarData, type MetricData } from "../components/FrameworkAnalysisModal";
-import { MetricDetailModal } from "../components/MetricDetailModal";
-import { fetchCountryWithMockFallback } from "../services/api";
+import { PillarDeepDiveModal } from "../components/PillarDeepDiveModal";
+import { fetchCountryWithMockFallback, fetchComparisonCountries } from "../services/api";
 import { cn, getMaturityStage, getEffectiveOHIScore } from "../lib/utils";
 import { calculateDataCoverage } from "../lib/dataCoverage";
+import { type PillarType, getPillarRanking } from "../lib/pillarRankings";
+
+// ============================================================================
+// LOCAL TYPES
+// ============================================================================
+
+interface PillarCardData {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: React.ElementType;
+  score: number | null;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  gradientFrom: string;
+  gradientTo: string;
+  metrics: { id: string; label: string; value: string | number | boolean | null | undefined; rawValue: string | number | boolean | null | undefined }[];
+}
 
 /**
  * Data Confidence Badge Component
@@ -172,9 +193,7 @@ export function CountryProfile() {
   const { iso } = useParams<{ iso: string }>();
   
   // Modal states
-  const [selectedPillar, setSelectedPillar] = useState<PillarData | null>(null);
-  const [selectedMetric, setSelectedMetric] = useState<MetricData | null>(null);
-  const [metricPillar, setMetricPillar] = useState<PillarData | null>(null);
+  const [selectedPillarType, setSelectedPillarType] = useState<PillarType | null>(null);
 
   // Fetch country data
   const {
@@ -188,6 +207,19 @@ export function CountryProfile() {
     staleTime: 2 * 60 * 1000,
     retry: 1,
   });
+
+  // Fetch all countries for leader comparison (cached globally)
+  const { data: allCountriesData } = useQuery({
+    queryKey: ["comparison-countries"],
+    queryFn: fetchComparisonCountries,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Calculate pillar ranking for selected pillar
+  const pillarRankingResult = useMemo(() => {
+    if (!selectedPillarType || !allCountriesData?.countries || !iso) return null;
+    return getPillarRanking(allCountriesData.countries, iso, selectedPillarType, 3);
+  }, [selectedPillarType, allCountriesData, iso]);
 
   // Loading state with ADL branded loader
   if (isLoading) {
@@ -239,8 +271,8 @@ export function CountryProfile() {
   );
   const maturity = getMaturityStage(effectiveOHI);
 
-  // Prepare comprehensive pillar data with full metrics
-  const pillars: PillarData[] = [
+  // Prepare comprehensive pillar data with full metrics for card display
+  const pillars: PillarCardData[] = [
     {
       id: "governance",
       title: "Governance",
@@ -315,21 +347,20 @@ export function CountryProfile() {
     },
   ];
 
-  // Handle pillar click
-  const handlePillarClick = (pillar: PillarData) => {
-    setSelectedPillar(pillar);
+  // Map pillar ID to PillarType
+  const pillarIdToType: Record<string, PillarType> = {
+    governance: "governance",
+    pillar1: "hazard_control",
+    pillar2: "vigilance",
+    pillar3: "restoration",
   };
 
-  // Handle metric click from within the pillar modal
-  const handleMetricClick = (metric: MetricData, pillar: PillarData) => {
-    setSelectedMetric(metric);
-    setMetricPillar(pillar);
-  };
-
-  // Close metric modal
-  const handleCloseMetricModal = () => {
-    setSelectedMetric(null);
-    setMetricPillar(null);
+  // Handle pillar click - open deep dive modal
+  const handlePillarClick = (pillarId: string) => {
+    const pillarType = pillarIdToType[pillarId];
+    if (pillarType) {
+      setSelectedPillarType(pillarType);
+    }
   };
 
   return (
@@ -420,7 +451,7 @@ export function CountryProfile() {
                 <PillarCard 
                   {...pillars[0]} 
                   delay={0.1} 
-                  onClick={() => handlePillarClick(pillars[0])}
+                  onClick={() => handlePillarClick(pillars[0].id)}
                 />
                 
                 {/* Connection Pillars Visual */}
@@ -436,17 +467,17 @@ export function CountryProfile() {
                   <PillarCard 
                     {...pillars[1]} 
                     delay={0.2} 
-                    onClick={() => handlePillarClick(pillars[1])}
+                    onClick={() => handlePillarClick(pillars[1].id)}
                   />
                   <PillarCard 
                     {...pillars[2]} 
                     delay={0.3} 
-                    onClick={() => handlePillarClick(pillars[2])}
+                    onClick={() => handlePillarClick(pillars[2].id)}
                   />
                   <PillarCard 
                     {...pillars[3]} 
                     delay={0.4} 
-                    onClick={() => handlePillarClick(pillars[3])}
+                    onClick={() => handlePillarClick(pillars[3].id)}
                   />
                 </div>
               </div>
@@ -455,23 +486,14 @@ export function CountryProfile() {
         </div>
       </div>
 
-      {/* Framework Analysis Modal */}
-      <FrameworkAnalysisModal
-        isOpen={!!selectedPillar}
-        onClose={() => setSelectedPillar(null)}
-        pillar={selectedPillar}
-        countryName={country.name}
-        isoCode={country.iso_code}
-        onMetricClick={handleMetricClick}
-      />
-
-      {/* Metric Detail Modal */}
-      <MetricDetailModal
-        isOpen={!!selectedMetric}
-        onClose={handleCloseMetricModal}
-        metric={selectedMetric}
-        pillar={metricPillar}
-        countryName={country.name}
+      {/* Pillar Deep Dive Modal - Comprehensive pillar analysis with leader comparison */}
+      <PillarDeepDiveModal
+        isOpen={!!selectedPillarType}
+        onClose={() => setSelectedPillarType(null)}
+        pillar={selectedPillarType}
+        country={country}
+        rankingResult={pillarRankingResult}
+        allCountries={allCountriesData?.countries ?? []}
       />
     </>
   );

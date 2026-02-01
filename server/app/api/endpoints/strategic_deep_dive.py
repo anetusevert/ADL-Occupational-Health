@@ -189,7 +189,7 @@ class GenerateRequest(BaseModel):
 
 
 class ReportResponse(BaseModel):
-    """Premium report response with comprehensive SWOT analysis and strategic recommendations."""
+    """McKinsey-grade comprehensive strategic report with deep analysis sections."""
     # Core identification
     iso_code: str
     country_name: str
@@ -200,6 +200,10 @@ class ReportResponse(BaseModel):
     strategy_name: Optional[str] = None
     executive_summary: Optional[str] = None
     strategic_narrative: Optional[str] = None
+    
+    # Deep Analysis Sections (NEW for McKinsey-grade)
+    situation_analysis: Optional[str] = None
+    deep_dive_analysis: Optional[str] = None
     
     # Context Sections
     health_profile: Optional[str] = None
@@ -218,6 +222,13 @@ class ReportResponse(BaseModel):
     strategic_recommendations: List[Any] = []  # {title, description, priority, timeline}
     priority_interventions: List[str] = []
     action_items: List[Any] = []  # {action, responsible_party, timeline}
+    
+    # Implementation & Risk (NEW for McKinsey-grade)
+    implementation_roadmap: Optional[str] = None
+    stakeholder_analysis: Optional[str] = None
+    risk_assessment: Optional[str] = None
+    resource_requirements: Optional[str] = None
+    success_metrics: Optional[str] = None
     
     # Benchmarking
     peer_comparison: Optional[str] = None
@@ -414,7 +425,8 @@ async def get_report(
             status="not_started",
         )
     
-    # Return PREMIUM report with all fields preserved as objects
+    # Return McKinsey-grade report with all fields
+    # Note: New fields (situation_analysis, etc.) will be None for old reports until regenerated
     return ReportResponse(
         # Core identification
         iso_code=iso_code,
@@ -426,6 +438,10 @@ async def get_report(
         strategy_name=dive.strategy_name,
         executive_summary=dive.executive_summary,
         strategic_narrative=dive.strategic_narrative,
+        
+        # Deep Analysis Sections (not in DB yet - will be None for old reports)
+        situation_analysis=None,
+        deep_dive_analysis=None,
         
         # Context Sections
         health_profile=dive.health_profile,
@@ -444,6 +460,13 @@ async def get_report(
         strategic_recommendations=dive.strategic_recommendations or [],
         priority_interventions=dive.priority_interventions or [],
         action_items=dive.action_items or [],
+        
+        # Implementation & Risk (not in DB yet - will be None for old reports)
+        implementation_roadmap=None,
+        stakeholder_analysis=None,
+        risk_assessment=None,
+        resource_requirements=None,
+        success_metrics=None,
         
         # Benchmarking
         peer_comparison=dive.peer_comparison,
@@ -890,7 +913,9 @@ async def generate_report(
         log_step("System", "completed", f"Report generated successfully for {country.name}", "🎉")
         logger.info(f"Report generation completed for {iso_code} - {request.topic}")
         
-        # Build and return the PREMIUM report response with all fields
+        # Build and return the McKinsey-grade report response with all fields
+        # Note: New fields (situation_analysis, deep_dive_analysis, etc.) come directly from report_data
+        # since they're not yet in the database schema
         report = ReportResponse(
             # Core identification
             iso_code=iso_code,
@@ -902,6 +927,10 @@ async def generate_report(
             strategy_name=dive.strategy_name,
             executive_summary=dive.executive_summary,
             strategic_narrative=dive.strategic_narrative,
+            
+            # Deep Analysis Sections (from report_data, not stored in DB yet)
+            situation_analysis=report_data.get("situation_analysis"),
+            deep_dive_analysis=report_data.get("deep_dive_analysis"),
             
             # Context Sections
             health_profile=dive.health_profile,
@@ -920,6 +949,13 @@ async def generate_report(
             strategic_recommendations=dive.strategic_recommendations or [],
             priority_interventions=dive.priority_interventions or [],
             action_items=dive.action_items or [],
+            
+            # Implementation & Risk (from report_data, not stored in DB yet)
+            implementation_roadmap=report_data.get("implementation_roadmap"),
+            stakeholder_analysis=report_data.get("stakeholder_analysis"),
+            risk_assessment=report_data.get("risk_assessment"),
+            resource_requirements=report_data.get("resource_requirements"),
+            success_metrics=report_data.get("success_metrics"),
             
             # Benchmarking
             peer_comparison=dive.peer_comparison,
