@@ -20,8 +20,7 @@ import { LandingEntrance } from "../components/LandingEntrance";
 import { LoginModal } from "../components/LoginModal";
 import { FeatureDetailModal, type FeatureType } from "../components/FeatureDetailModal";
 import { FrameworkTempleCompact } from "../components/landing/FrameworkTempleCompact";
-import { OHIScoreDistribution } from "../components/landing/OHIScoreDistribution";
-import { DataSourcesMarquee } from "../components/landing/DataSourcesMarquee";
+import { DataSourcesLogos } from "../components/landing/DataSourcesLogos";
 import { cn } from "../lib/utils";
 
 // Value proposition cards - compact configuration
@@ -282,16 +281,13 @@ export function LandingPage() {
                 </motion.div>
               </div>
 
-              {/* Right Column: Framework + OHI + Sources */}
-              <div className="flex flex-col justify-center items-center gap-4 lg:gap-5">
-                {/* Framework Temple */}
+              {/* Right Column: Framework + Data Sources */}
+              <div className="flex flex-col justify-center items-center gap-6 lg:gap-8">
+                {/* Framework Temple - Clickable pillars open explainer modals */}
                 <FrameworkTempleCompact delay={0.3} />
 
-                {/* OHI Score Distribution */}
-                <OHIScoreDistribution delay={0.5} />
-
-                {/* Data Sources */}
-                <DataSourcesMarquee delay={0.7} className="max-w-sm" />
+                {/* Data Sources with Real Logos */}
+                <DataSourcesLogos delay={0.5} className="max-w-md" />
               </div>
             </main>
 

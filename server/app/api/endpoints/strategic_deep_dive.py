@@ -543,7 +543,9 @@ async def generate_report(
         try:
             with SessionLocal() as isolated_db:
                 ensure_agents_exist(isolated_db)
-            logger.info(f"[GENERATE] ensure_agents_exist completed in isolated session")
+            # CRITICAL: Expire main session cache so it can see newly committed agents
+            db.expire_all()
+            logger.info(f"[GENERATE] ensure_agents_exist completed, main session cache expired")
         except Exception as seed_err:
             # Non-fatal - agent should already exist from previous runs
             logger.warning(f"[GENERATE] Agent seeding warning (non-fatal): {seed_err}")
