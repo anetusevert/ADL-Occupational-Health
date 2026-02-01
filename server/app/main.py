@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.api.v1 import api_router
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
 
 # Static files directory
 STATIC_DIR = Path(__file__).parent.parent / "static"
