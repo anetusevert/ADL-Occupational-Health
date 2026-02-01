@@ -2,7 +2,7 @@
  * Arthur D. Little - Landing Page
  * No-scroll, fully responsive premium landing page
  * 
- * Design: Two-column layout on desktop, compact vertical on mobile
+ * Design: Centered single-column layout
  * All content fits within viewport - no scrolling required
  */
 
@@ -19,8 +19,6 @@ import {
 import { LandingEntrance } from "../components/LandingEntrance";
 import { LoginModal } from "../components/LoginModal";
 import { FeatureDetailModal, type FeatureType } from "../components/FeatureDetailModal";
-import { FrameworkTempleCompact } from "../components/landing/FrameworkTempleCompact";
-import { DataSourcesLogos } from "../components/landing/DataSourcesLogos";
 import { cn } from "../lib/utils";
 
 // Value proposition cards - compact configuration
@@ -162,11 +160,11 @@ export function LandingPage() {
               </motion.button>
             </motion.header>
 
-            {/* Main Content - Two Column Layout */}
-            <main className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 px-4 sm:px-6 lg:px-10 py-2 lg:py-4">
+            {/* Main Content - Centered Single Column */}
+            <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10 py-2 lg:py-4">
               
-              {/* Left Column: Hero + Features */}
-              <div className="flex flex-col justify-center">
+              {/* Hero + Features */}
+              <div className="flex flex-col justify-center max-w-2xl">
                 {/* Title */}
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
@@ -279,15 +277,6 @@ export function LandingPage() {
                     );
                   })}
                 </motion.div>
-              </div>
-
-              {/* Right Column: Framework + Data Sources */}
-              <div className="flex flex-col justify-center items-center gap-6 lg:gap-8">
-                {/* Framework Temple - Clickable pillars open explainer modals */}
-                <FrameworkTempleCompact delay={0.3} />
-
-                {/* Data Sources with Real Logos */}
-                <DataSourcesLogos delay={0.5} className="max-w-md" />
               </div>
             </main>
 
