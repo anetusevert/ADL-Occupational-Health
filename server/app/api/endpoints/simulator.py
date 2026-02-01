@@ -14,8 +14,11 @@ Endpoints for:
 """
 
 import asyncio
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -765,25 +768,29 @@ async def get_database_briefing(
     
     Response time: ~100-500ms (vs 30-60s for AI workflow)
     """
-    from app.data.country_contexts import get_country_context
-    
-    # Fetch country from database
-    country = db.query(Country).filter(Country.iso_code == iso_code.upper()).first()
-    if not country:
-        raise HTTPException(status_code=404, detail=f"Country {iso_code} not found")
-    
-    # Load country context
-    context = get_country_context(iso_code.upper())
-    
-    # Fetch intelligence data
-    intelligence = db.query(CountryIntelligence).filter(
-        CountryIntelligence.iso_code == iso_code.upper()
-    ).first()
-    
-    # Generate briefing from database
-    briefing_data = _create_fallback_briefing(country, context, intelligence, db)
-    
-    return briefing_data
+    try:
+        # Fetch country from database
+        country = db.query(Country).filter(Country.iso_code == iso_code.upper()).first()
+        if not country:
+            raise HTTPException(status_code=404, detail=f"Country {iso_code} not found")
+        
+        # Load country context
+        context = get_country_context(iso_code.upper())
+        
+        # Fetch intelligence data
+        intelligence = db.query(CountryIntelligence).filter(
+            CountryIntelligence.iso_code == iso_code.upper()
+        ).first()
+        
+        # Generate briefing from database
+        briefing_data = _create_fallback_briefing(country, context, intelligence, db)
+        
+        return briefing_data
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception as e:
+        logger.error(f"Database briefing failed for {iso_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate briefing: {str(e)}")
 
 
 @router.post(
