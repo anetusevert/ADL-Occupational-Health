@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User, AIConfig
 from app.models.country import Country, CountryDeepDive, DeepDiveStatus
@@ -80,6 +80,43 @@ def ensure_agents_exist(db: Session):
         db.rollback()
         # Don't silently fail - raise the exception
         raise
+
+
+def _validate_llm_output(output: str) -> tuple[bool, str]:
+    """
+    Check if LLM output looks like contaminated agent data.
+    
+    Returns (is_valid, error_message)
+    """
+    if not output:
+        return False, "LLM output is empty"
+    
+    # Check for suspicious patterns that indicate agent data contamination
+    suspicious_patterns = [
+        ('system_prompt__', 'Contains agent system_prompt field with index'),
+        ('user_prompt_template__', 'Contains agent user_prompt_template field with index'),
+        ('template_variables__', 'Contains agent template_variables field with index'),
+        ('datetime.datetime(', 'Contains Python datetime object repr'),
+        ("'id__0':", 'Contains flattened agent id field'),
+        ("'id__1':", 'Contains flattened agent id field'),
+        ("'name__0':", 'Contains flattened agent name field'),
+        ("'name__1':", 'Contains flattened agent name field'),
+        ('execution_count__', 'Contains agent execution_count field with index'),
+        ('is_active__', 'Contains agent is_active field with index'),
+    ]
+    
+    for pattern, description in suspicious_patterns:
+        if pattern in output:
+            logger.error(f"[VALIDATE] LLM output CONTAMINATED: {description}")
+            logger.error(f"[VALIDATE] Output sample: {output[:500]}...")
+            return False, f"LLM output contains agent data (contaminated): {description}"
+    
+    # Check if output looks like valid JSON (should start with { or [)
+    stripped = output.strip()
+    if not (stripped.startswith('{') or stripped.startswith('[') or stripped.startswith('```')):
+        logger.warning(f"[VALIDATE] LLM output doesn't look like JSON: {stripped[:100]}...")
+    
+    return True, ""
 
 
 # =============================================================================
@@ -500,10 +537,16 @@ async def generate_report(
         ))
     
     try:
-        # Ensure agents are seeded before running
+        # Ensure agents are seeded before running - USE ISOLATED SESSION
+        # This prevents any potential data contamination from agent queries
         logger.info(f"[GENERATE] Starting generation for {iso_code}")
-        ensure_agents_exist(db)
-        logger.info(f"[GENERATE] ensure_agents_exist completed successfully")
+        try:
+            with SessionLocal() as isolated_db:
+                ensure_agents_exist(isolated_db)
+            logger.info(f"[GENERATE] ensure_agents_exist completed in isolated session")
+        except Exception as seed_err:
+            # Non-fatal - agent should already exist from previous runs
+            logger.warning(f"[GENERATE] Agent seeding warning (non-fatal): {seed_err}")
         
         # Get country
         country = db.query(Country).filter(Country.iso_code == iso_code).first()
@@ -618,6 +661,27 @@ async def generate_report(
         logger.info(f"[GENERATE] AgentRunner output type: {type(output)}")
         logger.info(f"[GENERATE] AgentRunner output length: {len(output) if output else 0}")
         logger.info(f"[GENERATE] AgentRunner output sample: {str(output)[:500] if output else 'None'}...")
+        
+        # VALIDATE: Check for contaminated agent data in output
+        is_valid, validation_error = _validate_llm_output(output)
+        if not is_valid:
+            dive.status = DeepDiveStatus.FAILED
+            dive.error_message = f"Output validation failed: {validation_error}"
+            dive.generated_at = datetime.utcnow()
+            db.commit()
+            
+            log_step("Validator", "failed", f"Output contaminated: {validation_error}", "🚫")
+            
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name=country.name,
+                report=None,
+                agent_log=agent_log,
+                error=f"LLM output validation failed: {validation_error}",
+            )
+        
+        logger.info(f"[GENERATE] LLM output validation passed")
         
         report_data = _parse_agent_output(output)
         logger.info(f"[GENERATE] Parsed report_data type: {type(report_data)}")
