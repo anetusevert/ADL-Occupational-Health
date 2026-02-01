@@ -388,12 +388,19 @@ function NavLink({
         isHighlight && !isActive && "text-adl-accent/60"
       )} />
       {!isCollapsed && (
-        <span className={cn(
-          "text-sm font-medium whitespace-nowrap",
-          isHighlight && "font-semibold"
-        )}>
-          {item.label}
-        </span>
+        <div className="flex items-center gap-2 flex-1">
+          <span className={cn(
+            "text-sm font-medium whitespace-nowrap",
+            isHighlight && "font-semibold"
+          )}>
+            {item.label}
+          </span>
+          {item.beta && (
+            <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+              Beta
+            </span>
+          )}
+        </div>
       )}
     </Link>
   );
