@@ -186,11 +186,57 @@ async def startup_event():
                     conn.commit()
                 
                 print("Agents table migration complete")
+            else:
+                # Agents table doesn't exist - create it explicitly
+                print("Agents table not found, creating...")
+                from app.models.agent import Agent
+                Agent.__table__.create(bind=engine, checkfirst=True)
+                print("Agents table created successfully")
             
             print("All migrations completed successfully")
                 
     except Exception as e:
         print(f"Migration error (non-fatal): {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Seed default agents on startup
+    try:
+        from app.models.agent import Agent, DEFAULT_AGENTS
+        db = SessionLocal()
+        
+        # Check if report-generation agent exists
+        existing_agent = db.query(Agent).filter(Agent.id == "report-generation").first()
+        
+        if not existing_agent:
+            print("Seeding default agents on startup...")
+            for agent_data in DEFAULT_AGENTS:
+                existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
+                if not existing:
+                    new_agent = Agent(
+                        id=agent_data["id"],
+                        name=agent_data["name"],
+                        description=agent_data["description"],
+                        system_prompt=agent_data["system_prompt"],
+                        user_prompt_template=agent_data["user_prompt_template"],
+                        template_variables=agent_data["template_variables"],
+                        icon=agent_data["icon"],
+                        color=agent_data["color"],
+                        is_active=True,
+                    )
+                    db.add(new_agent)
+                    print(f"  Added agent: {agent_data['id']}")
+            
+            db.commit()
+            print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+        else:
+            print(f"Agents already exist ({existing_agent.name})")
+        
+        db.close()
+    except Exception as e:
+        print(f"Agent seeding error on startup: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @app.get("/health", tags=["System"])
