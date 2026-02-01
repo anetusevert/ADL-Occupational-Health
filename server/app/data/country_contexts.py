@@ -34,9 +34,6 @@ class CountryContext:
     social_insurance_body: str
     statistics_office: str
     
-    # Key Officials (real names)
-    key_officials: Dict[str, str] = field(default_factory=dict)
-    
     # Social Partners
     major_unions: List[str]
     industry_associations: List[str]
@@ -54,6 +51,9 @@ class CountryContext:
     # Additional context
     iso2_code: str
     currency: str
+    
+    # Key Officials (real names) - optional field with default
+    key_officials: Dict[str, str] = field(default_factory=dict)
     
     def to_dict(self) -> Dict:
         return asdict(self)
