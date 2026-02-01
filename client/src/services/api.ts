@@ -1818,6 +1818,19 @@ export async function runIntelligenceBriefingWorkflow(
 }
 
 /**
+ * Get a fast database-only briefing (no AI)
+ * Used as fallback when AI workflow times out
+ */
+export async function getDatabaseBriefing(
+  iso_code: string
+): Promise<CountryBriefingResponse> {
+  const response = await apiClient.get<CountryBriefingResponse>(
+    `/api/v1/simulator/briefing/database-only/${iso_code}`
+  );
+  return response.data;
+}
+
+/**
  * Run the Strategic Advisor workflow
  * Generates conversational advice and decision options
  */

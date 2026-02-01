@@ -41,6 +41,7 @@ import {
   runIntelligenceBriefingWorkflow,
   runStrategicAdvisorWorkflow,
   runNewsGeneratorWorkflow,
+  getDatabaseBriefing,
   type WorkflowResponse,
 } from '../../services/api';
 
@@ -182,61 +183,113 @@ function GameInner() {
           agent: 'Orchestrator',
           status: 'error',
           message: isTimeout 
-            ? 'Request timed out - using cached database for faster loading'
-            : 'AI service unavailable - using cached database',
+            ? 'Request timed out - loading from database'
+            : 'AI service unavailable - loading from database',
           emoji: '⏱️',
         },
         {
           timestamp: new Date().toISOString(),
           agent: 'DataAgent',
-          status: 'complete',
-          message: `Loading ${country.name} from local database...`,
+          status: 'starting',
+          message: `Fetching ${country.name} briefing from database...`,
           emoji: '📊',
         },
-        {
-          timestamp: new Date().toISOString(),
-          agent: 'Orchestrator',
-          status: 'complete',
-          message: 'Fallback briefing prepared successfully',
-          emoji: '✅',
-        },
       ]);
+      
+      // Call fast database-only endpoint for detailed fallback
+      try {
+        const dbBriefing = await getDatabaseBriefing(country.iso_code);
+        
+        setAgentLog(prev => [
+          ...prev,
+          {
+            timestamp: new Date().toISOString(),
+            agent: 'DataAgent',
+            status: 'complete',
+            message: 'Country data loaded successfully',
+            emoji: '✅',
+          },
+          {
+            timestamp: new Date().toISOString(),
+            agent: 'Orchestrator',
+            status: 'complete',
+            message: 'Intelligence briefing ready',
+            emoji: '📋',
+          },
+        ]);
+        
+        // Map database response to briefing format
+        const briefingData: CountryBriefing = {
+          country_name: dbBriefing.country_name || country.name,
+          iso_code: dbBriefing.iso_code || country.iso_code,
+          flag_url: dbBriefing.flag_url || `https://flagcdn.com/w160/${country.iso_code.slice(0, 2).toLowerCase()}.png`,
+          executive_summary: dbBriefing.executive_summary || '',
+          socioeconomic_context: dbBriefing.socioeconomic_context || '',
+          cultural_factors: dbBriefing.cultural_factors || '',
+          future_outlook: dbBriefing.future_outlook || '',
+          key_statistics: dbBriefing.key_statistics || {},
+          ohi_score: dbBriefing.ohi_score || country.initialOHIScore,
+          pillar_scores: dbBriefing.pillar_scores || country.initialPillars,
+          global_rank: dbBriefing.global_rank || 50,
+          pillar_insights: dbBriefing.pillar_insights || {},
+          key_challenges: dbBriefing.key_challenges || [],
+          key_stakeholders: dbBriefing.key_stakeholders || [],
+          recent_articles: dbBriefing.recent_articles || [],
+          mission_statement: dbBriefing.mission_statement || `Transform ${country.name}'s occupational health system.`,
+          difficulty_rating: dbBriefing.difficulty_rating || 'Medium',
+          country_context: dbBriefing.country_context || {},
+        };
+        setBriefing(briefingData);
+      } catch (dbError) {
+        console.error('Database fallback also failed:', dbError);
+        // Last resort: use minimal hardcoded fallback
+        setAgentLog(prev => [
+          ...prev,
+          {
+            timestamp: new Date().toISOString(),
+            agent: 'Orchestrator',
+            status: 'complete',
+            message: 'Using cached data',
+            emoji: '⚠️',
+          },
+        ]);
+        setBriefing({
+          country_name: country.name,
+          iso_code: country.iso_code,
+          flag_url: `https://flagcdn.com/w160/${country.iso_code.slice(0, 2).toLowerCase()}.png`,
+          executive_summary: `Welcome to ${country.name}. As the new Health Minister, you face significant challenges in transforming the nation's occupational health system.`,
+          socioeconomic_context: `${country.name} has a diverse economy with significant opportunities for occupational health improvements.`,
+          cultural_factors: 'Work culture varies across industries and regions.',
+          future_outlook: 'Economic projections suggest evolving workplace challenges ahead.',
+          key_statistics: {
+            gdp_per_capita: country.gdp * 1000,
+            population: country.population,
+            health_expenditure_pct: country.healthExpenditure,
+            labor_force: country.laborForce,
+          },
+          ohi_score: country.initialOHIScore,
+          pillar_scores: country.initialPillars,
+          global_rank: 50,
+          pillar_insights: {
+            governance: { score: country.initialPillars.governance, analysis: 'Governance analysis', key_issues: [], opportunities: [] },
+            hazardControl: { score: country.initialPillars.hazardControl, analysis: 'Hazard control analysis', key_issues: [], opportunities: [] },
+            healthVigilance: { score: country.initialPillars.healthVigilance, analysis: 'Health vigilance analysis', key_issues: [], opportunities: [] },
+            restoration: { score: country.initialPillars.restoration, analysis: 'Restoration analysis', key_issues: [], opportunities: [] },
+          },
+          key_challenges: ['Improve enforcement capacity', 'Expand worker coverage', 'Modernize systems'],
+          key_stakeholders: [],
+          recent_articles: [],
+          mission_statement: `Transform ${country.name}'s occupational health system into a world-class framework.`,
+          difficulty_rating: country.initialOHIScore >= 3.0 ? 'Easy' : country.initialOHIScore >= 2.0 ? 'Medium' : 'Hard',
+          country_context: {
+            iconic_landmark: 'National Monument',
+            capital: 'Capital City',
+            major_cities: [],
+          },
+        });
+      }
+      
       setIsWorkflowComplete(true);
-      // Create fallback briefing
-      setBriefing({
-        country_name: country.name,
-        iso_code: country.iso_code,
-        flag_url: `https://flagcdn.com/w160/${country.iso_code.slice(0, 2).toLowerCase()}.png`,
-        executive_summary: `Welcome to ${country.name}. As the new Health Minister, you face significant challenges in transforming the nation's occupational health system.`,
-        socioeconomic_context: `${country.name} has a diverse economy with significant opportunities for occupational health improvements.`,
-        cultural_factors: 'Work culture varies across industries and regions.',
-        future_outlook: 'Economic projections suggest evolving workplace challenges ahead.',
-        key_statistics: {
-          gdp_per_capita: country.gdp * 1000,
-          population: country.population,
-          health_expenditure_pct: country.healthExpenditure,
-          labor_force: country.laborForce,
-        },
-        ohi_score: country.initialOHIScore,
-        pillar_scores: country.initialPillars,
-        global_rank: 50,
-        pillar_insights: {
-          governance: { score: country.initialPillars.governance, analysis: 'Governance analysis', key_issues: [], opportunities: [] },
-          hazardControl: { score: country.initialPillars.hazardControl, analysis: 'Hazard control analysis', key_issues: [], opportunities: [] },
-          healthVigilance: { score: country.initialPillars.healthVigilance, analysis: 'Health vigilance analysis', key_issues: [], opportunities: [] },
-          restoration: { score: country.initialPillars.restoration, analysis: 'Restoration analysis', key_issues: [], opportunities: [] },
-        },
-        key_challenges: ['Improve enforcement capacity', 'Expand worker coverage', 'Modernize systems'],
-        key_stakeholders: [],
-        recent_articles: [],
-        mission_statement: `Transform ${country.name}'s occupational health system into a world-class framework.`,
-        difficulty_rating: country.initialOHIScore >= 3.0 ? 'Easy' : country.initialOHIScore >= 2.0 ? 'Medium' : 'Hard',
-        country_context: {
-          iconic_landmark: 'National Monument',
-          capital: 'Capital City',
-          major_cities: [],
-        },
-      });
       // LoadingBriefing.onComplete will handle the transition
     }
   }, [selectCountry]);

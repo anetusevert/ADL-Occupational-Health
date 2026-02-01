@@ -745,6 +745,47 @@ class NewsGeneratorRequest(BaseModel):
         }
 
 
+@router.get(
+    "/briefing/database-only/{iso_code}",
+    summary="Fast Database-Only Briefing",
+    description="Returns a detailed country briefing instantly from database (no AI). Used as fallback when AI is slow.",
+)
+async def get_database_briefing(
+    iso_code: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Fast endpoint that returns a detailed briefing from database only.
+    
+    This endpoint:
+    1. Fetches country data from database
+    2. Loads country context (institutions, officials, landmarks)
+    3. Fetches intelligence data (World Bank, ILO, WHO)
+    4. Returns structured briefing WITHOUT calling AI
+    
+    Response time: ~100-500ms (vs 30-60s for AI workflow)
+    """
+    from app.data.country_contexts import get_country_context
+    
+    # Fetch country from database
+    country = db.query(Country).filter(Country.iso_code == iso_code.upper()).first()
+    if not country:
+        raise HTTPException(status_code=404, detail=f"Country {iso_code} not found")
+    
+    # Load country context
+    context = get_country_context(iso_code.upper())
+    
+    # Fetch intelligence data
+    intelligence = db.query(CountryIntelligence).filter(
+        CountryIntelligence.iso_code == iso_code.upper()
+    ).first()
+    
+    # Generate briefing from database
+    briefing_data = _create_fallback_briefing(country, context, intelligence, db)
+    
+    return briefing_data
+
+
 @router.post(
     "/workflow/intelligence-briefing",
     response_model=WorkflowResponse,
