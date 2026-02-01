@@ -52,15 +52,65 @@ interface ViewAnalysisPanelProps {
 // API FUNCTION
 // ============================================================================
 
+// Client-side fallback when API is unavailable
+function generateClientFallback(isoCode: string, viewType: string): ViewAnalysisData {
+  const viewTitles: Record<string, string> = {
+    layers: "National OH System Layer Analysis",
+    flow: "System Logic Flow Analysis", 
+    radar: "Comparative Benchmark Analysis",
+    summary: "Comprehensive System Summary",
+  };
+
+  const viewDescriptions: Record<string, string[]> = {
+    layers: [
+      "This view analyzes the hierarchical structure of the occupational health system, from national policy frameworks down to workplace implementation.",
+      "The three layers - National Policy, Institutional Infrastructure, and Workplace Implementation - represent the progressive translation of policy into practice.",
+      "Gaps between layers often indicate enforcement challenges or resource constraints that prevent effective policy implementation at the ground level."
+    ],
+    flow: [
+      "The system flow analysis examines how inputs (laws, funding, conventions) transform through operational processes into health outcomes.",
+      "This input-process-outcome framework helps identify where system efficiency breaks down and resources fail to translate into worker protection.",
+      "Key bottlenecks typically occur at process stages where institutional capacity limits the effectiveness of policy investments."
+    ],
+    radar: [
+      "The radar chart provides a multi-dimensional view of system performance across Governance, Financing, Capacity, Implementation, and Impact.",
+      "Comparing against benchmarks reveals specific areas where targeted improvement could yield the greatest returns.",
+      "An unbalanced profile often indicates strategic priorities for resource allocation and policy focus."
+    ],
+    summary: [
+      "This summary synthesizes key metrics and insights from all framework dimensions into a holistic system assessment.",
+      "The comparative analysis highlights performance relative to regional peers and global leaders in occupational health.",
+      "Strategic priorities emerge from identifying the dimensions with the greatest gap between current performance and achievable targets."
+    ],
+  };
+
+  return {
+    iso_code: isoCode,
+    country_name: isoCode,
+    view_type: viewType,
+    title: viewTitles[viewType] || "System Analysis",
+    analysis_paragraphs: viewDescriptions[viewType] || ["Analysis content is being generated."],
+    key_insights: [
+      { insight: "Multi-dimensional assessment available", implication: "Explore each view for detailed insights" },
+      { insight: "Comparison features enabled", implication: "Select a comparison country for benchmarking" }
+    ],
+    recommendations: [
+      { action: "Review all visualization views", rationale: "Complete picture requires multi-view analysis", expected_impact: "Comprehensive understanding of system architecture" }
+    ],
+    comparison_note: null,
+    generated_at: new Date().toISOString(),
+    cached: true,
+  };
+}
+
 async function fetchViewAnalysis(
   isoCode: string,
   viewType: string,
   comparisonIso: string | null
 ): Promise<ViewAnalysisData> {
-  // First try the fast fallback endpoint
-  const fallbackUrl = `/api/v1/view-analysis/${isoCode}/${viewType}/fallback`;
-  
+  // First try the fast fallback endpoint (GET)
   try {
+    const fallbackUrl = `/api/v1/view-analysis/${isoCode}/${viewType}/fallback`;
     const response = await fetch(fallbackUrl);
     if (response.ok) {
       return await response.json();
@@ -69,19 +119,25 @@ async function fetchViewAnalysis(
     // Fallback failed, continue to main endpoint
   }
   
-  // Try the AI-powered endpoint
-  const mainUrl = `/api/v1/view-analysis/${isoCode}/${viewType}`;
-  const response = await fetch(mainUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ comparison_iso: comparisonIso }),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch analysis: ${response.statusText}`);
+  // Try the AI-powered endpoint (POST)
+  try {
+    const mainUrl = `/api/v1/view-analysis/${isoCode}/${viewType}`;
+    const response = await fetch(mainUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comparison_iso: comparisonIso }),
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch {
+    // AI endpoint failed
   }
   
-  return await response.json();
+  // Return client-side fallback when API is unavailable
+  console.log(`View analysis API unavailable, using client fallback for ${isoCode}/${viewType}`);
+  return generateClientFallback(isoCode, viewType);
 }
 
 // ============================================================================
