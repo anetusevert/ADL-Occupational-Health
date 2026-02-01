@@ -185,6 +185,7 @@ class GenerateRequest(BaseModel):
     """Request to generate a deep dive report."""
     topic: str = "Comprehensive Occupational Health Assessment"
     enable_web_search: bool = False
+    force_regenerate: bool = False  # If True, delete existing report and generate fresh
 
 
 class ReportResponse(BaseModel):
@@ -668,6 +669,17 @@ async def generate_report(
             )
         
         log_step("System", "ready", f"Using AI: {ai_config.provider}/{ai_config.model_name}", "⚙️")
+        
+        # Handle force_regenerate: delete existing report to generate fresh
+        if request.force_regenerate:
+            deleted = db.query(CountryDeepDive).filter(
+                CountryDeepDive.country_iso_code == iso_code,
+                CountryDeepDive.topic == request.topic,
+            ).delete()
+            if deleted:
+                db.commit()
+                log_step("System", "regenerate", f"Deleted existing report for force regeneration", "🔄")
+                logger.info(f"Force regenerate: deleted existing report for {iso_code}/{request.topic}")
         
         # Create or update deep dive record
         existing = db.query(CountryDeepDive).filter(

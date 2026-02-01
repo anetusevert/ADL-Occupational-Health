@@ -41,8 +41,10 @@ interface ReportDisplayStepProps {
   isLoading: boolean;
   isGenerating?: boolean; // true when AI is generating (vs just fetching)
   error: Error | null;
+  isAdmin?: boolean; // Show admin-only features like regenerate
   onBack: () => void;
   onRetry: () => void;
+  onRegenerate?: () => void; // Force regenerate report (admin only)
   onExportPDF: () => void;
   onExportWord: () => void;
 }
@@ -114,21 +116,74 @@ function CountryFlagHeader({ country }: { country: { iso_code: string; name: str
   );
 }
 
-// Render markdown content
+// Render markdown content with enhanced formatting
 function renderMarkdown(content: string): string {
-  return content
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>.*<\/li>)+/gs, "<ul>$&</ul>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br />")
-    .replace(/^(.+)$/gm, (match) => {
-      if (!match.startsWith("<") && match.trim()) {
-        return `<p>${match}</p>`;
-      }
-      return match;
+  let html = content;
+  
+  // Handle markdown tables first (before other processing)
+  const tableRegex = /\|(.+)\|\n\|[-:\s|]+\|\n((?:\|.+\|\n?)+)/g;
+  html = html.replace(tableRegex, (match, headerRow, bodyRows) => {
+    const headers = headerRow.split('|').filter((h: string) => h.trim());
+    const rows = bodyRows.trim().split('\n').map((row: string) => 
+      row.split('|').filter((c: string) => c.trim())
+    );
+    
+    let table = '<table><thead><tr>';
+    headers.forEach((h: string) => {
+      table += `<th>${h.trim()}</th>`;
     });
+    table += '</tr></thead><tbody>';
+    rows.forEach((row: string[]) => {
+      table += '<tr>';
+      row.forEach((cell: string) => {
+        table += `<td>${cell.trim()}</td>`;
+      });
+      table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+  });
+  
+  // Bold text
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  
+  // Italic text (but not in already-processed tags)
+  html = html.replace(/(?<![<\/])\*([^*]+)\*/g, "<em>$1</em>");
+  
+  // Numbered lists
+  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<li data-num="$1">$2</li>');
+  html = html.replace(/(<li data-num="\d+">.+<\/li>\n?)+/gs, '<ol>$&</ol>');
+  html = html.replace(/ data-num="\d+"/g, '');
+  
+  // Bullet lists
+  html = html.replace(/^-\s+(.+)$/gm, "<li>$1</li>");
+  html = html.replace(/(<li>(?!<\/ol).+<\/li>\n?)+/gs, (match) => {
+    if (!match.includes('</ol>')) {
+      return `<ul>${match}</ul>`;
+    }
+    return match;
+  });
+  
+  // Paragraphs (lines that aren't already wrapped in HTML)
+  html = html.replace(/\n\n/g, "</p><p>");
+  
+  // Line breaks within paragraphs
+  html = html.replace(/\n(?!<)/g, "<br />");
+  
+  // Wrap remaining text in paragraphs
+  const lines = html.split('\n');
+  html = lines.map(line => {
+    if (line.trim() && !line.trim().startsWith('<') && !line.includes('<table') && !line.includes('<ul') && !line.includes('<ol')) {
+      return `<p>${line}</p>`;
+    }
+    return line;
+  }).join('\n');
+  
+  // Clean up empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p><br \/><\/p>/g, '');
+  
+  return html;
 }
 
 export function ReportDisplayStep({
@@ -138,8 +193,10 @@ export function ReportDisplayStep({
   isLoading,
   isGenerating = false,
   error,
+  isAdmin = false,
   onBack,
   onRetry,
+  onRegenerate,
   onExportPDF,
   onExportWord,
 }: ReportDisplayStepProps) {
@@ -289,6 +346,20 @@ export function ReportDisplayStep({
               <ListTree className="w-4 h-4" />
             </motion.button>
             
+            {/* Admin-only Regenerate button */}
+            {isAdmin && onRegenerate && (
+              <motion.button 
+                onClick={onRegenerate} 
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl text-white text-sm font-medium shadow-lg shadow-amber-500/25 border border-amber-500/30" 
+                whileHover={{ scale: 1.02 }} 
+                whileTap={{ scale: 0.98 }}
+                title="Regenerate report with latest AI agent (Admin only)"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Regenerate
+              </motion.button>
+            )}
+            
             <div className="relative">
               <motion.button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white text-sm font-medium shadow-lg shadow-purple-500/25" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Download className="w-4 h-4" />
@@ -345,24 +416,105 @@ export function ReportDisplayStep({
 
         {/* Report Content */}
         <div ref={contentRef} className="flex-1 overflow-y-auto px-8 py-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             {sections.map((section, index) => {
               const isCollapsed = collapsedSections.has(section.id);
+              
+              // Determine section styling based on content type
+              const isSWOT = section.title.toLowerCase().includes('swot') || 
+                             section.title.toLowerCase().includes('strength') ||
+                             section.title.toLowerCase().includes('weakness') ||
+                             section.title.toLowerCase().includes('opportunit') ||
+                             section.title.toLowerCase().includes('threat');
+              
+              const isRecommendation = section.title.toLowerCase().includes('recommendation') ||
+                                       section.title.toLowerCase().includes('priority') ||
+                                       section.title.toLowerCase().includes('intervention');
+              
+              const isBenchmark = section.title.toLowerCase().includes('benchmark') ||
+                                  section.title.toLowerCase().includes('peer') ||
+                                  section.title.toLowerCase().includes('comparison');
 
               return (
-                <motion.div key={section.id} id={section.id} ref={(el) => { sectionRefs.current[section.id] = el; }} className={cn("mb-8", section.level === 1 && "mt-12 first:mt-0")} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                  <button onClick={() => section.level <= 2 && toggleSection(section.id)} className={cn("w-full text-left flex items-center gap-3 group", section.level <= 2 && "cursor-pointer")}>
+                <motion.div 
+                  key={section.id} 
+                  id={section.id} 
+                  ref={(el) => { sectionRefs.current[section.id] = el; }} 
+                  className={cn(
+                    "mb-10",
+                    section.level === 1 && "mt-16 first:mt-0",
+                    section.level === 2 && "mt-8"
+                  )} 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ delay: index * 0.03 }}
+                >
+                  {/* Section Divider for Level 2 headings */}
+                  {section.level === 2 && index > 0 && (
+                    <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-8" />
+                  )}
+                  
+                  <button 
+                    onClick={() => section.level <= 2 && toggleSection(section.id)} 
+                    className={cn(
+                      "w-full text-left flex items-center gap-3 group",
+                      section.level <= 2 && "cursor-pointer"
+                    )}
+                  >
                     {section.level <= 2 && (
-                      <motion.div animate={{ rotate: isCollapsed ? -90 : 0 }} className="text-slate-500 group-hover:text-slate-400">
+                      <motion.div 
+                        animate={{ rotate: isCollapsed ? -90 : 0 }} 
+                        className="text-purple-400 group-hover:text-purple-300 transition-colors"
+                      >
                         <ChevronDown className="w-5 h-5" />
                       </motion.div>
                     )}
-                    <h2 className={cn(section.level === 1 && "text-2xl font-bold text-white", section.level === 2 && "text-xl font-semibold text-white", section.level === 3 && "text-lg font-medium text-slate-200")}>{section.title}</h2>
+                    <h2 className={cn(
+                      section.level === 1 && "text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent",
+                      section.level === 2 && "text-xl font-semibold text-white",
+                      section.level === 3 && "text-lg font-medium text-purple-200"
+                    )}>
+                      {section.title}
+                    </h2>
                   </button>
+                  
                   <AnimatePresence>
                     {!isCollapsed && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                        <div className={cn("prose prose-invert prose-slate max-w-none mt-4", section.level <= 2 && "pl-8")} dangerouslySetInnerHTML={{ __html: renderMarkdown(section.content) }} />
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: "auto", opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }} 
+                        transition={{ duration: 0.3 }} 
+                        className="overflow-hidden"
+                      >
+                        <div 
+                          className={cn(
+                            "prose prose-invert prose-lg max-w-none mt-6",
+                            // Text styling
+                            "prose-headings:text-white prose-headings:font-semibold",
+                            "prose-p:text-slate-200 prose-p:leading-relaxed prose-p:mb-4",
+                            "prose-strong:text-white prose-strong:font-semibold",
+                            "prose-em:text-purple-300 prose-em:font-medium",
+                            // List styling
+                            "prose-li:text-slate-200 prose-li:my-2 prose-li:leading-relaxed",
+                            "prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-ul:space-y-2",
+                            "prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4 prose-ol:space-y-2",
+                            // Table styling
+                            "prose-table:border-collapse prose-table:w-full prose-table:my-6 prose-table:rounded-lg prose-table:overflow-hidden",
+                            "prose-th:bg-slate-800/90 prose-th:text-white prose-th:px-4 prose-th:py-3 prose-th:text-left prose-th:font-semibold prose-th:border prose-th:border-slate-700",
+                            "prose-td:text-slate-200 prose-td:px-4 prose-td:py-3 prose-td:border prose-td:border-slate-700/50",
+                            "prose-tr:even:bg-slate-800/40 prose-tr:hover:bg-slate-800/60 prose-tr:transition-colors",
+                            // Section-specific styling
+                            section.level <= 2 && "pl-8",
+                            // SWOT sections get colored left border
+                            isSWOT && "border-l-4 border-purple-500/50 pl-6 bg-slate-800/20 rounded-r-lg py-4",
+                            // Recommendations get amber accent
+                            isRecommendation && "border-l-4 border-amber-500/50 pl-6 bg-amber-950/10 rounded-r-lg py-4",
+                            // Benchmark sections get blue accent
+                            isBenchmark && "border-l-4 border-blue-500/50 pl-6 bg-blue-950/10 rounded-r-lg py-4"
+                          )} 
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(section.content) }} 
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>

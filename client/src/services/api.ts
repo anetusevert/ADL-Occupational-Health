@@ -684,10 +684,14 @@ export async function getCountryTopicStatuses(
 
 /**
  * Generate a strategic deep dive for a country (synchronous - returns full report)
+ * @param isoCode - Country ISO code
+ * @param topic - Analysis topic
+ * @param forceRegenerate - If true, delete existing report and generate fresh (admin only)
  */
 export async function generateStrategicDeepDive(
   isoCode: string,
-  topic: string = "Comprehensive Occupational Health Assessment"
+  topic: string = "Comprehensive Occupational Health Assessment",
+  forceRegenerate: boolean = false
 ): Promise<{
   success: boolean;
   iso_code: string;
@@ -704,11 +708,11 @@ export async function generateStrategicDeepDive(
 }> {
   // Use AI-specialized client with extended timeout (6 minutes)
   // Agent runs synchronously and returns full report immediately
-  console.log('[API] generateStrategicDeepDive starting:', { isoCode, topic });
+  console.log('[API] generateStrategicDeepDive starting:', { isoCode, topic, forceRegenerate });
   
   const response = await aiApiClient.post(
     `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/generate`,
-    { topic }
+    { topic, force_regenerate: forceRegenerate }
   );
   
   // Debug: Log response structure

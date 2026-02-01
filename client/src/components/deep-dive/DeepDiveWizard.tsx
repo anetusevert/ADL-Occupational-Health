@@ -536,6 +536,43 @@ export function DeepDiveWizard() {
     }
   }, [selectedCountries, selectedTopic, fetchOrGenerateReport]);
 
+  // Force regenerate report (admin only) - deletes old report and generates fresh
+  const handleRegenerateReport = useCallback(async () => {
+    if (!isAdmin || selectedCountries.length === 0 || !selectedTopic) return;
+    
+    const countryIso = selectedCountries[0];
+    setReport(null);
+    setReportError(null);
+    setIsGenerating(true);
+    
+    try {
+      console.log('[DeepDive] Force regenerating report for:', countryIso, selectedTopic);
+      
+      // Force regenerate with the new premium agent
+      const generated = await generateStrategicDeepDive(countryIso, selectedTopic, true);
+      
+      console.log('[DeepDive] Regenerated report:', {
+        success: generated.success,
+        hasReport: !!generated.report,
+        error: generated.error,
+      });
+      
+      if (generated.success && generated.report) {
+        const markdownReport = formatReportAsMarkdown(generated.report);
+        setReport(markdownReport);
+      } else {
+        const errorMsg = generated.error || "Report regeneration failed.";
+        setReportError(new Error(errorMsg));
+      }
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.detail || err?.response?.data?.message;
+      const errorMessage = serverMessage || (err instanceof Error ? err.message : "Failed to regenerate report");
+      setReportError(new Error(errorMessage));
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [isAdmin, selectedCountries, selectedTopic]);
+
   // Export handlers
   const handleExportPDF = useCallback(async () => {
     if (!report || !selectedCountriesData[0]) return;
@@ -638,8 +675,10 @@ export function DeepDiveWizard() {
                 isLoading={isFetching || isGenerating}
                 isGenerating={isGenerating}
                 error={reportError}
+                isAdmin={isAdmin}
                 onBack={handleBackToTopics}
                 onRetry={handleRetryReport}
+                onRegenerate={handleRegenerateReport}
                 onExportPDF={handleExportPDF}
                 onExportWord={handleExportWord}
               />
