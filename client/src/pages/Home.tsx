@@ -620,6 +620,15 @@ export function Home() {
           />
         )}
       </AnimatePresence>
+
+      {/* View Selection Modal */}
+      <ViewSelectionModal
+        isOpen={!!viewSelectionCountry}
+        onClose={() => setViewSelectionCountry(null)}
+        countryIso={viewSelectionCountry?.iso_code ?? ""}
+        countryName={viewSelectionCountry?.name ?? ""}
+        countryFlagUrl={viewSelectionCountry?.flag_url}
+      />
     </div>
   );
 }
@@ -829,15 +838,6 @@ function StatsModal({
           )}
         </div>
       </motion.div>
-
-      {/* View Selection Modal */}
-      <ViewSelectionModal
-        isOpen={!!viewSelectionCountry}
-        onClose={() => setViewSelectionCountry(null)}
-        countryIso={viewSelectionCountry?.iso_code ?? ""}
-        countryName={viewSelectionCountry?.name ?? ""}
-        countryFlagUrl={viewSelectionCountry?.flag_url}
-      />
     </motion.div>
   );
 }
