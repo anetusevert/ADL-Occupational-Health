@@ -1,14 +1,14 @@
 /**
  * Arthur D. Little - Landing Page
- * Professional entry point for the Global Occupational Health Platform
+ * Premium entry point for the Global Occupational Health Platform
  * 
+ * Design: Bloomberg Terminal meets Stripe elegance
  * Features:
  * - Cinematic entrance animation
- * - Hero section with ADL branding
- * - Framework pillars visualization
- * - ADL OHI Score display
- * - Interactive feature tiles with modals
- * - Data sources showcase
+ * - Temple-style framework visualization
+ * - OHI Score distribution histogram
+ * - Interactive feature tiles
+ * - Comprehensive data sources marquee
  */
 
 import { useState, useEffect } from "react";
@@ -20,32 +20,15 @@ import {
   ArrowRight,
   MapPin,
   Activity,
-  Crown,
-  Shield,
-  Eye,
-  Heart,
-  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { LandingEntrance } from "../components/LandingEntrance";
 import { LoginModal } from "../components/LoginModal";
 import { FeatureDetailModal, type FeatureType } from "../components/FeatureDetailModal";
+import { FrameworkTempleCompact } from "../components/landing/FrameworkTempleCompact";
+import { OHIScoreDistribution } from "../components/landing/OHIScoreDistribution";
+import { DataSourcesMarquee } from "../components/landing/DataSourcesMarquee";
 import { cn } from "../lib/utils";
-
-// Framework pillars for visual display
-const frameworkPillars = [
-  { id: "governance", icon: Crown, name: "Governance", color: "purple", bgColor: "bg-purple-500/20", textColor: "text-purple-400" },
-  { id: "prevention", icon: Shield, name: "Prevention", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
-  { id: "vigilance", icon: Eye, name: "Vigilance", color: "emerald", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
-  { id: "restoration", icon: Heart, name: "Restoration", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-];
-
-// Data sources with colors
-const dataSources = [
-  { id: "wb", name: "World Bank", color: "text-amber-400", bgColor: "bg-amber-500/10", borderColor: "border-amber-500/20" },
-  { id: "ilo", name: "ILO", color: "text-blue-400", bgColor: "bg-blue-500/10", borderColor: "border-blue-500/20" },
-  { id: "who", name: "WHO", color: "text-emerald-400", bgColor: "bg-emerald-500/10", borderColor: "border-emerald-500/20" },
-  { id: "oecd", name: "OECD", color: "text-cyan-400", bgColor: "bg-cyan-500/10", borderColor: "border-cyan-500/20" },
-];
 
 // Value proposition cards configuration (3 tiles)
 const valueProps: Array<{
@@ -56,6 +39,7 @@ const valueProps: Array<{
   bgColor: string;
   borderColor: string;
   iconColor: string;
+  glowColor: string;
 }> = [
   {
     id: "framework",
@@ -65,6 +49,7 @@ const valueProps: Array<{
     bgColor: "bg-purple-500/10",
     borderColor: "border-purple-500/20",
     iconColor: "text-purple-400",
+    glowColor: "group-hover:shadow-purple-500/20",
   },
   {
     id: "countries",
@@ -74,6 +59,7 @@ const valueProps: Array<{
     bgColor: "bg-cyan-500/10",
     borderColor: "border-cyan-500/20",
     iconColor: "text-cyan-400",
+    glowColor: "group-hover:shadow-cyan-500/20",
   },
   {
     id: "simulator",
@@ -83,10 +69,11 @@ const valueProps: Array<{
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/20",
     iconColor: "text-emerald-400",
+    glowColor: "group-hover:shadow-emerald-500/20",
   },
 ];
 
-// Key stats for credibility (removed Framework Pillars)
+// Key stats for credibility
 const stats = [
   { value: "196", label: "Countries", icon: MapPin },
   { value: "50+", label: "Key Metrics", icon: Activity },
@@ -99,7 +86,6 @@ export function LandingPage() {
   const [activeFeature, setActiveFeature] = useState<FeatureType | null>(null);
 
   useEffect(() => {
-    // Check if entrance was already shown this session
     const entranceShown = sessionStorage.getItem("entranceShown");
     if (entranceShown) {
       setShowEntrance(false);
@@ -110,7 +96,6 @@ export function LandingPage() {
   const handleEntranceComplete = () => {
     setShowEntrance(false);
     sessionStorage.setItem("entranceShown", "true");
-    // Small delay before showing content for smooth transition
     setTimeout(() => setContentVisible(true), 100);
   };
 
@@ -144,19 +129,57 @@ export function LandingPage() {
             transition={{ duration: 0.8 }}
             className="relative min-h-screen"
           >
-            {/* Background Effects */}
-            <div className="fixed inset-0 pointer-events-none">
-              <div className="absolute inset-0 opacity-[0.02]">
+            {/* Premium Background Effects */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+              {/* Subtle grid pattern */}
+              <div className="absolute inset-0 opacity-[0.015]">
                 <div 
                   className="absolute inset-0"
                   style={{
                     backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-                    backgroundSize: '50px 50px'
+                    backgroundSize: '60px 60px'
                   }}
                 />
               </div>
-              <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-adl-accent/5 rounded-full blur-[200px]" />
-              <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[180px]" />
+              {/* Gradient orbs */}
+              <motion.div 
+                animate={{ 
+                  x: [0, 30, 0],
+                  y: [0, -20, 0],
+                }}
+                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute top-[-200px] right-[-200px] w-[900px] h-[900px] bg-adl-accent/[0.04] rounded-full blur-[200px]" 
+              />
+              <motion.div 
+                animate={{ 
+                  x: [0, -20, 0],
+                  y: [0, 30, 0],
+                }}
+                transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute bottom-[-300px] left-[-200px] w-[700px] h-[700px] bg-purple-500/[0.04] rounded-full blur-[180px]" 
+              />
+              {/* Constellation particles */}
+              <div className="absolute inset-0">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ 
+                      opacity: [0.1, 0.3, 0.1],
+                    }}
+                    transition={{ 
+                      duration: 3 + Math.random() * 2,
+                      repeat: Infinity,
+                      delay: Math.random() * 2,
+                    }}
+                    className="absolute w-1 h-1 bg-white rounded-full"
+                    style={{
+                      left: `${10 + Math.random() * 80}%`,
+                      top: `${10 + Math.random() * 80}%`,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Content Container */}
@@ -167,7 +190,7 @@ export function LandingPage() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="flex items-center justify-between px-6 lg:px-12 py-6"
+                className="flex items-center justify-between px-6 lg:px-16 py-6"
               >
                 {/* Logo */}
                 <div className="flex items-center gap-3">
@@ -177,16 +200,16 @@ export function LandingPage() {
                     className="h-10 md:h-12 object-contain"
                     animate={{
                       filter: [
-                        "drop-shadow(0 0 10px rgba(6,182,212,0.2))",
-                        "drop-shadow(0 0 20px rgba(6,182,212,0.3))",
-                        "drop-shadow(0 0 10px rgba(6,182,212,0.2))",
+                        "drop-shadow(0 0 8px rgba(6,182,212,0.15))",
+                        "drop-shadow(0 0 16px rgba(6,182,212,0.25))",
+                        "drop-shadow(0 0 8px rgba(6,182,212,0.15))",
                       ],
                     }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </div>
 
-                {/* Login Button */}
+                {/* Sign In Button */}
                 <motion.button
                   onClick={() => setIsLoginOpen(true)}
                   whileHover={{ scale: 1.02 }}
@@ -194,7 +217,7 @@ export function LandingPage() {
                   className={cn(
                     "px-6 py-2.5 rounded-xl font-medium text-white",
                     "bg-adl-accent hover:bg-adl-blue-light",
-                    "transition-all duration-200",
+                    "transition-all duration-300",
                     "shadow-lg shadow-adl-accent/20 hover:shadow-xl hover:shadow-adl-accent/30",
                     "flex items-center gap-2"
                   )}
@@ -205,20 +228,21 @@ export function LandingPage() {
               </motion.header>
 
               {/* Hero Section */}
-              <main className="flex-1 flex flex-col items-center justify-center px-6 lg:px-12 py-8">
+              <main className="flex-1 flex flex-col items-center px-6 lg:px-16 py-8">
                 
                 {/* Hero Content */}
-                <div className="text-center max-w-4xl mx-auto mb-8">
+                <div className="text-center max-w-4xl mx-auto">
+                  {/* Title */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.3 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
                   >
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] mb-6 tracking-tight">
                       Global Occupational{" "}
                       <span className="text-adl-accent">Health Intelligence</span>
                     </h1>
-                    <p className="text-lg md:text-xl text-white/60 leading-relaxed max-w-2xl mx-auto">
+                    <p className="text-lg md:text-xl text-white/50 leading-relaxed max-w-2xl mx-auto font-light">
                       Strategic insights and policy analysis for sovereign occupational 
                       health frameworks. Empowering evidence-based decisions across 196 nations.
                     </p>
@@ -229,7 +253,7 @@ export function LandingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.5 }}
-                    className="flex flex-wrap justify-center gap-6 mt-8"
+                    className="flex flex-wrap justify-center gap-4 mt-10"
                   >
                     {stats.map((stat, index) => {
                       const Icon = stat.icon;
@@ -239,154 +263,74 @@ export function LandingPage() {
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.6 + index * 0.1 }}
-                          className="flex items-center gap-3 px-5 py-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl"
+                          whileHover={{ scale: 1.03 }}
+                          className={cn(
+                            "flex items-center gap-3 px-6 py-3",
+                            "bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-xl",
+                            "hover:border-white/20 transition-all duration-300"
+                          )}
                         >
                           <Icon className="w-5 h-5 text-adl-accent" />
                           <div className="text-left">
-                            <p className="text-xl font-bold text-white">{stat.value}</p>
-                            <p className="text-xs text-white/50">{stat.label}</p>
+                            <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
+                            <p className="text-xs text-white/40 uppercase tracking-wider">{stat.label}</p>
                           </div>
                         </motion.div>
                       );
                     })}
                   </motion.div>
 
-                  {/* Framework Pillars Visual */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.7 }}
-                    className="mt-10"
-                  >
-                    <p className="text-xs text-white/40 uppercase tracking-widest mb-4">
-                      ADL Occupational Health Framework
-                    </p>
-                    <div className="flex flex-wrap justify-center items-center gap-2 md:gap-3">
-                      {frameworkPillars.map((pillar, index) => {
-                        const Icon = pillar.icon;
-                        return (
-                          <motion.div
-                            key={pillar.id}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.8 + index * 0.1 }}
-                            className="flex items-center gap-2"
-                          >
-                            <div className={cn(
-                              "flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10",
-                              "bg-white/5 backdrop-blur-sm",
-                              "hover:border-white/20 transition-all duration-300"
-                            )}>
-                              <div className={cn(
-                                "w-8 h-8 rounded-lg flex items-center justify-center",
-                                pillar.bgColor
-                              )}>
-                                <Icon className={cn("w-4 h-4", pillar.textColor)} />
-                              </div>
-                              <span className="text-sm font-medium text-white hidden sm:block">
-                                {pillar.name}
-                              </span>
-                            </div>
-                            {index < frameworkPillars.length - 1 && (
-                              <ChevronRight className="w-4 h-4 text-white/20 hidden md:block" />
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
+                  {/* Framework Temple Visual */}
+                  <div className="mt-12">
+                    <FrameworkTempleCompact delay={0.7} />
+                  </div>
 
-                  {/* ADL OHI Score Display */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.9 }}
-                    className="mt-8"
-                  >
-                    <div className="inline-flex flex-col items-center px-6 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl">
-                      <div className="flex items-center gap-3 mb-3">
-                        <img src="/adl-logo.png" alt="ADL" className="h-5 opacity-80" />
-                        <span className="text-sm font-semibold text-white">OHI Score</span>
-                      </div>
-                      <div className="flex items-center gap-1 w-full max-w-xs">
-                        <div className="flex-1 h-2 rounded-full bg-gradient-to-r from-red-500 via-amber-500 via-emerald-500 to-cyan-500" />
-                      </div>
-                      <div className="flex justify-between w-full max-w-xs mt-2 text-[10px] text-white/40">
-                        <span>1.0 Critical</span>
-                        <span>2.0 Developing</span>
-                        <span>3.0 Advancing</span>
-                        <span>4.0 Leading</span>
-                      </div>
-                    </div>
-                  </motion.div>
+                  {/* OHI Score Distribution */}
+                  <div className="mt-10">
+                    <OHIScoreDistribution delay={1.0} />
+                  </div>
 
                   {/* CTA Button */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 1.0 }}
-                    className="mt-8"
+                    transition={{ duration: 0.6, delay: 1.2 }}
+                    className="mt-10"
                   >
                     <motion.button
                       onClick={() => setIsLoginOpen(true)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       className={cn(
-                        "px-8 py-4 rounded-xl font-semibold text-white text-lg",
+                        "group relative px-10 py-4 rounded-2xl font-semibold text-white text-lg",
                         "bg-adl-accent hover:bg-adl-blue-light",
-                        "transition-all duration-200",
-                        "shadow-xl shadow-adl-accent/30 hover:shadow-2xl hover:shadow-adl-accent/40",
-                        "flex items-center gap-3 mx-auto"
+                        "transition-all duration-300",
+                        "shadow-xl shadow-adl-accent/25 hover:shadow-2xl hover:shadow-adl-accent/35",
+                        "flex items-center gap-3 mx-auto overflow-hidden"
                       )}
                     >
-                      Access Platform
-                      <ArrowRight className="w-5 h-5" />
+                      {/* Shine effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                        initial={{ x: "-200%" }}
+                        whileHover={{ x: "200%" }}
+                        transition={{ duration: 0.8 }}
+                      />
+                      <Sparkles className="w-5 h-5 relative z-10" />
+                      <span className="relative z-10">Access Platform</span>
+                      <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
                     </motion.button>
-                  </motion.div>
-
-                  {/* Data Sources Strip */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: 1.1 }}
-                    className="mt-8"
-                  >
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">
-                      Powered by Authoritative Data
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {dataSources.map((source, index) => (
-                        <motion.div
-                          key={source.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 1.2 + index * 0.05 }}
-                          whileHover={{ scale: 1.05 }}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg border backdrop-blur-sm",
-                            "transition-all duration-300",
-                            source.bgColor,
-                            source.borderColor,
-                            "hover:border-white/30"
-                          )}
-                        >
-                          <span className={cn("text-xs font-medium", source.color)}>
-                            {source.name}
-                          </span>
-                        </motion.div>
-                      ))}
-                    </div>
                   </motion.div>
                 </div>
 
-                {/* Value Proposition Cards - 3 Tiles */}
+                {/* Feature Tiles */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 1.3 }}
-                  className="w-full max-w-5xl mx-auto mb-12"
+                  transition={{ duration: 0.7, delay: 1.4 }}
+                  className="w-full max-w-5xl mx-auto mt-16"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {valueProps.map((prop, index) => {
                       const Icon = prop.icon;
                       return (
@@ -394,60 +338,73 @@ export function LandingPage() {
                           key={prop.title}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.4 + index * 0.1 }}
+                          transition={{ delay: 1.5 + index * 0.1 }}
                           whileHover={{ 
-                            y: -6,
-                            transition: { duration: 0.2 }
+                            y: -8,
+                            transition: { duration: 0.25, ease: "easeOut" }
                           }}
                           onClick={() => handleFeatureClick(prop.id)}
                           className={cn(
-                            "p-6 rounded-xl border backdrop-blur-sm text-left",
-                            "bg-gradient-to-b from-white/5 to-transparent",
+                            "group relative p-7 rounded-2xl border backdrop-blur-sm text-left",
+                            "bg-gradient-to-b from-white/[0.04] to-transparent",
                             prop.borderColor,
-                            "hover:border-white/30 transition-all duration-300",
-                            "group cursor-pointer"
+                            "hover:border-white/25 transition-all duration-300",
+                            "cursor-pointer overflow-hidden",
+                            "shadow-lg shadow-black/10",
+                            prop.glowColor, "group-hover:shadow-xl"
                           )}
                         >
-                          <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                            prop.bgColor
-                          )}>
-                            <Icon className={cn("w-6 h-6", prop.iconColor)} />
+                          {/* Subtle shine on hover */}
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          />
+                          
+                          <div className="relative z-10">
+                            <div className={cn(
+                              "w-14 h-14 rounded-xl flex items-center justify-center mb-5",
+                              prop.bgColor
+                            )}>
+                              <Icon className={cn("w-7 h-7", prop.iconColor)} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                              {prop.title}
+                              <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                            </h3>
+                            <p className="text-sm text-white/45 leading-relaxed">
+                              {prop.description}
+                            </p>
                           </div>
-                          <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-                            {prop.title}
-                            <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </h3>
-                          <p className="text-sm text-white/50 leading-relaxed">
-                            {prop.description}
-                          </p>
                         </motion.button>
                       );
                     })}
                   </div>
                 </motion.div>
+
+                {/* Data Sources Marquee */}
+                <div className="w-full max-w-4xl mx-auto mt-16">
+                  <DataSourcesMarquee delay={1.7} />
+                </div>
               </main>
 
               {/* Footer */}
               <motion.footer
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 1.6 }}
-                className="py-6 px-6 lg:px-12 text-center"
+                transition={{ duration: 0.5, delay: 1.9 }}
+                className="py-8 px-6 lg:px-16 text-center"
               >
-                <p className="text-white/30 text-sm">
+                <p className="text-white/25 text-sm tracking-wide">
                   &copy; {new Date().getFullYear()} Arthur D. Little. All rights reserved.
                 </p>
               </motion.footer>
             </div>
 
-            {/* Login Modal */}
+            {/* Modals */}
             <LoginModal 
               isOpen={isLoginOpen} 
               onClose={() => setIsLoginOpen(false)} 
             />
 
-            {/* Feature Detail Modal */}
             {activeFeature && (
               <FeatureDetailModal
                 isOpen={!!activeFeature}
