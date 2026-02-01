@@ -34,26 +34,28 @@ router = APIRouter(prefix="/strategic-deep-dive", tags=["Strategic Deep Dive"])
 # HELPER FUNCTIONS
 # =============================================================================
 
-def ensure_agents_exist(db: Session):
+def ensure_agents_exist_with_session(db: Session) -> bool:
     """
     Ensure default agents are seeded in the database.
     
     This is called before running agents to ensure they exist,
     since the orchestration page might not have been visited yet.
+    
+    Returns True if report-generation agent exists, False otherwise.
     """
     try:
         # Check if report-generation agent exists
-        print("Checking if report-generation agent exists...")
+        logger.info("[SEED] Checking if report-generation agent exists...")
         agent = db.query(Agent).filter(Agent.id == "report-generation").first()
         if agent:
-            print(f"Agent 'report-generation' already exists: {agent.name}")
-            return  # Already exists
+            logger.info(f"[SEED] Agent 'report-generation' already exists: {agent.name}")
+            return True
         
-        print("Agent not found, seeding default agents...")
+        logger.info("[SEED] Agent not found, seeding default agents...")
         
         # Seed all default agents
         for agent_data in DEFAULT_AGENTS:
-            print(f"Seeding agent: {agent_data['id']}")
+            logger.info(f"[SEED] Seeding agent: {agent_data['id']}")
             existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
             if not existing:
                 new_agent = Agent(
@@ -68,18 +70,44 @@ def ensure_agents_exist(db: Session):
                     is_active=True,
                 )
                 db.add(new_agent)
-                print(f"Added agent: {agent_data['id']}")
+                logger.info(f"[SEED] Added agent: {agent_data['id']}")
         
         db.commit()
-        print(f"Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+        logger.info(f"[SEED] Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+        
+        # Verify the agent was created
+        verify = db.query(Agent).filter(Agent.id == "report-generation").first()
+        if verify:
+            logger.info(f"[SEED] Verified: report-generation agent exists after seeding")
+            return True
+        else:
+            logger.error(f"[SEED] CRITICAL: Agent still not found after seeding!")
+            return False
         
     except Exception as e:
-        print(f"ERROR seeding agents: {e}")
+        logger.error(f"[SEED] ERROR seeding agents: {e}")
         import traceback
         traceback.print_exc()
         db.rollback()
-        # Don't silently fail - raise the exception
-        raise
+        return False
+
+
+def ensure_agents_exist():
+    """
+    Create a new database session and ensure agents exist.
+    Uses a completely isolated session to avoid any contamination.
+    """
+    isolated_db = None
+    try:
+        isolated_db = SessionLocal()
+        result = ensure_agents_exist_with_session(isolated_db)
+        return result
+    except Exception as e:
+        logger.error(f"[SEED] Failed to ensure agents exist: {e}")
+        return False
+    finally:
+        if isolated_db:
+            isolated_db.close()
 
 
 def _validate_llm_output(output: str) -> tuple[bool, str]:
@@ -540,15 +568,25 @@ async def generate_report(
         # Ensure agents are seeded before running - USE ISOLATED SESSION
         # This prevents any potential data contamination from agent queries
         logger.info(f"[GENERATE] Starting generation for {iso_code}")
-        try:
-            with SessionLocal() as isolated_db:
-                ensure_agents_exist(isolated_db)
-            # CRITICAL: Expire main session cache so it can see newly committed agents
-            db.expire_all()
-            logger.info(f"[GENERATE] ensure_agents_exist completed, main session cache expired")
-        except Exception as seed_err:
-            # Non-fatal - agent should already exist from previous runs
-            logger.warning(f"[GENERATE] Agent seeding warning (non-fatal): {seed_err}")
+        
+        # Use the new function that manages its own session
+        agents_ready = ensure_agents_exist()
+        
+        # CRITICAL: Expire main session cache so it can see newly committed agents
+        db.expire_all()
+        
+        if not agents_ready:
+            logger.error(f"[GENERATE] CRITICAL: Failed to ensure agents exist!")
+            return GenerateResponse(
+                success=False,
+                iso_code=iso_code,
+                country_name="Unknown",
+                report=None,
+                agent_log=agent_log,
+                error="Failed to initialize report-generation agent. Please check server logs.",
+            )
+        
+        logger.info(f"[GENERATE] ensure_agents_exist completed successfully, main session cache expired")
         
         # Get country
         country = db.query(Country).filter(Country.iso_code == iso_code).first()

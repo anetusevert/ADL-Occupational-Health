@@ -310,25 +310,30 @@ function AgentActivityLog({
           </p>
         ) : (
           <div className="space-y-2">
-            {entries.map((entry, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="flex items-start gap-3"
-              >
-                <span className="text-slate-500 text-xs whitespace-nowrap">
-                  {new Date(entry.timestamp).toLocaleTimeString()}
-                </span>
-                {getStatusIcon(entry.status)}
-                <span className="text-lg">{entry.emoji}</span>
-                <span className={cn("font-semibold", getAgentColor(entry.agent))}>
-                  [{entry.agent}]
-                </span>
-                <span className="text-slate-300">{entry.message}</span>
-              </motion.div>
-            ))}
+            {entries.map((entry, idx) => {
+              // Skip malformed entries
+              if (!entry || !entry.agent) return null;
+              
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="text-slate-500 text-xs whitespace-nowrap">
+                    {new Date(entry.timestamp).toLocaleTimeString()}
+                  </span>
+                  {getStatusIcon(entry.status)}
+                  <span className="text-lg">{entry.emoji}</span>
+                  <span className={cn("font-semibold", getAgentColor(entry.agent))}>
+                    [{entry.agent}]
+                  </span>
+                  <span className="text-slate-300">{entry.message}</span>
+                </motion.div>
+              );
+            })}
             <div ref={logEndRef} />
           </div>
         )}
