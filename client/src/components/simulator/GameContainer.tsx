@@ -115,9 +115,19 @@ function GameInner() {
     setAgentLog([]);
     setIsWorkflowComplete(false);
 
+    // Frontend safety timeout (45 seconds) - defense-in-depth if backend timeout fails
+    const FRONTEND_TIMEOUT_MS = 45000;
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('FRONTEND_TIMEOUT')), FRONTEND_TIMEOUT_MS);
+    });
+
     try {
-      // Use enhanced Intelligence Briefing workflow (with web search)
-      const workflowResult = await runIntelligenceBriefingWorkflow(country.iso_code);
+      // Race API call against frontend timeout
+      const workflowResult = await Promise.race([
+        runIntelligenceBriefingWorkflow(country.iso_code),
+        timeoutPromise
+      ]);
       
       // Set agent log for display - filter to only valid entries with required fields
       if (workflowResult.agent_log) {
@@ -161,7 +171,9 @@ function GameInner() {
       // Don't immediately transition - let LoadingBriefing show the agent log first
       // setGamePhase('briefing') is called by LoadingBriefing.onComplete
     } catch (error) {
-      console.error('Failed to research country:', error);
+      const isTimeout = error instanceof Error && error.message === 'FRONTEND_TIMEOUT';
+      console.error('Failed to research country:', isTimeout ? 'Request timed out after 45s' : error);
+      
       // Add error log entries so user sees what happened
       setAgentLog(prev => [
         ...prev,
@@ -169,8 +181,10 @@ function GameInner() {
           timestamp: new Date().toISOString(),
           agent: 'Orchestrator',
           status: 'error',
-          message: 'AI service unavailable - using cached database',
-          emoji: '⚠️',
+          message: isTimeout 
+            ? 'Request timed out - using cached database for faster loading'
+            : 'AI service unavailable - using cached database',
+          emoji: '⏱️',
         },
         {
           timestamp: new Date().toISOString(),

@@ -13,6 +13,7 @@ Endpoints for:
 - Game summary generation
 """
 
+import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -827,18 +828,25 @@ async def workflow_intelligence_briefing(
         else:
             log_agent("DataAgent", "complete", "Using core metrics only", "⚠️")
         
-        # Step 6: Run the Intelligence Briefing Agent
+        # Step 6: Run the Intelligence Briefing Agent (with 50s timeout)
         log_agent("IntelligenceAgent", "starting", "Generating intelligence briefing...", "🧠")
         
         runner = AgentRunner(db, ai_config)
-        agent_result = await runner.run(
-            agent_id="intelligence-briefing",
-            variables={
-                "ISO_CODE": iso_code,
-                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
-            },
-            enable_web_search=True,
-        )
+        try:
+            agent_result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="intelligence-briefing",
+                    variables={
+                        "ISO_CODE": iso_code,
+                        "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+                    },
+                    enable_web_search=True,
+                ),
+                timeout=50.0
+            )
+        except asyncio.TimeoutError:
+            log_agent("IntelligenceAgent", "timeout", "Request timed out, using fallback", "⏱️")
+            agent_result = {"success": False, "error": "Request timed out after 50 seconds"}
         
         if not agent_result["success"]:
             log_agent("IntelligenceAgent", "error", f"Agent failed: {agent_result['error']}", "❌")
@@ -958,21 +966,28 @@ Recent News Headlines:
         
         log_agent("StrategicAdvisor", "analyzing", "Analyzing current situation...", "📊")
         
-        # Run the Strategic Advisor Agent
+        # Run the Strategic Advisor Agent (with 50s timeout)
         runner = AgentRunner(db, ai_config)
-        agent_result = await runner.run(
-            agent_id="strategic-advisor",
-            variables={
-                "ISO_CODE": iso_code,
-                "CURRENT_MONTH": str(request.current_month),
-                "CURRENT_YEAR": str(request.current_year),
-                "BUDGET": str(request.budget_remaining),
-                "GAME_STATE": game_state,
-                "USER_QUESTION": request.user_question or "What should I focus on this month?",
-                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
-            },
-            enable_web_search=False,
-        )
+        try:
+            agent_result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="strategic-advisor",
+                    variables={
+                        "ISO_CODE": iso_code,
+                        "CURRENT_MONTH": str(request.current_month),
+                        "CURRENT_YEAR": str(request.current_year),
+                        "BUDGET": str(request.budget_remaining),
+                        "GAME_STATE": game_state,
+                        "USER_QUESTION": request.user_question or "What should I focus on this month?",
+                        "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+                    },
+                    enable_web_search=False,
+                ),
+                timeout=50.0
+            )
+        except asyncio.TimeoutError:
+            log_agent("StrategicAdvisor", "timeout", "Request timed out, using fallback", "⏱️")
+            agent_result = {"success": False, "error": "Request timed out after 50 seconds"}
         
         if not agent_result["success"]:
             log_agent("StrategicAdvisor", "error", f"Advisor failed: {agent_result['error']}", "❌")
@@ -1117,20 +1132,27 @@ async def workflow_news_generator(
         
         log_agent("NewsGenerator", "researching", "Gathering news context...", "🔍")
         
-        # Run the News Generator Agent
+        # Run the News Generator Agent (with 50s timeout)
         runner = AgentRunner(db, ai_config)
-        agent_result = await runner.run(
-            agent_id="news-generator",
-            variables={
-                "ISO_CODE": iso_code,
-                "CURRENT_MONTH": month_name,
-                "CURRENT_YEAR": str(request.current_year),
-                "RECENT_DECISIONS": decisions_text,
-                "GAME_STATE": game_state,
-                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
-            },
-            enable_web_search=False,
-        )
+        try:
+            agent_result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="news-generator",
+                    variables={
+                        "ISO_CODE": iso_code,
+                        "CURRENT_MONTH": month_name,
+                        "CURRENT_YEAR": str(request.current_year),
+                        "RECENT_DECISIONS": decisions_text,
+                        "GAME_STATE": game_state,
+                        "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+                    },
+                    enable_web_search=False,
+                ),
+                timeout=50.0
+            )
+        except asyncio.TimeoutError:
+            log_agent("NewsGenerator", "timeout", "Request timed out, using fallback", "⏱️")
+            agent_result = {"success": False, "error": "Request timed out after 50 seconds"}
         
         if not agent_result["success"]:
             log_agent("NewsGenerator", "error", f"News generation failed: {agent_result['error']}", "❌")

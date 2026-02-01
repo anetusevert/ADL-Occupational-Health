@@ -131,7 +131,24 @@ export function LoadingBriefing({
   const [displayedLogs, setDisplayedLogs] = useState<AgentLogEntry[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isTakingLong, setIsTakingLong] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // Show "taking longer" message after 20 seconds if not complete
+  useEffect(() => {
+    if (isComplete) {
+      setIsTakingLong(false);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      if (!isComplete) {
+        setIsTakingLong(true);
+      }
+    }, 20000);
+    
+    return () => clearTimeout(timer);
+  }, [isComplete]);
 
   // Get country info for map
   const countryNumericCode = countryIsoCode ? ISO3_TO_NUMERIC[countryIsoCode.toUpperCase()] : undefined;
@@ -446,6 +463,21 @@ export function LoadingBriefing({
         <p className="text-sm text-white/40">
           {isComplete ? 'Complete!' : `${Math.round(progress)}% complete`}
         </p>
+
+        {/* Taking longer message */}
+        <AnimatePresence>
+          {isTakingLong && !isComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-3 flex items-center justify-center gap-2 text-sm text-amber-400/80"
+            >
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Taking longer than expected... Almost there!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Step Indicators (only for fallback) */}
         {!hasAgentLog && (

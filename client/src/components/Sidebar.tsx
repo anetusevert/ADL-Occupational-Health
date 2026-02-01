@@ -39,6 +39,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  beta?: boolean;
 }
 
 interface SidebarProps {
@@ -53,14 +54,14 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
-  { path: "/deep-dive", label: "Deep Dive", icon: Brain },
+  { path: "/deep-dive", label: "Deep Dive", icon: Brain, beta: true },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/compare", label: "Compare", icon: GitCompare },
 ];
 
 // Tool Suite - Interactive tools for users
 const toolSuiteItems: NavItem[] = [
-  { path: "/simulator", label: "Policy Simulator", icon: Target },
+  { path: "/simulator", label: "Policy Simulator", icon: Target, beta: true },
   { path: "/data-engine", label: "Data Engine", icon: Database },
   { path: "/metric-calculator", label: "Scoring", icon: Calculator },
 ];
