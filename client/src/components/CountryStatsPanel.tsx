@@ -216,7 +216,7 @@ export function CountryStatsPanel({ isoCode, countryName, className = "" }: Coun
                 transition={{ delay: 0.1 + index * 0.05 }}
                 onClick={() => handleTileClick(tile)}
                 className={cn(
-                  "bg-gradient-to-br rounded-lg p-3 border text-left",
+                  "bg-gradient-to-br rounded-lg p-3 border text-left overflow-hidden",
                   "transition-all duration-200 cursor-pointer group",
                   "hover:scale-[1.02] hover:brightness-110 hover:shadow-lg",
                   tile.gradientFrom,
@@ -225,11 +225,11 @@ export function CountryStatsPanel({ isoCode, countryName, className = "" }: Coun
                 )}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <Icon className={cn("w-3.5 h-3.5", tile.textColor)} />
-                    <span className="text-[10px] text-white/50 uppercase">{tile.label}</span>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Icon className={cn("w-3.5 h-3.5 flex-shrink-0", tile.textColor)} />
+                    <span className="text-[10px] text-white/50 uppercase truncate">{tile.label}</span>
                   </div>
-                  <Info className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors" />
+                  <Info className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0 ml-1" />
                 </div>
                 <div className={cn("text-lg font-bold", tile.textColor)}>
                   {displayValue}
