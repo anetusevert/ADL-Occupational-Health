@@ -127,6 +127,13 @@ async def startup_event():
             if 'agents' in table_names:
                 columns = [col['name'] for col in inspector.get_columns('agents')]
                 
+                # Make category column nullable if it exists (legacy column from old schema)
+                # This fixes: "null value in column category violates not-null constraint"
+                if 'category' in columns:
+                    print("Making category column nullable (legacy fix)...")
+                    conn.execute(text("ALTER TABLE agents ALTER COLUMN category DROP NOT NULL"))
+                    conn.commit()
+                
                 # Add position columns
                 if 'position_x' not in columns:
                     print("Adding missing column to agents: position_x")
