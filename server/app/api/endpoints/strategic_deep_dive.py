@@ -201,6 +201,7 @@ class ReportResponse(BaseModel):
     peer_comparison: Optional[str] = None
     generated_at: Optional[str] = None
     error_message: Optional[str] = None
+    model_used: Optional[str] = None  # Which AI model generated this report
 
 
 class AgentLogEntry(BaseModel):
@@ -413,6 +414,7 @@ async def get_report(
         peer_comparison=dive.peer_comparison,
         generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
         error_message=dive.error_message,
+        model_used=dive.ai_provider,  # Stored when report was generated
     )
 
 
@@ -657,7 +659,15 @@ async def generate_report(
         
         runner = AgentRunner(db, ai_config)
         
+        # HYBRID MODEL STRATEGY: Try configured model first, fallback to fast model on timeout
+        model_used = f"{ai_config.provider}/{ai_config.model_name}"
+        used_fallback = False
+        FALLBACK_MODEL = "gpt-4o-mini"
+        
         try:
+            # First attempt with user's configured model (may be GPT-5/o1/o3)
+            log_step("AgentRunner", "running", f"Trying primary model: {ai_config.model_name}", "🤖")
+            
             result = await asyncio.wait_for(
                 runner.run(
                     agent_id="report-generation",
@@ -669,25 +679,55 @@ async def generate_report(
                     update_stats=True,
                     enable_web_search=request.enable_web_search,
                 ),
-                timeout=50.0  # 50 second timeout to stay within Railway limits
+                timeout=45.0  # 45 seconds for primary model (leave room for fallback)
             )
         except asyncio.TimeoutError:
-            # Request timed out - return graceful error so CORS headers are sent
-            dive.status = DeepDiveStatus.FAILED
-            dive.error_message = "Request timed out - AI model took too long"
-            dive.generated_at = datetime.utcnow()
-            db.commit()
+            # Primary model timed out - retry with fast fallback model
+            log_step("AgentRunner", "retry", f"{ai_config.model_name} timed out, retrying with {FALLBACK_MODEL}", "⚡")
+            logger.info(f"[GENERATE] Primary model {ai_config.model_name} timed out, trying fallback {FALLBACK_MODEL}")
             
-            log_step("AgentRunner", "timeout", "Request timed out after 50 seconds", "⏱️")
-            
-            return GenerateResponse(
-                success=False,
-                iso_code=iso_code,
-                country_name=country.name,
-                report=None,
-                agent_log=agent_log,
-                error="Generation timed out. The AI model is taking too long. Please try again.",
-            )
+            try:
+                # Create a modified config with fast model
+                from copy import copy
+                fast_config = copy(ai_config)
+                fast_config.model_name = FALLBACK_MODEL
+                
+                fast_runner = AgentRunner(db, fast_config)
+                
+                result = await asyncio.wait_for(
+                    fast_runner.run(
+                        agent_id="report-generation",
+                        variables={
+                            "ISO_CODE": iso_code,
+                            "TOPIC": request.topic,
+                        },
+                        update_stats=True,
+                        enable_web_search=False,  # Skip web search for faster fallback
+                    ),
+                    timeout=45.0  # 45 seconds for fallback
+                )
+                
+                model_used = f"openai/{FALLBACK_MODEL} (fallback)"
+                used_fallback = True
+                log_step("AgentRunner", "completed", f"Fallback model {FALLBACK_MODEL} succeeded", "✅")
+                
+            except asyncio.TimeoutError:
+                # Even fallback timed out - give up
+                dive.status = DeepDiveStatus.FAILED
+                dive.error_message = "Both primary and fallback models timed out"
+                dive.generated_at = datetime.utcnow()
+                db.commit()
+                
+                log_step("AgentRunner", "timeout", "Both models timed out", "⏱️")
+                
+                return GenerateResponse(
+                    success=False,
+                    iso_code=iso_code,
+                    country_name=country.name,
+                    report=None,
+                    agent_log=agent_log,
+                    error="Generation timed out. Both primary and fallback models took too long. Please try again.",
+                )
         
         if not result["success"]:
             dive.status = DeepDiveStatus.FAILED
@@ -767,7 +807,7 @@ async def generate_report(
         # Handle both "recommendations" (new) and "strategic_recommendations" (old)
         dive.strategic_recommendations = report_data.get("recommendations") or report_data.get("strategic_recommendations", [])
         dive.peer_comparison = report_data.get("peer_comparison")
-        dive.ai_provider = f"{ai_config.provider}/{ai_config.model_name}"
+        dive.ai_provider = model_used  # Track which model was used (may include "fallback")
         dive.generated_at = datetime.utcnow()
         dive.error_message = None
         
@@ -803,6 +843,7 @@ async def generate_report(
             peer_comparison=dive.peer_comparison,
             generated_at=dive.generated_at.isoformat() if dive.generated_at else None,
             error_message=None,
+            model_used=model_used,  # Track which model generated this report
         )
         
         # Validate report before returning - check for unexpected data

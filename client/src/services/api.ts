@@ -539,6 +539,7 @@ export interface StrategicDeepDiveReport {
   peer_comparison?: string;
   generated_at?: string;
   error_message?: string;
+  model_used?: string;  // Which AI model generated this report
 }
 
 /**

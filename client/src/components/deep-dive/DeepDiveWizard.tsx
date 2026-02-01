@@ -107,10 +107,21 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
     sections.push('');
   }
   
-  // Generated timestamp
+  // Footer with generation info
+  sections.push('---');
+  const footerParts: string[] = [];
   if (report.generated_at) {
-    sections.push('---');
-    sections.push(`*Report generated: ${new Date(report.generated_at).toLocaleString()}*`);
+    footerParts.push(`Generated: ${new Date(report.generated_at).toLocaleString()}`);
+  }
+  if (report.model_used) {
+    // Show fallback indicator if applicable
+    const modelDisplay = report.model_used.includes('fallback') 
+      ? `${report.model_used} (faster model used due to timeout)`
+      : report.model_used;
+    footerParts.push(`Model: ${modelDisplay}`);
+  }
+  if (footerParts.length > 0) {
+    sections.push(`*${footerParts.join(' | ')}*`);
   }
   
   return sections.join('\n');
