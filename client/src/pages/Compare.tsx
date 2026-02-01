@@ -29,8 +29,9 @@ import {
   Search,
 } from "lucide-react";
 import { fetchComparisonCountries } from "../services/api";
-import { cn, getCountryFlag, getApiBaseUrl, formatNumber } from "../lib/utils";
+import { cn, getCountryFlag, getApiBaseUrl, formatNumber, getEffectiveOHIScore } from "../lib/utils";
 import { MetricDetailModal } from "../components/compare/MetricDetailModal";
+import { ADLScoreBadge } from "../components/compare/ADLScoreBadge";
 import type { Country } from "../types/country";
 
 // ============================================================================
@@ -467,6 +468,17 @@ interface ComparisonHeaderProps {
 }
 
 function ComparisonHeader({ left, right }: ComparisonHeaderProps) {
+  // Extract pillar scores from nested objects for OHI calculation
+  const leftGovScore = left.governance?.strategic_capacity_score ?? null;
+  const leftPillar1Score = left.pillar_1_hazard?.control_maturity_score ?? null;
+  const leftPillar2Score = left.pillar_2_vigilance?.disease_detection_rate ?? null;
+  const leftPillar3Score = left.pillar_3_restoration?.rehab_access_score ?? null;
+
+  const rightGovScore = right.governance?.strategic_capacity_score ?? null;
+  const rightPillar1Score = right.pillar_1_hazard?.control_maturity_score ?? null;
+  const rightPillar2Score = right.pillar_2_vigilance?.disease_detection_rate ?? null;
+  const rightPillar3Score = right.pillar_3_restoration?.rehab_access_score ?? null;
+
   return (
     <div className="bg-gradient-to-r from-slate-800/80 via-slate-900/50 to-slate-800/80 rounded-xl border border-slate-700/50 p-4 sm:p-6">
       <div className="flex flex-col sm:grid sm:grid-cols-3 gap-4 sm:gap-0 items-center">
@@ -477,16 +489,17 @@ function ComparisonHeader({ left, right }: ComparisonHeaderProps) {
           </div>
           <h2 className="text-2xl font-bold text-white mt-3">{left.name}</h2>
           <div className="flex items-center justify-center gap-4 mt-2">
-            {left.maturity_score !== null && (
-              <div className={cn(
-                "px-3 py-1 rounded-full text-sm font-medium",
-                left.maturity_score >= 75 ? "bg-emerald-500/20 text-emerald-400" :
-                left.maturity_score >= 50 ? "bg-yellow-500/20 text-yellow-400" :
-                "bg-red-500/20 text-red-400"
-              )}>
-                Maturity: {left.maturity_score}
-              </div>
-            )}
+            <ADLScoreBadge
+              score={getEffectiveOHIScore(
+                left.maturity_score,
+                leftGovScore,
+                leftPillar1Score,
+                leftPillar2Score,
+                leftPillar3Score
+              )}
+              size="md"
+              showStage={true}
+            />
             {left.data_coverage_score !== null && left.data_coverage_score !== undefined && (
               <div className="px-3 py-1 rounded-full text-sm font-medium bg-slate-700/50 text-slate-300">
                 {left.data_coverage_score}% Coverage
@@ -509,16 +522,17 @@ function ComparisonHeader({ left, right }: ComparisonHeaderProps) {
           </div>
           <h2 className="text-2xl font-bold text-white mt-3">{right.name}</h2>
           <div className="flex items-center justify-center gap-4 mt-2">
-            {right.maturity_score !== null && (
-              <div className={cn(
-                "px-3 py-1 rounded-full text-sm font-medium",
-                right.maturity_score >= 75 ? "bg-emerald-500/20 text-emerald-400" :
-                right.maturity_score >= 50 ? "bg-yellow-500/20 text-yellow-400" :
-                "bg-red-500/20 text-red-400"
-              )}>
-                Maturity: {right.maturity_score}
-              </div>
-            )}
+            <ADLScoreBadge
+              score={getEffectiveOHIScore(
+                right.maturity_score,
+                rightGovScore,
+                rightPillar1Score,
+                rightPillar2Score,
+                rightPillar3Score
+              )}
+              size="md"
+              showStage={true}
+            />
             {right.data_coverage_score !== null && right.data_coverage_score !== undefined && (
               <div className="px-3 py-1 rounded-full text-sm font-medium bg-slate-700/50 text-slate-300">
                 {right.data_coverage_score}% Coverage
