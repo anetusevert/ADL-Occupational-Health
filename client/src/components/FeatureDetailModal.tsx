@@ -1,10 +1,10 @@
 /**
  * Arthur D. Little - Feature Detail Modal
  * Animated modal displaying detailed information about platform features
- * Shows data sources with real organization logos
+ * Clean design without data sources section
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -21,8 +21,6 @@ import {
   LineChart,
   ArrowRight,
   CheckCircle2,
-  Database,
-  ExternalLink,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -34,64 +32,6 @@ interface FeatureDetailModalProps {
   feature: FeatureType;
   onAccessPlatform: () => void;
 }
-
-// Data source configurations with real logo URLs
-const DATA_SOURCES = {
-  worldBank: {
-    name: "World Bank",
-    shortName: "World Bank",
-    desc: "Economic & governance data",
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    url: "https://data.worldbank.org",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/8/87/The_World_Bank_logo.svg",
-  },
-  ilo: {
-    name: "International Labour Organization",
-    shortName: "ILO",
-    desc: "Labor statistics & conventions",
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    url: "https://ilostat.ilo.org",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/5/59/International_Labour_Organization_logo.svg",
-  },
-  who: {
-    name: "World Health Organization",
-    shortName: "WHO",
-    desc: "Health metrics & indicators",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    url: "https://www.who.int/data/gho",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c2/WHO_logo.svg",
-  },
-  oecd: {
-    name: "OECD",
-    shortName: "OECD",
-    desc: "Policy & economic analysis",
-    color: "text-cyan-400",
-    bg: "bg-cyan-500/10",
-    url: "https://data.oecd.org",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/ff/OECD_logo_new.svg",
-  },
-  undp: {
-    name: "UN Development Programme",
-    shortName: "UNDP",
-    desc: "Human development data",
-    color: "text-sky-400",
-    bg: "bg-sky-500/10",
-    url: "https://hdr.undp.org",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a0/UNDP_logo.svg",
-  },
-  transparency: {
-    name: "Transparency International",
-    shortName: "TI",
-    desc: "Corruption perception",
-    color: "text-rose-400",
-    bg: "bg-rose-500/10",
-    url: "https://www.transparency.org",
-    logoUrl: "https://upload.wikimedia.org/wikipedia/en/a/a2/Transparency_International_logo.svg",
-  },
-};
 
 // Feature content configurations
 const FEATURE_CONTENT = {
@@ -117,7 +57,6 @@ const FEATURE_CONTENT = {
       "Benchmarking against global leaders",
       "Gap analysis and recommendations",
     ],
-    sources: ["ilo", "who", "worldBank", "oecd", "transparency"],
   },
   countries: {
     title: "Country Profiles",
@@ -141,7 +80,6 @@ const FEATURE_CONTENT = {
       "Regional and income-level comparisons",
       "Historical trend analysis",
     ],
-    sources: ["worldBank", "ilo", "who", "undp", "oecd"],
   },
   simulator: {
     title: "Policy Simulation",
@@ -165,7 +103,6 @@ const FEATURE_CONTENT = {
       "Comparative policy analysis",
       "Export simulation reports",
     ],
-    sources: ["ilo", "who", "worldBank", "oecd"],
   },
 };
 
@@ -177,11 +114,6 @@ export function FeatureDetailModal({
 }: FeatureDetailModalProps) {
   const content = FEATURE_CONTENT[feature];
   const Icon = content.icon;
-  const [failedLogos, setFailedLogos] = useState<Set<string>>(new Set());
-
-  const handleLogoError = (id: string) => {
-    setFailedLogos((prev) => new Set(prev).add(id));
-  };
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -221,8 +153,8 @@ export function FeatureDetailModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={cn(
-              "fixed inset-4 sm:inset-6 md:inset-10 lg:inset-16 m-auto",
-              "max-w-3xl max-h-[90vh] overflow-auto",
+              "fixed inset-4 sm:inset-8 md:inset-12 lg:inset-20 m-auto",
+              "max-w-2xl h-fit max-h-[80vh] overflow-auto",
               "bg-slate-900/95 backdrop-blur-xl rounded-2xl border shadow-2xl z-[101]",
               content.borderColor
             )}
@@ -331,61 +263,6 @@ export function FeatureDetailModal({
                       {feat}
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Data Sources with Logos */}
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <h3 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-white/50" />
-                  Powered by Authoritative Sources
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {content.sources.map((sourceKey) => {
-                    const source = DATA_SOURCES[sourceKey as keyof typeof DATA_SOURCES];
-                    if (!source) return null;
-                    return (
-                      <a
-                        key={sourceKey}
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "group flex items-center gap-2 p-2 rounded-lg",
-                          "bg-white/[0.02] border border-white/5",
-                          "hover:bg-white/[0.05] hover:border-white/15",
-                          "transition-all duration-200"
-                        )}
-                      >
-                        {/* Logo */}
-                        <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                          {!failedLogos.has(sourceKey) ? (
-                            <img
-                              src={source.logoUrl}
-                              alt={source.name}
-                              className="max-w-5 max-h-5 object-contain filter brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
-                              onError={() => handleLogoError(sourceKey)}
-                            />
-                          ) : (
-                            <div className={cn(
-                              "w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold",
-                              source.bg, source.color
-                            )}>
-                              {source.shortName.substring(0, 2)}
-                            </div>
-                          )}
-                        </div>
-                        {/* Text */}
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-[10px] font-medium truncate", source.color)}>
-                            {source.shortName}
-                          </p>
-                          <p className="text-[8px] text-white/40 truncate">{source.desc}</p>
-                        </div>
-                        <ExternalLink className="w-2.5 h-2.5 text-white/20 group-hover:text-white/50 flex-shrink-0" />
-                      </a>
-                    );
-                  })}
                 </div>
               </div>
             </div>
