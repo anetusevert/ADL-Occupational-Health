@@ -818,7 +818,7 @@ async def workflow_intelligence_briefing(
         # Step 5: Get intelligence data
         log_agent("DataAgent", "querying", "Fetching multi-source intelligence...", "🔍")
         intelligence = db.query(CountryIntelligence).filter(
-            CountryIntelligence.iso_code == iso_code
+            CountryIntelligence.country_iso_code == iso_code
         ).first()
         if intelligence:
             log_agent("DataAgent", "complete", "Intelligence data loaded (World Bank, ILO, WHO)", "✅")

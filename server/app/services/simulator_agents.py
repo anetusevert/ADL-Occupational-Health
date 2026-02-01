@@ -403,7 +403,7 @@ async def generate_country_briefing(
     
     # Get intelligence data
     intelligence = db.query(CountryIntelligence).filter(
-        CountryIntelligence.iso_code == iso_code
+        CountryIntelligence.country_iso_code == iso_code
     ).first()
     
     # Build key statistics
