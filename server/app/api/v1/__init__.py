@@ -2,7 +2,10 @@
 GOHIP Platform - API v1 Router
 """
 
+import logging
 from fastapi import APIRouter
+
+logger = logging.getLogger(__name__)
 
 from app.api.endpoints.countries import router as countries_router
 from app.api.endpoints.etl import router as etl_router
@@ -15,7 +18,14 @@ from app.api.endpoints.metric_config import router as metric_config_router
 from app.api.endpoints.simulator import router as simulator_router
 from app.api.endpoints.orchestration import router as orchestration_router
 from app.api.endpoints.strategic_deep_dive import router as strategic_deep_dive_router
-from app.api.endpoints.view_analysis import router as view_analysis_router
+
+# Import view_analysis router with error handling
+try:
+    from app.api.endpoints.view_analysis import router as view_analysis_router
+    logger.info("View analysis router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import view_analysis router: {e}")
+    view_analysis_router = None
 
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
@@ -32,4 +42,10 @@ api_router.include_router(metric_config_router, prefix="/admin/metric-config", t
 api_router.include_router(simulator_router)
 api_router.include_router(orchestration_router)
 api_router.include_router(strategic_deep_dive_router)
-api_router.include_router(view_analysis_router)
+
+# Include view_analysis router if it loaded successfully
+if view_analysis_router:
+    api_router.include_router(view_analysis_router)
+    logger.info("View analysis router registered at /api/v1/view-analysis")
+else:
+    logger.warning("View analysis router not available")

@@ -38,7 +38,7 @@ const VIEW_OPTIONS: ViewOption[] = [
   },
   {
     id: "flow",
-    title: "System Logic Flow",
+    title: "System Process Flow",
     subtitle: "Input → Process → Outcome",
     description: "Linear flow mapping resources and laws through operational processes to health outcomes.",
     icon: GitBranch,

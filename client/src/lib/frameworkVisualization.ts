@@ -25,12 +25,35 @@ export interface OnionLayerData {
   label: string;
   score: number | null;
   metrics: { label: string; value: string | number | boolean | null; isGood: boolean | null }[];
+  // Optional AI-generated insights for enhanced display
+  insight?: string;
+  strength?: { label: string; detail: string };
+  gap?: { label: string; detail: string };
+}
+
+export interface SystemFlowItem {
+  label: string;
+  value: string | number | null;
+  score: number | null;
+  lowerIsBetter?: boolean;
+}
+
+export interface SystemFlowStageInsight {
+  insight: string;
+  strength?: { label: string; detail: string };
+  gap?: { label: string; detail: string };
 }
 
 export interface SystemFlowData {
-  inputs: { label: string; value: string | number | null; score: number | null }[];
-  processes: { label: string; value: string | number | null; score: number | null }[];
-  outcomes: { label: string; value: string | number | null; score: number | null; lowerIsBetter?: boolean }[];
+  inputs: SystemFlowItem[];
+  processes: SystemFlowItem[];
+  outcomes: SystemFlowItem[];
+  // Optional AI-generated insights per stage
+  stageInsights?: {
+    inputs?: SystemFlowStageInsight;
+    processes?: SystemFlowStageInsight;
+    outcomes?: SystemFlowStageInsight;
+  };
 }
 
 export interface StrategicInsightData {

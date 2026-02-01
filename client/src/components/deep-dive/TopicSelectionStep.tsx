@@ -65,13 +65,13 @@ const FRAMEWORK_LAYERS = [
 ];
 
 interface TopicSelectionStepProps {
-  selectedCountries: Array<{ iso_code: string; name: string; flag_url: string | null }>;
+  selectedCountry: { iso_code: string; name: string; flag_url: string | null } | null;  // Single country
   topicStatusMap: Record<string, TopicStatus>;
   onSelectTopic: (topic: string) => void;
   onBack: () => void;
 }
 
-export function TopicSelectionStep({ selectedCountries, topicStatusMap, onSelectTopic, onBack }: TopicSelectionStepProps) {
+export function TopicSelectionStep({ selectedCountry, topicStatusMap, onSelectTopic, onBack }: TopicSelectionStepProps) {
   const [expandedPillar, setExpandedPillar] = useState<string | null>(null);
 
   const hasReport = useCallback((topicName: string) => topicStatusMap[topicName]?.status === "completed", [topicStatusMap]);
@@ -91,20 +91,23 @@ export function TopicSelectionStep({ selectedCountries, topicStatusMap, onSelect
               <ChevronLeft className="w-4 h-4" />
               <span className="text-sm">Back</span>
             </motion.button>
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {selectedCountries.slice(0, 5).map((country, i) => (
-                  <motion.div key={country.iso_code} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 + i * 0.05 }} className="relative" style={{ zIndex: 5 - i }}>
-                    {country.flag_url ? <img src={country.flag_url} alt={country.name} className="w-8 h-6 object-cover rounded shadow-lg border-2 border-slate-800" /> : <div className="w-8 h-6 bg-slate-700 rounded border-2 border-slate-800 flex items-center justify-center"><span className="text-[8px] text-slate-400">{country.iso_code}</span></div>}
-                  </motion.div>
-                ))}
-                {selectedCountries.length > 5 && <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} className="w-8 h-6 bg-slate-700 rounded border-2 border-slate-800 flex items-center justify-center"><span className="text-[9px] text-slate-300">+{selectedCountries.length - 5}</span></motion.div>}
+            {selectedCountry && (
+              <div className="flex items-center gap-3">
+                <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
+                  {selectedCountry.flag_url ? (
+                    <img src={selectedCountry.flag_url} alt={selectedCountry.name} className="w-10 h-7 object-cover rounded shadow-lg border-2 border-slate-700" />
+                  ) : (
+                    <div className="w-10 h-7 bg-slate-700 rounded border-2 border-slate-700 flex items-center justify-center">
+                      <span className="text-[9px] text-slate-400">{selectedCountry.iso_code}</span>
+                    </div>
+                  )}
+                </motion.div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">{selectedCountry.name}</h2>
+                  <p className="text-xs text-slate-400">Select an analysis topic</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">{selectedCountries.length === 1 ? selectedCountries[0].name : `${selectedCountries.length} Countries`}</h2>
-                <p className="text-xs text-slate-400">Select an analysis topic</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </motion.div>

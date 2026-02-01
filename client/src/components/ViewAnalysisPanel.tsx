@@ -232,8 +232,8 @@ export function ViewAnalysisPanel({
         )}
       </div>
 
-      {/* Content */}
-      <div className="p-4 max-h-[300px] overflow-y-auto scrollbar-thin">
+      {/* Content - Fixed height, no scrolling */}
+      <div className="p-4 flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading && <AnalysisLoading key="loading" />}
           
@@ -245,38 +245,38 @@ export function ViewAnalysisPanel({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-4"
+              className="space-y-3"
             >
               {/* Title */}
-              <h4 className="text-base font-semibold text-cyan-400">
+              <h4 className="text-sm font-semibold text-cyan-400 line-clamp-2">
                 {analysis.title}
               </h4>
 
-              {/* Analysis Paragraphs */}
-              <div className="space-y-3">
-                {analysis.analysis_paragraphs.map((para, idx) => (
-                  <p key={idx} className="text-sm text-white/70 leading-relaxed">
+              {/* Analysis Paragraphs - Limited to 2 */}
+              <div className="space-y-2">
+                {analysis.analysis_paragraphs.slice(0, 2).map((para, idx) => (
+                  <p key={idx} className="text-xs text-white/70 leading-relaxed line-clamp-3">
                     {para}
                   </p>
                 ))}
               </div>
 
-              {/* Key Insights */}
+              {/* Key Insights - Limited to 2 */}
               {analysis.key_insights.length > 0 && (
-                <div className="pt-3 border-t border-slate-700/50">
-                  <h5 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2">
+                <div className="pt-2 border-t border-slate-700/50">
+                  <h5 className="text-[10px] font-semibold text-white/60 uppercase tracking-wider mb-1.5">
                     Key Insights
                   </h5>
-                  <div className="space-y-2">
-                    {analysis.key_insights.map((insight, idx) => (
+                  <div className="space-y-1.5">
+                    {analysis.key_insights.slice(0, 2).map((insight, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-2 p-2 bg-white/5 rounded-lg"
+                        className="flex items-start gap-1.5 p-1.5 bg-white/5 rounded-lg"
                       >
-                        <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <Lightbulb className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs text-white font-medium">{insight.insight}</p>
-                          <p className="text-[10px] text-white/50">{insight.implication}</p>
+                          <p className="text-[11px] text-white font-medium line-clamp-1">{insight.insight}</p>
+                          <p className="text-[9px] text-white/50 line-clamp-1">{insight.implication}</p>
                         </div>
                       </div>
                     ))}
@@ -284,36 +284,27 @@ export function ViewAnalysisPanel({
                 </div>
               )}
 
-              {/* Recommendations */}
+              {/* Single Recommendation */}
               {analysis.recommendations.length > 0 && (
-                <div className="pt-3 border-t border-slate-700/50">
-                  <h5 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2">
-                    Recommendations
-                  </h5>
-                  <div className="space-y-2">
-                    {analysis.recommendations.map((rec, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-2 p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/20"
-                      >
-                        <ArrowRight className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-white font-medium">{rec.action}</p>
-                          <p className="text-[10px] text-white/50">{rec.rationale}</p>
-                          <p className="text-[10px] text-emerald-400 mt-0.5">
-                            Expected: {rec.expected_impact}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                <div className="pt-2 border-t border-slate-700/50">
+                  <div className="flex items-start gap-1.5 p-1.5 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                    <ArrowRight className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] text-white font-medium line-clamp-1">
+                        {analysis.recommendations[0].action}
+                      </p>
+                      <p className="text-[9px] text-emerald-400 line-clamp-1">
+                        {analysis.recommendations[0].expected_impact}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Comparison Note */}
               {analysis.comparison_note && (
-                <div className="pt-3 border-t border-slate-700/50">
-                  <p className="text-xs text-purple-400 italic">
+                <div className="pt-2 border-t border-slate-700/50">
+                  <p className="text-[10px] text-purple-400 italic line-clamp-2">
                     {analysis.comparison_note}
                   </p>
                 </div>

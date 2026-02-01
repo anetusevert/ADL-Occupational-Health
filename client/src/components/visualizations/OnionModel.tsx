@@ -6,16 +6,19 @@
  * - Outer: National Policy Layer
  * - Middle: Institutional Infrastructure
  * - Core: Workplace Implementation
+ * 
+ * Enhanced with AI insights, strengths, and gaps per layer.
  */
 
 import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 import type { OnionLayerData } from "../../lib/frameworkVisualization";
-import { CheckCircle2, XCircle, Minus } from "lucide-react";
+import { CheckCircle2, XCircle, Minus, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
 
 interface OnionModelProps {
   data: OnionLayerData[];
   className?: string;
+  showInsights?: boolean; // Show AI insights if available
 }
 
 const LAYER_CONFIG = {
@@ -42,7 +45,59 @@ const LAYER_CONFIG = {
   },
 };
 
-export function OnionModel({ data, className }: OnionModelProps) {
+// Generate fallback insights based on layer data
+function generateLayerInsight(layer: OnionLayerData): { insight: string; strength: { label: string; detail: string } | undefined; gap: { label: string; detail: string } | undefined } {
+  const goodMetrics = layer.metrics.filter(m => m.isGood === true);
+  const badMetrics = layer.metrics.filter(m => m.isGood === false);
+  
+  let insight = "";
+  let strength: { label: string; detail: string } | undefined;
+  let gap: { label: string; detail: string } | undefined;
+  
+  if (layer.layer === "policy") {
+    const iloStatus = layer.metrics.find(m => m.label === "ILO C187");
+    const mentalHealth = layer.metrics.find(m => m.label === "Mental Health");
+    insight = `${layer.score !== null ? `Policy layer at ${layer.score.toFixed(0)}% maturity. ` : ""}${goodMetrics.length > 0 ? `Strong in ${goodMetrics.map(m => m.label).join(", ").toLowerCase()}.` : ""} ${badMetrics.length > 0 ? `Gaps in ${badMetrics.map(m => m.label).join(", ").toLowerCase()}.` : ""}`.trim();
+    
+    if (mentalHealth?.isGood) {
+      strength = { label: "Mental Health Policy", detail: "Legal framework for workplace mental health exists" };
+    } else if (goodMetrics.length > 0) {
+      strength = { label: goodMetrics[0].label, detail: `${goodMetrics[0].label} requirements in place` };
+    }
+    
+    if (iloStatus && !iloStatus.isGood) {
+      gap = { label: "ILO Conventions", detail: "Key ILO OH conventions not ratified" };
+    } else if (badMetrics.length > 0) {
+      gap = { label: badMetrics[0].label, detail: `${badMetrics[0].label} framework incomplete` };
+    }
+  } else if (layer.layer === "infrastructure") {
+    const inspectorDensity = layer.metrics.find(m => m.label === "Inspectors/10k");
+    insight = `${layer.score !== null ? `Infrastructure capacity at ${layer.score.toFixed(0)}%. ` : ""}${inspectorDensity ? `Inspector density: ${inspectorDensity.value}/10k workers.` : ""} ${goodMetrics.length > 0 ? "Surveillance systems operational." : ""}`.trim();
+    
+    if (inspectorDensity?.isGood) {
+      strength = { label: "Inspection Capacity", detail: `${inspectorDensity.value}/10k meets ILO benchmark` };
+    }
+    
+    if (inspectorDensity && !inspectorDensity.isGood) {
+      gap = { label: "Inspector Shortage", detail: "Below ILO recommended 1.0/10k workers" };
+    }
+  } else {
+    const fatalRate = layer.metrics.find(m => m.label === "Fatal Rate");
+    insight = `${layer.score !== null ? `Workplace outcomes at ${layer.score.toFixed(0)}% effectiveness. ` : ""}${fatalRate ? `Fatal accident rate: ${fatalRate.value}/100k.` : ""} ${goodMetrics.length > 0 ? "Positive compliance indicators." : ""}`.trim();
+    
+    if (fatalRate?.isGood) {
+      strength = { label: "Safety Outcomes", detail: `Fatal rate ${fatalRate.value}/100k below average` };
+    }
+    
+    if (fatalRate && !fatalRate.isGood) {
+      gap = { label: "Accident Prevention", detail: `Fatal rate ${fatalRate.value}/100k needs reduction` };
+    }
+  }
+  
+  return { insight: insight || "Analysis pending.", strength, gap };
+}
+
+export function OnionModel({ data, className, showInsights = true }: OnionModelProps) {
   const center = 160;
   const sortedData = [...data].sort((a, b) => 
     LAYER_CONFIG[b.layer].radius - LAYER_CONFIG[a.layer].radius
@@ -53,8 +108,8 @@ export function OnionModel({ data, className }: OnionModelProps) {
       {/* SVG Visualization */}
       <div className="flex-shrink-0">
         <svg 
-          width="320" 
-          height="320" 
+          width="280" 
+          height="280" 
           viewBox="0 0 320 320"
           className="overflow-visible"
         >
@@ -151,10 +206,14 @@ export function OnionModel({ data, className }: OnionModelProps) {
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="flex-1 space-y-3">
+      {/* Layer Cards with Insights */}
+      <div className="flex-1 space-y-2 max-h-[340px] overflow-y-auto scrollbar-thin">
         {sortedData.map((layer, index) => {
           const config = LAYER_CONFIG[layer.layer];
+          // Use provided insights or generate fallback
+          const layerInsights = layer.insight 
+            ? { insight: layer.insight, strength: layer.strength, gap: layer.gap }
+            : generateLayerInsight(layer);
           
           return (
             <motion.div
@@ -162,7 +221,7 @@ export function OnionModel({ data, className }: OnionModelProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.3 }}
-              className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50"
+              className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 hover:border-slate-600/50 transition-colors"
             >
               {/* Layer header */}
               <div className="flex items-center justify-between mb-2">
@@ -177,31 +236,63 @@ export function OnionModel({ data, className }: OnionModelProps) {
                 )}
               </div>
               
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-1">
+              {/* Key Metrics Row */}
+              <div className="flex flex-wrap gap-2 mb-2">
                 {layer.metrics.slice(0, 4).map((metric) => (
                   <div 
                     key={metric.label}
-                    className="flex items-center gap-1.5 text-[10px]"
+                    className={cn(
+                      "flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px]",
+                      metric.isGood === true && "bg-emerald-500/10 text-emerald-400",
+                      metric.isGood === false && "bg-red-500/10 text-red-400",
+                      metric.isGood === null && "bg-slate-700/50 text-white/50"
+                    )}
                   >
-                    {metric.isGood === true && (
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                    )}
-                    {metric.isGood === false && (
-                      <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                    )}
-                    {metric.isGood === null && (
-                      <Minus className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                    )}
-                    <span className="text-white/50 truncate">{metric.label}:</span>
-                    <span className="text-white/80 font-medium">
-                      {metric.value === null ? "N/A" : 
-                       typeof metric.value === "boolean" ? (metric.value ? "Yes" : "No") :
-                       metric.value}
-                    </span>
+                    {metric.isGood === true && <CheckCircle2 className="w-2.5 h-2.5" />}
+                    {metric.isGood === false && <XCircle className="w-2.5 h-2.5" />}
+                    {metric.isGood === null && <Minus className="w-2.5 h-2.5" />}
+                    <span>{metric.label}: {metric.value === null ? "N/A" : 
+                           typeof metric.value === "boolean" ? (metric.value ? "Yes" : "No") :
+                           metric.value}</span>
                   </div>
                 ))}
               </div>
+
+              {/* AI Insight */}
+              {showInsights && layerInsights.insight && (
+                <div className="mb-2 p-2 bg-slate-900/50 rounded border-l-2 border-cyan-500/50">
+                  <div className="flex items-start gap-1.5">
+                    <Sparkles className="w-3 h-3 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-white/70 leading-relaxed">
+                      {layerInsights.insight}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Strength & Gap Indicators */}
+              {showInsights && (layerInsights.strength || layerInsights.gap) && (
+                <div className="grid grid-cols-2 gap-2">
+                  {layerInsights.strength && (
+                    <div className="flex items-start gap-1.5 p-1.5 bg-emerald-500/5 rounded border border-emerald-500/20">
+                      <TrendingUp className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[9px] font-medium text-emerald-400">{layerInsights.strength.label}</p>
+                        <p className="text-[8px] text-white/50 line-clamp-1">{layerInsights.strength.detail}</p>
+                      </div>
+                    </div>
+                  )}
+                  {layerInsights.gap && (
+                    <div className="flex items-start gap-1.5 p-1.5 bg-amber-500/5 rounded border border-amber-500/20">
+                      <TrendingDown className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[9px] font-medium text-amber-400">{layerInsights.gap.label}</p>
+                        <p className="text-[8px] text-white/50 line-clamp-1">{layerInsights.gap.detail}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           );
         })}

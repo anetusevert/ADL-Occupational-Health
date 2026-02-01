@@ -70,10 +70,8 @@ interface CountrySelectionStepProps {
   countries: CountryDeepDiveItem[];
   isLoading: boolean;
   error: Error | null;
-  selectedCountries: string[];
-  onSelectCountry: (isoCode: string) => void;
-  onDeselectCountry: (isoCode: string) => void;
-  onSelectMultiple: (isoCodes: string[]) => void;
+  selectedCountry: string | null;  // Single country selection
+  onSelectCountry: (isoCode: string) => void;  // Toggles selection
   onClearSelection: () => void;
   onContinue: () => void;
   onRetry: () => void;
@@ -83,10 +81,8 @@ export function CountrySelectionStep({
   countries,
   isLoading,
   error,
-  selectedCountries,
+  selectedCountry,
   onSelectCountry,
-  onDeselectCountry,
-  onSelectMultiple,
   onClearSelection,
   onContinue,
   onRetry,
@@ -119,10 +115,9 @@ export function CountrySelectionStep({
 
   // Get selected country data
   const selectedCountryData = useMemo(() => {
-    return selectedCountries
-      .map((iso) => countries.find((c) => c.iso_code === iso))
-      .filter((c): c is CountryDeepDiveItem => c !== undefined);
-  }, [selectedCountries, countries]);
+    if (!selectedCountry) return null;
+    return countries.find((c) => c.iso_code === selectedCountry) || null;
+  }, [selectedCountry, countries]);
 
   // Filter countries by search
   const searchResults = useMemo(() => {
@@ -133,49 +128,32 @@ export function CountrySelectionStep({
       .slice(0, 8);
   }, [countries, searchQuery]);
 
-  // Check if entire region is selected
-  const isRegionFullySelected = useCallback(
+  // Check if a country in the region is selected (for visual feedback)
+  const isRegionHasSelection = useCallback(
     (regionId: string) => {
+      if (!selectedCountry) return false;
       const regionCountries = countriesByRegion[regionId] || [];
-      if (regionCountries.length === 0) return false;
-      return regionCountries.every((c) => selectedCountries.includes(c.iso_code));
+      return regionCountries.some((c) => c.iso_code === selectedCountry);
     },
-    [countriesByRegion, selectedCountries]
+    [countriesByRegion, selectedCountry]
   );
 
-  // Get count of selected countries in region
+  // Get count of selected countries in region (0 or 1 for single selection)
   const getRegionSelectedCount = useCallback(
     (regionId: string) => {
+      if (!selectedCountry) return 0;
       const regionCountries = countriesByRegion[regionId] || [];
-      return regionCountries.filter((c) => selectedCountries.includes(c.iso_code)).length;
+      return regionCountries.some((c) => c.iso_code === selectedCountry) ? 1 : 0;
     },
-    [countriesByRegion, selectedCountries]
+    [countriesByRegion, selectedCountry]
   );
 
-  // Handle region selection
-  const handleSelectRegion = useCallback(
-    (regionId: string) => {
-      const regionCountries = countriesByRegion[regionId] || [];
-      const regionIsoCodes = regionCountries.map((c) => c.iso_code);
-      if (isRegionFullySelected(regionId)) {
-        regionIsoCodes.forEach((iso) => onDeselectCountry(iso));
-      } else {
-        onSelectMultiple(regionIsoCodes);
-      }
-    },
-    [countriesByRegion, isRegionFullySelected, onSelectMultiple, onDeselectCountry]
-  );
-
-  // Handle individual country toggle
+  // Handle individual country toggle (single selection)
   const handleCountryToggle = useCallback(
     (isoCode: string) => {
-      if (selectedCountries.includes(isoCode)) {
-        onDeselectCountry(isoCode);
-      } else {
-        onSelectCountry(isoCode);
-      }
+      onSelectCountry(isoCode);  // Parent handles toggle logic
     },
-    [selectedCountries, onSelectCountry, onDeselectCountry]
+    [onSelectCountry]
   );
 
   // Loading state
@@ -235,7 +213,7 @@ export function CountrySelectionStep({
                 Select Countries
               </motion.h2>
               <motion.p className="text-slate-400" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                Choose one or more countries for strategic deep dive analysis
+                Choose one country for strategic deep dive analysis
               </motion.p>
             </div>
             <motion.div className="flex items-center gap-4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
@@ -274,7 +252,7 @@ export function CountrySelectionStep({
                       }}
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                        selectedCountries.includes(country.iso_code) ? "bg-purple-500/20" : "hover:bg-slate-700/50"
+                        selectedCountry === country.iso_code ? "bg-purple-500/20" : "hover:bg-slate-700/50"
                       )}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -282,7 +260,7 @@ export function CountrySelectionStep({
                     >
                       <CountryFlag country={country} size="md" />
                       <span className="flex-1 text-sm text-white">{country.name}</span>
-                      {selectedCountries.includes(country.iso_code) && <CheckCircle2 className="w-4 h-4 text-purple-400" />}
+                      {selectedCountry === country.iso_code && <CheckCircle2 className="w-4 h-4 text-purple-400" />}
                     </motion.button>
                   ))}
                 </motion.div>
@@ -301,12 +279,11 @@ export function CountrySelectionStep({
                 <RegionCard
                   region={region}
                   countries={countriesByRegion[region.id] || []}
-                  selectedCountries={selectedCountries}
+                  selectedCountry={selectedCountry}
                   isExpanded={expandedRegion === region.id}
                   onToggleExpand={() => setExpandedRegion(expandedRegion === region.id ? null : region.id)}
-                  onSelectRegion={() => handleSelectRegion(region.id)}
                   onCountryToggle={handleCountryToggle}
-                  isFullySelected={isRegionFullySelected(region.id)}
+                  hasSelection={isRegionHasSelection(region.id)}
                   selectedCount={getRegionSelectedCount(region.id)}
                 />
               </motion.div>
@@ -317,8 +294,8 @@ export function CountrySelectionStep({
 
       {/* Selection Summary Panel */}
       <AnimatePresence>
-        {selectedCountries.length > 0 && (
-          <SelectionSummary selectedCountries={selectedCountryData} onRemove={onDeselectCountry} onClear={onClearSelection} onContinue={onContinue} />
+        {selectedCountryData && (
+          <SelectionSummary selectedCountry={selectedCountryData} onClear={onClearSelection} onContinue={onContinue} />
         )}
       </AnimatePresence>
     </div>
@@ -389,27 +366,26 @@ function CountryFlag({ country, size = "md" }: CountryFlagProps) {
   );
 }
 
-// Region Card Component - unified styling for all regions
+// Region Card Component - unified styling for all regions (single selection mode)
 interface RegionCardProps {
   region: RegionDefinition;
   countries: CountryDeepDiveItem[];
-  selectedCountries: string[];
+  selectedCountry: string | null;  // Single country selection
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onSelectRegion: () => void;
   onCountryToggle: (isoCode: string) => void;
-  isFullySelected: boolean;
-  selectedCount: number;
+  hasSelection: boolean;  // Whether this region contains the selected country
+  selectedCount: number;  // 0 or 1 for single selection
 }
 
-function RegionCard({ region, countries, selectedCountries, isExpanded, onToggleExpand, onSelectRegion, onCountryToggle, isFullySelected, selectedCount }: RegionCardProps) {
+function RegionCard({ region, countries, selectedCountry, isExpanded, onToggleExpand, onCountryToggle, hasSelection, selectedCount }: RegionCardProps) {
   const Icon = REGION_ICONS[region.iconName] || Globe;
 
   return (
     <motion.div 
       className={cn(
         "relative overflow-hidden rounded-xl border transition-all bg-gradient-to-br from-slate-800/60 to-slate-900/60",
-        isFullySelected 
+        hasSelection 
           ? "border-purple-500/50 ring-2 ring-purple-500/20" 
           : "border-slate-700/50 hover:border-slate-600/60"
       )} 
@@ -436,20 +412,20 @@ function RegionCard({ region, countries, selectedCountries, isExpanded, onToggle
           </motion.button>
         </div>
 
+        {/* Show selected country indicator instead of Select All button */}
         <div className="flex items-center gap-2 mb-3">
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); onSelectRegion(); }}
-            className={cn(
-              "flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5",
-              isFullySelected 
-                ? "bg-purple-500/30 border-purple-500/50 text-purple-300" 
-                : "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
+          <div className={cn(
+            "flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5",
+            hasSelection 
+              ? "bg-purple-500/20 border-purple-500/40 text-purple-300" 
+              : "bg-slate-800/40 border-slate-700/40 text-slate-500"
+          )}>
+            {hasSelection ? (
+              <><CheckCircle2 className="w-3 h-3" /> 1 selected</>
+            ) : (
+              "Click to expand"
             )}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {isFullySelected ? <><CheckCircle2 className="w-3 h-3" /> Selected</> : <><Check className="w-3 h-3" /> Select All</>}
-          </motion.button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -457,7 +433,7 @@ function RegionCard({ region, countries, selectedCountries, isExpanded, onToggle
             <motion.div 
               className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full" 
               initial={{ width: 0 }} 
-              animate={{ width: `${(selectedCount / Math.max(countries.length, 1)) * 100}%` }} 
+              animate={{ width: hasSelection ? "100%" : "0%" }} 
               transition={{ duration: 0.3 }} 
             />
           </div>
@@ -480,7 +456,7 @@ function RegionCard({ region, countries, selectedCountries, isExpanded, onToggle
                   <CountryChip 
                     key={country.iso_code} 
                     country={country} 
-                    isSelected={selectedCountries.includes(country.iso_code)} 
+                    isSelected={selectedCountry === country.iso_code} 
                     onToggle={() => onCountryToggle(country.iso_code)} 
                     delay={index * 0.015} 
                   />

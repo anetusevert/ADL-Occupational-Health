@@ -36,28 +36,43 @@ router = APIRouter(prefix="/strategic-deep-dive", tags=["Strategic Deep Dive"])
 
 def ensure_agents_exist_with_session(db: Session) -> bool:
     """
-    Ensure default agents are seeded in the database.
+    Ensure all default agents exist in the database AND have updated prompts.
     
     This is called before running agents to ensure they exist,
     since the orchestration page might not have been visited yet.
     
+    IMPORTANT: This also UPDATES existing agents with the latest prompts from DEFAULT_AGENTS.
+    This ensures that code changes to prompts are reflected in production.
+    
     Returns True if report-generation agent exists, False otherwise.
     """
     try:
-        # Check if report-generation agent exists
-        logger.info("[SEED] Checking if report-generation agent exists...")
-        agent = db.query(Agent).filter(Agent.id == "report-generation").first()
-        if agent:
-            logger.info(f"[SEED] Agent 'report-generation' already exists: {agent.name}")
-            return True
+        logger.info("[SEED] Syncing agents with DEFAULT_AGENTS...")
         
-        logger.info("[SEED] Agent not found, seeding default agents...")
-        
-        # Seed all default agents
+        # Sync all default agents - create new or update existing
         for agent_data in DEFAULT_AGENTS:
-            logger.info(f"[SEED] Seeding agent: {agent_data['id']}")
             existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
-            if not existing:
+            
+            if existing:
+                # Check if prompts need updating by comparing lengths (quick check)
+                prompt_changed = (
+                    len(existing.system_prompt or "") != len(agent_data["system_prompt"]) or
+                    existing.name != agent_data["name"]
+                )
+                
+                if prompt_changed:
+                    logger.info(f"[SEED] Updating agent prompts: {agent_data['id']} (name: {agent_data['name']})")
+                    existing.name = agent_data["name"]
+                    existing.description = agent_data["description"]
+                    existing.system_prompt = agent_data["system_prompt"]
+                    existing.user_prompt_template = agent_data["user_prompt_template"]
+                    existing.template_variables = agent_data["template_variables"]
+                    existing.icon = agent_data["icon"]
+                    existing.color = agent_data["color"]
+                else:
+                    logger.debug(f"[SEED] Agent already up-to-date: {agent_data['id']}")
+            else:
+                logger.info(f"[SEED] Creating new agent: {agent_data['id']}")
                 new_agent = Agent(
                     id=agent_data["id"],
                     name=agent_data["name"],
@@ -70,22 +85,21 @@ def ensure_agents_exist_with_session(db: Session) -> bool:
                     is_active=True,
                 )
                 db.add(new_agent)
-                logger.info(f"[SEED] Added agent: {agent_data['id']}")
         
         db.commit()
-        logger.info(f"[SEED] Successfully seeded {len(DEFAULT_AGENTS)} default agents")
+        logger.info(f"[SEED] Agent sync completed for {len(DEFAULT_AGENTS)} agents")
         
-        # Verify the agent was created
+        # Verify the report-generation agent exists
         verify = db.query(Agent).filter(Agent.id == "report-generation").first()
         if verify:
-            logger.info(f"[SEED] Verified: report-generation agent exists after seeding")
+            logger.info(f"[SEED] Verified: report-generation agent ready (name: {verify.name})")
             return True
         else:
-            logger.error(f"[SEED] CRITICAL: Agent still not found after seeding!")
+            logger.error(f"[SEED] CRITICAL: Agent still not found after sync!")
             return False
         
     except Exception as e:
-        logger.error(f"[SEED] ERROR seeding agents: {e}")
+        logger.error(f"[SEED] ERROR syncing agents: {e}")
         import traceback
         traceback.print_exc()
         db.rollback()

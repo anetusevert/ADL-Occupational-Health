@@ -10,13 +10,14 @@
  * Re-applied: 2026-01-31
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   getStrategicDeepDiveCountries,
   generateStrategicDeepDive,
   getStrategicDeepDiveReport,
+  getCountryTopicStatuses,
   type CountryDeepDiveItem, 
   type TopicStatus,
   type StrategicDeepDiveReport,
@@ -399,8 +400,8 @@ export function DeepDiveWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
   
-  // Selection state
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  // Selection state - single country only
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   
   // Report state
@@ -424,12 +425,11 @@ export function DeepDiveWizard() {
   // Extract countries array from response
   const countries = countriesResponse?.countries ?? [];
 
-  // Get selected country data objects
-  const selectedCountriesData = useMemo(() => {
-    return selectedCountries
-      .map((iso) => countries.find((c) => c.iso_code === iso))
-      .filter((c): c is CountryDeepDiveItem => c !== undefined);
-  }, [selectedCountries, countries]);
+  // Get selected country data object
+  const selectedCountryData = useMemo(() => {
+    if (!selectedCountry) return null;
+    return countries.find((c) => c.iso_code === selectedCountry) || null;
+  }, [selectedCountry, countries]);
 
   // Generate report mutation
   const generateReportMutation = useMutation({
@@ -443,36 +443,51 @@ export function DeepDiveWizard() {
     },
   });
 
-  // Country selection handlers
+  // Country selection handlers - single selection only
   const handleSelectCountry = useCallback((isoCode: string) => {
-    setSelectedCountries((prev) => {
-      if (prev.includes(isoCode)) return prev;
-      return [...prev, isoCode];
-    });
+    // Toggle: if clicking same country, deselect; otherwise select
+    setSelectedCountry((prev) => prev === isoCode ? null : isoCode);
   }, []);
 
-  const handleDeselectCountry = useCallback((isoCode: string) => {
-    setSelectedCountries((prev) => prev.filter((c) => c !== isoCode));
-  }, []);
-
-  const handleSelectMultiple = useCallback((isoCodes: string[]) => {
-    setSelectedCountries((prev) => {
-      const newSet = new Set([...prev, ...isoCodes]);
-      return Array.from(newSet);
-    });
+  const handleDeselectCountry = useCallback(() => {
+    setSelectedCountry(null);
   }, []);
 
   const handleClearSelection = useCallback(() => {
-    setSelectedCountries([]);
+    setSelectedCountry(null);
   }, []);
+
+  // Fetch topic statuses when country is selected and step changes to 2
+  useEffect(() => {
+    async function fetchTopicStatuses() {
+      if (currentStep === 2 && selectedCountry) {
+        try {
+          console.log('[DeepDive] Fetching topic statuses for:', selectedCountry);
+          const response = await getCountryTopicStatuses(selectedCountry);
+          // Convert array to map for easy lookup
+          const statusMap: Record<string, TopicStatus> = {};
+          response.topics.forEach((topic) => {
+            statusMap[topic.topic] = topic;
+          });
+          console.log('[DeepDive] Topic statuses loaded:', Object.keys(statusMap).length, 'topics');
+          setTopicStatusMap(statusMap);
+        } catch (error) {
+          console.error('[DeepDive] Failed to fetch topic statuses:', error);
+          // Still allow topic selection even if status fetch fails
+          setTopicStatusMap({});
+        }
+      }
+    }
+    fetchTopicStatuses();
+  }, [currentStep, selectedCountry]);
 
   // Navigation handlers
   const handleContinueFromCountries = useCallback(() => {
-    if (selectedCountries.length > 0) {
+    if (selectedCountry) {
       setDirection(1);
       setCurrentStep(2);
     }
-  }, [selectedCountries]);
+  }, [selectedCountry]);
 
   // Fetch or generate report for a country/topic
   const fetchOrGenerateReport = useCallback(
@@ -565,12 +580,12 @@ export function DeepDiveWizard() {
       setDirection(1);
       setCurrentStep(3);
       
-      // Fetch or generate report for first selected country
-      if (selectedCountries.length > 0) {
-        fetchOrGenerateReport(selectedCountries[0], topic);
+      // Fetch or generate report for the selected country
+      if (selectedCountry) {
+        fetchOrGenerateReport(selectedCountry, topic);
       }
     },
-    [selectedCountries, fetchOrGenerateReport]
+    [selectedCountry, fetchOrGenerateReport]
   );
 
   const handleBackToCountries = useCallback(() => {
@@ -588,25 +603,24 @@ export function DeepDiveWizard() {
 
   // Retry fetching/generating report (on error)
   const handleRetryReport = useCallback(() => {
-    if (selectedCountries.length > 0 && selectedTopic) {
-      fetchOrGenerateReport(selectedCountries[0], selectedTopic);
+    if (selectedCountry && selectedTopic) {
+      fetchOrGenerateReport(selectedCountry, selectedTopic);
     }
-  }, [selectedCountries, selectedTopic, fetchOrGenerateReport]);
+  }, [selectedCountry, selectedTopic, fetchOrGenerateReport]);
 
   // Force regenerate report (admin only) - deletes old report and generates fresh
   const handleRegenerateReport = useCallback(async () => {
-    if (!isAdmin || selectedCountries.length === 0 || !selectedTopic) return;
+    if (!isAdmin || !selectedCountry || !selectedTopic) return;
     
-    const countryIso = selectedCountries[0];
     setReport(null);
     setReportError(null);
     setIsGenerating(true);
     
     try {
-      console.log('[DeepDive] Force regenerating report for:', countryIso, selectedTopic);
+      console.log('[DeepDive] Force regenerating report for:', selectedCountry, selectedTopic);
       
       // Force regenerate with the new premium agent
-      const generated = await generateStrategicDeepDive(countryIso, selectedTopic, true);
+      const generated = await generateStrategicDeepDive(selectedCountry, selectedTopic, true);
       
       console.log('[DeepDive] Regenerated report:', {
         success: generated.success,
@@ -628,28 +642,28 @@ export function DeepDiveWizard() {
     } finally {
       setIsGenerating(false);
     }
-  }, [isAdmin, selectedCountries, selectedTopic]);
+  }, [isAdmin, selectedCountry, selectedTopic]);
 
   // Export handlers
   const handleExportPDF = useCallback(async () => {
-    if (!report || !selectedCountriesData[0]) return;
+    if (!report || !selectedCountryData) return;
     await exportToPDF({
       userName: user?.full_name || user?.email?.split("@")[0] || "User",
-      countryName: selectedCountriesData[0].name,
+      countryName: selectedCountryData.name,
       topicName: selectedTopic || "Report",
       report,
     });
-  }, [report, selectedCountriesData, selectedTopic, user]);
+  }, [report, selectedCountryData, selectedTopic, user]);
 
   const handleExportWord = useCallback(async () => {
-    if (!report || !selectedCountriesData[0]) return;
+    if (!report || !selectedCountryData) return;
     await exportToWord({
       userName: user?.full_name || user?.email?.split("@")[0] || "User",
-      countryName: selectedCountriesData[0].name,
+      countryName: selectedCountryData.name,
       topicName: selectedTopic || "Report",
       report,
     });
-  }, [report, selectedCountriesData, selectedTopic, user]);
+  }, [report, selectedCountryData, selectedTopic, user]);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
@@ -683,10 +697,8 @@ export function DeepDiveWizard() {
                 countries={countries}
                 isLoading={isLoadingCountries}
                 error={countriesError as Error | null}
-                selectedCountries={selectedCountries}
+                selectedCountry={selectedCountry}
                 onSelectCountry={handleSelectCountry}
-                onDeselectCountry={handleDeselectCountry}
-                onSelectMultiple={handleSelectMultiple}
                 onClearSelection={handleClearSelection}
                 onContinue={handleContinueFromCountries}
                 onRetry={() => refetchCountries()}
@@ -706,7 +718,7 @@ export function DeepDiveWizard() {
               transition={stepTransition}
             >
               <TopicSelectionStep
-                selectedCountries={selectedCountriesData}
+                selectedCountry={selectedCountryData}
                 topicStatusMap={topicStatusMap}
                 onSelectTopic={handleSelectTopic}
                 onBack={handleBackToCountries}
@@ -726,7 +738,7 @@ export function DeepDiveWizard() {
               transition={stepTransition}
             >
               <ReportDisplayStep
-                country={selectedCountriesData[0] || null}
+                country={selectedCountryData}
                 topic={selectedTopic}
                 report={report}
                 isLoading={isFetching || isGenerating}

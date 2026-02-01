@@ -33,6 +33,18 @@ from app.services.country_data_provider import CountryDataProvider
 # Create router
 router = APIRouter(prefix="/view-analysis", tags=["View Analysis"])
 
+logger.info("View Analysis router initialized successfully")
+
+
+# =============================================================================
+# HEALTH CHECK ENDPOINT
+# =============================================================================
+
+@router.get("/health", summary="Health check", description="Check if view analysis API is available")
+async def health_check():
+    """Simple health check endpoint."""
+    return {"status": "ok", "service": "view-analysis", "timestamp": datetime.utcnow().isoformat()}
+
 
 # =============================================================================
 # PYDANTIC SCHEMAS
@@ -218,7 +230,7 @@ async def generate_view_analysis(
                 "VIEW_TYPE": view_type,
                 "COMPARISON_COUNTRY": comparison_context,
             },
-            enable_web_search=False,  # Use database context only for speed
+            enable_web_search=True,  # Enable web search for real insights
         )
         
         # Parse the response
@@ -415,3 +427,301 @@ def generate_fallback_analysis(country: Country, view_type: str) -> Dict[str, An
                 {"action": "Develop integrated improvement roadmap", "rationale": "Coordinated approach maximizes impact", "expected_impact": "Sustained system improvement"}
             ]
         }
+
+
+# =============================================================================
+# ELEMENT ANALYSIS ENDPOINT
+# =============================================================================
+
+class ElementAnalysisRequest(BaseModel):
+    """Request for element analysis."""
+    comparison_iso: Optional[str] = Field(None, description="ISO code of comparison country")
+
+
+class ElementAnalysisResponse(BaseModel):
+    """Response with element-specific analysis."""
+    iso_code: str
+    country_name: str
+    element_type: str
+    element_name: str
+    insight: str
+    strengths: List[str]
+    gaps: List[str]
+    comparison_note: Optional[str] = None
+    generated_at: str
+
+
+@router.post(
+    "/{iso_code}/element/{element_type}/{element_name}",
+    response_model=ElementAnalysisResponse,
+    summary="Generate element analysis",
+    description="Generate AI analysis for a specific element (layer, stage, dimension).",
+)
+async def generate_element_analysis(
+    iso_code: str,
+    element_type: str,
+    element_name: str,
+    request: ElementAnalysisRequest = ElementAnalysisRequest(),
+    db: Session = Depends(get_db),
+):
+    """Generate insight for a specific OH system element."""
+    
+    # Validate element type
+    valid_types = ["layer", "stage", "dimension", "pillar"]
+    if element_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid element_type. Must be one of: {', '.join(valid_types)}"
+        )
+    
+    # Get country data
+    country = get_country_data(db, iso_code)
+    if not country:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Country not found: {iso_code}"
+        )
+    
+    # Generate element-specific analysis from database
+    analysis = generate_element_fallback(country, element_type, element_name, request.comparison_iso, db)
+    
+    return ElementAnalysisResponse(
+        iso_code=iso_code.upper(),
+        country_name=country.name,
+        element_type=element_type,
+        element_name=element_name,
+        insight=analysis["insight"],
+        strengths=analysis["strengths"],
+        gaps=analysis["gaps"],
+        comparison_note=analysis.get("comparison_note"),
+        generated_at=datetime.utcnow().isoformat(),
+    )
+
+
+def generate_element_fallback(
+    country: Country, 
+    element_type: str, 
+    element_name: str,
+    comparison_iso: Optional[str],
+    db: Session
+) -> Dict[str, Any]:
+    """Generate element-specific analysis from database."""
+    
+    gov = country.governance
+    p1 = country.pillar_1_hazard
+    p2 = country.pillar_2_vigilance
+    p3 = country.pillar_3_restoration
+    
+    # Get comparison country if specified
+    comparison_country = get_country_data(db, comparison_iso) if comparison_iso else None
+    comp_gov = comparison_country.governance if comparison_country else None
+    
+    if element_type == "layer":
+        if element_name == "policy":
+            ilo_c187 = gov.ilo_c187_status if gov else False
+            ilo_c155 = gov.ilo_c155_status if gov else False
+            mental_health = gov.mental_health_policy if gov else False
+            capacity = gov.strategic_capacity_score if gov else None
+            
+            strengths = []
+            gaps = []
+            
+            if mental_health:
+                strengths.append("Mental health policy framework in place")
+            else:
+                gaps.append("No dedicated mental health policy")
+            
+            if ilo_c187:
+                strengths.append("ILO C187 (OH Framework) ratified")
+            else:
+                gaps.append("ILO C187 not ratified - limits international alignment")
+            
+            if ilo_c155:
+                strengths.append("ILO C155 (OH & Safety) ratified")
+            else:
+                gaps.append("ILO C155 not ratified")
+            
+            if capacity and capacity >= 70:
+                strengths.append(f"Strong strategic capacity ({capacity:.0f}%)")
+            elif capacity:
+                gaps.append(f"Strategic capacity at {capacity:.0f}% - room for improvement")
+            
+            insight = f"{country.name}'s national policy layer {'provides a solid foundation' if len(strengths) > len(gaps) else 'requires strengthening'} for occupational health governance. "
+            if capacity:
+                insight += f"With a strategic capacity score of {capacity:.0f}%, "
+            insight += f"the country has {'ratified key ILO conventions' if ilo_c187 or ilo_c155 else 'yet to ratify core ILO conventions'}."
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+        
+        elif element_name == "infrastructure":
+            inspector = gov.inspector_density if gov else None
+            surveillance = p2.surveillance_logic if p2 else None
+            rehab = p3.rehab_access_score if p3 else None
+            
+            strengths = []
+            gaps = []
+            
+            if inspector and inspector >= 1.0:
+                strengths.append(f"Inspector density ({inspector:.2f}/10k) meets ILO benchmark")
+            elif inspector:
+                gaps.append(f"Inspector density ({inspector:.2f}/10k) below ILO 1.0/10k benchmark")
+            
+            if surveillance == "Risk-Based":
+                strengths.append("Risk-based surveillance system in place")
+            elif surveillance:
+                gaps.append(f"Surveillance uses {surveillance} approach - could upgrade to risk-based")
+            
+            if rehab and rehab >= 60:
+                strengths.append(f"Good rehabilitation access ({rehab:.0f}/100)")
+            elif rehab:
+                gaps.append(f"Rehabilitation access score ({rehab:.0f}/100) needs improvement")
+            
+            insight = f"Institutional infrastructure in {country.name} "
+            if inspector:
+                insight += f"operates with {inspector:.2f} inspectors per 10,000 workers"
+                insight += f" ({'meeting' if inspector >= 1.0 else 'below'} ILO standards). "
+            if surveillance:
+                insight += f"The {surveillance.lower()} surveillance approach "
+                insight += f"{'positions the country well' if surveillance == 'Risk-Based' else 'could be enhanced'}."
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+        
+        else:  # workplace
+            oel = p1.oel_compliance_pct if p1 else None
+            fatal = p1.fatal_accident_rate if p1 else None
+            rtw = p3.return_to_work_success_pct if p3 else None
+            
+            strengths = []
+            gaps = []
+            
+            if oel and oel >= 80:
+                strengths.append(f"High OEL compliance ({oel:.0f}%)")
+            elif oel:
+                gaps.append(f"OEL compliance at {oel:.0f}% - improvement needed")
+            
+            if fatal and fatal < 2:
+                strengths.append(f"Low fatal accident rate ({fatal:.1f}/100k)")
+            elif fatal:
+                gaps.append(f"Fatal accident rate ({fatal:.1f}/100k) above best practices")
+            
+            if rtw and rtw >= 70:
+                strengths.append(f"Strong return-to-work success ({rtw:.0f}%)")
+            elif rtw:
+                gaps.append(f"RTW success at {rtw:.0f}% - could improve")
+            
+            insight = f"Workplace implementation in {country.name} shows "
+            if oel:
+                insight += f"{oel:.0f}% OEL compliance. "
+            if fatal:
+                insight += f"The fatal accident rate of {fatal:.1f} per 100,000 workers "
+                insight += f"{'reflects effective safety measures' if fatal < 2 else 'indicates room for improvement'}."
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+    
+    elif element_type == "stage":
+        if element_name == "inputs":
+            ilo_count = (1 if (gov and gov.ilo_c187_status) else 0) + (1 if (gov and gov.ilo_c155_status) else 0)
+            capacity = gov.strategic_capacity_score if gov else None
+            reintegration = p3.reintegration_law if p3 else False
+            
+            strengths = []
+            gaps = []
+            
+            if ilo_count == 2:
+                strengths.append("Both key ILO conventions ratified")
+            elif ilo_count == 1:
+                gaps.append("Only 1 of 2 key ILO conventions ratified")
+            else:
+                gaps.append("No key ILO conventions ratified")
+            
+            if capacity and capacity >= 70:
+                strengths.append(f"Strong strategic capacity ({capacity:.0f}%)")
+            elif capacity:
+                gaps.append(f"Strategic capacity at {capacity:.0f}%")
+            
+            if reintegration:
+                strengths.append("Reintegration law in place")
+            else:
+                gaps.append("No formal reintegration law")
+            
+            insight = f"{country.name}'s input framework includes {ilo_count}/2 key ILO conventions"
+            if capacity:
+                insight += f" and {capacity:.0f}% strategic capacity"
+            insight += f". {'Strong legal foundations support the system.' if len(strengths) > len(gaps) else 'Additional legal frameworks would strengthen the system.'}"
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+        
+        elif element_name == "processes":
+            inspector = gov.inspector_density if gov else None
+            surveillance = p2.surveillance_logic if p2 else None
+            rehab = p3.rehab_access_score if p3 else None
+            
+            strengths = []
+            gaps = []
+            
+            if inspector and inspector >= 1.0:
+                strengths.append(f"Adequate inspector density ({inspector:.2f}/10k)")
+            elif inspector:
+                gaps.append(f"Inspector density ({inspector:.2f}/10k) below benchmark")
+            
+            if surveillance == "Risk-Based":
+                strengths.append("Risk-based surveillance approach")
+            elif surveillance:
+                gaps.append(f"{surveillance} surveillance - not risk-based")
+            
+            if rehab and rehab >= 60:
+                strengths.append(f"Good rehab access ({rehab:.0f}/100)")
+            elif rehab:
+                gaps.append(f"Limited rehab access ({rehab:.0f}/100)")
+            
+            insight = f"Operational processes in {country.name} "
+            if inspector:
+                insight += f"leverage {inspector:.2f} inspectors per 10,000 workers"
+            if surveillance:
+                insight += f" with {surveillance.lower()} surveillance"
+            insight += f". {'Processes are well-structured.' if len(strengths) > len(gaps) else 'Process improvements would enhance outcomes.'}"
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+        
+        else:  # outcomes
+            fatal = p1.fatal_accident_rate if p1 else None
+            detection = p2.disease_detection_rate if p2 else None
+            rtw = p3.return_to_work_success_pct if p3 else None
+            
+            strengths = []
+            gaps = []
+            
+            if fatal and fatal < 2:
+                strengths.append(f"Low fatal rate ({fatal:.1f}/100k)")
+            elif fatal:
+                gaps.append(f"Fatal rate ({fatal:.1f}/100k) above best practice")
+            
+            if detection and detection >= 50:
+                strengths.append(f"Good disease detection ({detection:.0f}%)")
+            elif detection:
+                gaps.append(f"Disease detection at {detection:.0f}%")
+            else:
+                gaps.append("Disease detection data unavailable")
+            
+            if rtw and rtw >= 70:
+                strengths.append(f"Strong RTW success ({rtw:.0f}%)")
+            elif rtw:
+                gaps.append(f"RTW success at {rtw:.0f}%")
+            
+            insight = f"Health outcomes in {country.name} show "
+            parts = []
+            if fatal:
+                parts.append(f"a fatal rate of {fatal:.1f}/100k")
+            if rtw:
+                parts.append(f"{rtw:.0f}% RTW success")
+            insight += ", ".join(parts) if parts else "limited data"
+            insight += f". {'Outcomes reflect system effectiveness.' if len(strengths) > len(gaps) else 'Outcome improvements are needed.'}"
+            
+            return {"insight": insight, "strengths": strengths, "gaps": gaps}
+    
+    # Default fallback
+    return {
+        "insight": f"Analysis for {element_name} in {country.name} is being developed.",
+        "strengths": [],
+        "gaps": []
+    }

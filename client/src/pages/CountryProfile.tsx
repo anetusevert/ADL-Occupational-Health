@@ -35,6 +35,7 @@ import {
   SystemFlowChart,
   BenchmarkRadar,
   SummaryTable,
+  FrameworkSummary,
 } from "../components/visualizations";
 import { fetchCountryWithMockFallback, fetchComparisonCountries } from "../services/api";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
@@ -63,7 +64,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { id: "layers", label: "System Layers", icon: Layers, color: "text-purple-400", bgColor: "bg-purple-500/20" },
-  { id: "flow", label: "Logic Flow", icon: GitBranch, color: "text-blue-400", bgColor: "bg-blue-500/20" },
+  { id: "flow", label: "Process Flow", icon: GitBranch, color: "text-blue-400", bgColor: "bg-blue-500/20" },
   { id: "radar", label: "Benchmark", icon: Radar, color: "text-cyan-400", bgColor: "bg-cyan-500/20" },
   { id: "summary", label: "Summary", icon: Table2, color: "text-amber-400", bgColor: "bg-amber-500/20" },
 ];
@@ -355,28 +356,32 @@ function RadarView({ country, comparisonIso, visualizationData }: ViewContentPro
   );
 }
 
-function SummaryView({ country, comparisonIso, visualizationData }: ViewContentProps) {
+function SummaryView({ country, comparisonCountry, comparisonIso, visualizationData }: ViewContentProps) {
   return (
     <div className="h-full flex">
-      {/* Visualization - Left Side */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-3xl">
-          <SummaryTable
-            data={visualizationData.summaryTable}
-            countryName={visualizationData.countryName}
-            comparisonName={visualizationData.comparisonName}
-          />
-        </div>
-      </div>
-      
-      {/* Analysis Panel - Right Side */}
-      <div className="w-96 flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
-        <ViewAnalysisPanel
-          isoCode={country.iso_code}
-          viewType="summary"
-          comparisonIso={comparisonIso}
+      {/* Framework Summary - Left Side (McKinsey-grade analysis) */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <FrameworkSummary
+          country={country}
+          comparisonCountry={comparisonCountry}
           className="h-full"
         />
+      </div>
+      
+      {/* Data Table - Right Side */}
+      <div className="w-[400px] flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
+        <div className="h-full flex flex-col">
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">
+            Data Verification
+          </h3>
+          <div className="flex-1 overflow-y-auto scrollbar-thin">
+            <SummaryTable
+              data={visualizationData.summaryTable}
+              countryName={visualizationData.countryName}
+              comparisonName={visualizationData.comparisonName}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
