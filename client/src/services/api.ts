@@ -589,12 +589,23 @@ export async function getStrategicDeepDiveReport(
       `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}`,
       { params }
     );
+    
+    // Debug: Log response structure to help diagnose data issues
+    console.log('[API] getStrategicDeepDiveReport response:', {
+      isoCode,
+      hasData: !!response.data,
+      status: response.data?.status,
+      hasExpectedFields: !!(response.data?.iso_code || response.data?.country_name),
+      keys: response.data ? Object.keys(response.data).slice(0, 10) : [],
+    });
+    
     return response.data;
   } catch (error: any) {
     // Treat 404 as "no report exists" rather than an error
     if (error.response?.status === 404) {
       return null;
     }
+    console.error('[API] getStrategicDeepDiveReport error:', error.response?.status, error.message);
     throw error;
   }
 }
@@ -646,10 +657,21 @@ export async function generateStrategicDeepDive(
 }> {
   // Use AI-specialized client with extended timeout (6 minutes)
   // Agent runs synchronously and returns full report immediately
+  console.log('[API] generateStrategicDeepDive starting:', { isoCode, topic });
+  
   const response = await aiApiClient.post(
     `/api/v1/strategic-deep-dive/${isoCode.toUpperCase()}/generate`,
     { topic }
   );
+  
+  // Debug: Log response structure
+  console.log('[API] generateStrategicDeepDive response:', {
+    success: response.data?.success,
+    hasReport: !!response.data?.report,
+    error: response.data?.error,
+    reportKeys: response.data?.report ? Object.keys(response.data.report).slice(0, 10) : [],
+  });
+  
   return response.data;
 }
 

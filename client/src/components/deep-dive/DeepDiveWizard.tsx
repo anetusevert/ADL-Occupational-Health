@@ -33,6 +33,23 @@ import { StepIndicator, FloatingParticles } from "./shared";
 // =============================================================================
 
 function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
+  // Validate input has expected structure
+  if (!report || typeof report !== 'object') {
+    console.error('[DeepDive] Invalid report input:', report);
+    return '# Error\n\nInvalid report data received. Please try regenerating the report.';
+  }
+  
+  // Check for expected fields - report should have iso_code, country_name, or status
+  if (!report.iso_code && !report.country_name && !report.status) {
+    console.error('[DeepDive] Report missing expected fields. Keys received:', Object.keys(report));
+    return '# Error\n\nReport data is malformed. The response does not contain expected fields.\n\nPlease try regenerating the report.';
+  }
+  
+  // Check if status indicates no report yet
+  if (report.status === 'not_started' || report.status === 'processing') {
+    return `# Report ${report.status === 'processing' ? 'In Progress' : 'Not Started'}\n\nThe report for ${report.country_name || 'this country'} has not been generated yet.\n\nPlease generate the report first.`;
+  }
+  
   const sections: string[] = [];
   
   // Title
@@ -287,9 +304,26 @@ export function DeepDiveWizard() {
         // First, check if report already exists and is completed
         const existingReport = await getStrategicDeepDiveReport(countryIso, topic);
         
+        // Debug: Log what we received
+        console.log('[DeepDive] Existing report check:', {
+          hasReport: !!existingReport,
+          status: existingReport?.status,
+          hasExpectedFields: !!(existingReport?.iso_code || existingReport?.country_name),
+        });
+        
         if (existingReport && existingReport.status === 'completed') {
+          // Validate report structure before formatting
+          if (!existingReport.iso_code && !existingReport.country_name) {
+            console.error('[DeepDive] Existing report has invalid structure:', Object.keys(existingReport));
+            setReportError(new Error("Report data appears to be malformed. Please try regenerating."));
+            setIsFetching(false);
+            return;
+          }
+          
           // Report exists and is completed - convert to markdown and display
-          setReport(formatReportAsMarkdown(existingReport));
+          const markdownReport = formatReportAsMarkdown(existingReport);
+          console.log('[DeepDive] Formatted report length:', markdownReport.length);
+          setReport(markdownReport);
           setIsFetching(false);
           return;
         }
@@ -302,9 +336,24 @@ export function DeepDiveWizard() {
           setIsGenerating(true);
           const generated = await generateStrategicDeepDive(countryIso, topic);
           
+          console.log('[DeepDive] Generated report:', {
+            success: generated.success,
+            hasReport: !!generated.report,
+            error: generated.error,
+          });
+          
           if (generated.success && generated.report) {
+            // Validate report structure before formatting
+            if (!generated.report.iso_code && !generated.report.country_name) {
+              console.error('[DeepDive] Generated report has invalid structure:', Object.keys(generated.report));
+              setReportError(new Error("Generated report data appears to be malformed. Please try again."));
+              return;
+            }
+            
             // Convert report object to markdown for display
-            setReport(formatReportAsMarkdown(generated.report));
+            const markdownReport = formatReportAsMarkdown(generated.report);
+            console.log('[DeepDive] Formatted generated report length:', markdownReport.length);
+            setReport(markdownReport);
           } else {
             // Check for error message from backend
             const errorMsg = generated.error || "Report generation completed but no content was returned.";
