@@ -490,28 +490,31 @@ export function ReportDisplayStep({
                         <div 
                           className={cn(
                             "prose prose-invert prose-lg max-w-none mt-6",
-                            // Text styling
+                            // Text styling - BRIGHT colors for dark background
                             "prose-headings:text-white prose-headings:font-semibold",
-                            "prose-p:text-slate-200 prose-p:leading-relaxed prose-p:mb-4",
+                            "prose-p:text-slate-100 prose-p:leading-relaxed prose-p:mb-4",
                             "prose-strong:text-white prose-strong:font-semibold",
-                            "prose-em:text-purple-300 prose-em:font-medium",
+                            "prose-em:text-purple-200 prose-em:font-medium",
+                            // Direct color overrides to ensure visibility
+                            "[&_p]:!text-slate-100 [&_span]:!text-slate-100",
+                            "[&_li]:!text-slate-100 [&_td]:!text-slate-100",
                             // List styling
-                            "prose-li:text-slate-200 prose-li:my-2 prose-li:leading-relaxed",
+                            "prose-li:text-slate-100 prose-li:my-2 prose-li:leading-relaxed",
                             "prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-ul:space-y-2",
                             "prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4 prose-ol:space-y-2",
                             // Table styling
                             "prose-table:border-collapse prose-table:w-full prose-table:my-6 prose-table:rounded-lg prose-table:overflow-hidden",
                             "prose-th:bg-slate-800/90 prose-th:text-white prose-th:px-4 prose-th:py-3 prose-th:text-left prose-th:font-semibold prose-th:border prose-th:border-slate-700",
-                            "prose-td:text-slate-200 prose-td:px-4 prose-td:py-3 prose-td:border prose-td:border-slate-700/50",
+                            "prose-td:text-slate-100 prose-td:px-4 prose-td:py-3 prose-td:border prose-td:border-slate-700/50",
                             "prose-tr:even:bg-slate-800/40 prose-tr:hover:bg-slate-800/60 prose-tr:transition-colors",
                             // Section-specific styling
                             section.level <= 2 && "pl-8",
                             // SWOT sections get colored left border
-                            isSWOT && "border-l-4 border-purple-500/50 pl-6 bg-slate-800/20 rounded-r-lg py-4",
+                            isSWOT && "border-l-4 border-purple-500/50 pl-6 bg-slate-800/30 rounded-r-lg py-4",
                             // Recommendations get amber accent
-                            isRecommendation && "border-l-4 border-amber-500/50 pl-6 bg-amber-950/10 rounded-r-lg py-4",
+                            isRecommendation && "border-l-4 border-amber-500/50 pl-6 bg-amber-950/20 rounded-r-lg py-4",
                             // Benchmark sections get blue accent
-                            isBenchmark && "border-l-4 border-blue-500/50 pl-6 bg-blue-950/10 rounded-r-lg py-4"
+                            isBenchmark && "border-l-4 border-blue-500/50 pl-6 bg-blue-950/20 rounded-r-lg py-4"
                           )} 
                           dangerouslySetInnerHTML={{ __html: renderMarkdown(section.content) }} 
                         />
