@@ -588,6 +588,46 @@ async def generate_report(
         
         logger.info(f"[GENERATE] ensure_agents_exist completed successfully, main session cache expired")
         
+        # CRITICAL: Verify the agent is visible to the main session
+        # Due to transaction isolation, the main session might not see newly committed agents
+        verify_agent = db.query(Agent).filter(Agent.id == "report-generation").first()
+        if not verify_agent:
+            logger.error(f"[GENERATE] Agent not visible to main session - trying direct seed")
+            # Try seeding with the main session as a fallback
+            for agent_data in DEFAULT_AGENTS:
+                existing = db.query(Agent).filter(Agent.id == agent_data["id"]).first()
+                if not existing:
+                    new_agent = Agent(
+                        id=agent_data["id"],
+                        name=agent_data["name"],
+                        description=agent_data["description"],
+                        system_prompt=agent_data["system_prompt"],
+                        user_prompt_template=agent_data["user_prompt_template"],
+                        template_variables=agent_data["template_variables"],
+                        icon=agent_data["icon"],
+                        color=agent_data["color"],
+                        is_active=True,
+                    )
+                    db.add(new_agent)
+                    logger.info(f"[GENERATE] Added agent via main session: {agent_data['id']}")
+            db.commit()
+            logger.info(f"[GENERATE] Direct seed completed, verifying again...")
+            
+            # Verify again
+            verify_agent = db.query(Agent).filter(Agent.id == "report-generation").first()
+            if not verify_agent:
+                logger.error(f"[GENERATE] CRITICAL: Agent still not found after direct seed!")
+                return GenerateResponse(
+                    success=False,
+                    iso_code=iso_code,
+                    country_name="Unknown",
+                    report=None,
+                    agent_log=agent_log,
+                    error="Failed to create report-generation agent. Database issue.",
+                )
+        
+        logger.info(f"[GENERATE] Agent verified in main session: {verify_agent.name}")
+        
         # Get country
         country = db.query(Country).filter(Country.iso_code == iso_code).first()
         logger.info(f"[GENERATE] Country query result: {country.name if country else 'Not found'}")
