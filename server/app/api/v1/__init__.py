@@ -15,6 +15,7 @@ from app.api.endpoints.metric_config import router as metric_config_router
 from app.api.endpoints.simulator import router as simulator_router
 from app.api.endpoints.orchestration import router as orchestration_router
 from app.api.endpoints.strategic_deep_dive import router as strategic_deep_dive_router
+from app.api.endpoints.view_analysis import router as view_analysis_router
 
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
@@ -31,3 +32,4 @@ api_router.include_router(metric_config_router, prefix="/admin/metric-config", t
 api_router.include_router(simulator_router)
 api_router.include_router(orchestration_router)
 api_router.include_router(strategic_deep_dive_router)
+api_router.include_router(view_analysis_router)

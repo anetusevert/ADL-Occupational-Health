@@ -1,23 +1,27 @@
 /**
  * Arthur D. Little - Global Health Platform
- * Country Profile Page - Framework Visualization Dashboard
+ * Country Profile Page - Full-Screen Tab-Based Visualization Dashboard
  * 
- * Features three distinct visual representations:
- * 1. Onion Model - Concentric layers (Policy → Infrastructure → Workplace)
- * 2. System Flow - Input → Process → Outcome flow
- * 3. Benchmark Radar - 5-dimension comparison chart
+ * Features:
+ * - Full-screen single view (no scrolling)
+ * - Tab navigation between views
+ * - AI-powered deep analysis panel
+ * - Enhanced comparison selector with Top 5 Leaders
  * 
- * Plus strategic insights and summary table for data verification.
+ * Views:
+ * 1. layers - Onion Model (Policy → Infrastructure → Workplace)
+ * 2. flow - System Flow (Input → Process → Outcome)
+ * 3. radar - Benchmark Radar (5-dimension comparison)
+ * 4. summary - Summary Table (data verification)
  */
 
-import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   AlertTriangle,
-  ChevronDown,
   Layers,
   GitBranch,
   Radar,
@@ -30,7 +34,6 @@ import {
   OnionModel,
   SystemFlowChart,
   BenchmarkRadar,
-  StrategicInsight,
   SummaryTable,
 } from "../components/visualizations";
 import { fetchCountryWithMockFallback, fetchComparisonCountries } from "../services/api";
@@ -39,146 +42,366 @@ import {
   generateOnionData,
   generateSystemFlowData,
   generateRadarData,
-  generateOnionInsight,
-  generateFlowInsight,
-  generateRadarInsight,
   generateSummaryTableData,
   calculateGlobalAverages,
 } from "../lib/frameworkVisualization";
 import type { Country } from "../types/country";
+import type { ViewType } from "../components/ViewSelectionModal";
+import { ViewAnalysisPanel } from "../components/ViewAnalysisPanel";
 
 // ============================================================================
-// SECTION HEADER COMPONENT
+// TAB CONFIGURATION
 // ============================================================================
 
-interface SectionHeaderProps {
+interface TabConfig {
+  id: ViewType;
+  label: string;
   icon: React.ElementType;
-  title: string;
-  subtitle: string;
   color: string;
+  bgColor: string;
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, color }: SectionHeaderProps) {
+const TABS: TabConfig[] = [
+  { id: "layers", label: "System Layers", icon: Layers, color: "text-purple-400", bgColor: "bg-purple-500/20" },
+  { id: "flow", label: "Logic Flow", icon: GitBranch, color: "text-blue-400", bgColor: "bg-blue-500/20" },
+  { id: "radar", label: "Benchmark", icon: Radar, color: "text-cyan-400", bgColor: "bg-cyan-500/20" },
+  { id: "summary", label: "Summary", icon: Table2, color: "text-amber-400", bgColor: "bg-amber-500/20" },
+];
+
+// ============================================================================
+// TAB NAVIGATION
+// ============================================================================
+
+interface TabNavProps {
+  activeTab: ViewType;
+  onTabChange: (tab: ViewType) => void;
+}
+
+function TabNav({ activeTab, onTabChange }: TabNavProps) {
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center",
-        "bg-gradient-to-br",
-        color
-      )}>
-        <Icon className="w-5 h-5 text-white" />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <p className="text-xs text-white/50">{subtitle}</p>
-      </div>
+    <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
+      {TABS.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200",
+              "text-sm font-medium",
+              isActive
+                ? cn("text-white", tab.bgColor)
+                : "text-white/50 hover:text-white/80 hover:bg-white/5"
+            )}
+          >
+            <Icon className={cn("w-4 h-4", isActive ? tab.color : "")} />
+            <span className="hidden sm:inline">{tab.label}</span>
+            {isActive && (
+              <motion.div
+                layoutId="activeTab"
+                className={cn("absolute inset-0 rounded-lg -z-10", tab.bgColor)}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 // ============================================================================
-// COUNTRY SELECTOR COMPONENT
+// ENHANCED COUNTRY SELECTOR WITH TOP 5 LEADERS
 // ============================================================================
 
-interface CountrySelectorProps {
+interface EnhancedCountrySelectorProps {
   countries: Country[];
   selectedIso: string | null;
   onSelect: (iso: string | null) => void;
   currentCountryIso: string;
 }
 
-function CountrySelector({ 
+function EnhancedCountrySelector({ 
   countries, 
   selectedIso, 
   onSelect,
   currentCountryIso 
-}: CountrySelectorProps) {
+}: EnhancedCountrySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   
-  // Filter out current country and sort by name
-  const availableCountries = useMemo(() => 
-    countries
-      .filter(c => c.iso_code !== currentCountryIso)
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    [countries, currentCountryIso]
-  );
+  // Calculate top 5 leaders by OHI score
+  const top5Leaders = useMemo(() => {
+    return countries
+      .filter(c => c.iso_code !== currentCountryIso && c.maturity_score !== null)
+      .sort((a, b) => (b.maturity_score ?? 0) - (a.maturity_score ?? 0))
+      .slice(0, 5);
+  }, [countries, currentCountryIso]);
 
-  const selectedCountry = availableCountries.find(c => c.iso_code === selectedIso);
+  // All other countries (excluding top 5 and current)
+  const otherCountries = useMemo(() => {
+    const top5Isos = new Set(top5Leaders.map(c => c.iso_code));
+    return countries
+      .filter(c => c.iso_code !== currentCountryIso && !top5Isos.has(c.iso_code))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [countries, currentCountryIso, top5Leaders]);
+
+  const selectedCountry = countries.find(c => c.iso_code === selectedIso);
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all",
-          "bg-slate-800/50 border-slate-700/50 hover:border-slate-600",
-          "text-sm text-white"
+          "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all min-w-[200px]",
+          "bg-slate-800/70 border-slate-600/50 hover:border-cyan-500/50",
+          "text-sm text-white shadow-lg"
         )}
       >
         {selectedCountry ? (
           <>
             <CountryFlag isoCode={selectedCountry.iso_code} size="sm" />
-            <span>{selectedCountry.name}</span>
+            <span className="flex-1 text-left">{selectedCountry.name}</span>
+            <span className="text-xs text-cyan-400 font-medium">
+              {selectedCountry.maturity_score?.toFixed(1) ?? "N/A"}
+            </span>
           </>
         ) : (
-          <span className="text-white/50">Select comparison country...</span>
+          <>
+            <div className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-[8px] font-bold text-white">
+              GL
+            </div>
+            <span className="flex-1 text-left text-white/70">Global Benchmark</span>
+          </>
         )}
-        <ChevronDown className={cn(
-          "w-4 h-4 text-white/40 transition-transform",
-          isOpen && "rotate-180"
-        )} />
       </button>
 
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)} 
-          />
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "absolute z-50 mt-1 w-64 max-h-64 overflow-y-auto",
-              "bg-slate-800 border border-slate-700 rounded-lg shadow-xl"
-            )}
-          >
-            {/* Global benchmark option */}
-            <button
-              onClick={() => { onSelect(null); setIsOpen(false); }}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsOpen(false)} 
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
               className={cn(
-                "w-full flex items-center gap-2 px-3 py-2 text-sm text-left",
-                "hover:bg-white/5 transition-colors",
-                selectedIso === null && "bg-cyan-500/10 text-cyan-400"
+                "absolute right-0 z-50 mt-2 w-80 max-h-[400px] overflow-y-auto",
+                "bg-slate-800 border border-slate-600 rounded-xl shadow-2xl"
               )}
             >
-              <div className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-[8px] font-bold text-white">
-                GL
+              {/* Global benchmark option */}
+              <div className="p-2 border-b border-slate-700/50">
+                <button
+                  onClick={() => { onSelect(null); setIsOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm",
+                    "hover:bg-white/5 transition-colors",
+                    selectedIso === null && "bg-cyan-500/10 ring-1 ring-cyan-500/30"
+                  )}
+                >
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-[9px] font-bold text-white">
+                    GL
+                  </div>
+                  <span className="flex-1 text-left text-white">Global Benchmark</span>
+                  {selectedIso === null && (
+                    <span className="text-xs text-cyan-400">Selected</span>
+                  )}
+                </button>
               </div>
-              <span>Global Benchmark</span>
-            </button>
-            
-            <div className="h-px bg-slate-700 my-1" />
-            
-            {availableCountries.map(country => (
-              <button
-                key={country.iso_code}
-                onClick={() => { onSelect(country.iso_code); setIsOpen(false); }}
-                className={cn(
-                  "w-full flex items-center gap-2 px-3 py-2 text-sm text-left",
-                  "hover:bg-white/5 transition-colors",
-                  selectedIso === country.iso_code && "bg-cyan-500/10 text-cyan-400"
-                )}
-              >
-                <CountryFlag isoCode={country.iso_code} size="sm" />
-                <span className="truncate">{country.name}</span>
-              </button>
-            ))}
-          </motion.div>
-        </>
-      )}
+              
+              {/* Top 5 Leaders */}
+              <div className="p-2 border-b border-slate-700/50">
+                <p className="px-2 py-1 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
+                  Top 5 Global Leaders
+                </p>
+                {top5Leaders.map((country, index) => (
+                  <button
+                    key={country.iso_code}
+                    onClick={() => { onSelect(country.iso_code); setIsOpen(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm",
+                      "hover:bg-white/5 transition-colors",
+                      selectedIso === country.iso_code && "bg-cyan-500/10 ring-1 ring-cyan-500/30"
+                    )}
+                  >
+                    <span className="w-5 h-5 rounded bg-amber-500/20 text-amber-400 text-xs font-bold flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <CountryFlag isoCode={country.iso_code} size="sm" />
+                    <span className="flex-1 text-left text-white truncate">{country.name}</span>
+                    <span className="text-xs text-emerald-400 font-medium">
+                      {country.maturity_score?.toFixed(1)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* All other countries */}
+              <div className="p-2">
+                <p className="px-2 py-1 text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+                  All Countries
+                </p>
+                {otherCountries.map(country => (
+                  <button
+                    key={country.iso_code}
+                    onClick={() => { onSelect(country.iso_code); setIsOpen(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm",
+                      "hover:bg-white/5 transition-colors",
+                      selectedIso === country.iso_code && "bg-cyan-500/10 ring-1 ring-cyan-500/30"
+                    )}
+                  >
+                    <CountryFlag isoCode={country.iso_code} size="sm" />
+                    <span className="flex-1 text-left text-white truncate">{country.name}</span>
+                    <span className="text-xs text-white/40">
+                      {country.maturity_score?.toFixed(1) ?? "N/A"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
+}
+
+// ============================================================================
+// VIEW CONTENT COMPONENTS
+// ============================================================================
+
+interface ViewContentProps {
+  country: Country;
+  comparisonCountry: Country | null;
+  comparisonIso: string | null;
+  visualizationData: ReturnType<typeof generateVisualizationData>;
+  viewType: ViewType;
+}
+
+function LayersView({ country, comparisonIso, visualizationData }: ViewContentProps) {
+  return (
+    <div className="h-full flex">
+      {/* Visualization - Left Side */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <OnionModel data={visualizationData.onion} className="max-w-3xl w-full" />
+      </div>
+      
+      {/* Analysis Panel - Right Side */}
+      <div className="w-96 flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
+        <ViewAnalysisPanel
+          isoCode={country.iso_code}
+          viewType="layers"
+          comparisonIso={comparisonIso}
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
+}
+
+function FlowView({ country, comparisonIso, visualizationData }: ViewContentProps) {
+  return (
+    <div className="h-full flex">
+      {/* Visualization - Left Side */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-4xl">
+          <SystemFlowChart data={visualizationData.flow} />
+        </div>
+      </div>
+      
+      {/* Analysis Panel - Right Side */}
+      <div className="w-96 flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
+        <ViewAnalysisPanel
+          isoCode={country.iso_code}
+          viewType="flow"
+          comparisonIso={comparisonIso}
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
+}
+
+function RadarView({ country, comparisonIso, visualizationData }: ViewContentProps) {
+  return (
+    <div className="h-full flex">
+      {/* Visualization - Left Side */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl">
+          <BenchmarkRadar
+            data={visualizationData.radar}
+            countryName={visualizationData.countryName}
+            comparisonName={visualizationData.comparisonName}
+          />
+        </div>
+      </div>
+      
+      {/* Analysis Panel - Right Side */}
+      <div className="w-96 flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
+        <ViewAnalysisPanel
+          isoCode={country.iso_code}
+          viewType="radar"
+          comparisonIso={comparisonIso}
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SummaryView({ country, comparisonIso, visualizationData }: ViewContentProps) {
+  return (
+    <div className="h-full flex">
+      {/* Visualization - Left Side */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-3xl">
+          <SummaryTable
+            data={visualizationData.summaryTable}
+            countryName={visualizationData.countryName}
+            comparisonName={visualizationData.comparisonName}
+          />
+        </div>
+      </div>
+      
+      {/* Analysis Panel - Right Side */}
+      <div className="w-96 flex-shrink-0 p-4 border-l border-slate-700/50 overflow-hidden">
+        <ViewAnalysisPanel
+          isoCode={country.iso_code}
+          viewType="summary"
+          comparisonIso={comparisonIso}
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function generateVisualizationData(
+  country: Country,
+  comparisonCountry: Country | null,
+  globalAverages: Record<string, number>
+) {
+  const countryName = country.name;
+  const comparisonName = comparisonCountry?.name ?? "Global Avg";
+
+  return {
+    onion: generateOnionData(country),
+    flow: generateSystemFlowData(country),
+    radar: generateRadarData(country, comparisonCountry, countryName, comparisonName),
+    summaryTable: generateSummaryTableData(country, comparisonCountry, globalAverages),
+    countryName,
+    comparisonName,
+  };
 }
 
 // ============================================================================
@@ -187,7 +410,26 @@ function CountrySelector({
 
 export function CountryProfile() {
   const { iso } = useParams<{ iso: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [comparisonIso, setComparisonIso] = useState<string | null>(null);
+
+  // Get initial tab from URL query param
+  const initialTab = (searchParams.get("view") as ViewType) || "layers";
+  const [activeTab, setActiveTab] = useState<ViewType>(initialTab);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: ViewType) => {
+    setActiveTab(tab);
+    setSearchParams({ view: tab });
+  };
+
+  // Sync tab with URL on mount
+  useEffect(() => {
+    const viewParam = searchParams.get("view") as ViewType;
+    if (viewParam && TABS.some(t => t.id === viewParam)) {
+      setActiveTab(viewParam);
+    }
+  }, [searchParams]);
 
   // Fetch current country data
   const {
@@ -224,21 +466,7 @@ export function CountryProfile() {
   // Generate visualization data
   const visualizationData = useMemo(() => {
     if (!country) return null;
-
-    const countryName = country.name;
-    const comparisonName = comparisonCountry?.name ?? "Global Avg";
-
-    return {
-      onion: generateOnionData(country),
-      flow: generateSystemFlowData(country),
-      radar: generateRadarData(country, comparisonCountry, countryName, comparisonName),
-      onionInsight: generateOnionInsight(country),
-      flowInsight: generateFlowInsight(country),
-      radarInsight: generateRadarInsight(country, comparisonCountry, comparisonName),
-      summaryTable: generateSummaryTableData(country, comparisonCountry, globalAverages),
-      countryName,
-      comparisonName,
-    };
+    return generateVisualizationData(country, comparisonCountry, globalAverages);
   }, [country, comparisonCountry, globalAverages]);
 
   // Loading state
@@ -283,153 +511,83 @@ export function CountryProfile() {
     country.pillar_3_restoration?.rehab_access_score ?? null
   );
 
+  const viewProps: ViewContentProps = {
+    country,
+    comparisonCountry,
+    comparisonIso,
+    visualizationData: visualizationData!,
+    viewType: activeTab,
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 mb-4">
-        <Link
-          to="/home"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs mb-3"
-        >
-          <ArrowLeft className="w-3 h-3" />
-          Back to Overview
-        </Link>
-
-        {/* Country Info + Comparison Selector */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <CountryFlag 
-              isoCode={country.iso_code} 
-              flagUrl={country.flag_url} 
-              size="lg" 
-              className="shadow-lg"
-            />
-            <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">
-                {country.name}
-              </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs text-white/40">{country.iso_code}</span>
-                <ADLScoreBadge score={effectiveOHI} size="sm" showStage />
-              </div>
+      {/* Header Row */}
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-4">
+        {/* Left: Back + Country Info */}
+        <div className="flex items-center gap-4">
+          <Link
+            to="/home"
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-white/60 hover:text-white" />
+          </Link>
+          
+          <CountryFlag 
+            isoCode={country.iso_code} 
+            flagUrl={country.flag_url} 
+            size="lg" 
+            className="shadow-lg"
+          />
+          
+          <div>
+            <h1 className="text-xl font-bold text-white tracking-tight">
+              {country.name}
+            </h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-white/40">{country.iso_code}</span>
+              <ADLScoreBadge score={effectiveOHI} size="sm" showStage />
             </div>
           </div>
+        </div>
 
-          {/* Comparison Selector */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-white/50">Compare with:</span>
-            <CountrySelector
-              countries={allCountriesData?.countries ?? []}
-              selectedIso={comparisonIso}
-              onSelect={setComparisonIso}
-              currentCountryIso={iso!}
-            />
-          </div>
+        {/* Right: Compare Selector */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-white/50 hidden sm:inline">Compare:</span>
+          <EnhancedCountrySelector
+            countries={allCountriesData?.countries ?? []}
+            selectedIso={comparisonIso}
+            onSelect={setComparisonIso}
+            currentCountryIso={iso!}
+          />
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-6">
-        {visualizationData && (
-          <>
-            {/* SECTION 1: Onion Model */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5"
-            >
-              <SectionHeader
-                icon={Layers}
-                title="National OH System Layers"
-                subtitle="Hierarchical view from national policy to workplace implementation"
-                color="from-purple-500 to-purple-600"
-              />
-              
-              <OnionModel data={visualizationData.onion} />
-              
-              <StrategicInsight 
-                insight={visualizationData.onionInsight}
-                type="info"
-                delay={0.3}
-                className="mt-4"
-              />
-            </motion.section>
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 flex justify-center mb-4">
+        <TabNav activeTab={activeTab} onTabChange={handleTabChange} />
+      </div>
 
-            {/* SECTION 2: System Flow */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5"
-            >
-              <SectionHeader
-                icon={GitBranch}
-                title="System Logic Flow"
-                subtitle="Input resources → Operational processes → Health outcomes"
-                color="from-blue-500 to-cyan-500"
-              />
-              
-              <SystemFlowChart data={visualizationData.flow} />
-              
-              <StrategicInsight 
-                insight={visualizationData.flowInsight}
-                type="info"
-                delay={0.3}
-                className="mt-4"
-              />
-            </motion.section>
-
-            {/* SECTION 3: Benchmark Radar */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5"
-            >
-              <SectionHeader
-                icon={Radar}
-                title="Comparative Benchmark"
-                subtitle={`5-dimension comparison: ${visualizationData.countryName} vs ${visualizationData.comparisonName}`}
-                color="from-cyan-500 to-emerald-500"
-              />
-              
-              <BenchmarkRadar
-                data={visualizationData.radar}
-                countryName={visualizationData.countryName}
-                comparisonName={visualizationData.comparisonName}
-              />
-              
-              <StrategicInsight 
-                insight={visualizationData.radarInsight}
-                type={comparisonCountry ? "opportunity" : "info"}
-                delay={0.3}
-                className="mt-4"
-              />
-            </motion.section>
-
-            {/* SECTION 4: Summary Table */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="pb-4"
-            >
-              <SectionHeader
-                icon={Table2}
-                title="Summary Comparison"
-                subtitle="Key metrics side-by-side for quick data verification"
-                color="from-amber-500 to-orange-500"
-              />
-              
-              <SummaryTable
-                data={visualizationData.summaryTable}
-                countryName={visualizationData.countryName}
-                comparisonName={visualizationData.comparisonName}
-              />
-            </motion.section>
-          </>
-        )}
+      {/* View Content - Full Height, No Scroll */}
+      <div className="flex-1 min-h-0 bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="h-full"
+          >
+            {visualizationData && (
+              <>
+                {activeTab === "layers" && <LayersView {...viewProps} />}
+                {activeTab === "flow" && <FlowView {...viewProps} />}
+                {activeTab === "radar" && <RadarView {...viewProps} />}
+                {activeTab === "summary" && <SummaryView {...viewProps} />}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

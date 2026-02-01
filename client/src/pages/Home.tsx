@@ -31,6 +31,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalMap } from "../components";
 import { ADLIcon } from "../components/ADLLogo";
+import { ViewSelectionModal } from "../components/ViewSelectionModal";
 import { apiClient } from "../services/api";
 import { cn, getApiBaseUrl, getEffectiveOHIScore } from "../lib/utils";
 import type { MapCountryData, MapMetric, GeoJSONMetadataResponse } from "../types/country";
@@ -115,6 +116,9 @@ export function Home() {
   const [selectedMetric, setSelectedMetric] = useState<MapMetric>("maturity_score");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MapCountryData | null>(null);
+  
+  // View Selection Modal state
+  const [viewSelectionCountry, setViewSelectionCountry] = useState<MapCountryData | null>(null);
   
   // Quick Access Filters
   const [continentFilter, setContinentFilter] = useState<string>("All");
@@ -281,7 +285,12 @@ export function Home() {
             {!error && (
               <GlobalMap
                 countries={mapCountries}
-                onCountryClick={(iso) => navigate(`/country/${iso}`)}
+                onCountryClick={(iso) => {
+                  const country = mapCountries.find(c => c.iso_code === iso);
+                  if (country) {
+                    setViewSelectionCountry(country);
+                  }
+                }}
                 onHoverCountry={setHoveredCountry}
                 showLabels={false}
                 className="h-full"
@@ -456,7 +465,7 @@ export function Home() {
                     
                     {/* View Full Profile Link */}
                     <button
-                      onClick={() => navigate(`/country/${hoveredCountry.iso_code}`)}
+                      onClick={() => setViewSelectionCountry(hoveredCountry)}
                       className="w-full mt-4 py-2.5 px-4 bg-adl-accent/20 hover:bg-adl-accent/30 text-adl-accent text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
                       View Full Profile
@@ -552,7 +561,7 @@ export function Home() {
                         return (
                           <button
                             key={country.iso_code}
-                            onClick={() => navigate(`/country/${country.iso_code}`)}
+                            onClick={() => setViewSelectionCountry(country)}
                             className={cn(
                               "p-3 rounded-lg transition-all duration-200 text-left",
                               "bg-white/5 hover:bg-white/10 border border-transparent hover:border-adl-accent/30",
@@ -702,7 +711,7 @@ function StatsModal({
                     .map(c => (
                       <button
                         key={c.iso_code}
-                        onClick={() => { navigate(`/country/${c.iso_code}`); onClose(); }}
+                        onClick={() => { setViewSelectionCountry(c); onClose(); }}
                         className="text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
                       >
                         <p className="text-sm text-white truncate">{c.name}</p>
@@ -820,6 +829,15 @@ function StatsModal({
           )}
         </div>
       </motion.div>
+
+      {/* View Selection Modal */}
+      <ViewSelectionModal
+        isOpen={!!viewSelectionCountry}
+        onClose={() => setViewSelectionCountry(null)}
+        countryIso={viewSelectionCountry?.iso_code ?? ""}
+        countryName={viewSelectionCountry?.name ?? ""}
+        countryFlagUrl={viewSelectionCountry?.flag_url}
+      />
     </motion.div>
   );
 }
