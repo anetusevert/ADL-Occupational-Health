@@ -112,7 +112,7 @@ export function AgentActivityIndicator({
           <p className="text-sm text-white truncate">
             {latestEntry?.message || currentPhase}
           </p>
-          {latestEntry && (
+          {latestEntry?.agent && (
             <p className="text-xs text-white/40 truncate">
               {latestEntry.agent}
             </p>
@@ -175,6 +175,9 @@ export function AgentActivityIndicator({
       <div className="space-y-2 max-h-48 overflow-y-auto">
         <AnimatePresence mode="popLayout">
           {agentLog.map((entry, index) => {
+            // Skip malformed entries
+            if (!entry || !entry.agent) return null;
+            
             const Icon = AGENT_ICONS[entry.agent] || Brain;
             const isLatest = index === agentLog.length - 1;
             
