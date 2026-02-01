@@ -4,7 +4,7 @@
  * React Context + useReducer for complex game state
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import type {
   GameState,
   GameAction,
@@ -19,7 +19,6 @@ import {
   DEFAULT_START_YEAR,
   DEFAULT_END_YEAR,
   YEARS_PER_CYCLE,
-  SPEED_DURATIONS,
 } from '../components/simulator/types';
 import {
   calculateOHIScore,
@@ -380,24 +379,9 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
-  const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Auto-advance effect
-  useEffect(() => {
-    if (state.phase === 'playing' && state.isAutoAdvancing) {
-      const duration = SPEED_DURATIONS[state.speed];
-      
-      autoAdvanceRef.current = setTimeout(() => {
-        dispatch({ type: 'ADVANCE_CYCLE' });
-      }, duration);
-      
-      return () => {
-        if (autoAdvanceRef.current) {
-          clearTimeout(autoAdvanceRef.current);
-        }
-      };
-    }
-  }, [state.phase, state.isAutoAdvancing, state.speed, state.cycleNumber]);
+  // Note: Auto-advance has been removed for manual round-based gameplay
+  // The user now advances rounds by confirming decisions in the AdvisorPanel
   
   // Action helpers
   const selectCountry = useCallback((country: CountryData) => {

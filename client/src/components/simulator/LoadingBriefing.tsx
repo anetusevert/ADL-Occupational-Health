@@ -3,12 +3,74 @@
  * 
  * Premium loading screen while AI researches the country
  * Shows real-time agent activity when agent_log is provided
+ * Features a country map visualization
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, Database, Search, FileText, Sparkles, Brain, Users, Building2, CheckCircle2, Loader2 } from 'lucide-react';
+import { Globe, Database, Search, FileText, Sparkles, Brain, Users, Building2, CheckCircle2, Loader2, MapPin } from 'lucide-react';
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { cn } from '../../lib/utils';
+
+// TopoJSON URL for world map
+const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+
+// ISO3 to ISO numeric code mapping for map highlighting
+const ISO3_TO_NUMERIC: Record<string, string> = {
+  // GCC
+  SAU: '682', ARE: '784', KWT: '414', QAT: '634', BHR: '048', OMN: '512',
+  // Europe
+  DEU: '276', GBR: '826', FRA: '250', TUR: '792', POL: '616', ITA: '380', ESP: '724',
+  NLD: '528', BEL: '056', CHE: '756', AUT: '040', SWE: '752', NOR: '578', DNK: '208',
+  FIN: '246', PRT: '620', GRC: '300', CZE: '203', ROU: '642', HUN: '348', IRL: '372',
+  // Americas
+  USA: '840', CAN: '124', BRA: '076', MEX: '484', ARG: '032', CHL: '152', COL: '170',
+  // Asia
+  JPN: '392', CHN: '156', IND: '356', SGP: '702', IDN: '360', KOR: '410', THA: '764',
+  VNM: '704', MYS: '458', PHL: '608', PAK: '586', BGD: '050',
+  // Oceania
+  AUS: '036', NZL: '554',
+  // Africa
+  ZAF: '710', NGA: '566', EGY: '818', KEN: '404', MAR: '504', DZA: '012', ETH: '231',
+};
+
+// Country center coordinates for zooming
+const COUNTRY_CENTERS: Record<string, { center: [number, number]; zoom: number }> = {
+  // GCC
+  SAU: { center: [45, 24], zoom: 4 },
+  ARE: { center: [54, 24], zoom: 6 },
+  KWT: { center: [47.5, 29.5], zoom: 8 },
+  QAT: { center: [51.2, 25.3], zoom: 10 },
+  BHR: { center: [50.5, 26], zoom: 12 },
+  OMN: { center: [57, 21], zoom: 5 },
+  // Europe
+  DEU: { center: [10, 51], zoom: 5 },
+  GBR: { center: [-2, 54], zoom: 5 },
+  FRA: { center: [2, 46], zoom: 5 },
+  TUR: { center: [35, 39], zoom: 4.5 },
+  POL: { center: [19, 52], zoom: 5 },
+  // Americas
+  USA: { center: [-98, 39], zoom: 2.5 },
+  CAN: { center: [-106, 56], zoom: 2 },
+  BRA: { center: [-52, -14], zoom: 2.5 },
+  MEX: { center: [-102, 23], zoom: 3 },
+  // Asia
+  JPN: { center: [138, 36], zoom: 4 },
+  CHN: { center: [104, 35], zoom: 2.5 },
+  IND: { center: [78, 22], zoom: 3 },
+  SGP: { center: [104, 1.4], zoom: 10 },
+  IDN: { center: [118, -2], zoom: 3 },
+  // Oceania
+  AUS: { center: [134, -25], zoom: 2.5 },
+  NZL: { center: [172, -41], zoom: 4 },
+  // Africa
+  ZAF: { center: [25, -29], zoom: 4 },
+  NGA: { center: [8, 10], zoom: 4 },
+  EGY: { center: [30, 27], zoom: 4.5 },
+};
+
+// Default center for unknown countries
+const DEFAULT_CENTER = { center: [0, 20] as [number, number], zoom: 1 };
 
 interface AgentLogEntry {
   timestamp: string;
@@ -21,6 +83,7 @@ interface AgentLogEntry {
 interface LoadingBriefingProps {
   countryName: string;
   countryFlag: string;
+  countryIsoCode?: string;
   agentLog?: AgentLogEntry[];
   isComplete?: boolean;
   onComplete?: () => void;
@@ -60,6 +123,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function LoadingBriefing({ 
   countryName, 
   countryFlag, 
+  countryIsoCode,
   agentLog = [],
   isComplete = false,
   onComplete 
@@ -68,6 +132,13 @@ export function LoadingBriefing({
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // Get country info for map
+  const countryNumericCode = countryIsoCode ? ISO3_TO_NUMERIC[countryIsoCode.toUpperCase()] : undefined;
+  const mapConfig = useMemo(() => {
+    if (!countryIsoCode) return DEFAULT_CENTER;
+    return COUNTRY_CENTERS[countryIsoCode.toUpperCase()] || DEFAULT_CENTER;
+  }, [countryIsoCode]);
 
   // Animate through agent log entries when they arrive
   useEffect(() => {
@@ -207,14 +278,82 @@ export function LoadingBriefing({
           Preparing your mission for <span className="text-adl-accent font-semibold">{countryName}</span>
         </p>
 
-        {/* Country Flag */}
-        <motion.div
-          className="text-5xl mb-6"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          {countryFlag}
-        </motion.div>
+        {/* Country Map and Flag */}
+        <div className="relative mb-6">
+          {/* Mini Map */}
+          {countryIsoCode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative w-64 h-40 mx-auto bg-slate-800/60 rounded-xl border border-slate-700/50 overflow-hidden"
+            >
+              {/* Scanning overlay effect */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-b from-adl-accent/10 via-transparent to-transparent"
+                animate={{ y: ['-100%', '200%'] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+              />
+              
+              <ComposableMap
+                projection="geoMercator"
+                projectionConfig={{
+                  center: mapConfig.center,
+                  scale: 100 * mapConfig.zoom,
+                }}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <Geographies geography={WORLD_TOPO_URL}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => {
+                      const isHighlighted = geo.id === countryNumericCode;
+                      return (
+                        <Geography
+                          key={geo.rsmKey}
+                          geography={geo}
+                          fill={isHighlighted ? '#06b6d4' : '#334155'}
+                          stroke={isHighlighted ? '#22d3ee' : '#475569'}
+                          strokeWidth={isHighlighted ? 1.5 : 0.5}
+                          style={{
+                            default: { outline: 'none' },
+                            hover: { outline: 'none' },
+                            pressed: { outline: 'none' },
+                          }}
+                        />
+                      );
+                    })
+                  }
+                </Geographies>
+              </ComposableMap>
+
+              {/* Pulsing marker on country */}
+              <motion.div
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <MapPin className="w-6 h-6 text-adl-accent drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+              </motion.div>
+
+              {/* Country code badge */}
+              <div className="absolute bottom-2 right-2 bg-slate-900/80 px-2 py-0.5 rounded text-xs font-mono text-adl-accent border border-adl-accent/30">
+                {countryIsoCode}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Flag overlay on map or standalone */}
+          <motion.div
+            className={cn(
+              "text-4xl",
+              countryIsoCode ? "absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-slate-900 rounded-full p-2 border border-slate-700" : ""
+            )}
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            {countryFlag}
+          </motion.div>
+        </div>
 
         {/* Agent Activity Log (when available) */}
         {hasAgentLog ? (

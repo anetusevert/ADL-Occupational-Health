@@ -1746,6 +1746,7 @@ export interface NewsWorkflowRequest {
   current_year: number;
   recent_decisions: Array<Record<string, unknown>>;
   pillar_changes: Record<string, number>;
+  game_state?: string;
   count: number;
 }
 

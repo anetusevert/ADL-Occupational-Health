@@ -1,17 +1,25 @@
 /**
  * AdvisorPanel Component
  * 
- * Conversational advisor interface for the Sovereign Health game
- * Replaces the card-based DecisionRound with an immersive chat experience
+ * AI-powered conversational advisor interface for the Sovereign Health game
+ * Features interactive chat with decision suggestions
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Sparkles, Send } from 'lucide-react';
+import { MessageSquare, Sparkles, Send, Bot, User, ChevronRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { AdvisorMessage, AdvisorTypingIndicator, type AdvisorMessageData } from './AdvisorMessage';
-import { AdvisorChoices, SimpleChoices } from './AdvisorChoices';
-import type { DecisionCard, PillarId, CountryBriefing } from './types';
+import { AdvisorChoices } from './AdvisorChoices';
+import type { DecisionCard, CountryBriefing } from './types';
+
+// Message types for the conversation
+interface ChatMessage {
+  id: string;
+  role: 'advisor' | 'user' | 'system';
+  content: string;
+  timestamp: Date;
+  type?: 'greeting' | 'analysis' | 'recommendation' | 'confirmation' | 'error';
+}
 
 interface AdvisorPanelProps {
   countryName: string;
@@ -26,7 +34,14 @@ interface AdvisorPanelProps {
   disabled?: boolean;
 }
 
-type ConversationPhase = 'greeting' | 'context' | 'decisions' | 'confirmation' | 'summary';
+type ConversationPhase = 'greeting' | 'decisions' | 'selected' | 'confirming';
+
+// Quick action suggestions for the user
+const QUICK_ACTIONS = [
+  { label: 'What should I prioritize?', icon: '🎯' },
+  { label: 'Explain the risks', icon: '⚠️' },
+  { label: 'Show impact analysis', icon: '📊' },
+];
 
 export function AdvisorPanel({
   countryName,
@@ -40,12 +55,14 @@ export function AdvisorPanel({
   onConfirmDecisions,
   disabled = false,
 }: AdvisorPanelProps) {
-  const [messages, setMessages] = useState<AdvisorMessageData[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [phase, setPhase] = useState<ConversationPhase>('greeting');
   const [isTyping, setIsTyping] = useState(false);
   const [selectedDecisionIds, setSelectedDecisionIds] = useState<string[]>([]);
-  const [hasGreeted, setHasGreeted] = useState(false);
+  const [userInput, setUserInput] = useState('');
+  const [hasInitialized, setHasInitialized] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -53,56 +70,70 @@ export function AdvisorPanel({
   ];
   const monthName = monthNames[currentMonth - 1] || 'January';
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages, isTyping]);
 
-  // Add a message with typing simulation
-  const addMessage = useCallback((message: Omit<AdvisorMessageData, 'id' | 'timestamp'>, typeDelay = 800) => {
+  // Add advisor message with typing simulation
+  const addAdvisorMessage = useCallback((content: string, type?: ChatMessage['type'], delay = 800) => {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
       setMessages(prev => [...prev, {
-        ...message,
         id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'advisor',
+        content,
         timestamp: new Date(),
+        type,
       }]);
-    }, typeDelay);
+    }, delay);
   }, []);
 
-  // Initial greeting sequence
+  // Add user message immediately
+  const addUserMessage = useCallback((content: string) => {
+    setMessages(prev => [...prev, {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'user',
+      content,
+      timestamp: new Date(),
+    }]);
+  }, []);
+
+  // Initial greeting and context
   useEffect(() => {
-    if (hasGreeted || isLoading) return;
-    setHasGreeted(true);
+    if (hasInitialized || isLoading || !briefing) return;
+    setHasInitialized(true);
 
-    // Greeting message
-    addMessage({
-      role: 'advisor',
-      type: 'text',
-      content: `Good morning, Minister. Welcome to ${monthName} ${currentYear}.`,
-    }, 500);
+    // Initial greeting
+    addAdvisorMessage(
+      `Good day, Minister. Welcome to ${monthName} ${currentYear}.`,
+      'greeting',
+      400
+    );
 
-    // Context message after delay
+    // Context message
     setTimeout(() => {
-      addMessage({
-        role: 'advisor',
-        type: 'text',
-        content: `I've prepared this month's strategic options for ${countryName}. We have ${budgetRemaining} budget points available for new initiatives.`,
-      }, 800);
+      const ohiScore = briefing?.ohi_score?.toFixed(2) || '2.50';
+      addAdvisorMessage(
+        `${countryName}'s current OHI score is ${ohiScore}. You have ${budgetRemaining} budget points available for strategic initiatives this year.`,
+        'analysis',
+        800
+      );
 
+      // Decision prompt
       setTimeout(() => {
         setPhase('decisions');
-        addMessage({
-          role: 'advisor',
-          type: 'decision',
-          content: 'Here are the priority actions I recommend for your consideration. You may select multiple initiatives within your budget.',
-        }, 600);
-      }, 1500);
-    }, 1200);
-  }, [hasGreeted, isLoading, monthName, currentYear, countryName, budgetRemaining, addMessage]);
+        addAdvisorMessage(
+          'I have prepared three priority actions for your consideration. Select the initiatives you wish to pursue, then confirm to proceed.',
+          'recommendation',
+          600
+        );
+      }, 1200);
+    }, 800);
+  }, [hasInitialized, isLoading, briefing, monthName, currentYear, countryName, budgetRemaining, addAdvisorMessage]);
 
   // Handle decision selection
   const handleSelectDecision = (decisionId: string) => {
@@ -111,45 +142,104 @@ export function AdvisorPanel({
         ? prev.filter(id => id !== decisionId)
         : [...prev, decisionId];
       onSelectDecisions(newIds);
+      
+      // Update phase based on selection
+      if (newIds.length > 0) {
+        setPhase('selected');
+      } else {
+        setPhase('decisions');
+      }
+      
       return newIds;
     });
+  };
+
+  // Handle user submitting a question
+  const handleSubmitQuestion = () => {
+    if (!userInput.trim()) return;
+    
+    const question = userInput.trim();
+    setUserInput('');
+    addUserMessage(question);
+
+    // Simulate AI response based on question
+    setTimeout(() => {
+      let response = '';
+      const lowerQuestion = question.toLowerCase();
+      
+      if (lowerQuestion.includes('priorit') || lowerQuestion.includes('focus')) {
+        const weakestPillar = decisions.length > 0 
+          ? decisions.reduce((min, d) => d.expected_impacts[d.pillar] > (min?.expected_impacts[min.pillar] || 0) ? d : min, decisions[0])
+          : null;
+        response = weakestPillar 
+          ? `Based on my analysis, I recommend prioritizing "${weakestPillar.title}". This addresses a critical gap in ${weakestPillar.pillar.replace('C', ' C').replace('V', ' V')} and offers the best return on investment.`
+          : 'I recommend focusing on governance improvements first, as they create the foundation for all other initiatives.';
+      } else if (lowerQuestion.includes('risk')) {
+        const highRiskDecisions = decisions.filter(d => d.risk_level === 'high');
+        response = highRiskDecisions.length > 0
+          ? `The following initiatives carry higher risk: ${highRiskDecisions.map(d => d.title).join(', ')}. High-risk decisions can yield greater rewards but may face implementation challenges.`
+          : 'All current options are moderate to low risk. This is a good opportunity for steady progress without major disruption.';
+      } else if (lowerQuestion.includes('impact') || lowerQuestion.includes('effect')) {
+        const totalImpact = decisions.reduce((sum, d) => {
+          return sum + Object.values(d.expected_impacts).reduce((a, b) => a + b, 0);
+        }, 0);
+        response = `The combined potential impact of all initiatives is ${totalImpact} points across all pillars. Selecting complementary actions can create synergies that amplify results.`;
+      } else if (lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
+        const totalCost = decisions.reduce((sum, d) => sum + d.cost, 0);
+        response = `Total cost of all available initiatives: ${totalCost} points. Your budget of ${budgetRemaining} points allows for strategic selection. Consider balancing quick wins with long-term investments.`;
+      } else {
+        response = `That's an excellent question, Minister. Given ${countryName}'s current situation, I recommend reviewing the available initiatives carefully. Each option has been selected based on its potential to improve your OHI score.`;
+      }
+      
+      addAdvisorMessage(response, 'analysis', 1000);
+    }, 500);
+  };
+
+  // Handle quick action click
+  const handleQuickAction = (action: string) => {
+    setUserInput(action);
+    setTimeout(() => handleSubmitQuestion(), 100);
   };
 
   // Handle confirmation
   const handleConfirm = () => {
     if (selectedDecisionIds.length === 0) return;
+    setPhase('confirming');
 
-    // Add player confirmation message
     const selectedDecisions = decisions.filter(d => selectedDecisionIds.includes(d.id));
-    const decisionTitles = selectedDecisions.map(d => d.title).join(', ');
-    
-    setMessages(prev => [...prev, {
-      id: `msg-${Date.now()}`,
-      role: 'player',
-      type: 'text',
-      content: `I've decided to proceed with: ${decisionTitles}`,
-      timestamp: new Date(),
-    }]);
+    const titles = selectedDecisions.map(d => d.title);
+    const totalCost = selectedDecisions.reduce((sum, d) => sum + d.cost, 0);
 
-    setPhase('confirmation');
+    // User confirmation message
+    addUserMessage(`Proceed with: ${titles.join(', ')}`);
 
     // Advisor acknowledgment
     setTimeout(() => {
-      addMessage({
-        role: 'advisor',
-        type: 'summary',
-        content: `Excellent choices, Minister. I'll begin implementing these ${selectedDecisionIds.length} initiative${selectedDecisionIds.length > 1 ? 's' : ''} immediately. The effects should become visible in the coming weeks.`,
-      }, 1000);
+      addAdvisorMessage(
+        `Confirmed. Implementing ${selectedDecisionIds.length} initiative${selectedDecisionIds.length > 1 ? 's' : ''} at a total cost of ${totalCost} budget points. I'll report on the outcomes as they develop.`,
+        'confirmation',
+        800
+      );
 
-      // Trigger the actual game logic
+      // Trigger game logic
       setTimeout(() => {
         onConfirmDecisions();
-        setPhase('summary');
-      }, 1500);
+      }, 1200);
     }, 500);
   };
 
-  // Convert decisions to advisor choices format
+  // Reset for new round when decisions change
+  useEffect(() => {
+    if (decisions.length > 0 && phase === 'confirming') {
+      // New round - reset state
+      setPhase('greeting');
+      setHasInitialized(false);
+      setSelectedDecisionIds([]);
+      setMessages([]);
+    }
+  }, [decisions]);
+
+  // Convert decisions to choices format
   const advisorChoices = decisions.map(d => ({
     id: d.id,
     label: d.title,
@@ -161,16 +251,10 @@ export function AdvisorPanel({
     impacts: d.expected_impacts,
   }));
 
-  // Reset for new round
-  useEffect(() => {
-    if (decisions.length > 0 && phase === 'summary') {
-      // New round starting
-      setPhase('greeting');
-      setHasGreeted(false);
-      setSelectedDecisionIds([]);
-      setMessages([]);
-    }
-  }, [decisions, phase]);
+  // Calculate selected cost
+  const selectedCost = decisions
+    .filter(d => selectedDecisionIds.includes(d.id))
+    .reduce((sum, d) => sum + d.cost, 0);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-slate-900/50 to-slate-800/30">
@@ -188,9 +272,9 @@ export function AdvisorPanel({
             transition={{ duration: 2, repeat: Infinity }}
             className="w-10 h-10 rounded-full bg-gradient-to-br from-adl-accent to-adl-blue-light flex items-center justify-center"
           >
-            <MessageSquare className="w-5 h-5 text-white" />
+            <Bot className="w-5 h-5 text-white" />
           </motion.div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
               Strategic Advisor
               <Sparkles className="w-3 h-3 text-adl-accent" />
@@ -199,51 +283,102 @@ export function AdvisorPanel({
               {monthName} {currentYear} • {countryName}
             </p>
           </div>
+          <div className="text-right">
+            <p className="text-xs font-semibold text-adl-accent">{budgetRemaining}</p>
+            <p className="text-[10px] text-white/40">Budget</p>
+          </div>
         </div>
       </div>
 
       {/* Messages Area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-3"
       >
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center h-full">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              className="w-8 h-8 border-2 border-adl-accent border-t-transparent rounded-full"
-            />
+          <div className="flex items-center justify-center h-32">
+            <motion.div className="flex items-center gap-3 text-white/60">
+              <Loader2 className="w-5 h-5 animate-spin text-adl-accent" />
+              <span className="text-sm">Analyzing situation...</span>
+            </motion.div>
           </div>
         )}
 
-        {/* Messages */}
+        {/* Chat Messages */}
         <AnimatePresence>
-          {messages.map((message, index) => (
-            <AdvisorMessage
+          {messages.map((message) => (
+            <motion.div
               key={message.id}
-              message={message}
-              index={index}
-              isLatest={index === messages.length - 1}
-            />
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                'flex gap-2',
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              )}
+            >
+              {message.role === 'advisor' && (
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-adl-accent/20 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-adl-accent" />
+                </div>
+              )}
+              <div
+                className={cn(
+                  'max-w-[85%] px-3 py-2 rounded-xl text-sm',
+                  message.role === 'user'
+                    ? 'bg-adl-accent text-white'
+                    : 'bg-white/10 text-white/90 border border-white/5'
+                )}
+              >
+                {message.content}
+              </div>
+              {message.role === 'user' && (
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white/60" />
+                </div>
+              )}
+            </motion.div>
           ))}
         </AnimatePresence>
 
         {/* Typing Indicator */}
         <AnimatePresence>
-          {isTyping && <AdvisorTypingIndicator />}
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex gap-2 items-center"
+            >
+              <div className="w-7 h-7 rounded-full bg-adl-accent/20 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-adl-accent" />
+              </div>
+              <div className="bg-white/10 px-3 py-2 rounded-xl border border-white/5">
+                <motion.div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1.5 h-1.5 bg-adl-accent rounded-full"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
-        {/* Decision Choices */}
+        {/* Decision Cards */}
         <AnimatePresence>
-          {phase === 'decisions' && !isTyping && advisorChoices.length > 0 && (
+          {(phase === 'decisions' || phase === 'selected') && !isTyping && advisorChoices.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: 0.3 }}
-              className="mt-4"
+              transition={{ delay: 0.2 }}
+              className="mt-3"
             >
               <AdvisorChoices
                 choices={advisorChoices}
@@ -251,37 +386,86 @@ export function AdvisorPanel({
                 onSelect={handleSelectDecision}
                 onConfirm={handleConfirm}
                 multiSelect={true}
-                disabled={disabled}
-                confirmLabel="Confirm & Proceed"
+                disabled={disabled || phase === 'confirming'}
+                confirmLabel={
+                  selectedDecisionIds.length > 0
+                    ? `Confirm ${selectedDecisionIds.length} Decision${selectedDecisionIds.length > 1 ? 's' : ''} (${selectedCost} pts)`
+                    : 'Select Decisions'
+                }
               />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Empty State */}
-        {!isLoading && messages.length === 0 && !isTyping && (
-          <div className="flex items-center justify-center h-full text-white/30">
-            <div className="text-center">
-              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Waiting for advisor...</p>
-            </div>
-          </div>
+        {/* Quick Actions (when in decision phase and not typing) */}
+        {(phase === 'decisions' || phase === 'selected') && !isTyping && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-wrap gap-2 mt-4"
+          >
+            {QUICK_ACTIONS.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => handleQuickAction(action.label)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs text-white/70 hover:text-white transition-colors"
+              >
+                <span>{action.icon}</span>
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </motion.div>
         )}
       </div>
 
-      {/* Footer Status */}
-      <div className="flex-shrink-0 px-4 py-2 border-t border-white/5 bg-slate-900/50">
-        <div className="flex items-center justify-between text-[10px] text-white/30">
+      {/* Input Area */}
+      <div className="flex-shrink-0 p-3 border-t border-white/5 bg-slate-900/50">
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmitQuestion()}
+            placeholder="Ask your advisor..."
+            disabled={disabled || isLoading || phase === 'confirming'}
+            className={cn(
+              'flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30',
+              'focus:outline-none focus:border-adl-accent/50 focus:ring-1 focus:ring-adl-accent/30',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          />
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSubmitQuestion}
+            disabled={!userInput.trim() || disabled || isLoading}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              userInput.trim()
+                ? 'bg-adl-accent text-white hover:bg-adl-blue-light'
+                : 'bg-white/10 text-white/30 cursor-not-allowed'
+            )}
+          >
+            <Send className="w-4 h-4" />
+          </motion.button>
+        </div>
+
+        {/* Selection Status */}
+        <div className="flex items-center justify-between mt-2 text-[10px] text-white/40">
           <span className="flex items-center gap-1.5">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full',
               isTyping ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
             )} />
-            {isTyping ? 'Advisor is typing...' : 'Advisor ready'}
+            {isTyping ? 'Thinking...' : 'Ready'}
           </span>
-          <span>
-            {selectedDecisionIds.length > 0 && `${selectedDecisionIds.length} selected`}
-          </span>
+          {selectedDecisionIds.length > 0 && (
+            <span className="flex items-center gap-1 text-adl-accent">
+              <CheckCircle2 className="w-3 h-3" />
+              {selectedDecisionIds.length} selected • {selectedCost}/{budgetRemaining} pts
+            </span>
+          )}
         </div>
       </div>
     </div>

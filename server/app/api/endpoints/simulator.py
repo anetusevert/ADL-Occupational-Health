@@ -651,9 +651,531 @@ async def health_check():
             "news-generation",
             "event-generation",
             "game-summary",
+            "workflow-intelligence-briefing",
+            "workflow-strategic-advisor",
+            "workflow-news-generator",
         ],
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+# =============================================================================
+# WORKFLOW ENDPOINTS (AI Agent-Powered)
+# =============================================================================
+
+class WorkflowResponse(BaseModel):
+    """Standard response for all workflow endpoints."""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    errors: Optional[List[str]] = None
+    agent_log: Optional[List[Dict[str, Any]]] = None
+
+
+class IntelligenceBriefingRequest(BaseModel):
+    """Request for intelligence briefing workflow."""
+    iso_code: str = Field(..., min_length=3, max_length=3)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "iso_code": "DEU"
+            }
+        }
+
+
+class StrategicAdvisorRequest(BaseModel):
+    """Request for strategic advisor workflow."""
+    iso_code: str = Field(..., min_length=3, max_length=3)
+    country_name: str
+    current_month: int = Field(..., ge=1, le=12)
+    current_year: int = Field(..., ge=2025, le=2100)
+    ohi_score: float = Field(..., ge=1.0, le=4.0)
+    pillars: PillarScores
+    budget_remaining: int = Field(..., ge=0)
+    recent_decisions: List[str] = Field(default=[])
+    user_question: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "iso_code": "DEU",
+                "country_name": "Germany",
+                "current_month": 3,
+                "current_year": 2025,
+                "ohi_score": 3.2,
+                "pillars": {
+                    "governance": 75,
+                    "hazardControl": 70,
+                    "healthVigilance": 65,
+                    "restoration": 72
+                },
+                "budget_remaining": 100,
+                "recent_decisions": [],
+                "user_question": "What should I prioritize this month?"
+            }
+        }
+
+
+class NewsGeneratorRequest(BaseModel):
+    """Request for news generator workflow."""
+    iso_code: str = Field(..., min_length=3, max_length=3)
+    country_name: str
+    current_month: int = Field(..., ge=1, le=12)
+    current_year: int = Field(..., ge=2025, le=2100)
+    recent_decisions: List[Dict[str, Any]] = Field(default=[])
+    pillar_changes: Dict[str, float] = Field(default={})
+    game_state: Optional[str] = None
+    count: int = Field(default=5, ge=1, le=10)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "iso_code": "DEU",
+                "country_name": "Germany",
+                "current_month": 3,
+                "current_year": 2025,
+                "recent_decisions": [],
+                "pillar_changes": {},
+                "game_state": "OHI Score: 3.2, Governance: 75, Hazard: 70",
+                "count": 5
+            }
+        }
+
+
+@router.post(
+    "/workflow/intelligence-briefing",
+    response_model=WorkflowResponse,
+    summary="Intelligence Briefing Workflow",
+    description="AI-powered workflow that generates a comprehensive country briefing using the Intelligence Briefing Agent.",
+)
+async def workflow_intelligence_briefing(
+    request: IntelligenceBriefingRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Generate a comprehensive intelligence briefing for game start.
+    
+    This workflow:
+    1. Fetches all country data from the database
+    2. Calls the intelligence-briefing agent with full context
+    3. Optionally performs web search for recent developments
+    4. Returns structured briefing data with agent activity log
+    """
+    import json
+    from datetime import datetime
+    from app.services.agent_runner import AgentRunner
+    from app.data.country_contexts import get_country_context, generate_fallback_context
+    
+    agent_log = []
+    
+    def log_agent(agent: str, status: str, message: str, emoji: str = "🔄"):
+        agent_log.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "agent": agent,
+            "status": status,
+            "message": message,
+            "emoji": emoji,
+        })
+    
+    try:
+        iso_code = request.iso_code.upper()
+        
+        # Step 1: Initialize
+        log_agent("Orchestrator", "starting", "Initializing intelligence briefing workflow...", "🚀")
+        
+        # Step 2: Get AI config
+        ai_config = get_ai_config_with_fallback(db, current_user)
+        if not ai_config:
+            log_agent("Orchestrator", "error", "No AI configuration found", "❌")
+            return WorkflowResponse(
+                success=False,
+                errors=["No AI configuration found. Please configure AI settings."],
+                agent_log=agent_log,
+            )
+        
+        # Step 3: Fetch country data
+        log_agent("DataAgent", "querying", f"Fetching database records for {iso_code}...", "📊")
+        
+        country = db.query(Country).filter(Country.iso_code == iso_code).first()
+        if not country:
+            log_agent("DataAgent", "error", f"Country {iso_code} not found", "❌")
+            return WorkflowResponse(
+                success=False,
+                errors=[f"Country {iso_code} not found in database"],
+                agent_log=agent_log,
+            )
+        
+        log_agent("DataAgent", "complete", f"Loaded {country.name} with OHI score {country.maturity_score:.2f}", "✅")
+        
+        # Step 4: Get country context
+        log_agent("DataAgent", "querying", "Loading institutional context...", "🏛️")
+        context = get_country_context(iso_code)
+        if not context:
+            context = generate_fallback_context(iso_code, country.name, "Unknown")
+        log_agent("DataAgent", "complete", f"Loaded context: {context.ministry_name}", "✅")
+        
+        # Step 5: Get intelligence data
+        log_agent("DataAgent", "querying", "Fetching multi-source intelligence...", "🔍")
+        intelligence = db.query(CountryIntelligence).filter(
+            CountryIntelligence.iso_code == iso_code
+        ).first()
+        if intelligence:
+            log_agent("DataAgent", "complete", "Intelligence data loaded (World Bank, ILO, WHO)", "✅")
+        else:
+            log_agent("DataAgent", "complete", "Using core metrics only", "⚠️")
+        
+        # Step 6: Run the Intelligence Briefing Agent
+        log_agent("IntelligenceAgent", "starting", "Generating intelligence briefing...", "🧠")
+        
+        runner = AgentRunner(db, ai_config)
+        agent_result = await runner.run(
+            agent_id="intelligence-briefing",
+            variables={
+                "ISO_CODE": iso_code,
+                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+            },
+            enable_web_search=True,
+        )
+        
+        if not agent_result["success"]:
+            log_agent("IntelligenceAgent", "error", f"Agent failed: {agent_result['error']}", "❌")
+            # Fall back to database-only briefing
+            log_agent("Orchestrator", "synthesizing", "Generating fallback briefing from database...", "🔄")
+            briefing_data = _create_fallback_briefing(country, context, intelligence, db)
+            log_agent("Orchestrator", "complete", "Fallback briefing generated", "✅")
+        else:
+            log_agent("IntelligenceAgent", "complete", "Intelligence briefing generated", "✅")
+            
+            # Step 7: Parse agent output
+            log_agent("Orchestrator", "synthesizing", "Structuring briefing data...", "📋")
+            try:
+                output = agent_result["output"]
+                # Find JSON in response
+                json_start = output.find("{")
+                json_end = output.rfind("}") + 1
+                if json_start >= 0 and json_end > json_start:
+                    ai_content = json.loads(output[json_start:json_end])
+                else:
+                    ai_content = {}
+            except (json.JSONDecodeError, TypeError):
+                ai_content = {}
+            
+            # Merge AI content with database data
+            briefing_data = _create_briefing_from_ai(country, context, intelligence, ai_content, db)
+            log_agent("Orchestrator", "complete", "Briefing structured successfully", "✅")
+        
+        log_agent("Orchestrator", "complete", f"Intelligence briefing ready for {country.name}", "🎯")
+        
+        return WorkflowResponse(
+            success=True,
+            data=briefing_data,
+            agent_log=agent_log,
+        )
+        
+    except Exception as e:
+        log_agent("Orchestrator", "error", f"Workflow failed: {str(e)}", "❌")
+        return WorkflowResponse(
+            success=False,
+            errors=[str(e)],
+            agent_log=agent_log,
+        )
+
+
+@router.post(
+    "/workflow/strategic-advisor",
+    response_model=WorkflowResponse,
+    summary="Strategic Advisor Workflow",
+    description="AI-powered workflow that generates strategic advice and decision options using the Strategic Advisor Agent.",
+)
+async def workflow_strategic_advisor(
+    request: StrategicAdvisorRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Generate strategic advice and decision options for the current turn.
+    
+    This workflow:
+    1. Takes current game state and context
+    2. Calls the strategic-advisor agent
+    3. Returns conversational advice with 3 decision options
+    """
+    import json
+    from datetime import datetime
+    from app.services.agent_runner import AgentRunner
+    from app.data.country_contexts import get_country_context, generate_fallback_context
+    
+    agent_log = []
+    
+    def log_agent(agent: str, status: str, message: str, emoji: str = "🔄"):
+        agent_log.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "agent": agent,
+            "status": status,
+            "message": message,
+            "emoji": emoji,
+        })
+    
+    try:
+        iso_code = request.iso_code.upper()
+        
+        log_agent("Orchestrator", "starting", "Consulting strategic advisor...", "🎯")
+        
+        # Get AI config
+        ai_config = get_ai_config_with_fallback(db, current_user)
+        if not ai_config:
+            return WorkflowResponse(
+                success=False,
+                errors=["No AI configuration found."],
+                agent_log=agent_log,
+            )
+        
+        # Get country context
+        context = get_country_context(iso_code)
+        if not context:
+            context = generate_fallback_context(iso_code, request.country_name, "Unknown")
+        
+        # Format game state
+        game_state = f"""
+Current Pillar Scores:
+- Governance: {request.pillars.governance}/100
+- Hazard Control: {request.pillars.hazardControl}/100
+- Health Vigilance: {request.pillars.healthVigilance}/100
+- Restoration: {request.pillars.restoration}/100
+
+OHI Score: {request.ohi_score:.2f}/4.0
+Budget Available: {request.budget_remaining} points
+
+Recent Decisions: {', '.join(request.recent_decisions) if request.recent_decisions else 'None yet'}
+"""
+        
+        log_agent("StrategicAdvisor", "analyzing", "Analyzing current situation...", "📊")
+        
+        # Run the Strategic Advisor Agent
+        runner = AgentRunner(db, ai_config)
+        agent_result = await runner.run(
+            agent_id="strategic-advisor",
+            variables={
+                "ISO_CODE": iso_code,
+                "CURRENT_MONTH": str(request.current_month),
+                "CURRENT_YEAR": str(request.current_year),
+                "BUDGET": str(request.budget_remaining),
+                "GAME_STATE": game_state,
+                "USER_QUESTION": request.user_question or "What should I focus on this month?",
+                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+            },
+            enable_web_search=False,
+        )
+        
+        if not agent_result["success"]:
+            log_agent("StrategicAdvisor", "error", f"Advisor failed: {agent_result['error']}", "❌")
+            # Generate fallback decisions
+            decisions = _generate_fallback_decisions(iso_code, request, context)
+            return WorkflowResponse(
+                success=True,
+                data={
+                    "greeting": f"Minister, let me advise you on {request.country_name}'s priorities.",
+                    "situation_analysis": f"Your current OHI score is {request.ohi_score:.2f}. Focus on the weakest pillar.",
+                    "decisions": decisions,
+                    "recommendation": "I recommend focusing on your weakest pillar for maximum impact.",
+                },
+                agent_log=agent_log,
+            )
+        
+        log_agent("StrategicAdvisor", "complete", "Strategic analysis complete", "✅")
+        
+        # Parse agent output
+        try:
+            output = agent_result["output"]
+            json_start = output.find("{")
+            json_end = output.rfind("}") + 1
+            if json_start >= 0 and json_end > json_start:
+                ai_content = json.loads(output[json_start:json_end])
+            else:
+                ai_content = {}
+        except (json.JSONDecodeError, TypeError):
+            ai_content = {}
+        
+        # Transform AI content to expected format
+        decisions = []
+        for action in ai_content.get("recommended_actions", []):
+            decisions.append({
+                "id": action.get("id", f"dec_{len(decisions)+1}"),
+                "title": action.get("title", "Strategic Action"),
+                "description": action.get("description", ""),
+                "detailed_context": action.get("description", ""),
+                "pillar": _detect_pillar(action.get("title", "")),
+                "cost": action.get("cost", 30),
+                "expected_impacts": action.get("expected_impact", {}),
+                "risk_level": action.get("risk_level", "medium"),
+                "time_to_effect": "immediate",
+                "stakeholder_reactions": action.get("stakeholder_reactions", {}),
+            })
+        
+        # Ensure we have at least 3 decisions
+        if len(decisions) < 3:
+            fallback = _generate_fallback_decisions(iso_code, request, context)
+            decisions.extend(fallback[len(decisions):])
+        
+        return WorkflowResponse(
+            success=True,
+            data={
+                "greeting": ai_content.get("greeting", f"Good day, Minister. Let's review {request.country_name}'s situation."),
+                "situation_analysis": ai_content.get("situation_analysis", f"Your OHI score is {request.ohi_score:.2f}."),
+                "decisions": decisions[:3],
+                "recommendation": ai_content.get("recommendation", "I recommend a balanced approach."),
+            },
+            agent_log=agent_log,
+        )
+        
+    except Exception as e:
+        log_agent("Orchestrator", "error", f"Workflow failed: {str(e)}", "❌")
+        return WorkflowResponse(
+            success=False,
+            errors=[str(e)],
+            agent_log=agent_log,
+        )
+
+
+@router.post(
+    "/workflow/news-generator",
+    response_model=WorkflowResponse,
+    summary="News Generator Workflow",
+    description="AI-powered workflow that generates contextual news items using the News Generator Agent.",
+)
+async def workflow_news_generator(
+    request: NewsGeneratorRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Generate realistic news items for the current month.
+    
+    This workflow:
+    1. Takes current game state and recent decisions
+    2. Calls the news-generator agent
+    3. Returns news items reflecting player actions
+    """
+    import json
+    import uuid
+    from datetime import datetime
+    from app.services.agent_runner import AgentRunner
+    from app.data.country_contexts import get_country_context, generate_fallback_context
+    
+    agent_log = []
+    month_names = ["January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December"]
+    
+    def log_agent(agent: str, status: str, message: str, emoji: str = "🔄"):
+        agent_log.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "agent": agent,
+            "status": status,
+            "message": message,
+            "emoji": emoji,
+        })
+    
+    try:
+        iso_code = request.iso_code.upper()
+        month_name = month_names[request.current_month - 1] if 1 <= request.current_month <= 12 else "January"
+        
+        log_agent("Orchestrator", "starting", "Generating news feed...", "📰")
+        
+        # Get AI config
+        ai_config = get_ai_config_with_fallback(db, current_user)
+        if not ai_config:
+            # Generate fallback news without AI
+            news_items = _generate_fallback_news(request, month_name)
+            return WorkflowResponse(
+                success=True,
+                data={"news_items": news_items},
+                agent_log=agent_log,
+            )
+        
+        # Get country context
+        context = get_country_context(iso_code)
+        if not context:
+            context = generate_fallback_context(iso_code, request.country_name, "Unknown")
+        
+        # Format recent decisions for the agent
+        decisions_text = "None this month"
+        if request.recent_decisions:
+            decisions_text = "\n".join([
+                f"- {d.get('title', 'Unknown')}: {d.get('description', '')[:100]}"
+                for d in request.recent_decisions[:5]
+            ])
+        
+        # Format game state
+        game_state = request.game_state or f"Month: {month_name} {request.current_year}"
+        
+        log_agent("NewsGenerator", "researching", "Gathering news context...", "🔍")
+        
+        # Run the News Generator Agent
+        runner = AgentRunner(db, ai_config)
+        agent_result = await runner.run(
+            agent_id="news-generator",
+            variables={
+                "ISO_CODE": iso_code,
+                "CURRENT_MONTH": month_name,
+                "CURRENT_YEAR": str(request.current_year),
+                "RECENT_DECISIONS": decisions_text,
+                "GAME_STATE": game_state,
+                "CONTEXT": json.dumps(context.to_dict()) if context else "{}",
+            },
+            enable_web_search=False,
+        )
+        
+        if not agent_result["success"]:
+            log_agent("NewsGenerator", "error", f"News generation failed: {agent_result['error']}", "❌")
+            news_items = _generate_fallback_news(request, month_name)
+        else:
+            log_agent("NewsGenerator", "complete", f"Generated news for {month_name} {request.current_year}", "✅")
+            
+            # Parse agent output
+            try:
+                output = agent_result["output"]
+                json_start = output.find("[")
+                json_end = output.rfind("]") + 1
+                if json_start >= 0 and json_end > json_start:
+                    news_items = json.loads(output[json_start:json_end])
+                else:
+                    # Try to find JSON object with news_items key
+                    json_start = output.find("{")
+                    json_end = output.rfind("}") + 1
+                    if json_start >= 0 and json_end > json_start:
+                        parsed = json.loads(output[json_start:json_end])
+                        news_items = parsed.get("news_items", [])
+                    else:
+                        news_items = []
+            except (json.JSONDecodeError, TypeError):
+                news_items = []
+            
+            # Ensure proper format
+            for item in news_items:
+                if "id" not in item:
+                    item["id"] = f"news_{uuid.uuid4().hex[:8]}"
+                if "timestamp" not in item:
+                    item["timestamp"] = f"{month_name} {request.current_year}"
+        
+        # Ensure we have at least some news
+        if len(news_items) < request.count:
+            fallback = _generate_fallback_news(request, month_name)
+            news_items.extend(fallback[len(news_items):])
+        
+        return WorkflowResponse(
+            success=True,
+            data={"news_items": news_items[:request.count]},
+            agent_log=agent_log,
+        )
+        
+    except Exception as e:
+        log_agent("Orchestrator", "error", f"Workflow failed: {str(e)}", "❌")
+        return WorkflowResponse(
+            success=False,
+            errors=[str(e)],
+            agent_log=agent_log,
+        )
 
 
 # =============================================================================
@@ -684,3 +1206,289 @@ def get_ai_config_with_fallback(db: Session, user: Optional[User]) -> Optional[A
     ).first()
     
     return global_config
+
+
+# =============================================================================
+# WORKFLOW HELPER FUNCTIONS
+# =============================================================================
+
+def _create_fallback_briefing(
+    country: Country,
+    context,
+    intelligence: Optional[CountryIntelligence],
+    db: Session,
+) -> Dict[str, Any]:
+    """Create a briefing from database data when AI is unavailable."""
+    
+    # Calculate rank
+    all_countries = db.query(Country).filter(Country.maturity_score.isnot(None)).all()
+    sorted_countries = sorted(all_countries, key=lambda c: c.maturity_score or 0, reverse=True)
+    global_rank = next(
+        (i + 1 for i, c in enumerate(sorted_countries) if c.iso_code == country.iso_code),
+        len(sorted_countries)
+    )
+    
+    ohi_score = country.maturity_score or 2.5
+    
+    # Determine difficulty
+    if ohi_score >= 3.5:
+        difficulty = "Easy"
+    elif ohi_score >= 2.5:
+        difficulty = "Medium"
+    elif ohi_score >= 1.5:
+        difficulty = "Hard"
+    else:
+        difficulty = "Expert"
+    
+    pillar_scores = {
+        "governance": country.governance_score or 50,
+        "hazardControl": country.pillar1_score or 50,
+        "healthVigilance": country.pillar2_score or 50,
+        "restoration": country.pillar3_score or 50,
+    }
+    
+    key_statistics = {}
+    if intelligence:
+        key_statistics = {
+            "gdp_per_capita": intelligence.gdp_per_capita_ppp,
+            "population": intelligence.population_total,
+            "labor_force": intelligence.labor_force_participation,
+            "health_expenditure_pct": intelligence.health_expenditure_gdp_pct,
+            "life_expectancy": intelligence.life_expectancy_at_birth,
+            "unemployment_rate": intelligence.unemployment_rate,
+        }
+    
+    iso2 = context.iso2_code if context else country.iso_code[:2]
+    
+    return {
+        "country_name": country.name,
+        "iso_code": country.iso_code,
+        "flag_url": f"https://flagcdn.com/w160/{iso2.lower()}.png",
+        "executive_summary": f"Welcome to {country.name}. As the new Health Minister, you face significant challenges in transforming the nation's occupational health system. With an OHI score of {ohi_score:.2f}, there is considerable work ahead.",
+        "socioeconomic_context": f"{country.name} has a diverse economy with key industries that present various occupational health challenges.",
+        "cultural_factors": f"Work culture in {country.name} reflects local traditions and practices.",
+        "future_outlook": "The economy is expected to evolve, bringing new occupational health challenges and opportunities.",
+        "key_statistics": key_statistics,
+        "ohi_score": ohi_score,
+        "pillar_scores": pillar_scores,
+        "global_rank": global_rank,
+        "pillar_insights": {
+            pillar: {
+                "score": score,
+                "analysis": f"Current score of {score:.0f}/100",
+                "key_issues": ["Requires attention"],
+                "opportunities": ["Potential for improvement"],
+            }
+            for pillar, score in pillar_scores.items()
+        },
+        "key_challenges": [
+            "Improving enforcement capacity",
+            "Expanding coverage to informal sector",
+            "Modernizing surveillance systems",
+        ],
+        "key_stakeholders": [
+            {"name": "Minister of Labour", "role": "Government Lead", "institution": context.ministry_name if context else "Ministry of Labour", "stance": "supportive"},
+            {"name": "Chief Inspector", "role": "Enforcement", "institution": context.labor_inspection_body if context else "Labor Inspectorate", "stance": "supportive"},
+        ] if context else [],
+        "recent_articles": [],
+        "mission_statement": f"Transform {country.name}'s occupational health system into a world-class framework that protects every worker.",
+        "difficulty_rating": difficulty,
+        "country_context": context.to_dict() if context else {},
+    }
+
+
+def _create_briefing_from_ai(
+    country: Country,
+    context,
+    intelligence: Optional[CountryIntelligence],
+    ai_content: Dict[str, Any],
+    db: Session,
+) -> Dict[str, Any]:
+    """Merge AI-generated content with database data."""
+    
+    # Start with fallback data
+    briefing = _create_fallback_briefing(country, context, intelligence, db)
+    
+    # Override with AI content where available
+    if ai_content.get("executive_summary"):
+        briefing["executive_summary"] = ai_content["executive_summary"]
+    if ai_content.get("socioeconomic_context"):
+        briefing["socioeconomic_context"] = ai_content["socioeconomic_context"]
+    if ai_content.get("key_challenges"):
+        briefing["key_challenges"] = ai_content["key_challenges"]
+    if ai_content.get("key_stakeholders"):
+        briefing["key_stakeholders"] = ai_content["key_stakeholders"]
+    if ai_content.get("pillar_insights"):
+        briefing["pillar_insights"] = ai_content["pillar_insights"]
+    if ai_content.get("mission_statement"):
+        briefing["mission_statement"] = ai_content["mission_statement"]
+    
+    return briefing
+
+
+def _generate_fallback_decisions(
+    iso_code: str,
+    request,
+    context,
+) -> List[Dict[str, Any]]:
+    """Generate fallback decision options without AI."""
+    import random
+    import uuid
+    
+    # Find weakest pillar
+    pillars = {
+        "governance": request.pillars.governance,
+        "hazardControl": request.pillars.hazardControl,
+        "healthVigilance": request.pillars.healthVigilance,
+        "restoration": request.pillars.restoration,
+    }
+    weakest = min(pillars, key=pillars.get)
+    
+    decisions = []
+    
+    # Decision for weakest pillar
+    pillar_titles = {
+        "governance": "Strengthen Regulatory Framework",
+        "hazardControl": "Enhance Workplace Safety Standards",
+        "healthVigilance": "Improve Health Surveillance Systems",
+        "restoration": "Expand Worker Compensation Programs",
+    }
+    
+    decisions.append({
+        "id": f"dec_{uuid.uuid4().hex[:8]}",
+        "title": pillar_titles.get(weakest, "Strategic Initiative"),
+        "description": f"Focus on improving {weakest.replace('C', ' C').replace('V', ' V')} to address critical gaps.",
+        "detailed_context": f"This initiative will strengthen the nation's {weakest} capacity.",
+        "pillar": weakest,
+        "cost": 35,
+        "expected_impacts": {weakest: random.randint(3, 6)},
+        "risk_level": "medium",
+        "time_to_effect": "3 months",
+        "stakeholder_reactions": {"Unions": "supportive", "Industry": "neutral"},
+    })
+    
+    # Decision for governance
+    if weakest != "governance":
+        decisions.append({
+            "id": f"dec_{uuid.uuid4().hex[:8]}",
+            "title": "Launch National OSH Campaign",
+            "description": "Nationwide awareness campaign on workplace safety rights and responsibilities.",
+            "detailed_context": "Public awareness is key to long-term cultural change.",
+            "pillar": "governance",
+            "cost": 25,
+            "expected_impacts": {"governance": random.randint(2, 4)},
+            "risk_level": "low",
+            "time_to_effect": "immediate",
+            "stakeholder_reactions": {"Media": "supportive", "Public": "positive"},
+        })
+    
+    # Decision for hazard control
+    if weakest != "hazardControl":
+        decisions.append({
+            "id": f"dec_{uuid.uuid4().hex[:8]}",
+            "title": "Deploy Mobile Inspection Teams",
+            "description": "Mobile units to conduct inspections in underserved areas.",
+            "detailed_context": "Reaching informal workplaces requires mobile capabilities.",
+            "pillar": "hazardControl",
+            "cost": 40,
+            "expected_impacts": {"hazardControl": random.randint(3, 5)},
+            "risk_level": "medium",
+            "time_to_effect": "6 months",
+            "stakeholder_reactions": {"Inspectors": "supportive", "Industry": "cautious"},
+        })
+    
+    # Ensure we have 3 decisions
+    while len(decisions) < 3:
+        decisions.append({
+            "id": f"dec_{uuid.uuid4().hex[:8]}",
+            "title": "International Partnership Initiative",
+            "description": "Partner with ILO for technical assistance and knowledge transfer.",
+            "detailed_context": "International cooperation accelerates progress.",
+            "pillar": "governance",
+            "cost": 20,
+            "expected_impacts": {"governance": 2, "hazardControl": 1},
+            "risk_level": "low",
+            "time_to_effect": "6 months",
+            "stakeholder_reactions": {"ILO": "highly supportive"},
+        })
+    
+    return decisions[:3]
+
+
+def _generate_fallback_news(request, month_name: str) -> List[Dict[str, Any]]:
+    """Generate fallback news items without AI."""
+    import random
+    import uuid
+    
+    headlines = [
+        {
+            "headline": f"Government Announces New Workplace Safety Initiative",
+            "summary": f"The Ministry of Labour unveiled a comprehensive plan to improve occupational health standards across key industries in {request.country_name}.",
+            "source": "National News Agency",
+            "source_type": "government",
+            "category": "policy",
+            "sentiment": "positive",
+        },
+        {
+            "headline": f"Union Leaders Call for Stronger Worker Protections",
+            "summary": f"Labor unions are pushing for enhanced safety measures following recent workplace incidents.",
+            "source": "Labor Times",
+            "source_type": "union",
+            "category": "reform",
+            "sentiment": "neutral",
+        },
+        {
+            "headline": f"Industry Report Highlights Occupational Health Progress",
+            "summary": f"A new industry report shows measurable improvements in workplace safety metrics over the past year.",
+            "source": "Industry Weekly",
+            "source_type": "industry",
+            "category": "economy",
+            "sentiment": "positive",
+        },
+        {
+            "headline": f"ILO Commends Regional Occupational Health Efforts",
+            "summary": f"The International Labour Organization praised recent progress in the region's workplace safety standards.",
+            "source": "ILO News",
+            "source_type": "international",
+            "category": "international",
+            "sentiment": "positive",
+        },
+        {
+            "headline": f"Experts Discuss Future of Workplace Health",
+            "summary": f"Leading occupational health experts gathered to discuss emerging challenges and solutions.",
+            "source": "Health Policy Journal",
+            "source_type": "newspaper",
+            "category": "policy",
+            "sentiment": "neutral",
+        },
+    ]
+    
+    news_items = []
+    for i, item in enumerate(headlines[:request.count]):
+        news_items.append({
+            "id": f"news_{uuid.uuid4().hex[:8]}",
+            "headline": item["headline"],
+            "summary": item["summary"],
+            "source": item["source"],
+            "source_type": item["source_type"],
+            "category": item["category"],
+            "sentiment": item["sentiment"],
+            "location": request.country_name,
+            "timestamp": f"{month_name} {request.current_year}",
+        })
+    
+    return news_items
+
+
+def _detect_pillar(title: str) -> str:
+    """Detect pillar from action title."""
+    title_lower = title.lower()
+    if any(word in title_lower for word in ["govern", "law", "regulat", "enforce", "inspect", "policy"]):
+        return "governance"
+    if any(word in title_lower for word in ["hazard", "safety", "ppe", "risk", "prevent"]):
+        return "hazardControl"
+    if any(word in title_lower for word in ["surveil", "health", "disease", "monitor", "screen"]):
+        return "healthVigilance"
+    if any(word in title_lower for word in ["compens", "rehabilit", "return", "restor", "support"]):
+        return "restoration"
+    return "governance"  # Default

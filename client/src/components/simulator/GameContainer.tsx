@@ -155,6 +155,31 @@ function GameInner() {
       // setGamePhase('briefing') is called by LoadingBriefing.onComplete
     } catch (error) {
       console.error('Failed to research country:', error);
+      // Add error log entries so user sees what happened
+      setAgentLog(prev => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          agent: 'Orchestrator',
+          status: 'error',
+          message: 'AI service unavailable - using cached database',
+          emoji: '⚠️',
+        },
+        {
+          timestamp: new Date().toISOString(),
+          agent: 'DataAgent',
+          status: 'complete',
+          message: `Loading ${country.name} from local database...`,
+          emoji: '📊',
+        },
+        {
+          timestamp: new Date().toISOString(),
+          agent: 'Orchestrator',
+          status: 'complete',
+          message: 'Fallback briefing prepared successfully',
+          emoji: '✅',
+        },
+      ]);
       setIsWorkflowComplete(true);
       // Create fallback briefing
       setBriefing({
@@ -233,29 +258,64 @@ function GameInner() {
 
   // Handle confirming decisions and advancing
   const handleConfirmDecisions = useCallback(async () => {
-    // Process the selected decisions (simplified - in full version would calculate impacts)
+    // Get selected decisions for news generation
+    const selectedDecisionCards = decisions.filter(d => selectedDecisions.includes(d.id));
+    
+    // Calculate expected pillar changes based on decisions
+    const pillarChanges: Record<string, number> = {};
+    selectedDecisionCards.forEach(d => {
+      Object.entries(d.expected_impacts || {}).forEach(([pillar, impact]) => {
+        pillarChanges[pillar] = (pillarChanges[pillar] || 0) + (impact as number);
+      });
+    });
+
+    // Process the selected decisions and advance the cycle
     advanceCycle();
 
     // Generate news using News Generator workflow
     if (state.selectedCountry) {
       try {
+        // Build game state context for news generation
+        const gameStateContext = `OHI Score: ${state.ohiScore.toFixed(2)}, Year: ${state.currentYear}, Governance: ${state.pillars.governance}, Hazard: ${state.pillars.hazardControl}, Vigilance: ${state.pillars.healthVigilance}, Restoration: ${state.pillars.restoration}`;
+        
         const newsWorkflowResult = await runNewsGeneratorWorkflow({
           iso_code: state.selectedCountry.iso_code,
           country_name: state.selectedCountry.name,
           current_month: ((state.cycleNumber + 1) % 12) + 1,
           current_year: state.currentYear,
-          recent_decisions: decisions.filter(d => selectedDecisions.includes(d.id)),
-          pillar_changes: {},
-          count: 2,
+          recent_decisions: selectedDecisionCards.map(d => ({
+            id: d.id,
+            title: d.title,
+            description: d.description,
+            pillar: d.pillar,
+            cost: d.cost,
+          })),
+          pillar_changes: pillarChanges,
+          game_state: gameStateContext,
+          count: 4, // Generate 4 news items per round
         });
         
         if (newsWorkflowResult.success && newsWorkflowResult.data) {
           const newsData = newsWorkflowResult.data as Record<string, unknown>;
-          const newsItems = (newsData.news_items as NewsItem[]) || [];
-          setNewsItems(prev => [...newsItems, ...prev].slice(0, 20));
+          const newNewsItems = (newsData.news_items as NewsItem[]) || [];
+          // Add new items at the top, keep max 20
+          setNewsItems(prev => [...newNewsItems, ...prev].slice(0, 20));
         }
       } catch (error) {
         console.error('Failed to generate news:', error);
+        // Add fallback news on error
+        const fallbackNews: NewsItem[] = selectedDecisionCards.slice(0, 2).map((d, i) => ({
+          id: `news-${Date.now()}-${i}`,
+          headline: `Government Announces: ${d.title}`,
+          summary: d.description.substring(0, 150) + '...',
+          source: 'Ministry Press Office',
+          source_type: 'official',
+          category: d.pillar,
+          sentiment: 'positive',
+          location: state.selectedCountry?.name || '',
+          timestamp: `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][state.cycleNumber % 12]} ${state.currentYear}`,
+        }));
+        setNewsItems(prev => [...fallbackNews, ...prev].slice(0, 20));
       }
     }
 
@@ -305,6 +365,7 @@ function GameInner() {
       <LoadingBriefing
         countryName={state.selectedCountry.name}
         countryFlag={getCountryFlag(state.selectedCountry.iso_code)}
+        countryIsoCode={state.selectedCountry.iso_code}
         agentLog={agentLog}
         isComplete={isWorkflowComplete}
         onComplete={() => setGamePhase('briefing')}
@@ -417,14 +478,9 @@ function GameInner() {
               currentYear={state.currentYear}
               cycleNumber={state.cycleNumber}
               phase={state.phase}
-              speed={state.speed}
-              isAutoAdvancing={state.isAutoAdvancing}
-              onPlay={resumeGame}
-              onPause={pauseGame}
-              onAdvance={advanceCycle}
-              onSpeedChange={setSpeed}
-              onToggleAuto={toggleAutoAdvance}
-              disabled={state.phase === 'event'}
+              onAdvance={handleConfirmDecisions}
+              disabled={state.phase === 'event' || isLoadingDecisions}
+              isAdvancing={isLoadingDecisions}
             />
           </div>
         </div>

@@ -1,12 +1,14 @@
 /**
- * Timeline Control - Play/pause/speed controls with yearly display
+ * Timeline Control - Manual round-based progression
+ * 
+ * Simplified for turn-based gameplay where user advances each round
  */
 
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipForward, Gauge } from 'lucide-react';
+import { ChevronRight, Calendar, TrendingUp, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import type { GameSpeed, GamePhase } from './types';
-import { DEFAULT_START_YEAR, DEFAULT_END_YEAR, YEARS_PER_CYCLE } from './types';
+import type { GamePhase } from './types';
+import { DEFAULT_START_YEAR, DEFAULT_END_YEAR } from './types';
 
 interface TimelineControlProps {
   currentYear: number;
@@ -14,14 +16,9 @@ interface TimelineControlProps {
   endYear?: number;
   cycleNumber: number;
   phase: GamePhase;
-  speed: GameSpeed;
-  isAutoAdvancing: boolean;
-  onPlay: () => void;
-  onPause: () => void;
   onAdvance: () => void;
-  onSpeedChange: (speed: GameSpeed) => void;
-  onToggleAuto: () => void;
   disabled?: boolean;
+  isAdvancing?: boolean;
 }
 
 export function TimelineControl({
@@ -30,20 +27,14 @@ export function TimelineControl({
   endYear = DEFAULT_END_YEAR,
   cycleNumber,
   phase,
-  speed,
-  isAutoAdvancing,
-  onPlay,
-  onPause,
   onAdvance,
-  onSpeedChange,
-  onToggleAuto,
   disabled = false,
+  isAdvancing = false,
 }: TimelineControlProps) {
   const totalYears = endYear - startYear;
   const progress = ((currentYear - startYear) / totalYears) * 100;
-  const isPaused = phase === 'paused' || phase === 'setup';
-  const isPlaying = phase === 'playing' && isAutoAdvancing;
-  const canAdvance = phase === 'playing' || phase === 'paused' || phase === 'results';
+  const canAdvance = (phase === 'playing' || phase === 'paused') && !disabled && !isAdvancing;
+  const yearsRemaining = endYear - currentYear;
 
   // Generate year markers (every 5 years)
   const yearMarkers = [];
@@ -51,69 +42,39 @@ export function TimelineControl({
     yearMarkers.push(year);
   }
 
-  const speedOptions: { value: GameSpeed; label: string; ms: number }[] = [
-    { value: 'slow', label: '1x', ms: 3000 },
-    { value: 'medium', label: '2x', ms: 1500 },
-    { value: 'fast', label: '4x', ms: 750 },
-  ];
-
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
       <div className="flex items-center gap-6">
-        {/* Play/Pause Controls */}
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={isPlaying ? onPause : onPlay}
-            disabled={disabled || phase === 'ended' || phase === 'event'}
-            className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
-              isPlaying
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-adl-accent/20 text-adl-accent border border-adl-accent/30',
-              'hover:opacity-80',
-              (disabled || phase === 'ended' || phase === 'event') && 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAdvance}
-            disabled={disabled || !canAdvance || isAutoAdvancing}
-            className={cn(
-              'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
-              'bg-white/5 text-white/60 border border-white/10',
-              'hover:bg-white/10 hover:text-white',
-              (disabled || !canAdvance || isAutoAdvancing) && 'opacity-50 cursor-not-allowed'
-            )}
-            title="Advance 1 year"
-          >
-            <SkipForward className="w-4 h-4" />
-          </motion.button>
-        </div>
-
-        {/* Speed Controls */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
-          {speedOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => onSpeedChange(option.value)}
-              disabled={disabled}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
-                speed === option.value
-                  ? 'bg-adl-accent text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        {/* Advance Round Button - Primary Action */}
+        <motion.button
+          whileHover={canAdvance ? { scale: 1.02 } : {}}
+          whileTap={canAdvance ? { scale: 0.98 } : {}}
+          onClick={onAdvance}
+          disabled={!canAdvance}
+          className={cn(
+            'flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all',
+            canAdvance
+              ? 'bg-adl-accent text-white hover:bg-adl-blue-light shadow-lg shadow-adl-accent/20'
+              : 'bg-white/10 text-white/40 cursor-not-allowed'
+          )}
+        >
+          {isAdvancing ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              >
+                <Clock className="w-4 h-4" />
+              </motion.div>
+              <span>Processing...</span>
+            </>
+          ) : (
+            <>
+              <ChevronRight className="w-4 h-4" />
+              <span>Advance Year</span>
+            </>
+          )}
+        </motion.button>
 
         {/* Timeline Bar */}
         <div className="flex-1">
@@ -124,7 +85,7 @@ export function TimelineControl({
                 className="h-full bg-gradient-to-r from-adl-accent to-cyan-400 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
               />
             </div>
 
@@ -169,21 +130,28 @@ export function TimelineControl({
         </div>
 
         {/* Year Display */}
-        <div className="flex flex-col items-end">
-          <div className="flex items-center gap-2">
-            <span className="text-white/40 text-xs">YEAR</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg border border-white/10">
+            <Calendar className="w-4 h-4 text-adl-accent" />
             <motion.span
               key={currentYear}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-2xl font-bold text-white font-mono"
+              className="text-xl font-bold text-white font-mono"
             >
               {currentYear}
             </motion.span>
           </div>
-          <span className="text-white/40 text-xs">
-            Year {cycleNumber + 1} of {totalYears}
-          </span>
+
+          <div className="text-right">
+            <div className="flex items-center gap-1 text-white/60 text-xs">
+              <TrendingUp className="w-3 h-3" />
+              <span>Year {cycleNumber + 1}</span>
+            </div>
+            <span className="text-white/40 text-xs">
+              {yearsRemaining} years remaining
+            </span>
+          </div>
         </div>
       </div>
 
@@ -193,12 +161,10 @@ export function TimelineControl({
           <div
             className={cn(
               'w-2 h-2 rounded-full',
-              phase === 'playing' && isAutoAdvancing
+              phase === 'playing'
                 ? 'bg-emerald-400 animate-pulse'
-                : phase === 'playing'
-                ? 'bg-amber-400'
                 : phase === 'paused'
-                ? 'bg-white/40'
+                ? 'bg-amber-400'
                 : phase === 'event'
                 ? 'bg-purple-400 animate-pulse'
                 : phase === 'ended'
@@ -206,28 +172,22 @@ export function TimelineControl({
                 : 'bg-white/20'
             )}
           />
-          <span className="text-xs text-white/60 capitalize">
-            {phase === 'event'
+          <span className="text-xs text-white/60">
+            {phase === 'playing'
+              ? 'Your Turn - Make decisions and advance'
+              : phase === 'event'
               ? 'Event in Progress'
-              : isAutoAdvancing
-              ? 'Running'
-              : phase}
+              : phase === 'ended'
+              ? 'Simulation Complete'
+              : phase === 'paused'
+              ? 'Paused'
+              : 'Ready'}
           </span>
         </div>
 
-        <button
-          onClick={onToggleAuto}
-          disabled={disabled || phase === 'ended'}
-          className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all',
-            isAutoAdvancing
-              ? 'bg-adl-accent/20 text-adl-accent'
-              : 'text-white/40 hover:text-white/60'
-          )}
-        >
-          <Gauge className="w-3 h-3" />
-          <span>Auto</span>
-        </button>
+        <span className="text-xs text-white/40">
+          {Math.round(progress)}% complete
+        </span>
       </div>
     </div>
   );
