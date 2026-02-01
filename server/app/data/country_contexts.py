@@ -34,6 +34,9 @@ class CountryContext:
     social_insurance_body: str
     statistics_office: str
     
+    # Key Officials (real names)
+    key_officials: Dict[str, str] = field(default_factory=dict)
+    
     # Social Partners
     major_unions: List[str]
     industry_associations: List[str]
@@ -77,6 +80,13 @@ COUNTRY_CONTEXTS: Dict[str, CountryContext] = {
         labor_inspection_body="Federal Institute for Occupational Safety and Health (BAuA)",
         social_insurance_body="German Social Accident Insurance (DGUV)",
         statistics_office="Federal Statistical Office (Destatis)",
+        key_officials={
+            "labor_minister": "Hubertus Heil",
+            "health_minister": "Prof. Dr. Karl Lauterbach",
+            "baua_president": "Dr. Isabel Rothe",
+            "dguv_ceo": "Dr. Stefan Hussy",
+            "dgb_president": "Yasmin Fahimi",
+        },
         major_unions=["DGB (German Trade Union Confederation)", "IG Metall", "ver.di", "IG BCE"],
         industry_associations=["BDA (Confederation of German Employers)", "BDI (Federation of German Industries)", "DIHK"],
         employer_federation="Confederation of German Employers' Associations (BDA)",
@@ -109,6 +119,13 @@ COUNTRY_CONTEXTS: Dict[str, CountryContext] = {
         labor_inspection_body="Health and Safety Executive (HSE)",
         social_insurance_body="National Insurance",
         statistics_office="Office for National Statistics (ONS)",
+        key_officials={
+            "work_pensions_secretary": "Rt Hon Liz Kendall MP",
+            "health_secretary": "Rt Hon Wes Streeting MP",
+            "hse_chair": "Sarah Newton",
+            "hse_chief_executive": "Sarah Albon",
+            "tuc_general_secretary": "Paul Nowak",
+        },
         major_unions=["TUC (Trades Union Congress)", "Unite the Union", "Unison", "GMB"],
         industry_associations=["CBI (Confederation of British Industry)", "IoD (Institute of Directors)", "FSB"],
         employer_federation="Confederation of British Industry (CBI)",
@@ -141,6 +158,13 @@ COUNTRY_CONTEXTS: Dict[str, CountryContext] = {
         labor_inspection_body="Occupational Safety and Health Administration (OSHA)",
         social_insurance_body="Social Security Administration",
         statistics_office="Bureau of Labor Statistics (BLS)",
+        key_officials={
+            "labor_secretary": "Julie Su (Acting Secretary)",
+            "osha_administrator": "Douglas L. Parker",
+            "niosh_director": "Dr. John Howard",
+            "cdc_director": "Dr. Mandy Cohen",
+            "afl_cio_president": "Liz Shuler",
+        },
         major_unions=["AFL-CIO", "SEIU", "Teamsters", "UAW", "UFCW"],
         industry_associations=["U.S. Chamber of Commerce", "NAM (National Association of Manufacturers)", "NFIB"],
         employer_federation="U.S. Chamber of Commerce",
@@ -333,6 +357,12 @@ COUNTRY_CONTEXTS: Dict[str, CountryContext] = {
         labor_inspection_body="Ministry of Human Resources (Inspection Division)",
         social_insurance_body="General Organization for Social Insurance (GOSI)",
         statistics_office="General Authority for Statistics (GASTAT)",
+        key_officials={
+            "labor_minister": "Eng. Ahmed bin Sulaiman Al-Rajhi",
+            "health_minister": "Dr. Fahad bin Abdulrahman Al-Jalajel",
+            "gosi_governor": "Eng. Abdulmajeed Al-Omari",
+            "vision_2030_lead": "HRH Prince Mohammed bin Salman",
+        },
         major_unions=[],  # Unions not permitted
         industry_associations=["Council of Saudi Chambers", "SABIC"],
         employer_federation="Council of Saudi Chambers",
@@ -603,6 +633,10 @@ def generate_fallback_context(iso_code: str, name: str, region: str) -> CountryC
         labor_inspection_body=f"Labour Inspectorate of {name}",
         social_insurance_body=f"Social Insurance of {name}",
         statistics_office=f"Statistics Office of {name}",
+        key_officials={
+            "labor_minister": f"Minister of Labour, {name}",
+            "health_minister": f"Minister of Health, {name}",
+        },
         major_unions=[f"National Trade Union of {name}"],
         industry_associations=[f"Industry Association of {name}"],
         employer_federation=f"Employers Federation of {name}",

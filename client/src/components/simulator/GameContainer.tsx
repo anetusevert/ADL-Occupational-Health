@@ -82,6 +82,7 @@ function GameInner() {
     state,
     selectCountry,
     startGame,
+    syncBriefing,
     pauseGame,
     resumeGame,
     setSpeed,
@@ -228,6 +229,17 @@ function GameInner() {
 
   // Handle accepting mission and starting game
   const handleAcceptMission = useCallback(async () => {
+    // Sync OHI score and pillars from briefing data (database values)
+    if (briefing) {
+      const pillarScores = {
+        governance: briefing.pillar_scores?.governance ?? state.pillars.governance,
+        hazardControl: briefing.pillar_scores?.hazardControl ?? state.pillars.hazardControl,
+        healthVigilance: briefing.pillar_scores?.healthVigilance ?? state.pillars.healthVigilance,
+        restoration: briefing.pillar_scores?.restoration ?? state.pillars.restoration,
+      };
+      syncBriefing(briefing.ohi_score ?? state.ohiScore, pillarScores);
+    }
+    
     startGame();
     setGamePhase('playing');
 
@@ -235,13 +247,22 @@ function GameInner() {
     if (state.selectedCountry && briefing) {
       setIsLoadingDecisions(true);
       try {
+        // Use briefing values for the workflow request
+        const ohiScore = briefing.ohi_score ?? state.ohiScore;
+        const pillars = {
+          governance: briefing.pillar_scores?.governance ?? state.pillars.governance,
+          hazardControl: briefing.pillar_scores?.hazardControl ?? state.pillars.hazardControl,
+          healthVigilance: briefing.pillar_scores?.healthVigilance ?? state.pillars.healthVigilance,
+          restoration: briefing.pillar_scores?.restoration ?? state.pillars.restoration,
+        };
+        
         const workflowResult = await runStrategicAdvisorWorkflow({
           iso_code: state.selectedCountry.iso_code,
           country_name: state.selectedCountry.name,
           current_month: 1,
           current_year: state.currentYear,
-          ohi_score: state.ohiScore,
-          pillars: state.pillars,
+          ohi_score: ohiScore,
+          pillars: pillars,
           budget_remaining: state.budget.totalBudgetPoints,
           recent_decisions: [],
         });
@@ -260,7 +281,7 @@ function GameInner() {
       }
       setIsLoadingDecisions(false);
     }
-  }, [startGame, state.selectedCountry, state.currentYear, state.pillars, state.ohiScore, state.budget.totalBudgetPoints, briefing]);
+  }, [startGame, syncBriefing, state.selectedCountry, state.currentYear, state.pillars, state.ohiScore, state.budget.totalBudgetPoints, briefing]);
 
   // Handle confirming decisions and advancing
   const handleConfirmDecisions = useCallback(async () => {
@@ -455,11 +476,15 @@ function GameInner() {
         <div className="col-span-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
           <AdvisorPanel
             countryName={state.selectedCountry?.name || ''}
+            countryIsoCode={state.selectedCountry?.iso_code || ''}
             currentMonth={((state.cycleNumber) % 12) + 1}
             currentYear={state.currentYear}
             decisions={decisions}
             budgetRemaining={state.budget.totalBudgetPoints - Object.values(state.budget.spent).reduce((a, b) => a + b, 0)}
             briefing={briefing}
+            newsItems={newsItems}
+            pillarScores={state.pillars}
+            ohiScore={state.ohiScore}
             isLoading={isLoadingDecisions}
             onSelectDecisions={setSelectedDecisions}
             onConfirmDecisions={handleConfirmDecisions}

@@ -183,12 +183,14 @@ You have access to the complete GOHIP country database with:
 
 ## Output Format:
 Respond with valid JSON containing:
-- executive_summary: 3-4 sentence classified briefing overview with key statistics
-- socioeconomic_context: Key economic and social factors affecting OH (with data)
-- key_challenges: Array of {title, description, severity, supporting_data}
-- key_stakeholders: Array of {name, role, stance}
-- pillar_insights: Object with governance, hazard, vigilance, restoration insights
-- mission_statement: A compelling call to action for the new Minister""",
+- executive_summary: 3-4 DETAILED paragraphs providing a comprehensive overview of the country's occupational health landscape, including current state, historical context, key statistics, major achievements, and critical gaps. This should read like a classified intelligence summary.
+- socioeconomic_context: 4-5 paragraphs covering GDP and economic structure, major industries, workforce composition (formal vs informal), migrant worker statistics, healthcare infrastructure investment, and how economic factors directly impact occupational health outcomes.
+- cultural_factors: 3-4 paragraphs on work culture norms, attitudes toward safety regulations, enforcement challenges, historical events that shaped current practices, and social factors affecting worker health.
+- future_outlook: 2-3 paragraphs on projected economic changes, emerging industry risks, policy reform momentum, and strategic opportunities for the new Minister.
+- key_challenges: Array of 4-5 {title, description, severity, supporting_data} with detailed descriptions
+- key_stakeholders: Array of 4-6 {name, role, institution, stance} with REAL names of current officials
+- pillar_insights: Object with governance, hazard, vigilance, restoration insights (each with detailed analysis, key_issues array, opportunities array)
+- mission_statement: A compelling 2-3 sentence call to action for the new Minister""",
         "user_prompt_template": """Generate an Intelligence Briefing for {COUNTRY_NAME} ({ISO_CODE}).
 
 ## COMPLETE COUNTRY DATABASE:

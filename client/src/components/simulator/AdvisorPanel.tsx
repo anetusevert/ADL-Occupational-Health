@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Sparkles, Send, Bot, User, ChevronRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AdvisorChoices } from './AdvisorChoices';
-import type { DecisionCard, CountryBriefing } from './types';
+import type { DecisionCard, CountryBriefing, NewsItem } from './types';
+import { runStrategicAdvisorWorkflow } from '../../services/api';
 
 // Message types for the conversation
 interface ChatMessage {
@@ -23,11 +24,20 @@ interface ChatMessage {
 
 interface AdvisorPanelProps {
   countryName: string;
+  countryIsoCode: string;
   currentMonth: number;
   currentYear: number;
   decisions: DecisionCard[];
   budgetRemaining: number;
   briefing: CountryBriefing | null;
+  newsItems?: NewsItem[];
+  pillarScores?: {
+    governance: number;
+    hazardControl: number;
+    healthVigilance: number;
+    restoration: number;
+  };
+  ohiScore?: number;
   isLoading?: boolean;
   onSelectDecisions: (selectedIds: string[]) => void;
   onConfirmDecisions: () => void;
@@ -45,11 +55,15 @@ const QUICK_ACTIONS = [
 
 export function AdvisorPanel({
   countryName,
+  countryIsoCode,
   currentMonth,
   currentYear,
   decisions,
   budgetRemaining,
   briefing,
+  newsItems = [],
+  pillarScores,
+  ohiScore,
   isLoading = false,
   onSelectDecisions,
   onConfirmDecisions,
@@ -154,46 +168,68 @@ export function AdvisorPanel({
     });
   };
 
-  // Handle user submitting a question
-  const handleSubmitQuestion = () => {
+  // Handle user submitting a question - uses backend AI for context-aware responses
+  const handleSubmitQuestion = useCallback(async () => {
     if (!userInput.trim()) return;
     
     const question = userInput.trim();
     setUserInput('');
     addUserMessage(question);
+    setIsTyping(true);
 
-    // Simulate AI response based on question
-    setTimeout(() => {
-      let response = '';
-      const lowerQuestion = question.toLowerCase();
+    try {
+      // Get current pillar scores and OHI
+      const currentPillars = pillarScores || {
+        governance: briefing?.pillar_scores?.governance || 50,
+        hazardControl: briefing?.pillar_scores?.hazardControl || 50,
+        healthVigilance: briefing?.pillar_scores?.healthVigilance || 50,
+        restoration: briefing?.pillar_scores?.restoration || 50,
+      };
+      const currentOhi = ohiScore || briefing?.ohi_score || 2.5;
       
-      if (lowerQuestion.includes('priorit') || lowerQuestion.includes('focus')) {
-        const weakestPillar = decisions.length > 0 
-          ? decisions.reduce((min, d) => d.expected_impacts[d.pillar] > (min?.expected_impacts[min.pillar] || 0) ? d : min, decisions[0])
-          : null;
-        response = weakestPillar 
-          ? `Based on my analysis, I recommend prioritizing "${weakestPillar.title}". This addresses a critical gap in ${weakestPillar.pillar.replace('C', ' C').replace('V', ' V')} and offers the best return on investment.`
-          : 'I recommend focusing on governance improvements first, as they create the foundation for all other initiatives.';
-      } else if (lowerQuestion.includes('risk')) {
-        const highRiskDecisions = decisions.filter(d => d.risk_level === 'high');
-        response = highRiskDecisions.length > 0
-          ? `The following initiatives carry higher risk: ${highRiskDecisions.map(d => d.title).join(', ')}. High-risk decisions can yield greater rewards but may face implementation challenges.`
-          : 'All current options are moderate to low risk. This is a good opportunity for steady progress without major disruption.';
-      } else if (lowerQuestion.includes('impact') || lowerQuestion.includes('effect')) {
-        const totalImpact = decisions.reduce((sum, d) => {
-          return sum + Object.values(d.expected_impacts).reduce((a, b) => a + b, 0);
-        }, 0);
-        response = `The combined potential impact of all initiatives is ${totalImpact} points across all pillars. Selecting complementary actions can create synergies that amplify results.`;
-      } else if (lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
-        const totalCost = decisions.reduce((sum, d) => sum + d.cost, 0);
-        response = `Total cost of all available initiatives: ${totalCost} points. Your budget of ${budgetRemaining} points allows for strategic selection. Consider balancing quick wins with long-term investments.`;
+      // Extract news headlines for context
+      const newsHeadlines = newsItems.map(n => n.title);
+      
+      // Call backend for AI-powered response
+      const response = await runStrategicAdvisorWorkflow({
+        iso_code: countryIsoCode,
+        country_name: countryName,
+        current_month: currentMonth,
+        current_year: currentYear,
+        ohi_score: currentOhi,
+        pillars: currentPillars,
+        budget_remaining: budgetRemaining,
+        recent_decisions: decisions.filter(d => selectedDecisionIds.includes(d.id)).map(d => d.title),
+        news_headlines: newsHeadlines,
+        user_question: question,
+      });
+      
+      setIsTyping(false);
+      
+      if (response.success && response.data) {
+        const data = response.data as Record<string, unknown>;
+        // Use the situation analysis or greeting as the response
+        const aiResponse = (data.situation_analysis as string) || 
+          (data.greeting as string) || 
+          `Based on my analysis of ${countryName}'s situation, I recommend focusing on your strategic priorities.`;
+        addAdvisorMessage(aiResponse, 'analysis', 0);
       } else {
-        response = `That's an excellent question, Minister. Given ${countryName}'s current situation, I recommend reviewing the available initiatives carefully. Each option has been selected based on its potential to improve your OHI score.`;
+        // Fallback response
+        addAdvisorMessage(
+          `That's a thoughtful question, Minister. Given ${countryName}'s current OHI score of ${currentOhi.toFixed(2)} and available budget of ${budgetRemaining} points, I recommend reviewing the available initiatives carefully.`,
+          'analysis', 0
+        );
       }
-      
-      addAdvisorMessage(response, 'analysis', 1000);
-    }, 500);
-  };
+    } catch (error) {
+      console.error('Failed to get advisor response:', error);
+      setIsTyping(false);
+      // Fallback to a simple response
+      addAdvisorMessage(
+        `I'm having trouble accessing my full analysis right now. However, based on the available data for ${countryName}, I suggest focusing on your weakest pillar for maximum impact.`,
+        'analysis', 0
+      );
+    }
+  }, [userInput, countryIsoCode, countryName, currentMonth, currentYear, briefing, pillarScores, ohiScore, budgetRemaining, decisions, selectedDecisionIds, newsItems, addUserMessage, addAdvisorMessage]);
 
   // Handle quick action click
   const handleQuickAction = (action: string) => {
@@ -290,10 +326,10 @@ export function AdvisorPanel({
         </div>
       </div>
 
-      {/* Messages Area */}
+      {/* Messages Area - scrollable */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3"
+        className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"
       >
         {/* Loading State */}
         {isLoading && (
@@ -370,33 +406,6 @@ export function AdvisorPanel({
           )}
         </AnimatePresence>
 
-        {/* Decision Cards */}
-        <AnimatePresence>
-          {(phase === 'decisions' || phase === 'selected') && !isTyping && advisorChoices.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: 0.2 }}
-              className="mt-3"
-            >
-              <AdvisorChoices
-                choices={advisorChoices}
-                budgetRemaining={budgetRemaining}
-                onSelect={handleSelectDecision}
-                onConfirm={handleConfirm}
-                multiSelect={true}
-                disabled={disabled || phase === 'confirming'}
-                confirmLabel={
-                  selectedDecisionIds.length > 0
-                    ? `Confirm ${selectedDecisionIds.length} Decision${selectedDecisionIds.length > 1 ? 's' : ''} (${selectedCost} pts)`
-                    : 'Select Decisions'
-                }
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Quick Actions (when in decision phase and not typing) */}
         {(phase === 'decisions' || phase === 'selected') && !isTyping && (
           <motion.div
@@ -417,6 +426,37 @@ export function AdvisorPanel({
           </motion.div>
         )}
       </div>
+
+      {/* Decision Cards - Fixed at bottom, always visible */}
+      <AnimatePresence>
+        {(phase === 'decisions' || phase === 'selected') && !isTyping && advisorChoices.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ delay: 0.2 }}
+            className="flex-shrink-0 border-t border-white/10 bg-slate-900/80 backdrop-blur-sm p-3 max-h-[45%] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-white/60">Budget Available</span>
+              <span className="text-sm font-semibold text-adl-accent">{budgetRemaining - selectedCost} <span className="text-white/40">/ {budgetRemaining}</span></span>
+            </div>
+            <AdvisorChoices
+              choices={advisorChoices}
+              budgetRemaining={budgetRemaining}
+              onSelect={handleSelectDecision}
+              onConfirm={handleConfirm}
+              multiSelect={true}
+              disabled={disabled || phase === 'confirming'}
+              confirmLabel={
+                selectedDecisionIds.length > 0
+                  ? `Confirm ${selectedDecisionIds.length} Decision${selectedDecisionIds.length > 1 ? 's' : ''} (${selectedCost} pts)`
+                  : 'Select Decisions'
+              }
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input Area */}
       <div className="flex-shrink-0 p-3 border-t border-white/5 bg-slate-900/50">

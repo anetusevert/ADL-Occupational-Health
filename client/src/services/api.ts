@@ -1734,6 +1734,8 @@ export interface AdvisorWorkflowRequest {
   };
   budget_remaining: number;
   recent_decisions: string[];
+  news_headlines?: string[];
+  user_question?: string;
 }
 
 /**

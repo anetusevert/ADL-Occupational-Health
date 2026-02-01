@@ -262,12 +262,10 @@ export function EconomicIndicators({
                     {briefing.difficulty_rating}
                   </span>
                 </div>
-                {briefing.country_context.currency && (
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Currency</span>
-                    <span className="text-white">{briefing.country_context.currency}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-white/40">Currency</span>
+                  <span className="text-white">US Dollar (USD)</span>
+                </div>
                 {briefing.country_context.typical_work_week && (
                   <div className="flex justify-between">
                     <span className="text-white/40">Work Week</span>

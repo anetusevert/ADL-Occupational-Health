@@ -319,6 +319,7 @@ export interface GameState {
 export type GameAction =
   | { type: 'SELECT_COUNTRY'; country: CountryData }
   | { type: 'START_GAME' }
+  | { type: 'SYNC_BRIEFING'; ohiScore: number; pillars: PillarScores }
   | { type: 'SET_SPEED'; speed: GameSpeed }
   | { type: 'TOGGLE_AUTO_ADVANCE' }
   | { type: 'PAUSE_GAME' }

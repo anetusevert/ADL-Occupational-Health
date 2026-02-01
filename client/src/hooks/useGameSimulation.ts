@@ -132,6 +132,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     
+    case 'SYNC_BRIEFING': {
+      // Sync OHI score and pillar scores from backend briefing data
+      return {
+        ...state,
+        ohiScore: action.ohiScore,
+        pillars: action.pillars,
+        statistics: {
+          ...state.statistics,
+          startingOHIScore: action.ohiScore,
+          currentOHIScore: action.ohiScore,
+          peakOHIScore: action.ohiScore,
+          lowestOHIScore: action.ohiScore,
+        },
+      };
+    }
+    
     case 'SET_SPEED': {
       return { ...state, speed: action.speed };
     }
@@ -360,6 +376,7 @@ interface GameContextType {
   // Action helpers
   selectCountry: (country: CountryData) => void;
   startGame: () => void;
+  syncBriefing: (ohiScore: number, pillars: { governance: number; hazardControl: number; healthVigilance: number; restoration: number }) => void;
   pauseGame: () => void;
   resumeGame: () => void;
   setSpeed: (speed: GameSpeed) => void;
@@ -390,6 +407,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   
   const startGame = useCallback(() => {
     dispatch({ type: 'START_GAME' });
+  }, []);
+  
+  const syncBriefing = useCallback((ohiScore: number, pillars: { governance: number; hazardControl: number; healthVigilance: number; restoration: number }) => {
+    dispatch({ type: 'SYNC_BRIEFING', ohiScore, pillars });
   }, []);
   
   const pauseGame = useCallback(() => {
@@ -451,6 +472,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch,
     selectCountry,
     startGame,
+    syncBriefing,
     pauseGame,
     resumeGame,
     setSpeed,

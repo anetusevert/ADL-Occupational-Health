@@ -693,6 +693,7 @@ class StrategicAdvisorRequest(BaseModel):
     pillars: PillarScores
     budget_remaining: int = Field(..., ge=0)
     recent_decisions: List[str] = Field(default=[])
+    news_headlines: List[str] = Field(default=[])
     user_question: Optional[str] = None
     
     class Config:
@@ -711,6 +712,7 @@ class StrategicAdvisorRequest(BaseModel):
                 },
                 "budget_remaining": 100,
                 "recent_decisions": [],
+                "news_headlines": ["New workplace safety law passed", "Factory inspection reveals violations"],
                 "user_question": "What should I prioritize this month?"
             }
         }
@@ -936,7 +938,8 @@ async def workflow_strategic_advisor(
         if not context:
             context = generate_fallback_context(iso_code, request.country_name, "Unknown")
         
-        # Format game state
+        # Format game state with all context
+        news_context = "\n".join([f"- {headline}" for headline in request.news_headlines]) if request.news_headlines else "No recent news"
         game_state = f"""
 Current Pillar Scores:
 - Governance: {request.pillars.governance}/100
@@ -948,6 +951,9 @@ OHI Score: {request.ohi_score:.2f}/4.0
 Budget Available: {request.budget_remaining} points
 
 Recent Decisions: {', '.join(request.recent_decisions) if request.recent_decisions else 'None yet'}
+
+Recent News Headlines:
+{news_context}
 """
         
         log_agent("StrategicAdvisor", "analyzing", "Analyzing current situation...", "📊")
@@ -1196,6 +1202,64 @@ def get_ai_config_with_fallback(db: Session, user: Optional[User]) -> Optional[A
 # WORKFLOW HELPER FUNCTIONS
 # =============================================================================
 
+def _generate_stakeholders_from_context(context, country_name: str) -> List[Dict[str, str]]:
+    """Generate stakeholder list from country context with real official names."""
+    stakeholders = []
+    
+    # Get key officials from context if available
+    key_officials = getattr(context, 'key_officials', {}) or {}
+    
+    # Labor/HR Minister
+    labor_minister_name = key_officials.get('labor_minister', f"Minister of Labour, {country_name}")
+    stakeholders.append({
+        "name": labor_minister_name,
+        "role": "Minister of Labour",
+        "institution": context.ministry_name if context else "Ministry of Labour",
+        "stance": "supportive"
+    })
+    
+    # Health Minister
+    health_minister_name = key_officials.get('health_minister', f"Minister of Health, {country_name}")
+    stakeholders.append({
+        "name": health_minister_name,
+        "role": "Minister of Health",
+        "institution": context.health_authority if context else "Ministry of Health",
+        "stance": "supportive"
+    })
+    
+    # OSHA/Labor Inspection Head
+    if key_officials.get('osha_administrator') or key_officials.get('hse_chief_executive') or key_officials.get('baua_president'):
+        inspection_head = key_officials.get('osha_administrator') or key_officials.get('hse_chief_executive') or key_officials.get('baua_president')
+        stakeholders.append({
+            "name": inspection_head,
+            "role": "Chief Inspector",
+            "institution": context.labor_inspection_body if context else "Labor Inspectorate",
+            "stance": "supportive"
+        })
+    
+    # Social Insurance/GOSI Head
+    if key_officials.get('gosi_governor') or key_officials.get('dguv_ceo'):
+        insurance_head = key_officials.get('gosi_governor') or key_officials.get('dguv_ceo')
+        stakeholders.append({
+            "name": insurance_head,
+            "role": "Social Insurance Director",
+            "institution": context.social_insurance_body if context else "Social Insurance",
+            "stance": "supportive"
+        })
+    
+    # Union leader if available
+    if key_officials.get('dgb_president') or key_officials.get('tuc_general_secretary') or key_officials.get('afl_cio_president'):
+        union_leader = key_officials.get('dgb_president') or key_officials.get('tuc_general_secretary') or key_officials.get('afl_cio_president')
+        stakeholders.append({
+            "name": union_leader,
+            "role": "Union Leader",
+            "institution": context.major_unions[0] if context and context.major_unions else "Workers' Union",
+            "stance": "neutral"
+        })
+    
+    return stakeholders
+
+
 def _create_fallback_briefing(
     country: Country,
     context,
@@ -1244,36 +1308,85 @@ def _create_fallback_briefing(
     
     iso2 = context.iso2_code if context else country.iso_code[:2]
     
+    # Generate detailed fallback content
+    industries = ", ".join(context.key_industries[:3]) if context and context.key_industries else "various industries"
+    high_risk = ", ".join(context.high_risk_sectors[:3]) if context and context.high_risk_sectors else "construction, mining, and manufacturing"
+    capital = context.capital if context else "the capital"
+    work_week = context.typical_work_week if context else "40-48 hours"
+    
+    # Calculate GDP text
+    gdp_text = f"${key_statistics.get('gdp_per_capita', 'N/A'):,.0f} per capita" if key_statistics.get('gdp_per_capita') else "developing economy"
+    pop_text = f"{key_statistics.get('population', 'N/A'):,.0f} million" if key_statistics.get('population') else "a significant population"
+    
+    executive_summary = f"""Welcome to {country.name}, Minister. As the newly appointed Health Minister, you inherit a complex occupational health landscape that demands immediate attention and strategic vision.
+
+{country.name} currently ranks #{global_rank} globally with an OHI score of {ohi_score:.2f} out of 4.0. This positions the nation in the {difficulty.lower()} difficulty tier for occupational health reform. The current framework shows {pillar_scores.get('governance', 50):.0f}/100 in governance capacity, {pillar_scores.get('hazardControl', 50):.0f}/100 in hazard control, {pillar_scores.get('healthVigilance', 50):.0f}/100 in health surveillance, and {pillar_scores.get('restoration', 50):.0f}/100 in worker rehabilitation and compensation systems.
+
+Your mandate is clear: transform {country.name}'s occupational health infrastructure to protect the nation's workforce while supporting sustainable economic growth. The path forward requires strategic investment, stakeholder alignment, and evidence-based policy decisions."""
+
+    socioeconomic_context = f"""{country.name}'s economy is characterized by a GDP of {gdp_text}, supporting a population of {pop_text}. The nation's economic structure is heavily influenced by {industries}, each presenting unique occupational health challenges.
+
+The labor force participation rate stands at approximately {key_statistics.get('labor_force', 65):.1f}%, with the formal sector employing the majority of workers. However, a significant informal economy exists, particularly in {high_risk} sectors, where workers often lack access to basic occupational health protections and surveillance systems.
+
+Health expenditure represents {key_statistics.get('health_expenditure_pct', 5):.1f}% of GDP, with occupational health receiving a small but growing share of this investment. The current infrastructure includes {context.labor_inspection_body if context else 'the national labor inspectorate'} as the primary enforcement body, though capacity constraints limit effective coverage.
+
+The capital, {capital}, serves as the administrative hub for occupational health policy, while industrial regions face the greatest challenges in enforcement and worker protection. The typical work week of {work_week} reflects local labor standards, though actual hours may vary significantly by sector."""
+
+    cultural_factors = f"""Work culture in {country.name} reflects a complex interplay of traditional values, economic pressures, and evolving safety consciousness. Historically, workplace safety has been viewed through the lens of productivity, with worker protection sometimes taking a secondary role to economic output.
+
+Recent years have seen growing awareness of occupational health issues, driven by international standards, media attention to workplace incidents, and advocacy from labor organizations. The {context.ministry_name if context else 'Ministry of Labour'} has begun implementing reforms, though resistance to change persists in some sectors.
+
+Enforcement remains challenging, with inspectors facing resource constraints and, in some cases, political pressure from powerful industry actors. Building a culture of safety will require sustained effort at all levels of society."""
+
+    future_outlook = f"""The economic trajectory of {country.name} suggests both opportunities and challenges for occupational health. Emerging industries and technological change will create new workplace hazards requiring updated regulatory frameworks.
+
+Climate change and demographic shifts will further complicate the landscape, demanding adaptive strategies. Your decisions over the coming years will shape whether {country.name} advances or falls behind in protecting its workers."""
+
     return {
         "country_name": country.name,
         "iso_code": country.iso_code,
         "flag_url": f"https://flagcdn.com/w160/{iso2.lower()}.png",
-        "executive_summary": f"Welcome to {country.name}. As the new Health Minister, you face significant challenges in transforming the nation's occupational health system. With an OHI score of {ohi_score:.2f}, there is considerable work ahead.",
-        "socioeconomic_context": f"{country.name} has a diverse economy with key industries that present various occupational health challenges.",
-        "cultural_factors": f"Work culture in {country.name} reflects local traditions and practices.",
-        "future_outlook": "The economy is expected to evolve, bringing new occupational health challenges and opportunities.",
+        "executive_summary": executive_summary,
+        "socioeconomic_context": socioeconomic_context,
+        "cultural_factors": cultural_factors,
+        "future_outlook": future_outlook,
         "key_statistics": key_statistics,
         "ohi_score": ohi_score,
         "pillar_scores": pillar_scores,
         "global_rank": global_rank,
         "pillar_insights": {
-            pillar: {
-                "score": score,
-                "analysis": f"Current score of {score:.0f}/100",
-                "key_issues": ["Requires attention"],
-                "opportunities": ["Potential for improvement"],
-            }
-            for pillar, score in pillar_scores.items()
+            "governance": {
+                "score": pillar_scores.get("governance", 50),
+                "analysis": f"Governance capacity scores {pillar_scores.get('governance', 50):.0f}/100, reflecting the strength of legal frameworks, institutional capacity, and strategic coordination for occupational health.",
+                "key_issues": ["Limited inspector-to-worker ratio", "Fragmented regulatory framework", "Gaps in enforcement capacity"],
+                "opportunities": ["Strengthen inter-agency coordination", "Modernize inspection protocols", "Expand training programs"],
+            },
+            "hazardControl": {
+                "score": pillar_scores.get("hazardControl", 50),
+                "analysis": f"Hazard control measures score {pillar_scores.get('hazardControl', 50):.0f}/100, indicating room for improvement in workplace safety standards and risk prevention.",
+                "key_issues": ["Outdated equipment safety standards", "Limited PPE enforcement", "Insufficient hazard reporting"],
+                "opportunities": ["Implement technology-based monitoring", "Enhance safety training", "Develop sector-specific guidelines"],
+            },
+            "healthVigilance": {
+                "score": pillar_scores.get("healthVigilance", 50),
+                "analysis": f"Health surveillance systems score {pillar_scores.get('healthVigilance', 50):.0f}/100, with opportunities to strengthen disease detection and worker health monitoring.",
+                "key_issues": ["Limited occupational disease reporting", "Gaps in health screening coverage", "Data integration challenges"],
+                "opportunities": ["Expand electronic health records", "Strengthen disease surveillance", "Increase screening frequency"],
+            },
+            "restoration": {
+                "score": pillar_scores.get("restoration", 50),
+                "analysis": f"Worker rehabilitation and compensation systems score {pillar_scores.get('restoration', 50):.0f}/100, with potential to improve worker recovery and reintegration.",
+                "key_issues": ["Slow claim processing", "Limited rehabilitation services", "Gaps in return-to-work programs"],
+                "opportunities": ["Streamline compensation processes", "Expand rehabilitation infrastructure", "Develop early intervention programs"],
+            },
         },
         "key_challenges": [
-            "Improving enforcement capacity",
-            "Expanding coverage to informal sector",
-            "Modernizing surveillance systems",
+            {"title": "Enforcement Capacity", "description": "Limited resources constrain effective workplace inspections", "severity": "high"},
+            {"title": "Informal Sector Coverage", "description": "Workers outside formal employment lack protections", "severity": "high"},
+            {"title": "Surveillance Modernization", "description": "Data systems require significant upgrades", "severity": "medium"},
+            {"title": "Stakeholder Coordination", "description": "Fragmented approach to occupational health governance", "severity": "medium"},
         ],
-        "key_stakeholders": [
-            {"name": "Minister of Labour", "role": "Government Lead", "institution": context.ministry_name if context else "Ministry of Labour", "stance": "supportive"},
-            {"name": "Chief Inspector", "role": "Enforcement", "institution": context.labor_inspection_body if context else "Labor Inspectorate", "stance": "supportive"},
-        ] if context else [],
+        "key_stakeholders": _generate_stakeholders_from_context(context, country.name) if context else [],
         "recent_articles": [],
         "mission_statement": f"Transform {country.name}'s occupational health system into a world-class framework that protects every worker.",
         "difficulty_rating": difficulty,
