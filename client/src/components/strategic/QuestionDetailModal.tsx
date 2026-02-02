@@ -6,7 +6,8 @@
  * Shows complete answer, citations, and best practice leaders.
  * NO SCROLLING - all content fits within viewport.
  * 
- * Updated: 2026-02-02 - Compact best practice cards with key_lesson only
+ * Version: 2.1.0 - Compact best practice cards (key_lesson only)
+ * Build: 2026-02-02-fix-v2
  */
 
 import { useEffect } from "react";

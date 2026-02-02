@@ -168,23 +168,38 @@ export function Home() {
   );
   
   // Check for navigation state to open pillar selection modal
+  // Combined effect: tries to open immediately if data available, otherwise sets pending
   useEffect(() => {
     const state = location.state as { openPillarModal?: string } | null;
     if (state?.openPillarModal) {
-      setPendingPillarModalIso(state.openPillarModal);
-      // Clear the navigation state to prevent reopening on refresh
+      const isoToOpen = state.openPillarModal;
+      
+      // Clear the navigation state immediately to prevent re-processing
       window.history.replaceState({}, document.title);
+      
+      // If data is already loaded, open modal immediately
+      if (mapCountries.length > 0) {
+        const country = mapCountries.find(c => c.iso_code === isoToOpen);
+        if (country) {
+          setViewSelectionCountry(country);
+          return; // Done - modal opened
+        }
+      }
+      
+      // Data not loaded yet - set pending and let the fallback effect handle it
+      setPendingPillarModalIso(isoToOpen);
     }
-  }, [location.state]);
+  }, [location.state, mapCountries]);
   
-  // Open pillar modal when data is loaded and we have a pending ISO
+  // Fallback: Open modal when data loads and we have a pending ISO
   useEffect(() => {
     if (pendingPillarModalIso && mapCountries.length > 0) {
       const country = mapCountries.find(c => c.iso_code === pendingPillarModalIso);
       if (country) {
         setViewSelectionCountry(country);
-        setPendingPillarModalIso(null);
       }
+      // Always clear pending, even if country not found (prevents infinite loops)
+      setPendingPillarModalIso(null);
     }
   }, [pendingPillarModalIso, mapCountries]);
 
