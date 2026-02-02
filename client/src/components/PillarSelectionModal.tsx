@@ -6,7 +6,7 @@
  * which Framework Pillar to analyze or view the Overall Summary.
  */
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2, AlertCircle, FileCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -132,7 +132,6 @@ export function PillarSelectionModal({
     isGenerating: isGeneratingCountry,
     getGenerationStatus 
   } = useGeneration();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Query for report status - check which pillars have cached reports
   const { data: reportStatus, refetch: refetchReportStatus } = useQuery<ReportStatus>({
@@ -144,58 +143,100 @@ export function PillarSelectionModal({
     enabled: isOpen && !!country?.iso_code,
     staleTime: 30 * 1000, // 30 seconds
   });
+  
+  // Get current generation status from context (before early return)
+  const isGenerating = country ? isGeneratingCountry(country.iso_code) : false;
+  
+  // Poll for status updates while generation is active
+  useEffect(() => {
+    if (!isGenerating || !country?.iso_code) return;
+    
+    const pollStatus = async () => {
+      try {
+        const response = await apiClient.get(`/api/v1/pillar-analysis/${country.iso_code}/status`);
+        const data = response.data as ReportStatus;
+        const completedCount = Object.values(data).filter((s) => s.has_report).length;
+        
+        // Update generation progress based on actual report status
+        updateGeneration(country.iso_code, { 
+          completed: completedCount, 
+          total: 5,
+          message: completedCount === 5 ? "All reports ready" : `${completedCount}/5 complete`
+        });
+        
+        // If all completed, finish generation
+        if (completedCount === 5) {
+          refetchReportStatus();
+          setTimeout(() => {
+            completeGeneration(country.iso_code);
+          }, 2000);
+        }
+      } catch (e) {
+        // Ignore polling errors
+      }
+    };
+    
+    // Poll every 5 seconds
+    const interval = setInterval(pollStatus, 5000);
+    // Also poll immediately
+    pollStatus();
+    
+    return () => clearInterval(interval);
+  }, [isGenerating, country?.iso_code, updateGeneration, completeGeneration, refetchReportStatus]);
 
   if (!country) return null;
   
-  // Get current generation status from context
+  // Get current generation status from context (for display)
   const generationStatus = getGenerationStatus(country.iso_code);
-  const isGenerating = isGeneratingCountry(country.iso_code);
 
-  // Batch generate all reports
-  const handleBatchGenerate = async () => {
+  // Batch generate all reports - fire and forget pattern
+  const handleBatchGenerate = () => {
     if (isGenerating) return; // Prevent double-trigger
     
-    setIsSubmitting(true);
+    // Start tracking generation in context
     startGeneration(country.iso_code, country.name);
     
-    try {
-      const response = await aiApiClient.post<BatchGenerationStatus>(
-        `/api/v1/batch-generate/${country.iso_code}`,
-        {},
-        { timeout: 600000 } // 10 minutes for all reports
-      );
-      
-      // Update context with final status
-      updateGeneration(country.iso_code, {
-        completed: response.data.completed,
-        total: response.data.total,
-        inProgress: response.data.in_progress,
-        results: response.data.results,
-        message: response.data.message,
-      });
-      
-      // If all completed, remove from active generations after a delay
-      if (response.data.completed === response.data.total) {
+    // Fire and forget - don't await, let it run in background
+    aiApiClient.post<BatchGenerationStatus>(
+      `/api/v1/batch-generate/${country.iso_code}`,
+      {},
+      { timeout: 600000 } // 10 minutes for all reports
+    )
+      .then((response) => {
+        // Update context with final status
+        updateGeneration(country.iso_code, {
+          completed: response.data.completed,
+          total: response.data.total,
+          inProgress: response.data.in_progress,
+          results: response.data.results,
+          message: response.data.message,
+        });
+        
+        // If all completed, remove from active generations after a delay
+        if (response.data.completed === response.data.total) {
+          // Refetch report status to show the checkmarks
+          refetchReportStatus();
+          setTimeout(() => {
+            completeGeneration(country.iso_code);
+          }, 3000); // Show success for 3 seconds
+        }
+      })
+      .catch((error: any) => {
+        console.error("Batch generation error:", error);
+        updateGeneration(country.iso_code, {
+          completed: 0,
+          total: 5,
+          inProgress: "",
+          results: {},
+          message: error.response?.data?.detail || "Failed to generate reports",
+        });
+        // Remove failed generation after delay
         setTimeout(() => {
           completeGeneration(country.iso_code);
-        }, 3000); // Show success for 3 seconds
-      }
-    } catch (error: any) {
-      console.error("Batch generation error:", error);
-      updateGeneration(country.iso_code, {
-        completed: 0,
-        total: 5,
-        inProgress: "",
-        results: {},
-        message: error.response?.data?.detail || "Failed to generate reports",
+        }, 5000);
       });
-      // Remove failed generation after delay
-      setTimeout(() => {
-        completeGeneration(country.iso_code);
-      }, 5000);
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    // Don't block - generation runs in background
   };
 
   // Map scores to pillars
@@ -373,7 +414,7 @@ export function PillarSelectionModal({
                         )}
                       </div>
                       <p className="text-sm text-white/50">
-                        Comprehensive McKinsey-grade strategic assessment across all pillars
+                        Comprehensive strategic assessment across all pillars
                       </p>
                     </div>
                     <div className="text-cyan-400 font-medium text-sm group-hover:translate-x-1 transition-transform">
@@ -424,16 +465,16 @@ export function PillarSelectionModal({
                   <div className="flex items-center justify-center gap-4">
                     <button
                       onClick={handleBatchGenerate}
-                      disabled={isGenerating || isSubmitting}
+                      disabled={isGenerating}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                         "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20",
                         "border border-emerald-500/30 hover:border-emerald-500/50",
                         "text-emerald-400 hover:text-emerald-300",
-                        (isGenerating || isSubmitting) && "opacity-50 cursor-not-allowed"
+                        isGenerating && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      {isGenerating || isSubmitting ? (
+                      {isGenerating ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Generating...</span>
