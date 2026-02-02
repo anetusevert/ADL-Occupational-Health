@@ -6,10 +6,10 @@
  * organized by framework pillars and strategic questions.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, Sparkles } from "lucide-react";
+import { Award, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { FloatingParticles, GradientOrbs } from "../components/deep-dive/shared";
 import { 
@@ -58,6 +58,50 @@ const generateCountryBestPractice = async (isoCode: string, questionId: string) 
 // View states
 type ViewState = "pillars" | "pillar-detail" | "question";
 
+// Floating indicator for active generations
+function GenerationStatusIndicator({
+  questionData,
+  countryData,
+  isPendingQuestion,
+  isPendingCountry,
+}: {
+  questionData: any;
+  countryData: any;
+  isPendingQuestion: boolean;
+  isPendingCountry: boolean;
+}) {
+  // Count active generations
+  const isQuestionGenerating = questionData?.status === "generating" || isPendingQuestion;
+  const isCountryGenerating = countryData?.status === "generating" || isPendingCountry;
+  const activeCount = (isQuestionGenerating ? 1 : 0) + (isCountryGenerating ? 1 : 0);
+
+  if (activeCount === 0) return null;
+
+  return (
+    <motion.div
+      className="fixed bottom-6 right-6 z-50"
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/95 backdrop-blur-lg border border-purple-500/40 rounded-xl shadow-2xl shadow-purple-500/20">
+        <div className="relative">
+          <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+          <div className="absolute inset-0 rounded-full bg-purple-500/20 animate-ping" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-white">
+            {activeCount} {activeCount === 1 ? "report" : "reports"} generating...
+          </p>
+          <p className="text-xs text-slate-400">
+            You can navigate freely
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function BestPractices() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -70,42 +114,75 @@ export default function BestPractices() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
 
-  // Fetch pillars overview
+  // Fetch pillars overview - polls while any generation is in progress
   const pillarsQuery = useQuery({
     queryKey: ["best-practices", "pillars"],
     queryFn: fetchPillars,
+    // Poll every 5 seconds while there are active generations
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      // Check if any pillar has generating questions
+      const hasGenerating = data?.pillars?.some(
+        (p: any) => p.generating_count > 0
+      );
+      return hasGenerating ? 5000 : false;
+    },
   });
 
-  // Fetch pillar detail
+  // Fetch pillar detail - polls while any question is generating
   const pillarDetailQuery = useQuery({
     queryKey: ["best-practices", "pillar", selectedPillar],
     queryFn: () => fetchPillarDetail(selectedPillar!),
     enabled: !!selectedPillar && view === "pillar-detail",
+    // Poll every 3 seconds while there are generating questions
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const hasGenerating = data?.questions?.some(
+        (q: any) => q.status === "generating"
+      );
+      return hasGenerating ? 3000 : false;
+    },
   });
 
-  // Fetch question best practice
+  // Fetch question best practice - polls while generating
   const questionQuery = useQuery({
     queryKey: ["best-practices", "question", selectedQuestion],
     queryFn: () => fetchBestPractice(selectedQuestion!),
     enabled: !!selectedQuestion && view === "question",
+    // Poll every 3 seconds while status is "generating"
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === "generating" ? 3000 : false;
+    },
   });
 
-  // Fetch country best practice
+  // Fetch country best practice - polls while generating
   const countryQuery = useQuery({
     queryKey: ["best-practices", "country", selectedCountry, selectedQuestion],
     queryFn: () => fetchCountryBestPractice(selectedCountry!, selectedQuestion!),
     enabled: !!selectedCountry && !!selectedQuestion && isCountryModalOpen,
+    // Poll every 3 seconds while status is "generating"
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === "generating" ? 3000 : false;
+    },
   });
 
-  // Generate best practice mutation
+  // Generate best practice mutation (now returns 202 for background processing)
   const [generateError, setGenerateError] = useState<string | null>(null);
   const generateMutation = useMutation({
     mutationFn: (questionId: string) => generateBestPractice(questionId),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setGenerateError(null);
+      // Whether 202 (generating) or 200 (completed), refetch to get latest status
+      // The polling will take over if status is "generating"
       queryClient.invalidateQueries({ queryKey: ["best-practices", "question", selectedQuestion] });
       queryClient.invalidateQueries({ queryKey: ["best-practices", "pillars"] });
       queryClient.invalidateQueries({ queryKey: ["best-practices", "pillar", selectedPillar] });
+      
+      if (data?.status === "generating") {
+        console.log("Generation started in background, polling will update status...");
+      }
     },
     onError: (error: any) => {
       console.error("Generate error:", error);
@@ -114,15 +191,27 @@ export default function BestPractices() {
     },
   });
 
-  // Generate country best practice mutation
+  // Generate country best practice mutation (now returns 202 for background processing)
+  const [generateCountryError, setGenerateCountryError] = useState<string | null>(null);
   const generateCountryMutation = useMutation({
     mutationFn: ({ isoCode, questionId }: { isoCode: string; questionId: string }) =>
       generateCountryBestPractice(isoCode, questionId),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setGenerateCountryError(null);
+      // Whether 202 (generating) or 200 (completed), refetch to get latest status
       queryClient.invalidateQueries({ 
         queryKey: ["best-practices", "country", selectedCountry, selectedQuestion] 
       });
       queryClient.invalidateQueries({ queryKey: ["best-practices", "question", selectedQuestion] });
+      
+      if (data?.status === "generating") {
+        console.log("Country generation started in background, polling will update status...");
+      }
+    },
+    onError: (error: any) => {
+      console.error("Generate country error:", error);
+      const message = error?.response?.data?.detail || error?.message || "Failed to generate country best practice";
+      setGenerateCountryError(message);
     },
   });
 
@@ -290,6 +379,14 @@ export default function BestPractices() {
         isAdmin={isAdmin}
         onClose={handleCloseCountryModal}
         onGenerate={handleGenerateCountry}
+      />
+
+      {/* Floating Generation Status Indicator */}
+      <GenerationStatusIndicator 
+        questionData={questionQuery.data}
+        countryData={countryQuery.data}
+        isPendingQuestion={generateMutation.isPending}
+        isPendingCountry={generateCountryMutation.isPending}
       />
     </div>
   );

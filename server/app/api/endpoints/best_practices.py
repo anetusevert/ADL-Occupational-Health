@@ -17,12 +17,13 @@ import json
 from datetime import datetime
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User, AIConfig
 from app.models.country import Country
@@ -464,16 +465,267 @@ async def get_country_best_practice(
     )
 
 
-@router.post("/generate/{question_id}", response_model=BestPracticeResponse)
+# =============================================================================
+# BACKGROUND TASK FUNCTIONS
+# =============================================================================
+
+def run_best_practice_generation_task(question_id: str):
+    """
+    Background task that runs the AI generation for a best practice question.
+    Creates its own database session since the request session will be closed.
+    """
+    import asyncio
+    
+    db = SessionLocal()
+    try:
+        # Get the best practice record
+        bp = db.query(BestPractice).filter(BestPractice.question_id == question_id).first()
+        if not bp:
+            logger.error(f"BestPractice not found for {question_id}")
+            return
+        
+        # Get question data
+        q_data = get_question_by_id(question_id)
+        if not q_data:
+            bp.status = "failed"
+            bp.error_message = f"Question '{question_id}' not found"
+            db.commit()
+            return
+        
+        # Get AI config
+        ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+        if not ai_config:
+            bp.status = "failed"
+            bp.error_message = "No AI configuration found"
+            db.commit()
+            return
+        
+        # Run the best practice agent
+        runner = AgentRunner(db, ai_config)
+        
+        async def do_generation():
+            start_time = datetime.utcnow()
+            result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="best-practice-overview",
+                    variables={
+                        "QUESTION_ID": question_id,
+                        "QUESTION_TITLE": q_data["question_title"],
+                        "QUESTION_TEXT": q_data["question_text"],
+                        "PILLAR": PILLAR_DEFINITIONS[q_data["pillar"]]["name"],
+                    },
+                    update_stats=True,
+                    enable_web_search=False,
+                ),
+                timeout=120.0,
+            )
+            end_time = datetime.utcnow()
+            return result, start_time, end_time
+        
+        try:
+            result, start_time, end_time = asyncio.run(do_generation())
+        except asyncio.TimeoutError:
+            bp.status = "failed"
+            bp.error_message = "Generation timed out"
+            db.commit()
+            logger.error(f"Best practice generation timed out for {question_id}")
+            return
+        
+        if not result["success"]:
+            bp.status = "failed"
+            bp.error_message = result.get("error", "Unknown error")
+            db.commit()
+            return
+        
+        # Parse JSON response
+        output = result["output"]
+        try:
+            if isinstance(output, str):
+                if "```json" in output:
+                    output = output.split("```json")[1].split("```")[0]
+                elif "```" in output:
+                    output = output.split("```")[1].split("```")[0]
+                data = json.loads(output)
+            else:
+                data = output
+        except json.JSONDecodeError as e:
+            bp.status = "failed"
+            bp.error_message = f"Failed to parse AI response: {str(e)}"
+            db.commit()
+            return
+        
+        # Update BestPractice with generated content
+        bp.best_practice_overview = data.get("best_practice_overview")
+        bp.key_principles = data.get("key_principles", [])
+        bp.implementation_elements = data.get("implementation_elements", [])
+        bp.success_factors = data.get("success_factors", [])
+        bp.common_pitfalls = data.get("common_pitfalls", [])
+        bp.top_countries = data.get("top_countries", [])
+        bp.status = "completed"
+        bp.generated_at = datetime.utcnow()
+        bp.ai_provider = ai_config.provider.value if ai_config.provider else "unknown"
+        bp.generation_time_ms = int((end_time - start_time).total_seconds() * 1000)
+        
+        db.commit()
+        logger.info(f"Background: Generated best practice for {question_id} in {bp.generation_time_ms}ms")
+        
+    except Exception as e:
+        logger.exception(f"Background: Failed to generate best practice for {question_id}")
+        try:
+            bp = db.query(BestPractice).filter(BestPractice.question_id == question_id).first()
+            if bp:
+                bp.status = "failed"
+                bp.error_message = str(e)
+                db.commit()
+        except:
+            pass
+    finally:
+        db.close()
+
+
+def run_country_best_practice_generation_task(iso_code: str, question_id: str):
+    """
+    Background task that runs the AI generation for a country best practice.
+    Creates its own database session since the request session will be closed.
+    """
+    import asyncio
+    
+    db = SessionLocal()
+    try:
+        # Get the country best practice record
+        cbp = db.query(CountryBestPractice).filter(
+            CountryBestPractice.country_iso_code == iso_code,
+            CountryBestPractice.question_id == question_id,
+        ).first()
+        if not cbp:
+            logger.error(f"CountryBestPractice not found for {iso_code}/{question_id}")
+            return
+        
+        # Get country
+        country = db.query(Country).filter(Country.iso_code == iso_code).first()
+        if not country:
+            cbp.status = "failed"
+            cbp.error_message = f"Country '{iso_code}' not found"
+            db.commit()
+            return
+        
+        # Get question data
+        q_data = get_question_by_id(question_id)
+        if not q_data:
+            cbp.status = "failed"
+            cbp.error_message = f"Question '{question_id}' not found"
+            db.commit()
+            return
+        
+        # Get AI config
+        ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+        if not ai_config:
+            cbp.status = "failed"
+            cbp.error_message = "No AI configuration found"
+            db.commit()
+            return
+        
+        # Run the country best practice agent
+        runner = AgentRunner(db, ai_config)
+        
+        async def do_generation():
+            return await asyncio.wait_for(
+                runner.run(
+                    agent_id="country-best-practice",
+                    variables={
+                        "ISO_CODE": iso_code,
+                        "COUNTRY_NAME": country.name,
+                        "QUESTION_ID": question_id,
+                        "QUESTION_TITLE": q_data["question_title"],
+                        "QUESTION_TEXT": q_data["question_text"],
+                        "PILLAR": PILLAR_DEFINITIONS[q_data["pillar"]]["name"],
+                        "RANK": str(cbp.rank),
+                        "SCORE": str(cbp.score),
+                    },
+                    update_stats=True,
+                    enable_web_search=False,
+                ),
+                timeout=120.0,
+            )
+        
+        try:
+            result = asyncio.run(do_generation())
+        except asyncio.TimeoutError:
+            cbp.status = "failed"
+            cbp.error_message = "Generation timed out"
+            db.commit()
+            logger.error(f"Country best practice generation timed out for {iso_code}/{question_id}")
+            return
+        
+        if not result["success"]:
+            cbp.status = "failed"
+            cbp.error_message = result.get("error", "Unknown error")
+            db.commit()
+            return
+        
+        # Parse JSON response
+        output = result["output"]
+        try:
+            if isinstance(output, str):
+                if "```json" in output:
+                    output = output.split("```json")[1].split("```")[0]
+                elif "```" in output:
+                    output = output.split("```")[1].split("```")[0]
+                data = json.loads(output)
+            else:
+                data = output
+        except json.JSONDecodeError as e:
+            cbp.status = "failed"
+            cbp.error_message = f"Failed to parse AI response: {str(e)}"
+            db.commit()
+            return
+        
+        # Update CountryBestPractice with generated content
+        cbp.approach_description = data.get("approach_description")
+        cbp.why_best_practice = data.get("why_best_practice")
+        cbp.key_metrics = data.get("key_metrics", [])
+        cbp.policy_highlights = data.get("policy_highlights", [])
+        cbp.lessons_learned = data.get("lessons_learned")
+        cbp.transferability = data.get("transferability")
+        cbp.status = "completed"
+        cbp.generated_at = datetime.utcnow()
+        cbp.ai_provider = ai_config.provider.value if ai_config.provider else "unknown"
+        
+        db.commit()
+        logger.info(f"Background: Generated country best practice for {iso_code}/{question_id}")
+        
+    except Exception as e:
+        logger.exception(f"Background: Failed to generate country best practice for {iso_code}/{question_id}")
+        try:
+            cbp = db.query(CountryBestPractice).filter(
+                CountryBestPractice.country_iso_code == iso_code,
+                CountryBestPractice.question_id == question_id,
+            ).first()
+            if cbp:
+                cbp.status = "failed"
+                cbp.error_message = str(e)
+                db.commit()
+        except:
+            pass
+    finally:
+        db.close()
+
+
+# =============================================================================
+# GENERATION ENDPOINTS (Background Processing)
+# =============================================================================
+
+@router.post("/generate/{question_id}")
 async def generate_best_practice(
     question_id: str,
+    background_tasks: BackgroundTasks,
     request: GenerateRequest = GenerateRequest(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
     """
     Generate or regenerate best practice content for a question.
-    Admin only.
+    Admin only. Returns 202 immediately and processes in background.
     """
     # Validate question exists
     q_data = get_question_by_id(question_id)
@@ -490,10 +742,18 @@ async def generate_best_practice(
     
     if bp and not request.force_regenerate:
         if bp.status == "completed":
-            # Return existing content
+            # Return existing content as 200
             return await get_best_practice(question_id, db)
         elif bp.status == "generating":
-            raise HTTPException(status_code=409, detail="Generation already in progress")
+            # Already generating, return 202 with current status
+            return JSONResponse(
+                status_code=202,
+                content={
+                    "status": "generating",
+                    "question_id": question_id,
+                    "message": "Generation already in progress"
+                }
+            )
     
     if not bp:
         bp = BestPractice(
@@ -509,100 +769,35 @@ async def generate_best_practice(
         bp.error_message = None
     
     db.commit()
-    db.refresh(bp)
     
-    try:
-        # Get AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
-        if not ai_config:
-            raise HTTPException(status_code=400, detail="No AI configuration found")
-        
-        # Run the best practice agent
-        runner = AgentRunner(db, ai_config)
-        
-        start_time = datetime.utcnow()
-        result = await asyncio.wait_for(
-            runner.run(
-                agent_id="best-practice-overview",
-                variables={
-                    "QUESTION_ID": question_id,
-                    "QUESTION_TITLE": q_data["question_title"],
-                    "QUESTION_TEXT": q_data["question_text"],
-                    "PILLAR": PILLAR_DEFINITIONS[q_data["pillar"]]["name"],
-                },
-                update_stats=True,
-                enable_web_search=False,  # Use database context only
-            ),
-            timeout=120.0,
-        )
-        end_time = datetime.utcnow()
-        
-        if not result["success"]:
-            bp.status = "failed"
-            bp.error_message = result.get("error", "Unknown error")
-            db.commit()
-            raise HTTPException(status_code=500, detail=result.get("error"))
-        
-        # Parse JSON response
-        output = result["output"]
-        try:
-            if isinstance(output, str):
-                # Clean up potential markdown wrapping
-                if "```json" in output:
-                    output = output.split("```json")[1].split("```")[0]
-                elif "```" in output:
-                    output = output.split("```")[1].split("```")[0]
-                data = json.loads(output)
-            else:
-                data = output
-        except json.JSONDecodeError as e:
-            bp.status = "failed"
-            bp.error_message = f"Failed to parse AI response: {str(e)}"
-            db.commit()
-            raise HTTPException(status_code=500, detail="Failed to parse AI response")
-        
-        # Update BestPractice with generated content
-        bp.best_practice_overview = data.get("best_practice_overview")
-        bp.key_principles = data.get("key_principles", [])
-        bp.implementation_elements = data.get("implementation_elements", [])
-        bp.success_factors = data.get("success_factors", [])
-        bp.common_pitfalls = data.get("common_pitfalls", [])
-        bp.top_countries = data.get("top_countries", [])
-        bp.status = "completed"
-        bp.generated_at = datetime.utcnow()
-        bp.ai_provider = ai_config.provider.value if ai_config.provider else "unknown"
-        bp.generation_time_ms = int((end_time - start_time).total_seconds() * 1000)
-        
-        db.commit()
-        
-        logger.info(f"Generated best practice for {question_id} in {bp.generation_time_ms}ms")
-        
-        return await get_best_practice(question_id, db)
-        
-    except asyncio.TimeoutError:
-        bp.status = "failed"
-        bp.error_message = "Generation timed out"
-        db.commit()
-        raise HTTPException(status_code=504, detail="Generation timed out")
-    except Exception as e:
-        bp.status = "failed"
-        bp.error_message = str(e)
-        db.commit()
-        logger.exception(f"Failed to generate best practice for {question_id}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Schedule background task
+    background_tasks.add_task(run_best_practice_generation_task, question_id)
+    
+    logger.info(f"Scheduled background generation for best practice: {question_id}")
+    
+    # Return 202 Accepted immediately
+    return JSONResponse(
+        status_code=202,
+        content={
+            "status": "generating",
+            "question_id": question_id,
+            "message": "Generation started in background"
+        }
+    )
 
 
-@router.post("/generate-country/{iso_code}/{question_id}", response_model=CountryBestPracticeResponse)
+@router.post("/generate-country/{iso_code}/{question_id}")
 async def generate_country_best_practice(
     iso_code: str,
     question_id: str,
+    background_tasks: BackgroundTasks,
     request: GenerateRequest = GenerateRequest(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
 ):
     """
     Generate or regenerate country-specific best practice analysis.
-    Admin only.
+    Admin only. Returns 202 immediately and processes in background.
     """
     iso_code = iso_code.upper()
     
@@ -629,7 +824,16 @@ async def generate_country_best_practice(
         if cbp.status == "completed":
             return await get_country_best_practice(iso_code, question_id, db)
         elif cbp.status == "generating":
-            raise HTTPException(status_code=409, detail="Generation already in progress")
+            # Already generating, return 202 with current status
+            return JSONResponse(
+                status_code=202,
+                content={
+                    "status": "generating",
+                    "iso_code": iso_code,
+                    "question_id": question_id,
+                    "message": "Generation already in progress"
+                }
+            )
     
     # Calculate country's rank/score for this pillar
     score_field_map = {
@@ -664,84 +868,19 @@ async def generate_country_best_practice(
         cbp.error_message = None
     
     db.commit()
-    db.refresh(cbp)
     
-    try:
-        # Get AI config
-        ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
-        if not ai_config:
-            raise HTTPException(status_code=400, detail="No AI configuration found")
-        
-        # Run the country best practice agent
-        runner = AgentRunner(db, ai_config)
-        
-        result = await asyncio.wait_for(
-            runner.run(
-                agent_id="country-best-practice",
-                variables={
-                    "ISO_CODE": iso_code,
-                    "COUNTRY_NAME": country.name,
-                    "QUESTION_ID": question_id,
-                    "QUESTION_TITLE": q_data["question_title"],
-                    "QUESTION_TEXT": q_data["question_text"],
-                    "PILLAR": PILLAR_DEFINITIONS[q_data["pillar"]]["name"],
-                    "RANK": str(country_rank),
-                    "SCORE": str(country_score),
-                },
-                update_stats=True,
-                enable_web_search=False,
-            ),
-            timeout=120.0,
-        )
-        
-        if not result["success"]:
-            cbp.status = "failed"
-            cbp.error_message = result.get("error", "Unknown error")
-            db.commit()
-            raise HTTPException(status_code=500, detail=result.get("error"))
-        
-        # Parse JSON response
-        output = result["output"]
-        try:
-            if isinstance(output, str):
-                if "```json" in output:
-                    output = output.split("```json")[1].split("```")[0]
-                elif "```" in output:
-                    output = output.split("```")[1].split("```")[0]
-                data = json.loads(output)
-            else:
-                data = output
-        except json.JSONDecodeError as e:
-            cbp.status = "failed"
-            cbp.error_message = f"Failed to parse AI response: {str(e)}"
-            db.commit()
-            raise HTTPException(status_code=500, detail="Failed to parse AI response")
-        
-        # Update CountryBestPractice with generated content
-        cbp.approach_description = data.get("approach_description")
-        cbp.why_best_practice = data.get("why_best_practice")
-        cbp.key_metrics = data.get("key_metrics", [])
-        cbp.policy_highlights = data.get("policy_highlights", [])
-        cbp.lessons_learned = data.get("lessons_learned")
-        cbp.transferability = data.get("transferability")
-        cbp.status = "completed"
-        cbp.generated_at = datetime.utcnow()
-        cbp.ai_provider = ai_config.provider.value if ai_config.provider else "unknown"
-        
-        db.commit()
-        
-        logger.info(f"Generated country best practice for {iso_code}/{question_id}")
-        
-        return await get_country_best_practice(iso_code, question_id, db)
-        
-    except asyncio.TimeoutError:
-        cbp.status = "failed"
-        cbp.error_message = "Generation timed out"
-        db.commit()
-        raise HTTPException(status_code=504, detail="Generation timed out")
-    except Exception as e:
-        cbp.status = "failed"
-        cbp.error_message = str(e)
-        db.commit()
-        logger.exception(f"Failed to generate country best practice for {iso_code}/{question_id}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Schedule background task
+    background_tasks.add_task(run_country_best_practice_generation_task, iso_code, question_id)
+    
+    logger.info(f"Scheduled background generation for country best practice: {iso_code}/{question_id}")
+    
+    # Return 202 Accepted immediately
+    return JSONResponse(
+        status_code=202,
+        content={
+            "status": "generating",
+            "iso_code": iso_code,
+            "question_id": question_id,
+            "message": "Generation started in background"
+        }
+    )
