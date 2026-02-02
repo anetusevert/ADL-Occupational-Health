@@ -18,7 +18,7 @@ import {
   QuestionDeepDive,
   CountryBestPracticeModal 
 } from "../components/best-practices";
-import apiClient from "../services/api";
+import { apiClient } from "../services/api";
 
 // API Functions
 const fetchPillars = async () => {
