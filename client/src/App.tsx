@@ -26,6 +26,7 @@ import { StrategicDeepDive } from "./pages/admin/StrategicDeepDive";
 import { MetricCalculator } from "./pages/admin/MetricCalculator";
 import CountryDeepDive from "./pages/CountryDeepDive";
 import { DeepDiveReports } from "./pages/DeepDiveReports";
+import BestPractices from "./pages/BestPractices";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
 import { PillarPage } from "./pages/PillarPage";
 import { OverallSummary } from "./pages/OverallSummary";
@@ -291,7 +292,7 @@ function AppContent() {
             element={
               <AppLayout>
                 <ProtectedRoute>
-                  <CountryDeepDive />
+                  <BestPractices />
                 </ProtectedRoute>
               </AppLayout>
             }

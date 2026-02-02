@@ -54,7 +54,7 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
-  { path: "/deep-dive", label: "Deep Dive", icon: Brain, beta: true },
+  { path: "/deep-dive", label: "Best Practices", icon: Brain, beta: true },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/compare", label: "Compare", icon: GitCompare },
 ];

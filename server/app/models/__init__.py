@@ -45,6 +45,14 @@ from app.models.ai_call_trace import AICallTrace
 
 from app.models.agent import Agent, DEFAULT_AGENTS
 
+from app.models.best_practice import (
+    BestPractice,
+    CountryBestPractice,
+    STRATEGIC_QUESTIONS,
+    get_questions_by_pillar,
+    get_question_by_id,
+)
+
 __all__ = [
     # Country Enums
     "HeatStressRegulationType",
@@ -79,4 +87,10 @@ __all__ = [
     # Agent Registry
     "Agent",
     "DEFAULT_AGENTS",
+    # Best Practices
+    "BestPractice",
+    "CountryBestPractice",
+    "STRATEGIC_QUESTIONS",
+    "get_questions_by_pillar",
+    "get_question_by_id",
 ]

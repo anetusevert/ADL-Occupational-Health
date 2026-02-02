@@ -18,6 +18,7 @@ from app.api.endpoints.metric_config import router as metric_config_router
 from app.api.endpoints.simulator import router as simulator_router
 from app.api.endpoints.orchestration import router as orchestration_router
 from app.api.endpoints.strategic_deep_dive import router as strategic_deep_dive_router
+from app.api.endpoints.best_practices import router as best_practices_router
 
 # Import view_analysis router with error handling
 try:
@@ -52,6 +53,7 @@ api_router.include_router(metric_config_router, prefix="/admin/metric-config", t
 api_router.include_router(simulator_router)
 api_router.include_router(orchestration_router)
 api_router.include_router(strategic_deep_dive_router)
+api_router.include_router(best_practices_router)
 
 # Include view_analysis router if it loaded successfully
 if view_analysis_router:

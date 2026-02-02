@@ -30,7 +30,7 @@ interface NavigationLoaderProps {
 const routeConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
   "/home": { icon: Map, label: "Global Overview", color: "text-adl-accent" },
   "/framework": { icon: Layers, label: "Framework", color: "text-purple-400" },
-  "/deep-dive": { icon: Brain, label: "Country Deep Analysis", color: "text-cyan-400" },
+  "/deep-dive": { icon: Brain, label: "Best Practices Compendium", color: "text-cyan-400" },
   "/compare": { icon: GitCompare, label: "Compare", color: "text-emerald-400" },
   "/leaderboard": { icon: Trophy, label: "Leaderboard", color: "text-amber-400" },
   "/simulator": { icon: Target, label: "Policy Simulator", color: "text-rose-400" },
