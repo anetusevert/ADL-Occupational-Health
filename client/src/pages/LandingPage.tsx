@@ -112,27 +112,13 @@ export function LandingPage() {
               <div className="absolute bottom-[-200px] left-[-200px] w-[500px] h-[500px] bg-purple-500/[0.03] rounded-full blur-[150px]" />
             </div>
 
-            {/* Header */}
+            {/* Header - Sign In Only */}
             <motion.header
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="relative z-20 flex items-center justify-between px-4 sm:px-6 lg:px-10 py-3 lg:py-4"
+              className="relative z-20 flex items-center justify-end px-4 sm:px-6 lg:px-10 py-3 lg:py-4"
             >
-              <motion.img
-                src="/adl-logo.png"
-                alt="Arthur D. Little"
-                className="h-8 lg:h-10 object-contain"
-                animate={{
-                  filter: [
-                    "drop-shadow(0 0 6px rgba(6,182,212,0.15))",
-                    "drop-shadow(0 0 12px rgba(6,182,212,0.2))",
-                    "drop-shadow(0 0 6px rgba(6,182,212,0.15))",
-                  ],
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-
               <motion.button
                 onClick={() => setIsLoginOpen(true)}
                 whileHover={{ scale: 1.02 }}
@@ -154,7 +140,51 @@ export function LandingPage() {
             <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10 py-2 lg:py-4">
               
               {/* Hero + Features */}
-              <div className="flex flex-col justify-center max-w-2xl">
+              <div className="flex flex-col items-center justify-center max-w-2xl text-center">
+                
+                {/* Both Logos Side by Side */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="flex items-center justify-center gap-6 sm:gap-10 mb-8"
+                >
+                  {/* ADL Logo */}
+                  <motion.img
+                    src="/adl-logo.png"
+                    alt="Arthur D. Little"
+                    className="h-12 sm:h-16 lg:h-20 object-contain"
+                    animate={{
+                      filter: [
+                        "drop-shadow(0 0 8px rgba(6,182,212,0.2))",
+                        "drop-shadow(0 0 16px rgba(6,182,212,0.3))",
+                        "drop-shadow(0 0 8px rgba(6,182,212,0.2))",
+                      ],
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  
+                  {/* Divider */}
+                  <div className="h-12 sm:h-16 lg:h-20 w-px bg-white/20" />
+                  
+                  {/* GOSI Logo - White, cropped */}
+                  <div className="h-12 sm:h-16 lg:h-20 w-24 sm:w-32 lg:w-40 overflow-hidden">
+                    <motion.img
+                      src="/gosi-logo.png"
+                      alt="GOSI"
+                      className="brightness-0 invert object-cover object-top w-full scale-[1.8] origin-top"
+                      animate={{
+                        filter: [
+                          "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+                          "brightness(0) invert(1) drop-shadow(0 0 16px rgba(255,255,255,0.3))",
+                          "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+                        ],
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                    />
+                  </div>
+                </motion.div>
+
                 {/* Title */}
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
@@ -162,24 +192,11 @@ export function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.2 }}
                   className="mb-4 lg:mb-6"
                 >
-                  {/* GOSI Partnership Badge */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.15 }}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] sm:text-xs font-medium text-emerald-400 uppercase tracking-wider">
-                      Developed for GOSI Saudi Arabia
-                    </span>
-                  </motion.div>
-                  
                   <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-[1.1] tracking-tight">
                     Global Occupational{" "}
                     <span className="text-adl-accent">Health Intelligence</span>
                   </h1>
-                  <p className="mt-2 lg:mt-3 text-sm sm:text-base lg:text-lg text-white/50 leading-relaxed max-w-lg">
+                  <p className="mt-2 lg:mt-3 text-sm sm:text-base lg:text-lg text-white/50 leading-relaxed max-w-lg mx-auto">
                     Strategic insights for sovereign occupational health frameworks across 196 nations.
                   </p>
                 </motion.div>
@@ -189,7 +206,7 @@ export function LandingPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.3 }}
-                  className="flex gap-3 mb-4 lg:mb-6"
+                  className="flex justify-center gap-3 mb-4 lg:mb-6"
                 >
                   {stats.map((stat, index) => {
                     const Icon = stat.icon;
@@ -219,7 +236,7 @@ export function LandingPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.4 }}
-                  className="mb-4 lg:mb-6"
+                  className="mb-4 lg:mb-6 flex justify-center"
                 >
                   <motion.button
                     onClick={() => setIsLoginOpen(true)}
