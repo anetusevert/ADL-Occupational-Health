@@ -2,15 +2,14 @@
  * Arthur D. Little - Global Health Platform
  * Overall Summary Page
  * 
- * Comprehensive McKinsey-grade strategic assessment report
- * bringing together all pillars into a unified analysis.
- * 
- * Viewport-fit design with no scrolling.
+ * Document-viewer style strategic assessment report.
+ * McKinsey-grade executive summary with clickable priorities.
+ * No scrolling - content fits viewport.
  */
 
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -23,23 +22,19 @@ import {
   Loader2,
   AlertCircle,
   ChevronDown,
-  Sparkles,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Target,
   ChevronRight,
-  BarChart3,
-  MapPin,
-  Users,
-  Building2,
-  Award,
+  ChevronLeft,
+  RefreshCw,
+  Target,
+  Download,
+  ExternalLink,
 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from "recharts";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
 import { apiClient, aiApiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
 import { ADLIcon } from "../components/ADLLogo";
+import { useAuth } from "../contexts/AuthContext";
 import type { GeoJSONMetadataResponse } from "../types/country";
 
 // ============================================================================
@@ -116,6 +111,14 @@ const PILLARS: Array<{
   },
 ];
 
+// Map pillar names to routes
+const PILLAR_NAME_TO_ROUTE: Record<string, string> = {
+  "Governance": "governance",
+  "Hazard Control": "hazard-control",
+  "Vigilance": "vigilance",
+  "Restoration": "restoration",
+};
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -137,7 +140,8 @@ function generateSummaryFallback(countryName: string, scores: Record<string, num
     executive_summary: [
       `${countryName}'s occupational health system demonstrates ${avgScore >= 60 ? "solid" : avgScore >= 40 ? "moderate" : "developing"} overall performance across the four framework pillars with an average score of ${avgScore.toFixed(0)}%.`,
       `The strongest performance is observed in ${strongestPillar ? PILLARS.find(p => p.scoreField === strongestPillar[0])?.name || strongestPillar[0] : "multiple areas"}, while ${weakestPillar ? PILLARS.find(p => p.scoreField === weakestPillar[0])?.name || weakestPillar[0] : "certain areas"} represents the primary opportunity for strategic improvement.`,
-      "The framework assessment identifies key infrastructure gaps and provides benchmarks against global leaders in each domain.",
+      "The framework assessment identifies key infrastructure gaps and provides benchmarks against global leaders in each domain. Strategic prioritization should focus on high-impact interventions that address systemic weaknesses while leveraging existing institutional strengths.",
+      `Regional benchmarking indicates that ${countryName} performs ${avgScore >= 55 ? "above" : avgScore >= 45 ? "near" : "below"} the regional average, with particular opportunities for improvement in enforcement capacity and surveillance infrastructure.`,
     ],
     strategic_priorities: [
       {
@@ -166,12 +170,17 @@ function generateSummaryFallback(countryName: string, scores: Record<string, num
 
 async function fetchSummaryReport(
   isoCode: string,
-  comparisonIso: string | null
+  comparisonIso: string | null,
+  forceRegenerate: boolean = false
 ): Promise<SummaryReportData> {
   try {
-    const requestBody: Record<string, string> = {
+    const requestBody: Record<string, string | boolean> = {
       comparison_country: comparisonIso || "global",
     };
+    
+    if (forceRegenerate) {
+      requestBody.force_regenerate = true;
+    }
     
     const response = await aiApiClient.post(
       `/api/v1/summary-report/${isoCode}`,
@@ -183,7 +192,7 @@ async function fetchSummaryReport(
       return response.data;
     }
   } catch (error) {
-    console.warn("[OverallSummary] AI report unavailable, using fallback", error);
+    console.warn("[OverallSummary] Report unavailable, using fallback", error);
   }
   
   return generateSummaryFallback(isoCode, {});
@@ -193,136 +202,103 @@ async function fetchSummaryReport(
 // COMPONENTS
 // ============================================================================
 
-interface PillarCardCompactProps {
+interface ClickablePriorityProps {
+  priority: StrategicPriority;
+  index: number;
+  countryIso: string;
+  onNavigate: (route: string) => void;
+}
+
+function ClickablePriority({ priority, index, countryIso, onNavigate }: ClickablePriorityProps) {
+  const pillarRoute = PILLAR_NAME_TO_ROUTE[priority.pillar];
+  const pillarConfig = PILLARS.find(p => p.name === priority.pillar);
+  const Icon = pillarConfig?.icon || Target;
+  
+  return (
+    <motion.button
+      onClick={() => pillarRoute && onNavigate(`/country/${countryIso}/${pillarRoute}`)}
+      whileHover={{ scale: 1.01, x: 4 }}
+      className={cn(
+        "w-full p-3 rounded-lg border text-left transition-all group",
+        priority.urgency === "high" 
+          ? "bg-red-500/10 border-red-500/30 hover:bg-red-500/20" 
+          : priority.urgency === "medium"
+            ? "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20"
+            : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white/60">
+          {index + 1}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="text-sm font-semibold text-white">{priority.priority}</h4>
+            <span className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-medium uppercase",
+              priority.urgency === "high" 
+                ? "bg-red-500/20 text-red-400"
+                : priority.urgency === "medium"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-slate-600 text-slate-300"
+            )}>
+              {priority.urgency}
+            </span>
+          </div>
+          <p className="text-xs text-white/60 mb-2">{priority.rationale}</p>
+          
+          {priority.pillar && (
+            <div className={cn(
+              "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
+              pillarConfig?.bgColor || "bg-white/10",
+              pillarConfig?.borderColor || "border-white/20",
+              "border"
+            )}>
+              <Icon className={cn("w-3 h-3", pillarConfig?.color || "text-white/60")} />
+              <span className={pillarConfig?.color || "text-white/60"}>{priority.pillar}</span>
+              <ChevronRight className={cn("w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity", pillarConfig?.color || "text-white/60")} />
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+interface PillarNavButtonProps {
   pillar: typeof PILLARS[0];
   score: number | null;
+  countryIso: string;
   onNavigate: () => void;
 }
 
-function PillarCardCompact({ pillar, score, onNavigate }: PillarCardCompactProps) {
+function PillarNavButton({ pillar, score, onNavigate }: PillarNavButtonProps) {
   const Icon = pillar.icon;
   
   return (
     <motion.button
       onClick={onNavigate}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.03 }}
       className={cn(
-        "group p-3 rounded-xl border text-left transition-all flex items-center gap-3",
+        "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all",
         pillar.bgColor,
         pillar.borderColor,
         "hover:shadow-lg"
       )}
     >
-      <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-        pillar.bgColor,
-        "border",
-        pillar.borderColor
-      )}>
-        <Icon className={cn("w-4 h-4", pillar.color)} />
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <h4 className="text-xs font-semibold text-white truncate">
-          {pillar.name}
-        </h4>
-      </div>
-      
+      <Icon className={cn("w-5 h-5", pillar.color)} />
+      <span className="text-[10px] font-medium text-white/70">{pillar.name}</span>
       {score !== null && (
-        <div className={cn(
-          "text-lg font-bold flex-shrink-0",
+        <span className={cn(
+          "text-sm font-bold",
           score >= 60 ? "text-emerald-400" : 
           score >= 40 ? "text-amber-400" : "text-red-400"
         )}>
           {score.toFixed(0)}%
-        </div>
+        </span>
       )}
-      
-      <ChevronRight className={cn(
-        "w-4 h-4 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
-        pillar.color
-      )} />
     </motion.button>
-  );
-}
-
-interface ComparisonSelectorProps {
-  selectedIso: string | null;
-  leaders: Array<{
-    iso_code: string;
-    name: string;
-    flag_url?: string;
-    ohi: number | null;
-  }>;
-  onSelect: (iso: string | null) => void;
-}
-
-function ComparisonSelector({ selectedIso, leaders, onSelect }: ComparisonSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const selectedCountry = selectedIso ? leaders.find(c => c.iso_code === selectedIso) : null;
-  
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-          "bg-white/5 hover:bg-white/10 border border-white/10"
-        )}
-      >
-        {selectedCountry ? (
-          <>
-            <CountryFlag isoCode={selectedCountry.iso_code} flagUrl={selectedCountry.flag_url} size="xs" />
-            <span className="text-white flex-1 text-left truncate">{selectedCountry.name}</span>
-            <span className="text-white/50 text-xs">{selectedCountry.ohi?.toFixed(0)}%</span>
-          </>
-        ) : (
-          <>
-            <Globe2 className="w-4 h-4 text-cyan-400" />
-            <span className="text-white/70 flex-1 text-left">Global Benchmark</span>
-          </>
-        )}
-        <ChevronDown className={cn("w-4 h-4 text-white/50 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
-      </button>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
-          >
-            <button
-              onClick={() => { onSelect(null); setIsOpen(false); }}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-white/5",
-                !selectedIso && "bg-white/10"
-              )}
-            >
-              <Globe2 className="w-4 h-4 text-cyan-400" />
-              <span className="text-white flex-1 text-left">Global Benchmark</span>
-            </button>
-            
-            {leaders.map(country => (
-              <button
-                key={country.iso_code}
-                onClick={() => { onSelect(country.iso_code); setIsOpen(false); }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-white/5",
-                  selectedIso === country.iso_code && "bg-white/10"
-                )}
-              >
-                <CountryFlag isoCode={country.iso_code} flagUrl={country.flag_url} size="xs" />
-                <span className="text-white flex-1 text-left truncate">{country.name}</span>
-                <span className="text-white/50 text-xs">{country.ohi?.toFixed(0)}%</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -333,7 +309,11 @@ function ComparisonSelector({ selectedIso, leaders, onSelect }: ComparisonSelect
 export function OverallSummary() {
   const { iso } = useParams<{ iso: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const [comparisonIso, setComparisonIso] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
   
   // Fetch countries data
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({
@@ -399,7 +379,7 @@ export function OverallSummary() {
     }));
   }, [currentCountry, comparisonCountry, globalAverages]);
   
-  // Fetch AI report
+  // Fetch report
   const scores = useMemo(() => {
     if (!currentCountry) return {};
     return {
@@ -413,7 +393,6 @@ export function OverallSummary() {
   const { 
     data: report, 
     isLoading: reportLoading,
-    refetch: refetchReport,
   } = useQuery({
     queryKey: ["summary-report", iso, comparisonIso],
     queryFn: async () => {
@@ -427,6 +406,22 @@ export function OverallSummary() {
     staleTime: 5 * 60 * 1000,
   });
   
+  // Handle regenerate (admin only)
+  const handleRegenerate = async () => {
+    if (!isAdmin || !iso) return;
+    
+    setIsRegenerating(true);
+    try {
+      await fetchSummaryReport(iso, comparisonIso, true);
+      // Invalidate cache to refetch
+      queryClient.invalidateQueries({ queryKey: ["summary-report", iso] });
+    } catch (error) {
+      console.error("Regeneration failed:", error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+  
   // Calculate overall OHI score
   const ohiScore = useMemo(() => {
     if (!currentCountry) return null;
@@ -439,7 +434,7 @@ export function OverallSummary() {
     );
   }, [currentCountry]);
   
-  // Top 5 leaders (for comparison)
+  // Top 5 leaders
   const leaders = useMemo(() => {
     if (!geoData?.countries || !iso) return [];
     return geoData.countries
@@ -454,38 +449,6 @@ export function OverallSummary() {
       .sort((a, b) => (b.ohi ?? 0) - (a.ohi ?? 0))
       .slice(0, 5);
   }, [geoData, iso]);
-  
-  // Calculate averages for stats
-  const avgPillarScore = useMemo(() => {
-    if (!currentCountry) return null;
-    const scores = [
-      currentCountry.governance_score,
-      currentCountry.pillar1_score,
-      currentCountry.pillar2_score,
-      currentCountry.pillar3_score,
-    ].filter(s => s !== null);
-    if (scores.length === 0) return null;
-    return scores.reduce((a, b) => a + (b ?? 0), 0) / scores.length;
-  }, [currentCountry]);
-  
-  // Find strongest and weakest pillars
-  const pillarAnalysis = useMemo(() => {
-    if (!currentCountry) return { strongest: null, weakest: null };
-    
-    const pillarScores = PILLARS.map(p => ({
-      ...p,
-      score: currentCountry[p.scoreField as keyof typeof currentCountry] as number | null,
-    })).filter(p => p.score !== null);
-    
-    if (pillarScores.length === 0) return { strongest: null, weakest: null };
-    
-    pillarScores.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    
-    return {
-      strongest: pillarScores[0],
-      weakest: pillarScores[pillarScores.length - 1],
-    };
-  }, [currentCountry]);
   
   // Loading state
   if (geoLoading) {
@@ -504,7 +467,7 @@ export function OverallSummary() {
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">Country Not Found</h2>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/home")}
             className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
           >
             Return to Map
@@ -517,11 +480,12 @@ export function OverallSummary() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Compact Header */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
+      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/home")}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            title="Back to Global Map"
           >
             <ArrowLeft className="w-4 h-4 text-white/60" />
           </button>
@@ -534,279 +498,303 @@ export function OverallSummary() {
           />
           
           <div>
-            <h1 className="text-lg font-bold text-white">{currentCountry.name}</h1>
-            <div className="flex items-center gap-2">
+            <h1 className="text-base font-bold text-white">{currentCountry.name}</h1>
+            <div className="flex items-center gap-1.5">
               <FileText className="w-3 h-3 text-cyan-400" />
-              <span className="text-xs font-medium text-cyan-400">Overall Summary</span>
+              <span className="text-xs font-medium text-cyan-400">Strategic Assessment</span>
             </div>
           </div>
         </div>
         
-        {/* OHI Score Badge */}
-        {ohiScore !== null && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30">
-            <ADLIcon className="w-5 h-5" />
-            <div className="text-center">
-              <p className="text-[10px] text-white/50 leading-none">ADL OHI</p>
-              <p className="text-lg font-bold text-cyan-400 leading-none">{ohiScore.toFixed(1)}</p>
+        <div className="flex items-center gap-2">
+          {/* OHI Score */}
+          {ohiScore !== null && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30">
+              <ADLIcon className="w-4 h-4" />
+              <span className="text-sm font-bold text-cyan-400">{ohiScore.toFixed(1)}</span>
             </div>
-          </div>
-        )}
+          )}
+          
+          {/* Admin Regenerate Button */}
+          {isAdmin && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating || reportLoading}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
+              title="Regenerate Report (Admin Only)"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", (isRegenerating || reportLoading) && "animate-spin")} />
+              <span>Regenerate</span>
+            </button>
+          )}
+          
+          {/* Export PDF Button */}
+          <button
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-400 text-xs font-medium transition-colors"
+            title="Export PDF Report"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export PDF</span>
+          </button>
+        </div>
       </header>
       
-      {/* Main Content - No Scroll */}
-      <main className="flex-1 p-4 overflow-hidden">
-        <div className="h-full grid grid-cols-3 gap-4">
-          
-          {/* Left Column: Executive Summary + Framework */}
-          <div className="col-span-2 flex flex-col gap-4 overflow-hidden">
-            
-            {/* Executive Summary - Structured */}
-            <section className="flex-1 bg-slate-800/50 rounded-xl border border-slate-700 p-4 overflow-hidden flex flex-col">
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-white">Executive Summary</h2>
-                <button
-                  onClick={() => refetchReport()}
-                  disabled={reportLoading}
-                  className="ml-auto p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <RefreshCw className={cn("w-3.5 h-3.5 text-white/50", reportLoading && "animate-spin")} />
-                </button>
-              </div>
-              
-              {reportLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+      {/* Document Viewer Container */}
+      <main className="flex-1 p-4 overflow-hidden flex items-center justify-center">
+        <div className="w-full h-full max-w-6xl">
+          {/* Paper-like Document */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full bg-slate-800/80 rounded-2xl border border-slate-600/50 shadow-2xl overflow-hidden flex flex-col"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+            }}
+          >
+            {/* Document Header */}
+            <div className="flex-shrink-0 px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-800 to-slate-800/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white tracking-tight">Executive Summary</h2>
+                  <p className="text-xs text-white/50 mt-0.5">{currentCountry.name} — Occupational Health Strategic Assessment</p>
                 </div>
-              ) : (
-                <div className="flex-1 overflow-hidden flex flex-col gap-3">
-                  {/* Key Stats Row */}
-                  <div className="flex-shrink-0 grid grid-cols-4 gap-2">
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <BarChart3 className="w-3 h-3 text-cyan-400" />
+                <div className="flex items-center gap-2">
+                  <ADLIcon className="w-8 h-8 opacity-50" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Document Content */}
+            <div className="flex-1 overflow-hidden flex">
+              {/* Left: Report Content */}
+              <div className="flex-1 p-6 overflow-hidden flex flex-col">
+                {reportLoading ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+                      <p className="text-sm text-white/50">Generating strategic assessment...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                    {/* Executive Summary Text */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <div className="h-full overflow-y-auto pr-2 space-y-3 scrollbar-thin">
+                        {report?.executive_summary.map((para, i) => (
+                          <p key={i} className="text-sm text-white/80 leading-relaxed">
+                            {para}
+                          </p>
+                        ))}
+                        
+                        {report?.overall_assessment && (
+                          <div className="pt-3 mt-3 border-t border-white/10">
+                            <p className="text-sm text-white/80 leading-relaxed">
+                              <span className="font-semibold text-cyan-400">Strategic Outlook: </span>
+                              {report.overall_assessment}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-lg font-bold text-white">{avgPillarScore?.toFixed(0) || "—"}%</p>
-                      <p className="text-[10px] text-white/40">Avg Score</p>
                     </div>
                     
-                    {pillarAnalysis.strongest && (
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <TrendingUp className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <p className="text-lg font-bold text-emerald-400">{pillarAnalysis.strongest.score?.toFixed(0)}%</p>
-                        <p className="text-[10px] text-white/40 truncate">{pillarAnalysis.strongest.name}</p>
+                    {/* Strategic Priorities */}
+                    <div className="flex-shrink-0">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Target className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-semibold text-white">Strategic Priorities</h3>
+                        <span className="text-[10px] text-white/40">(Click to explore)</span>
                       </div>
-                    )}
+                      
+                      <div className="space-y-2">
+                        {report?.strategic_priorities.slice(0, 3).map((priority, i) => (
+                          <ClickablePriority
+                            key={i}
+                            priority={priority}
+                            index={i}
+                            countryIso={currentCountry.iso_code}
+                            onNavigate={(route) => navigate(route, { state: { from: 'summary' } })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Right: Sidebar */}
+              <div className="w-72 flex-shrink-0 border-l border-slate-700/50 p-4 flex flex-col gap-4 overflow-hidden bg-slate-800/30">
+                {/* Framework Pillars */}
+                <div className="flex-shrink-0">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2">Framework Pillars</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PILLARS.map(pillar => {
+                      const score = currentCountry[pillar.scoreField as keyof typeof currentCountry] as number | null;
+                      return (
+                        <PillarNavButton
+                          key={pillar.id}
+                          pillar={pillar}
+                          score={score}
+                          countryIso={currentCountry.iso_code}
+                          onNavigate={() => navigate(`/country/${currentCountry.iso_code}/${pillar.route}`, { state: { from: 'summary' } })}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Global Positioning */}
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2">Global Positioning</h3>
+                  
+                  {/* Comparison Selector */}
+                  <div className="relative mb-2">
+                    <button
+                      onClick={() => setShowComparisonDropdown(!showComparisonDropdown)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                    >
+                      {comparisonCountry ? (
+                        <>
+                          <CountryFlag isoCode={comparisonCountry.iso_code} flagUrl={comparisonCountry.flag_url} size="xs" />
+                          <span className="text-white flex-1 text-left truncate">{comparisonCountry.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="text-white/70 flex-1 text-left">Global Average</span>
+                        </>
+                      )}
+                      <ChevronDown className={cn("w-3.5 h-3.5 text-white/50 transition-transform", showComparisonDropdown && "rotate-180")} />
+                    </button>
                     
-                    {pillarAnalysis.weakest && (
-                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <TrendingDown className="w-3 h-3 text-red-400" />
-                        </div>
-                        <p className="text-lg font-bold text-red-400">{pillarAnalysis.weakest.score?.toFixed(0)}%</p>
-                        <p className="text-[10px] text-white/40 truncate">{pillarAnalysis.weakest.name}</p>
-                      </div>
-                    )}
-                    
-                    <div className="bg-white/5 rounded-lg p-2 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Award className="w-3 h-3 text-amber-400" />
-                      </div>
-                      <p className="text-lg font-bold text-white">
-                        {ohiScore !== null && ohiScore >= 3.5 ? "A" : ohiScore !== null && ohiScore >= 3.0 ? "B" : ohiScore !== null && ohiScore >= 2.0 ? "C" : "D"}
-                      </p>
-                      <p className="text-[10px] text-white/40">Rating</p>
+                    <AnimatePresence>
+                      {showComparisonDropdown && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden"
+                        >
+                          <button
+                            onClick={() => { setComparisonIso(null); setShowComparisonDropdown(false); }}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
+                              !comparisonIso && "bg-white/10"
+                            )}
+                          >
+                            <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+                            <span className="text-white">Global Average</span>
+                          </button>
+                          
+                          {leaders.map(leader => (
+                            <button
+                              key={leader.iso_code}
+                              onClick={() => { setComparisonIso(leader.iso_code); setShowComparisonDropdown(false); }}
+                              className={cn(
+                                "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
+                                comparisonIso === leader.iso_code && "bg-white/10"
+                              )}
+                            >
+                              <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="xs" />
+                              <span className="text-white flex-1 text-left truncate">{leader.name}</span>
+                              <span className="text-white/50">{leader.ohi?.toFixed(0)}%</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  
+                  {/* Top Leaders */}
+                  <div className="mb-2">
+                    <p className="text-[10px] text-white/40 mb-1.5">Top Performers</p>
+                    <div className="flex gap-1">
+                      {leaders.slice(0, 5).map((leader, idx) => (
+                        <button
+                          key={leader.iso_code}
+                          onClick={() => setComparisonIso(leader.iso_code)}
+                          className={cn(
+                            "flex-1 flex flex-col items-center p-1 rounded transition-colors",
+                            comparisonIso === leader.iso_code 
+                              ? "bg-cyan-500/20 ring-1 ring-cyan-500/40" 
+                              : "bg-white/5 hover:bg-white/10"
+                          )}
+                          title={leader.name}
+                        >
+                          <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="xs" />
+                          <span className={cn(
+                            "text-[9px] mt-0.5",
+                            idx === 0 ? "text-amber-400 font-bold" : "text-white/50"
+                          )}>
+                            #{idx + 1}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                   
-                  {/* Summary Paragraphs */}
-                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                    {report?.executive_summary.map((para, i) => (
-                      <p key={i} className="text-xs text-white/70 leading-relaxed">
-                        {para}
-                      </p>
-                    ))}
-                    
-                    {/* Overall Assessment inline */}
-                    {report?.overall_assessment && (
-                      <div className="mt-2 pt-2 border-t border-white/10">
-                        <p className="text-xs text-white/70 leading-relaxed">
-                          <span className="font-medium text-cyan-400">Assessment: </span>
-                          {report.overall_assessment}
-                        </p>
-                      </div>
-                    )}
+                  {/* Radar Chart */}
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
+                        <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                        <PolarAngleAxis 
+                          dataKey="dimension" 
+                          tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 9 }} 
+                        />
+                        <PolarRadiusAxis 
+                          domain={[0, 100]} 
+                          tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 8 }}
+                          axisLine={false}
+                          tickCount={4}
+                        />
+                        <Radar
+                          name={currentCountry.name}
+                          dataKey="current"
+                          stroke="#22d3ee"
+                          fill="#22d3ee"
+                          fillOpacity={0.3}
+                          strokeWidth={2}
+                        />
+                        <Radar
+                          name={comparisonCountry?.name || "Global Avg"}
+                          dataKey="benchmark"
+                          stroke="#a78bfa"
+                          fill="#a78bfa"
+                          fillOpacity={0.15}
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "#1e293b", 
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: "6px",
+                            fontSize: "10px",
+                          }}
+                          labelStyle={{ color: "white" }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: "5px" }}
+                          formatter={(value) => <span className="text-white/60 text-[9px]">{value}</span>}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
-              )}
-            </section>
+              </div>
+            </div>
             
-            {/* Framework Assessment - Compact Row */}
-            <section className="flex-shrink-0">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-4 h-4 text-white/60" />
-                <h2 className="text-sm font-semibold text-white">Framework Pillars</h2>
+            {/* Document Footer */}
+            <div className="flex-shrink-0 px-6 py-2 border-t border-slate-700/50 bg-slate-800/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ADLIcon className="w-4 h-4 opacity-40" />
+                <span className="text-[10px] text-white/30">Arthur D. Little — Occupational Health Intelligence Platform</span>
               </div>
-              
-              <div className="grid grid-cols-4 gap-2">
-                {PILLARS.map(pillar => {
-                  const score = currentCountry[pillar.scoreField as keyof typeof currentCountry] as number | null;
-                  return (
-                    <PillarCardCompact
-                      key={pillar.id}
-                      pillar={pillar}
-                      score={score}
-                      onNavigate={() => navigate(`/country/${currentCountry.iso_code}/${pillar.route}`)}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-            
-            {/* Strategic Priorities - Compact */}
-            <section className="flex-shrink-0 bg-slate-800/50 rounded-xl border border-slate-700 p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-semibold text-white">Strategic Priorities</h2>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2">
-                {report?.strategic_priorities.slice(0, 3).map((priority, i) => (
-                  <div 
-                    key={i}
-                    className={cn(
-                      "p-2 rounded-lg border",
-                      priority.urgency === "high" 
-                        ? "bg-red-500/10 border-red-500/30" 
-                        : priority.urgency === "medium"
-                          ? "bg-amber-500/10 border-amber-500/30"
-                          : "bg-slate-700/50 border-slate-600"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <h4 className="text-xs font-semibold text-white line-clamp-1">{priority.priority}</h4>
-                      <span className={cn(
-                        "px-1.5 py-0.5 rounded text-[10px] font-medium uppercase flex-shrink-0",
-                        priority.urgency === "high" 
-                          ? "bg-red-500/20 text-red-400"
-                          : priority.urgency === "medium"
-                            ? "bg-amber-500/20 text-amber-400"
-                            : "bg-slate-600 text-slate-300"
-                      )}>
-                        {priority.urgency}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-white/50 line-clamp-2">{priority.rationale}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-          
-          {/* Right Column: Global Positioning with Comparison */}
-          <div className="flex flex-col gap-4 overflow-hidden">
-            
-            {/* Global Positioning - Large Radar */}
-            <section className="flex-1 bg-slate-800/50 rounded-xl border border-slate-700 p-4 flex flex-col overflow-hidden">
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <Globe2 className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-white">Global Positioning</h2>
-              </div>
-              
-              {/* Top 5 Leaders */}
-              <div className="flex-shrink-0 mb-3">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Top 5 Best Practice Countries</p>
-                <div className="flex gap-1">
-                  {leaders.map((leader, idx) => (
-                    <button
-                      key={leader.iso_code}
-                      onClick={() => setComparisonIso(leader.iso_code)}
-                      className={cn(
-                        "flex-1 flex flex-col items-center p-1.5 rounded-lg transition-colors",
-                        comparisonIso === leader.iso_code 
-                          ? "bg-cyan-500/20 border border-cyan-500/40" 
-                          : "bg-white/5 hover:bg-white/10 border border-transparent"
-                      )}
-                    >
-                      <span className={cn(
-                        "text-[10px] font-bold mb-1",
-                        idx === 0 ? "text-amber-400" : "text-white/40"
-                      )}>
-                        #{idx + 1}
-                      </span>
-                      <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="xs" />
-                      <span className="text-[10px] text-white/60 mt-1 truncate w-full text-center">
-                        {leader.ohi?.toFixed(0)}%
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Comparison Selector */}
-              <div className="flex-shrink-0 mb-3">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Compare Against</p>
-                <ComparisonSelector
-                  selectedIso={comparisonIso}
-                  leaders={leaders}
-                  onSelect={setComparisonIso}
-                />
-              </div>
-              
-              {/* Large Radar Chart */}
-              <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                    <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                    <PolarAngleAxis 
-                      dataKey="dimension" 
-                      tick={{ fill: "rgba(255,255,255,0.7)", fontSize: 10 }} 
-                    />
-                    <PolarRadiusAxis 
-                      domain={[0, 100]} 
-                      tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-                      axisLine={false}
-                      tickCount={5}
-                    />
-                    <Radar
-                      name={currentCountry.name}
-                      dataKey="current"
-                      stroke="#22d3ee"
-                      fill="#22d3ee"
-                      fillOpacity={0.3}
-                      strokeWidth={2}
-                    />
-                    <Radar
-                      name={comparisonCountry?.name || "Global Average"}
-                      dataKey="benchmark"
-                      stroke="#a78bfa"
-                      fill="#a78bfa"
-                      fillOpacity={0.15}
-                      strokeWidth={2}
-                      strokeDasharray="4 4"
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "#1e293b", 
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                      }}
-                      labelStyle={{ color: "white" }}
-                    />
-                    <Legend 
-                      wrapperStyle={{ paddingTop: "5px" }}
-                      formatter={(value) => <span className="text-white/70 text-[10px]">{value}</span>}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-            
-          </div>
+              <span className="text-[10px] text-white/30">
+                {report?.generated_at ? new Date(report.generated_at).toLocaleDateString() : new Date().toLocaleDateString()}
+              </span>
+            </div>
+          </motion.div>
         </div>
       </main>
     </div>

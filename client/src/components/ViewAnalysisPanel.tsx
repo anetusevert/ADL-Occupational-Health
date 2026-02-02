@@ -224,7 +224,7 @@ export function ViewAnalysisPanel({
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-white">Deep Analysis</h3>
-          <p className="text-[10px] text-white/40">AI-powered expert insights</p>
+          <p className="text-[10px] text-white/40">Research-based expert insights</p>
         </div>
         {analysis?.cached && (
           <span className="px-2 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 font-medium">

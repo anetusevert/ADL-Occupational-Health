@@ -276,7 +276,7 @@ export function PillarSelectionModal({
               {/* Footer hint */}
               <div className="px-5 pb-5">
                 <p className="text-xs text-white/30 text-center">
-                  Each pillar includes architecture maps, AI analysis, and benchmark comparisons
+                  Each pillar includes strategic analysis, best practices, and benchmark comparisons
                 </p>
               </div>
             </div>

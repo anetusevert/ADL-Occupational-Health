@@ -262,7 +262,7 @@ export function ReportDisplayStep({
           </h3>
           <p className="text-slate-400 text-sm mb-4">
             {isGenerating 
-              ? `AI is analyzing occupational health data for ${country?.name || "your selection"}...`
+              ? `Analyzing occupational health data for ${country?.name || "your selection"}...`
               : `Fetching report for ${country?.name || "your selection"}...`
             }
           </p>
