@@ -22,12 +22,12 @@ import {
   Loader2,
   AlertCircle,
   ChevronDown,
-  ChevronRight,
   RefreshCw,
   Target,
   Download,
   Lock,
   Sparkles,
+  Search,
 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from "recharts";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
@@ -313,6 +313,7 @@ export function OverallSummary() {
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [fallbackReport, setFallbackReport] = useState<SummaryReportData | null>(null);
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
   
   // Fetch countries data
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({
@@ -477,8 +478,8 @@ export function OverallSummary() {
     );
   }, [currentCountry]);
   
-  // Top 5 leaders
-  const leaders = useMemo(() => {
+  // All countries for comparison (excluding current country)
+  const allCountriesForComparison = useMemo(() => {
     if (!geoData?.countries || !iso) return [];
     return geoData.countries
       .filter(c => c.iso_code !== iso)
@@ -489,9 +490,25 @@ export function OverallSummary() {
         ohi: getEffectiveOHIScore(c.maturity_score, c.governance_score, c.pillar1_score, c.pillar2_score, c.pillar3_score),
       }))
       .filter(c => c.ohi !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [geoData, iso]);
+  
+  // Top 5 leaders (for quick selection)
+  const leaders = useMemo(() => {
+    return [...allCountriesForComparison]
       .sort((a, b) => (b.ohi ?? 0) - (a.ohi ?? 0))
       .slice(0, 5);
-  }, [geoData, iso]);
+  }, [allCountriesForComparison]);
+  
+  // Filtered countries for dropdown search
+  const filteredCountries = useMemo(() => {
+    if (!countrySearchQuery.trim()) return allCountriesForComparison;
+    const query = countrySearchQuery.toLowerCase();
+    return allCountriesForComparison.filter(c => 
+      c.name.toLowerCase().includes(query) || 
+      c.iso_code.toLowerCase().includes(query)
+    );
+  }, [allCountriesForComparison, countrySearchQuery]);
   
   // Loading state
   if (geoLoading) {
@@ -528,9 +545,9 @@ export function OverallSummary() {
         <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
               className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-              title="Back to Global Map"
+              title="Back to Country Options"
             >
               <ArrowLeft className="w-4 h-4 text-white/60" />
             </button>
@@ -599,10 +616,10 @@ export function OverallSummary() {
               </button>
             ) : (
               <button
-                onClick={() => navigate("/home")}
+                onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
                 className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors"
               >
-                Return to Global Map
+                Return to Country Options
               </button>
             )}
           </div>
@@ -617,9 +634,9 @@ export function OverallSummary() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="Back to Global Map"
+            title="Back to Country Options"
           >
             <ArrowLeft className="w-4 h-4 text-white/60" />
           </button>
@@ -820,20 +837,71 @@ export function OverallSummary() {
                 <div className="flex-1 min-h-0 flex flex-col">
                   <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-2">Global Positioning</h3>
                   
-                  {/* Comparison Selector */}
-                  <div className="relative mb-2">
+                  {/* Radar Chart - LARGER, at the top */}
+                  <div className="h-52 mb-3">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData} margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
+                        <PolarGrid stroke="rgba(255,255,255,0.15)" />
+                        <PolarAngleAxis 
+                          dataKey="dimension" 
+                          tick={{ fill: "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 500 }} 
+                        />
+                        <PolarRadiusAxis 
+                          domain={[0, 100]} 
+                          tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
+                          axisLine={false}
+                          tickCount={4}
+                        />
+                        <Radar
+                          name={currentCountry.name}
+                          dataKey="current"
+                          stroke="#22d3ee"
+                          fill="#22d3ee"
+                          fillOpacity={0.35}
+                          strokeWidth={2}
+                        />
+                        <Radar
+                          name={comparisonCountry?.name || "Global Avg"}
+                          dataKey="benchmark"
+                          stroke="#a78bfa"
+                          fill="#a78bfa"
+                          fillOpacity={0.2}
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "#1e293b", 
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: "8px",
+                            fontSize: "11px",
+                          }}
+                          labelStyle={{ color: "white", fontWeight: 500 }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: "8px" }}
+                          formatter={(value) => <span className="text-white/70 text-[10px]">{value}</span>}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Comparison Selector - Full country list */}
+                  <div className="relative">
+                    <p className="text-[10px] text-white/40 mb-1">Compare with</p>
                     <button
-                      onClick={() => setShowComparisonDropdown(!showComparisonDropdown)}
+                      onClick={() => { setShowComparisonDropdown(!showComparisonDropdown); setCountrySearchQuery(""); }}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                     >
                       {comparisonCountry ? (
                         <>
-                          <CountryFlag isoCode={comparisonCountry.iso_code} flagUrl={comparisonCountry.flag_url} size="xs" />
+                          <CountryFlag isoCode={comparisonCountry.iso_code} flagUrl={comparisonCountry.flag_url} size="sm" className="w-5 h-4" />
                           <span className="text-white flex-1 text-left truncate">{comparisonCountry.name}</span>
+                          <span className="text-white/50 text-[10px]">{getEffectiveOHIScore(comparisonCountry.maturity_score, comparisonCountry.governance_score, comparisonCountry.pillar1_score, comparisonCountry.pillar2_score, comparisonCountry.pillar3_score)?.toFixed(0)}%</span>
                         </>
                       ) : (
                         <>
-                          <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+                          <Globe2 className="w-4 h-4 text-cyan-400" />
                           <span className="text-white/70 flex-1 text-left">Global Average</span>
                         </>
                       )}
@@ -846,111 +914,103 @@ export function OverallSummary() {
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
-                          className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden"
+                          className="absolute bottom-full left-0 right-0 mb-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden"
                         >
-                          <button
-                            onClick={() => { setComparisonIso(null); setShowComparisonDropdown(false); }}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
-                              !comparisonIso && "bg-white/10"
-                            )}
-                          >
-                            <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
-                            <span className="text-white">Global Average</span>
-                          </button>
+                          {/* Search input */}
+                          <div className="p-2 border-b border-white/10">
+                            <input
+                              type="text"
+                              placeholder="Search countries..."
+                              value={countrySearchQuery}
+                              onChange={(e) => setCountrySearchQuery(e.target.value)}
+                              className="w-full px-2 py-1 text-xs bg-slate-700 border border-slate-600 rounded text-white placeholder-white/40 focus:outline-none focus:border-cyan-500"
+                              autoFocus
+                            />
+                          </div>
                           
-                          {leaders.map(leader => (
+                          {/* Country list - scrollable */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {/* Global Average option */}
                             <button
-                              key={leader.iso_code}
-                              onClick={() => { setComparisonIso(leader.iso_code); setShowComparisonDropdown(false); }}
+                              onClick={() => { setComparisonIso(null); setShowComparisonDropdown(false); }}
                               className={cn(
                                 "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
-                                comparisonIso === leader.iso_code && "bg-white/10"
+                                !comparisonIso && "bg-cyan-500/20"
                               )}
                             >
-                              <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="xs" />
-                              <span className="text-white flex-1 text-left truncate">{leader.name}</span>
-                              <span className="text-white/50">{leader.ohi?.toFixed(0)}%</span>
+                              <Globe2 className="w-4 h-4 text-cyan-400" />
+                              <span className="text-white font-medium">Global Average</span>
                             </button>
-                          ))}
+                            
+                            {/* Top performers section */}
+                            {!countrySearchQuery && (
+                              <div className="px-2 py-1 bg-slate-700/50">
+                                <span className="text-[10px] text-amber-400 font-medium">Top Performers</span>
+                              </div>
+                            )}
+                            {!countrySearchQuery && leaders.map((leader, idx) => (
+                              <button
+                                key={`leader-${leader.iso_code}`}
+                                onClick={() => { setComparisonIso(leader.iso_code); setShowComparisonDropdown(false); }}
+                                className={cn(
+                                  "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
+                                  comparisonIso === leader.iso_code && "bg-cyan-500/20"
+                                )}
+                              >
+                                <span className="w-4 text-center text-amber-400 text-[10px] font-bold">#{idx + 1}</span>
+                                <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="sm" className="w-5 h-4" />
+                                <span className="text-white flex-1 text-left truncate">{leader.name}</span>
+                                <span className="text-white/50">{leader.ohi?.toFixed(0)}%</span>
+                              </button>
+                            ))}
+                            
+                            {/* Divider */}
+                            {!countrySearchQuery && (
+                              <div className="px-2 py-1 bg-slate-700/50">
+                                <span className="text-[10px] text-white/40">All Countries (A-Z)</span>
+                              </div>
+                            )}
+                            
+                            {/* All countries or filtered results */}
+                            {filteredCountries.map(country => (
+                              <button
+                                key={country.iso_code}
+                                onClick={() => { setComparisonIso(country.iso_code); setShowComparisonDropdown(false); }}
+                                className={cn(
+                                  "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5",
+                                  comparisonIso === country.iso_code && "bg-cyan-500/20"
+                                )}
+                              >
+                                <CountryFlag isoCode={country.iso_code} flagUrl={country.flag_url} size="sm" className="w-5 h-4" />
+                                <span className="text-white flex-1 text-left truncate">{country.name}</span>
+                                <span className="text-white/50">{country.ohi?.toFixed(0)}%</span>
+                              </button>
+                            ))}
+                            
+                            {filteredCountries.length === 0 && countrySearchQuery && (
+                              <div className="px-2 py-3 text-center text-xs text-white/40">
+                                No countries found
+                              </div>
+                            )}
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
-                  
-                  {/* Top Leaders */}
-                  <div className="mb-2">
-                    <p className="text-[10px] text-white/40 mb-1.5">Top Performers</p>
-                    <div className="flex gap-1">
-                      {leaders.slice(0, 5).map((leader, idx) => (
-                        <button
-                          key={leader.iso_code}
-                          onClick={() => setComparisonIso(leader.iso_code)}
-                          className={cn(
-                            "flex-1 flex flex-col items-center p-1 rounded transition-colors",
-                            comparisonIso === leader.iso_code 
-                              ? "bg-cyan-500/20 ring-1 ring-cyan-500/40" 
-                              : "bg-white/5 hover:bg-white/10"
-                          )}
-                          title={leader.name}
-                        >
-                          <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url} size="xs" />
-                          <span className={cn(
-                            "text-[9px] mt-0.5",
-                            idx === 0 ? "text-amber-400 font-bold" : "text-white/50"
-                          )}>
-                            #{idx + 1}
-                          </span>
-                        </button>
-                      ))}
+                </div>
+                
+                {/* Legend indicator for comparison */}
+                <div className="flex-shrink-0 pt-2 border-t border-slate-700/50 mt-2">
+                  <div className="flex items-center justify-center gap-4 text-[10px]">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-cyan-500/40 border border-cyan-500" />
+                      <span className="text-white/60">{currentCountry.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-purple-500/30 border border-purple-500 border-dashed" />
+                      <span className="text-white/60">{comparisonCountry?.name || "Global Avg"}</span>
                     </div>
                   </div>
-                  
-                  {/* Radar Chart */}
-                  <div className="flex-1 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={radarData} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-                        <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                        <PolarAngleAxis 
-                          dataKey="dimension" 
-                          tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 9 }} 
-                        />
-                        <PolarRadiusAxis 
-                          domain={[0, 100]} 
-                          tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 8 }}
-                          axisLine={false}
-                          tickCount={4}
-                        />
-                        <Radar
-                          name={currentCountry.name}
-                          dataKey="current"
-                          stroke="#22d3ee"
-                          fill="#22d3ee"
-                          fillOpacity={0.3}
-                          strokeWidth={2}
-                        />
-                        <Radar
-                          name={comparisonCountry?.name || "Global Avg"}
-                          dataKey="benchmark"
-                          stroke="#a78bfa"
-                          fill="#a78bfa"
-                          fillOpacity={0.15}
-                          strokeWidth={1.5}
-                          strokeDasharray="3 3"
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: "#1e293b", 
-                            border: "1px solid rgba(255,255,255,0.1)",
-                            borderRadius: "6px",
-                            fontSize: "10px",
-                          }}
-                          labelStyle={{ color: "white" }}
-                        />
-                        <Legend 
-                          wrapperStyle={{ paddingTop: "5px" }}
-                          formatter={(value) => <span className="text-white/60 text-[9px]">{value}</span>}
-                        />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>

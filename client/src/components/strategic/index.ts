@@ -13,3 +13,4 @@ export type {
 
 export { BestPracticePanel } from "./BestPracticePanel";
 export { QuestionDetailModal } from "./QuestionDetailModal";
+export { LeaderDetailModal } from "./LeaderDetailModal";

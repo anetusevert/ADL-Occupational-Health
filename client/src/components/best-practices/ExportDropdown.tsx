@@ -2,12 +2,12 @@
  * Arthur D. Little - Global Health Platform
  * Export Dropdown Component for Best Practices
  * 
- * Reusable dropdown with PDF and Word export options
+ * Reusable dropdown menu for PDF and Word export options.
  */
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2 } from "lucide-react";
+import { Download, FileText, File, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface ExportDropdownProps {
@@ -64,15 +64,14 @@ export function ExportDropdown({
 
   return (
     <div ref={dropdownRef} className={cn("relative", className)}>
-      {/* Trigger Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled || isExporting !== null}
         className={cn(
           "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-          disabled || isExporting
-            ? "bg-slate-700/50 text-slate-500 cursor-not-allowed"
-            : "bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-white hover:border-slate-600/60"
+          "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400",
+          "hover:bg-emerald-500/30 hover:border-emerald-500/50",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
         whileHover={!disabled && !isExporting ? { scale: 1.02 } : undefined}
         whileTap={!disabled && !isExporting ? { scale: 0.98 } : undefined}
@@ -83,10 +82,9 @@ export function ExportDropdown({
           <Download className="w-4 h-4" />
         )}
         <span>Export</span>
-        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-3 h-3 transition-transform", isOpen && "rotate-180")} />
       </motion.button>
 
-      {/* Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -94,56 +92,51 @@ export function ExportDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-48 z-50 bg-slate-800/98 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden"
+            className="absolute right-0 mt-2 w-48 z-50"
           >
-            {/* PDF Option */}
-            <motion.button
-              onClick={handleExportPDF}
-              disabled={isExporting !== null}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isExporting === "pdf"
-                  ? "bg-purple-500/20 text-purple-300"
-                  : "hover:bg-slate-700/50 text-slate-300 hover:text-white"
-              )}
-              whileHover={!isExporting ? { x: 2 } : undefined}
-            >
-              {isExporting === "pdf" ? (
-                <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-              ) : (
-                <FileText className="w-4 h-4 text-red-400" />
-              )}
-              <div>
-                <span className="text-sm font-medium">Export as PDF</span>
-                <p className="text-xs text-slate-500">High-quality print format</p>
-              </div>
-            </motion.button>
+            <div className="bg-slate-800/95 backdrop-blur-lg border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden">
+              <div className="p-1">
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting !== null}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
+                    "text-slate-300 hover:bg-slate-700/50 hover:text-white",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {isExporting === "pdf" ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-red-400" />
+                  )}
+                  <div>
+                    <div className="text-sm font-medium">Export as PDF</div>
+                    <div className="text-xs text-slate-500">High-quality document</div>
+                  </div>
+                </button>
 
-            {/* Divider */}
-            <div className="h-px bg-slate-700/50" />
-
-            {/* Word Option */}
-            <motion.button
-              onClick={handleExportWord}
-              disabled={isExporting !== null}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isExporting === "word"
-                  ? "bg-purple-500/20 text-purple-300"
-                  : "hover:bg-slate-700/50 text-slate-300 hover:text-white"
-              )}
-              whileHover={!isExporting ? { x: 2 } : undefined}
-            >
-              {isExporting === "word" ? (
-                <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-              ) : (
-                <FileSpreadsheet className="w-4 h-4 text-blue-400" />
-              )}
-              <div>
-                <span className="text-sm font-medium">Export as Word</span>
-                <p className="text-xs text-slate-500">Editable document</p>
+                <button
+                  onClick={handleExportWord}
+                  disabled={isExporting !== null}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
+                    "text-slate-300 hover:bg-slate-700/50 hover:text-white",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {isExporting === "word" ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                  ) : (
+                    <File className="w-4 h-4 text-blue-400" />
+                  )}
+                  <div>
+                    <div className="text-sm font-medium">Export as Word</div>
+                    <div className="text-xs text-slate-500">Editable document</div>
+                  </div>
+                </button>
               </div>
-            </motion.button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

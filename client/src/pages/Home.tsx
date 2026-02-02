@@ -7,9 +7,9 @@
  * Phase 21: Enhanced stat modals + Quick Access filters
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Globe2, 
   Database, 
@@ -113,12 +113,16 @@ type ModalType = "countries" | "maturity" | "data" | null;
 
 export function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedMetric, setSelectedMetric] = useState<MapMetric>("maturity_score");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MapCountryData | null>(null);
   
   // View Selection Modal state
   const [viewSelectionCountry, setViewSelectionCountry] = useState<MapCountryData | null>(null);
+  
+  // Pending pillar modal ISO code (set from navigation state)
+  const [pendingPillarModalIso, setPendingPillarModalIso] = useState<string | null>(null);
   
   // Quick Access Filters
   const [continentFilter, setContinentFilter] = useState<string>("All");
@@ -160,6 +164,27 @@ export function Home() {
     })),
     [data]
   );
+  
+  // Check for navigation state to open pillar selection modal
+  useEffect(() => {
+    const state = location.state as { openPillarModal?: string } | null;
+    if (state?.openPillarModal) {
+      setPendingPillarModalIso(state.openPillarModal);
+      // Clear the navigation state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+  
+  // Open pillar modal when data is loaded and we have a pending ISO
+  useEffect(() => {
+    if (pendingPillarModalIso && mapCountries.length > 0) {
+      const country = mapCountries.find(c => c.iso_code === pendingPillarModalIso);
+      if (country) {
+        setViewSelectionCountry(country);
+        setPendingPillarModalIso(null);
+      }
+    }
+  }, [pendingPillarModalIso, mapCountries]);
 
   // Stats calculations
   const totalCountries = mapCountries.length;

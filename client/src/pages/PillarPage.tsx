@@ -36,6 +36,7 @@ import {
 import { 
   StrategicQuestionCard, 
   QuestionDetailModal,
+  LeaderDetailModal,
   type QuestionAnswer,
   type BestPracticeLeader,
 } from "../components/strategic";
@@ -206,6 +207,10 @@ export function PillarPage() {
     bestPractices: BestPracticeLeader[];
     index: number;
   } | null>(null);
+  const [selectedLeader, setSelectedLeader] = useState<{
+    leader: BestPracticeLeader;
+    rank: number;
+  } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [fallbackData, setFallbackData] = useState<PillarAnalysisResponse | null>(null);
@@ -324,14 +329,9 @@ export function PillarPage() {
     }
   };
   
-  // Handle back navigation
+  // Handle back navigation - always go back to pillar selection modal
   const handleBack = () => {
-    const from = (location.state as { from?: string })?.from;
-    if (from === "summary") {
-      navigate(`/country/${iso}/summary`);
-    } else {
-      navigate("/home");
-    }
+    navigate("/home", { state: { openPillarModal: iso } });
   };
   
   // Handle question click
@@ -649,6 +649,27 @@ export function PillarPage() {
           pillarBgColor={pillarDef.bgColor}
           pillarBorderColor={pillarDef.borderColor}
           countryName={currentCountry.name}
+          onLeaderClick={(leader) => {
+            const rank = selectedQuestion.bestPractices.findIndex(
+              l => l.country_iso === leader.country_iso
+            ) + 1;
+            setSelectedLeader({ leader, rank });
+          }}
+        />
+      )}
+      
+      {/* Leader Detail Modal */}
+      {selectedLeader && pillarDef && selectedQuestion && (
+        <LeaderDetailModal
+          isOpen={!!selectedLeader}
+          onClose={() => setSelectedLeader(null)}
+          leader={selectedLeader.leader}
+          questionTitle={selectedQuestion.question.title}
+          pillarName={pillarDef.name}
+          pillarColor={pillarDef.color}
+          pillarBgColor={pillarDef.bgColor}
+          pillarBorderColor={pillarDef.borderColor}
+          rank={selectedLeader.rank}
         />
       )}
     </div>
