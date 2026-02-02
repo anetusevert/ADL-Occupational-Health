@@ -28,6 +28,7 @@ from app.core.dependencies import get_current_user_optional
 from app.models.user import User, AIConfig
 from app.models.country import Country, CachedPillarReport, CachedSummaryReport
 from app.models.agent import Agent, DEFAULT_AGENTS
+from app.models.best_practice import BestPractice, STRATEGIC_QUESTIONS
 from app.services.agent_runner import AgentRunner
 from app.services.country_data_provider import CountryDataProvider
 
@@ -135,6 +136,80 @@ def is_admin(user: Optional[User]) -> bool:
     return user is not None and user.role == "admin"
 
 
+def get_pillar_best_practices(db: Session, pillar_id: str) -> Dict[str, Any]:
+    """Get best practice leaders from the database for a pillar.
+    
+    Returns a dict with:
+    - top_countries: list of top performing countries
+    - strategic_questions: list of questions for this pillar
+    """
+    # Map pillar_id to pillar name for best practices
+    pillar_map = {
+        "governance": "governance",
+        "hazard-control": "hazard",
+        "vigilance": "vigilance",
+        "restoration": "restoration",
+    }
+    pillar_name = pillar_map.get(pillar_id, pillar_id)
+    
+    # Score field map for querying top countries
+    score_field_map = {
+        "governance": "governance_score",
+        "hazard-control": "pillar1_score",
+        "vigilance": "pillar2_score",
+        "restoration": "pillar3_score",
+    }
+    score_field = score_field_map.get(pillar_id, "governance_score")
+    
+    # Get top 5 countries by pillar score
+    from sqlalchemy import desc
+    top_countries = []
+    try:
+        countries = db.query(Country).filter(
+            getattr(Country, score_field).isnot(None)
+        ).order_by(
+            desc(getattr(Country, score_field))
+        ).limit(5).all()
+        
+        for idx, country in enumerate(countries):
+            score = getattr(country, score_field) or 0
+            top_countries.append({
+                "iso_code": country.iso_code,
+                "name": country.name,
+                "rank": idx + 1,
+                "score": int(score * 100) if score <= 1 else int(score),
+            })
+    except Exception as e:
+        logger.warning(f"Error getting top countries for {pillar_id}: {e}")
+    
+    # Get strategic questions for this pillar
+    questions = [q for q in STRATEGIC_QUESTIONS if q["pillar"] == pillar_name]
+    
+    # Get cached best practice data if available
+    cached_best_practices = []
+    try:
+        bp_records = db.query(BestPractice).filter(
+            BestPractice.pillar == pillar_name,
+            BestPractice.status == "completed"
+        ).all()
+        
+        for bp in bp_records:
+            cached_bp = {
+                "question_id": bp.question_id,
+                "question_title": bp.question_title,
+                "top_countries": bp.top_countries or [],
+            }
+            cached_best_practices.append(cached_bp)
+    except Exception as e:
+        logger.warning(f"Error getting cached best practices: {e}")
+    
+    return {
+        "top_countries": top_countries,
+        "strategic_questions": questions,
+        "cached_best_practices": cached_best_practices,
+    }
+
+
 def parse_agent_response(response_text: str) -> Dict[str, Any]:
     """Parse JSON response from agent."""
     try:
@@ -227,6 +302,54 @@ def store_summary_report(db: Session, iso_code: str, report_dict: dict, user_id:
     logger.info(f"Stored summary report: {iso_code}")
 
 
+def get_or_create_agent(db: Session, agent_id: str) -> Optional[Agent]:
+    """Get or create agent from database."""
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        # Try to create from defaults
+        for agent_data in DEFAULT_AGENTS:
+            if agent_data["id"] == agent_id:
+                agent = Agent(**agent_data)
+                db.add(agent)
+                db.commit()
+                db.refresh(agent)
+                return agent
+    return agent
+
+
+def build_pillar_user_prompt(country_name: str, pillar_id: str, country_context: str) -> str:
+    """Build user prompt for pillar analysis."""
+    pillar_name = PILLAR_NAMES.get(pillar_id, pillar_id)
+    
+    return f"""Analyze the {pillar_name} pillar for {country_name}.
+
+Country Context:
+{country_context}
+
+Provide a comprehensive analysis following the required JSON format. Include:
+1. Analysis of current state and gaps
+2. Key insights with specific data points
+3. Actionable recommendations
+
+Focus on McKinsey-grade consulting quality with specific, evidence-based findings."""
+
+
+def build_summary_user_prompt(country_name: str, country_context: str, comparison: str) -> str:
+    """Build user prompt for summary report."""
+    return f"""Create a comprehensive strategic assessment for {country_name}.
+
+Country Context:
+{country_context}
+
+Comparison: {comparison}
+
+Provide a McKinsey-grade executive summary covering:
+1. Overall system assessment
+2. Key strengths and gaps
+3. Strategic priorities
+4. Recommendations for improvement"""
+
+
 # =============================================================================
 # PILLAR ANALYSIS ENDPOINTS
 # =============================================================================
@@ -293,6 +416,16 @@ async def generate_pillar_analysis(
             data_provider = CountryDataProvider(db)
             comparison_context = data_provider.get_database_context(request.comparison_country)
     
+    # Get best practice leaders from database
+    best_practice_data = get_pillar_best_practices(db, pillar_id)
+    best_practice_context = json.dumps({
+        "top_countries": best_practice_data["top_countries"],
+        "strategic_questions": [
+            {"question_id": q["question_id"], "title": q["question_title"], "text": q["question_text"]}
+            for q in best_practice_data["strategic_questions"]
+        ],
+    }, indent=2)
+    
     # Get AI config
     ai_config = get_ai_config(db)
     if not ai_config:
@@ -316,6 +449,7 @@ async def generate_pillar_analysis(
                 "PILLAR_ID": pillar_id,
                 "PILLAR_NAME": PILLAR_NAMES[pillar_id],
                 "COMPARISON_DATA": comparison_context,
+                "BEST_PRACTICE_LEADERS": best_practice_context,
             },
             enable_web_search=True,
         )
