@@ -613,3 +613,181 @@ def generate_summary_fallback_response(country: Country) -> SummaryReportRespons
         generated_at=datetime.utcnow().isoformat(),
         cached=False,
     )
+
+
+# =============================================================================
+# BATCH GENERATION ENDPOINTS
+# =============================================================================
+
+class BatchGenerationStatus(BaseModel):
+    """Status of batch report generation."""
+    iso_code: str
+    total: int = 5
+    completed: int = 0
+    in_progress: str = ""
+    results: Dict[str, str] = {}  # pillar_id -> status ("success", "cached", "error")
+    message: str = ""
+
+batch_router = APIRouter(prefix="/batch-generate", tags=["Batch Generation"])
+
+
+@batch_router.post("/{iso_code}", response_model=BatchGenerationStatus)
+async def batch_generate_reports(
+    iso_code: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Generate all reports for a country (4 pillars + summary).
+    Admin only. Runs synchronously to completion.
+    """
+    iso_code = iso_code.upper()
+    
+    # Admin check
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required for batch generation"
+        )
+    
+    # Verify country exists
+    country = get_country_data(db, iso_code)
+    if not country:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Country not found: {iso_code}"
+        )
+    
+    logger.info(f"[BatchGenerate] Starting batch generation for {iso_code}")
+    
+    status_response = BatchGenerationStatus(
+        iso_code=iso_code,
+        total=5,
+        completed=0,
+        results={}
+    )
+    
+    # Pillars to generate
+    pillars = ["governance", "hazard-control", "vigilance", "restoration"]
+    
+    # Check for existing cached reports
+    for pillar_id in pillars:
+        cached = get_cached_pillar_report(db, iso_code, pillar_id)
+        if cached:
+            status_response.results[pillar_id] = "cached"
+            status_response.completed += 1
+    
+    # Check for cached summary
+    cached_summary = get_cached_summary_report(db, iso_code)
+    if cached_summary:
+        status_response.results["summary"] = "cached"
+        status_response.completed += 1
+    
+    # If all cached, return early
+    if status_response.completed == 5:
+        status_response.message = "All reports already cached"
+        return status_response
+    
+    # Generate missing pillar reports
+    for pillar_id in pillars:
+        if pillar_id in status_response.results:
+            continue  # Already cached
+        
+        status_response.in_progress = pillar_id
+        logger.info(f"[BatchGenerate] Generating {pillar_id} for {iso_code}")
+        
+        try:
+            # Get AI config
+            ai_config = get_ai_config(db)
+            if not ai_config or not ai_config.api_key:
+                status_response.results[pillar_id] = "error: No AI config"
+                continue
+            
+            # Get agent
+            agent = get_or_create_agent(db, "pillar-analysis")
+            if not agent:
+                status_response.results[pillar_id] = "error: No agent"
+                continue
+            
+            # Build prompt
+            data_provider = CountryDataProvider(db)
+            country_context = data_provider.get_country_context_full(iso_code)
+            
+            agent_runner = AgentRunner(
+                api_key=ai_config.api_key,
+                model=ai_config.model,
+                temperature=ai_config.temperature,
+                max_tokens=ai_config.max_tokens,
+            )
+            
+            user_prompt = build_pillar_user_prompt(country.name, pillar_id, country_context)
+            
+            result = agent_runner.run_sync(
+                system_prompt=agent.system_prompt,
+                user_prompt=user_prompt,
+            )
+            
+            if result.get("success") and result.get("response"):
+                # Parse and store
+                try:
+                    parsed = json.loads(result["response"])
+                    store_pillar_report(db, iso_code, pillar_id, result["response"], current_user.id if current_user else None)
+                    status_response.results[pillar_id] = "success"
+                    status_response.completed += 1
+                except json.JSONDecodeError:
+                    status_response.results[pillar_id] = "error: Invalid JSON"
+            else:
+                status_response.results[pillar_id] = f"error: {result.get('error', 'Unknown')}"
+        except Exception as e:
+            logger.error(f"[BatchGenerate] Error generating {pillar_id}: {e}")
+            status_response.results[pillar_id] = f"error: {str(e)[:50]}"
+    
+    # Generate summary if not cached
+    if "summary" not in status_response.results:
+        status_response.in_progress = "summary"
+        logger.info(f"[BatchGenerate] Generating summary for {iso_code}")
+        
+        try:
+            ai_config = get_ai_config(db)
+            agent = get_or_create_agent(db, "summary-report")
+            
+            if ai_config and ai_config.api_key and agent:
+                data_provider = CountryDataProvider(db)
+                country_context = data_provider.get_country_context_full(iso_code)
+                
+                agent_runner = AgentRunner(
+                    api_key=ai_config.api_key,
+                    model=ai_config.model,
+                    temperature=ai_config.temperature,
+                    max_tokens=ai_config.max_tokens,
+                )
+                
+                user_prompt = build_summary_user_prompt(country.name, country_context, "global")
+                
+                result = agent_runner.run_sync(
+                    system_prompt=agent.system_prompt,
+                    user_prompt=user_prompt,
+                )
+                
+                if result.get("success") and result.get("response"):
+                    try:
+                        parsed = json.loads(result["response"])
+                        store_summary_report(db, iso_code, result["response"], current_user.id if current_user else None)
+                        status_response.results["summary"] = "success"
+                        status_response.completed += 1
+                    except json.JSONDecodeError:
+                        status_response.results["summary"] = "error: Invalid JSON"
+                else:
+                    status_response.results["summary"] = f"error: {result.get('error', 'Unknown')}"
+            else:
+                status_response.results["summary"] = "error: Missing config/agent"
+        except Exception as e:
+            logger.error(f"[BatchGenerate] Error generating summary: {e}")
+            status_response.results["summary"] = f"error: {str(e)[:50]}"
+    
+    status_response.in_progress = ""
+    status_response.message = f"Batch generation complete. {status_response.completed}/{status_response.total} reports ready."
+    
+    logger.info(f"[BatchGenerate] Completed for {iso_code}: {status_response.results}")
+    
+    return status_response

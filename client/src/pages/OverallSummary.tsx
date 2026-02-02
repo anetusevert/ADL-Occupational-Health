@@ -28,6 +28,8 @@ import {
   Lock,
   Sparkles,
   Search,
+  PlayCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from "recharts";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
@@ -314,6 +316,12 @@ export function OverallSummary() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [fallbackReport, setFallbackReport] = useState<SummaryReportData | null>(null);
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [batchGenerationStatus, setBatchGenerationStatus] = useState<{
+    completed: number;
+    total: number;
+    message: string;
+  } | null>(null);
   
   // Fetch countries data
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({
@@ -463,6 +471,49 @@ export function OverallSummary() {
       }
     } finally {
       setIsRegenerating(false);
+    }
+  };
+  
+  // Handle batch generation of all reports
+  const handleBatchGenerate = async () => {
+    if (!isAdmin || !iso) return;
+    
+    setIsBatchGenerating(true);
+    setBatchGenerationStatus(null);
+    
+    try {
+      const response = await aiApiClient.post<{
+        iso_code: string;
+        total: number;
+        completed: number;
+        in_progress: string;
+        results: Record<string, string>;
+        message: string;
+      }>(
+        `/api/v1/batch-generate/${iso}`,
+        {},
+        { timeout: 600000 } // 10 minutes
+      );
+      
+      setBatchGenerationStatus({
+        completed: response.data.completed,
+        total: response.data.total,
+        message: response.data.message,
+      });
+      
+      // Invalidate all report caches for this country
+      queryClient.invalidateQueries({ queryKey: ["pillar-analysis", iso] });
+      queryClient.invalidateQueries({ queryKey: ["summary-report", iso] });
+      refetchReport();
+    } catch (error: any) {
+      console.error("Batch generation error:", error);
+      setBatchGenerationStatus({
+        completed: 0,
+        total: 5,
+        message: error.response?.data?.detail || "Batch generation failed",
+      });
+    } finally {
+      setIsBatchGenerating(false);
     }
   };
   
@@ -673,17 +724,45 @@ export function OverallSummary() {
             </span>
           )}
           
-          {/* Admin Regenerate Button */}
+          {/* Admin Buttons */}
           {isAdmin && (
-            <button
-              onClick={() => handleGenerate(true)}
-              disabled={isRegenerating || reportLoading}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
-              title="Regenerate Report (Admin Only)"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", (isRegenerating || reportLoading) && "animate-spin")} />
-              <span>Regenerate</span>
-            </button>
+            <>
+              {/* Batch Generate All Reports */}
+              <button
+                onClick={handleBatchGenerate}
+                disabled={isBatchGenerating || reportLoading}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-medium transition-colors disabled:opacity-50"
+                title="Generate All 5 Reports (Admin Only)"
+              >
+                {isBatchGenerating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : batchGenerationStatus?.completed === 5 ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>All Ready</span>
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="w-3.5 h-3.5" />
+                    <span>Generate All</span>
+                  </>
+                )}
+              </button>
+              
+              {/* Regenerate This Report */}
+              <button
+                onClick={() => handleGenerate(true)}
+                disabled={isRegenerating || reportLoading}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
+                title="Regenerate This Report (Admin Only)"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", (isRegenerating || reportLoading) && "animate-spin")} />
+                <span>Regenerate</span>
+              </button>
+            </>
           )}
           
           {/* Export PDF Button */}

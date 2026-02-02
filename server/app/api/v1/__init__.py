@@ -32,11 +32,13 @@ except Exception as e:
 try:
     from app.api.endpoints.pillar_analysis import router as pillar_analysis_router
     from app.api.endpoints.pillar_analysis import summary_router as summary_report_router
+    from app.api.endpoints.pillar_analysis import batch_router as batch_generation_router
     logger.info("Pillar analysis routers imported successfully")
 except Exception as e:
     logger.error(f"Failed to import pillar_analysis routers: {e}")
     pillar_analysis_router = None
     summary_report_router = None
+    batch_generation_router = None
 
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
@@ -72,3 +74,9 @@ if summary_report_router:
     logger.info("Summary report router registered at /api/v1/summary-report")
 else:
     logger.warning("Summary report router not available")
+
+if batch_generation_router:
+    api_router.include_router(batch_generation_router)
+    logger.info("Batch generation router registered at /api/v1/batch-generate")
+else:
+    logger.warning("Batch generation router not available")

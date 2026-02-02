@@ -6,11 +6,14 @@
  * which Framework Pillar to analyze or view the Overall Summary.
  */
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Crown, Shield, Eye, HeartPulse, FileText } from "lucide-react";
+import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CountryFlag } from "./CountryFlag";
 import { cn } from "../lib/utils";
+import { useAuth } from "../contexts/AuthContext";
+import { aiApiClient } from "../services/api";
 import type { Country } from "../types/country";
 
 export type PillarType = "governance" | "hazard-control" | "vigilance" | "restoration" | "summary";
@@ -96,14 +99,53 @@ interface PillarSelectionModalProps {
   } | null;
 }
 
+interface BatchGenerationStatus {
+  iso_code: string;
+  total: number;
+  completed: number;
+  in_progress: string;
+  results: Record<string, string>;
+  message: string;
+}
+
 export function PillarSelectionModal({
   isOpen,
   onClose,
   country,
 }: PillarSelectionModalProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<BatchGenerationStatus | null>(null);
 
   if (!country) return null;
+
+  // Batch generate all reports
+  const handleBatchGenerate = async () => {
+    setIsGenerating(true);
+    setGenerationStatus(null);
+    
+    try {
+      const response = await aiApiClient.post<BatchGenerationStatus>(
+        `/api/v1/batch-generate/${country.iso_code}`,
+        {},
+        { timeout: 600000 } // 10 minutes for all reports
+      );
+      setGenerationStatus(response.data);
+    } catch (error: any) {
+      console.error("Batch generation error:", error);
+      setGenerationStatus({
+        iso_code: country.iso_code,
+        total: 5,
+        completed: 0,
+        in_progress: "",
+        results: {},
+        message: error.response?.data?.detail || "Failed to generate reports"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Map scores to pillars
   const getPillarScore = (pillarId: PillarType): number | null => {
@@ -273,8 +315,55 @@ export function PillarSelectionModal({
                 </motion.button>
               </div>
 
-              {/* Footer hint */}
-              <div className="px-5 pb-5">
+              {/* Footer */}
+              <div className="px-5 pb-5 space-y-3">
+                {/* Admin: Batch Generation */}
+                {isAdmin && (
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={handleBatchGenerate}
+                      disabled={isGenerating}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                        "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20",
+                        "border border-emerald-500/30 hover:border-emerald-500/50",
+                        "text-emerald-400 hover:text-emerald-300",
+                        isGenerating && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Generating All Reports...</span>
+                        </>
+                      ) : generationStatus?.completed === 5 ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>All Reports Ready</span>
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="w-4 h-4" />
+                          <span>Generate All Reports</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* Progress indicator */}
+                    {(isGenerating || generationStatus) && (
+                      <div className="text-xs text-white/50">
+                        {isGenerating && generationStatus?.in_progress && (
+                          <span>Processing: {generationStatus.in_progress}</span>
+                        )}
+                        {generationStatus && !isGenerating && (
+                          <span>{generationStatus.completed}/{generationStatus.total} complete</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Hint */}
                 <p className="text-xs text-white/30 text-center">
                   Each pillar includes strategic analysis, best practices, and benchmark comparisons
                 </p>
