@@ -98,12 +98,19 @@ export default function BestPractices() {
   });
 
   // Generate best practice mutation
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const generateMutation = useMutation({
     mutationFn: (questionId: string) => generateBestPractice(questionId),
     onSuccess: () => {
+      setGenerateError(null);
       queryClient.invalidateQueries({ queryKey: ["best-practices", "question", selectedQuestion] });
       queryClient.invalidateQueries({ queryKey: ["best-practices", "pillars"] });
       queryClient.invalidateQueries({ queryKey: ["best-practices", "pillar", selectedPillar] });
+    },
+    onError: (error: any) => {
+      console.error("Generate error:", error);
+      const message = error?.response?.data?.detail || error?.message || "Failed to generate best practices";
+      setGenerateError(message);
     },
   });
 
@@ -264,6 +271,7 @@ export default function BestPractices() {
                 isLoading={questionQuery.isLoading}
                 isGenerating={generateMutation.isPending}
                 isAdmin={isAdmin}
+                error={generateError}
                 onBack={handleBackToQuestions}
                 onGenerate={handleGenerate}
                 onSelectCountry={handleSelectCountry}

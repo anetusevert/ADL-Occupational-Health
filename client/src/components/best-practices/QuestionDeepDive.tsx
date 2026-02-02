@@ -71,6 +71,7 @@ interface QuestionDeepDiveProps {
   isLoading: boolean;
   isGenerating: boolean;
   isAdmin: boolean;
+  error?: string | null;
   onBack: () => void;
   onGenerate: () => void;
   onSelectCountry: (isoCode: string) => void;
@@ -81,6 +82,7 @@ export function QuestionDeepDive({
   isLoading,
   isGenerating,
   isAdmin,
+  error,
   onBack,
   onGenerate,
   onSelectCountry,
@@ -161,6 +163,23 @@ export function QuestionDeepDive({
             <p className="text-slate-400">Loading best practices...</p>
           </div>
         </div>
+      )}
+
+      {/* Error State */}
+      {error && !isGenerating && (
+        <motion.div
+          className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-red-400 font-medium mb-1">Generation Failed</h4>
+              <p className="text-red-300/80 text-sm">{error}</p>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* No Content State */}
