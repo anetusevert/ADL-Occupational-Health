@@ -108,12 +108,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           <div className="flex flex-col items-center text-center">
             <div className={cn(
               "overflow-hidden",
-              isMobile || !isCollapsed ? "h-12 w-24" : "h-10 w-20"
+              isMobile || !isCollapsed ? "h-8 w-16" : "h-6 w-12"
             )}>
               <img 
                 src="/gosi-logo.png" 
                 alt="GOSI"
-                className="brightness-0 invert object-cover object-top w-full scale-[1.8] origin-top"
+                className="brightness-0 invert object-cover object-top w-full scale-[1.4] origin-top"
               />
             </div>
             {(isMobile || !isCollapsed) && (
