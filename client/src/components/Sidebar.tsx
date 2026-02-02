@@ -106,11 +106,16 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           onClick={handleNavClick}
         >
           <div className="flex flex-col items-center text-center">
-            <img 
-              src="/gosi-logo.png" 
-              alt="GOSI - Social Insurance"
-              className={cn("object-contain brightness-0 invert", isMobile || !isCollapsed ? "h-10" : "h-10")}
-            />
+            <div className={cn(
+              "overflow-hidden",
+              isMobile || !isCollapsed ? "h-12 w-24" : "h-10 w-20"
+            )}>
+              <img 
+                src="/gosi-logo.png" 
+                alt="GOSI"
+                className="brightness-0 invert object-cover object-top w-full scale-[1.8] origin-top"
+              />
+            </div>
             {(isMobile || !isCollapsed) && (
               <span className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center">
                 Occupational Health Intelligence
