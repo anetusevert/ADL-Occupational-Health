@@ -6,13 +6,14 @@
  * which Framework Pillar to analyze or view the Overall Summary.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
+import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CountryFlag } from "./CountryFlag";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
+import { useGeneration } from "../contexts/GenerationContext";
 import { aiApiClient } from "../services/api";
 import type { Country } from "../types/country";
 
@@ -115,15 +116,27 @@ export function PillarSelectionModal({
 }: PillarSelectionModalProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<BatchGenerationStatus | null>(null);
+  const { 
+    startGeneration, 
+    updateGeneration, 
+    completeGeneration, 
+    isGenerating: isGeneratingCountry,
+    getGenerationStatus 
+  } = useGeneration();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!country) return null;
+  
+  // Get current generation status from context
+  const generationStatus = getGenerationStatus(country.iso_code);
+  const isGenerating = isGeneratingCountry(country.iso_code);
 
   // Batch generate all reports
   const handleBatchGenerate = async () => {
-    setIsGenerating(true);
-    setGenerationStatus(null);
+    if (isGenerating) return; // Prevent double-trigger
+    
+    setIsSubmitting(true);
+    startGeneration(country.iso_code, country.name);
     
     try {
       const response = await aiApiClient.post<BatchGenerationStatus>(
@@ -131,19 +144,37 @@ export function PillarSelectionModal({
         {},
         { timeout: 600000 } // 10 minutes for all reports
       );
-      setGenerationStatus(response.data);
+      
+      // Update context with final status
+      updateGeneration(country.iso_code, {
+        completed: response.data.completed,
+        total: response.data.total,
+        inProgress: response.data.in_progress,
+        results: response.data.results,
+        message: response.data.message,
+      });
+      
+      // If all completed, remove from active generations after a delay
+      if (response.data.completed === response.data.total) {
+        setTimeout(() => {
+          completeGeneration(country.iso_code);
+        }, 3000); // Show success for 3 seconds
+      }
     } catch (error: any) {
       console.error("Batch generation error:", error);
-      setGenerationStatus({
-        iso_code: country.iso_code,
-        total: 5,
+      updateGeneration(country.iso_code, {
         completed: 0,
-        in_progress: "",
+        total: 5,
+        inProgress: "",
         results: {},
-        message: error.response?.data?.detail || "Failed to generate reports"
+        message: error.response?.data?.detail || "Failed to generate reports",
       });
+      // Remove failed generation after delay
+      setTimeout(() => {
+        completeGeneration(country.iso_code);
+      }, 5000);
     } finally {
-      setIsGenerating(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -317,26 +348,60 @@ export function PillarSelectionModal({
 
               {/* Footer */}
               <div className="px-5 pb-5 space-y-3">
-                {/* Admin: Batch Generation */}
+                {/* Generation Status Banner (for all users when active) */}
+                {isGenerating && generationStatus && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-cyan-400 animate-spin flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-cyan-400">
+                          Generating Reports for {country.name}
+                        </p>
+                        <p className="text-xs text-white/50">
+                          {generationStatus.inProgress 
+                            ? `Processing: ${generationStatus.inProgress}` 
+                            : "Starting generation..."
+                          }
+                          {" • "}{generationStatus.completed}/{generationStatus.total} complete
+                        </p>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="mt-2 h-1 bg-slate-700 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-cyan-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(generationStatus.completed / generationStatus.total) * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+                
+                {/* Admin: Batch Generation Button */}
                 {isAdmin && (
                   <div className="flex items-center justify-center gap-4">
                     <button
                       onClick={handleBatchGenerate}
-                      disabled={isGenerating}
+                      disabled={isGenerating || isSubmitting}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                         "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20",
                         "border border-emerald-500/30 hover:border-emerald-500/50",
                         "text-emerald-400 hover:text-emerald-300",
-                        isGenerating && "opacity-50 cursor-not-allowed"
+                        (isGenerating || isSubmitting) && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      {isGenerating ? (
+                      {isGenerating || isSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Generating All Reports...</span>
+                          <span>Generating...</span>
                         </>
-                      ) : generationStatus?.completed === 5 ? (
+                      ) : generationStatus?.completed === generationStatus?.total && generationStatus?.total === 5 ? (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
                           <span>All Reports Ready</span>
@@ -348,18 +413,6 @@ export function PillarSelectionModal({
                         </>
                       )}
                     </button>
-                    
-                    {/* Progress indicator */}
-                    {(isGenerating || generationStatus) && (
-                      <div className="text-xs text-white/50">
-                        {isGenerating && generationStatus?.in_progress && (
-                          <span>Processing: {generationStatus.in_progress}</span>
-                        )}
-                        {generationStatus && !isGenerating && (
-                          <span>{generationStatus.completed}/{generationStatus.total} complete</span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
                 

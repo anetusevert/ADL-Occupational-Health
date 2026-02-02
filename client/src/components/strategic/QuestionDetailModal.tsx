@@ -5,6 +5,8 @@
  * Full detail modal for a strategic question.
  * Shows complete answer, citations, and best practice leaders.
  * NO SCROLLING - all content fits within viewport.
+ * 
+ * Updated: 2026-02-02 - Compact best practice cards with key_lesson only
  */
 
 import { useEffect } from "react";

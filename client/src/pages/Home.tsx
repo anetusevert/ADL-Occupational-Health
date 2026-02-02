@@ -34,6 +34,7 @@ import { ADLIcon } from "../components/ADLLogo";
 import { PillarSelectionModal } from "../components/PillarSelectionModal";
 import { apiClient } from "../services/api";
 import { cn, getApiBaseUrl, getEffectiveOHIScore } from "../lib/utils";
+import { useGeneration } from "../contexts/GenerationContext";
 import type { MapCountryData, MapMetric, GeoJSONMetadataResponse } from "../types/country";
 
 // =============================================================================
@@ -114,6 +115,7 @@ type ModalType = "countries" | "maturity" | "data" | null;
 export function Home() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeGenerations, isGenerating } = useGeneration();
   const [selectedMetric, setSelectedMetric] = useState<MapMetric>("maturity_score");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MapCountryData | null>(null);
@@ -583,6 +585,7 @@ export function Home() {
                       {filteredCountries.slice(0, 50).map((country) => {
                         const value = country[selectedMetric];
                         const score = country.maturity_score;
+                        const hasActiveGeneration = isGenerating(country.iso_code);
                         return (
                           <button
                             key={country.iso_code}
@@ -590,14 +593,23 @@ export function Home() {
                             className={cn(
                               "p-3 rounded-lg transition-all duration-200 text-left",
                               "bg-white/5 hover:bg-white/10 border border-transparent hover:border-adl-accent/30",
-                              "group"
+                              "group",
+                              hasActiveGeneration && "ring-1 ring-cyan-500/50 bg-cyan-500/5"
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-white font-medium group-hover:text-adl-accent transition-colors truncate">
-                                  {country.name}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-white font-medium group-hover:text-adl-accent transition-colors truncate">
+                                    {country.name}
+                                  </p>
+                                  {hasActiveGeneration && (
+                                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/20 rounded text-[9px] text-cyan-400 font-medium">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                      Generating
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-white/30">
                                   {country.iso_code} • {CONTINENT_MAP[country.iso_code] || "Unknown"}
                                 </p>

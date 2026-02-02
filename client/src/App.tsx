@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { GenerationProvider } from "./contexts/GenerationContext";
 import { AppLayout } from "./components/AppLayout";
 import { LandingPage } from "./pages/LandingPage";
 import {
@@ -430,7 +431,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppContent />
+        <GenerationProvider>
+          <AppContent />
+        </GenerationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
