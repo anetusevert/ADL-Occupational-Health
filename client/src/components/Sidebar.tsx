@@ -109,7 +109,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <img 
               src="/gosi-logo.png" 
               alt="GOSI - Social Insurance"
-              className={cn("object-contain", isMobile || !isCollapsed ? "h-10" : "h-10")}
+              className={cn("object-contain brightness-0 invert", isMobile || !isCollapsed ? "h-10" : "h-10")}
             />
             {(isMobile || !isCollapsed) && (
               <span className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center">
