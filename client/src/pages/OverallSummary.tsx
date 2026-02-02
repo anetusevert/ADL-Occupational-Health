@@ -1090,9 +1090,6 @@ export function OverallSummary() {
                       <span className="text-white/60">{comparisonCountry?.name || "Global Avg"}</span>
                     </div>
                   </div>
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
                 </div>
               </div>
             </div>
