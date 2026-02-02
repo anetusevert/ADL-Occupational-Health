@@ -374,6 +374,60 @@ Provide a McKinsey-grade executive summary covering:
 
 
 # =============================================================================
+# REPORT STATUS ENDPOINT
+# =============================================================================
+
+class ReportStatusItem(BaseModel):
+    """Status of a single report."""
+    has_report: bool
+    generated_at: Optional[str] = None
+
+
+class ReportStatusResponse(BaseModel):
+    """Response containing report status for all pillars and summary."""
+    governance: ReportStatusItem
+    hazard_control: ReportStatusItem = Field(..., alias="hazard-control")
+    vigilance: ReportStatusItem
+    restoration: ReportStatusItem
+    summary: ReportStatusItem
+    
+    class Config:
+        populate_by_name = True
+
+
+@router.get(
+    "/{iso_code}/status",
+    response_model=dict,
+    summary="Check report status for a country",
+    description="Returns which pillars have cached reports for the given country.",
+)
+async def get_report_status(
+    iso_code: str,
+    db: Session = Depends(get_db),
+):
+    """Check which pillars have cached reports for a country."""
+    iso_code = iso_code.upper()
+    pillars = ["governance", "hazard-control", "vigilance", "restoration"]
+    
+    status = {}
+    for pillar_id in pillars:
+        cached = get_cached_pillar_report(db, iso_code, pillar_id)
+        status[pillar_id] = {
+            "has_report": cached is not None,
+            "generated_at": cached.generated_at.isoformat() if cached else None
+        }
+    
+    # Check summary report
+    summary = get_cached_summary_report(db, iso_code)
+    status["summary"] = {
+        "has_report": summary is not None,
+        "generated_at": summary.generated_at.isoformat() if summary else None
+    }
+    
+    return status
+
+
+# =============================================================================
 # PILLAR ANALYSIS ENDPOINTS
 # =============================================================================
 

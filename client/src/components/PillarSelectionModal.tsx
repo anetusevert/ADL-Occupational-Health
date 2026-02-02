@@ -8,13 +8,14 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, Crown, Shield, Eye, HeartPulse, FileText, Loader2, PlayCircle, CheckCircle2, AlertCircle, FileCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { CountryFlag } from "./CountryFlag";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { useGeneration } from "../contexts/GenerationContext";
-import { aiApiClient } from "../services/api";
+import { aiApiClient, apiClient } from "../services/api";
 import type { Country } from "../types/country";
 
 export type PillarType = "governance" | "hazard-control" | "vigilance" | "restoration" | "summary";
@@ -109,6 +110,14 @@ interface BatchGenerationStatus {
   message: string;
 }
 
+// Report status response type
+interface ReportStatus {
+  [key: string]: {
+    has_report: boolean;
+    generated_at: string | null;
+  };
+}
+
 export function PillarSelectionModal({
   isOpen,
   onClose,
@@ -124,6 +133,17 @@ export function PillarSelectionModal({
     getGenerationStatus 
   } = useGeneration();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Query for report status - check which pillars have cached reports
+  const { data: reportStatus, refetch: refetchReportStatus } = useQuery<ReportStatus>({
+    queryKey: ["report-status", country?.iso_code],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/v1/pillar-analysis/${country?.iso_code}/status`);
+      return response.data;
+    },
+    enabled: isOpen && !!country?.iso_code,
+    staleTime: 30 * 1000, // 30 seconds
+  });
 
   if (!country) return null;
   
@@ -277,16 +297,25 @@ export function PillarSelectionModal({
                             <Icon className={cn("w-5 h-5", pillar.color)} />
                           </div>
                           
-                          {/* Score */}
-                          {score !== null && (
-                            <div className={cn(
-                              "px-2 py-1 rounded-lg text-sm font-bold",
-                              pillar.bgColor,
-                              pillar.color
-                            )}>
-                              {score.toFixed(0)}%
-                            </div>
-                          )}
+                          {/* Score + Report Status */}
+                          <div className="flex items-center gap-2">
+                            {/* Report Ready indicator */}
+                            {reportStatus?.[pillar.id]?.has_report && (
+                              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30" title="Report ready">
+                                <FileCheck className="w-3 h-3 text-emerald-400" />
+                              </div>
+                            )}
+                            {/* Score */}
+                            {score !== null && (
+                              <div className={cn(
+                                "px-2 py-1 rounded-lg text-sm font-bold",
+                                pillar.bgColor,
+                                pillar.color
+                              )}>
+                                {score.toFixed(0)}%
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Content */}
@@ -332,9 +361,17 @@ export function PillarSelectionModal({
                       <FileText className="w-6 h-6 text-cyan-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1">
-                        Overall Summary
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-semibold text-white">
+                          Overall Summary
+                        </h3>
+                        {reportStatus?.summary?.has_report && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30" title="Report ready">
+                            <FileCheck className="w-3 h-3 text-emerald-400" />
+                            <span className="text-[10px] text-emerald-400 font-medium">Ready</span>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-sm text-white/50">
                         Comprehensive McKinsey-grade strategic assessment across all pillars
                       </p>

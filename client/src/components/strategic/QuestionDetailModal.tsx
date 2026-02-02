@@ -226,19 +226,20 @@ export function QuestionDetailModal({
               </p>
             </div>
 
-            {/* Content - Two column, fixed height, NO scrolling */}
-            <div className="flex max-h-[55vh] overflow-hidden">
-              {/* Left: Deep Analysis */}
-              <div className="flex-1 p-5 border-r border-slate-700/50 overflow-hidden">
-                <div className="flex items-center gap-2 mb-3">
+            {/* Content - Two column layout */}
+            <div className="flex max-h-[60vh]">
+              {/* Left: Deep Analysis - Scrollable */}
+              <div className="flex-1 p-5 border-r border-slate-700/50 flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                   <BookOpen className={cn("w-4 h-4", pillarColor)} />
                   <h3 className="text-sm font-semibold text-white">Deep Analysis</h3>
+                  <span className="text-[10px] text-white/40">({answer.detailed.length} sections)</span>
                 </div>
                 
-                {/* Analysis text - limited lines, no scroll */}
-                <div className="space-y-3 mb-4">
-                  {answer.detailed.slice(0, 2).map((para, i) => (
-                    <p key={i} className="text-sm text-white/70 leading-relaxed line-clamp-3">
+                {/* Analysis text - scrollable full content */}
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                  {answer.detailed.map((para, i) => (
+                    <p key={i} className="text-sm text-white/70 leading-relaxed">
                       {para}
                     </p>
                   ))}
@@ -246,18 +247,18 @@ export function QuestionDetailModal({
 
                 {/* Citations */}
                 {answer.citations.length > 0 && (
-                  <div className="pt-3 border-t border-white/10">
+                  <div className="pt-3 border-t border-white/10 mt-3 flex-shrink-0">
                     <div className="flex items-center gap-2 mb-2">
                       <ExternalLink className="w-3 h-3 text-white/40" />
                       <h4 className="text-xs font-medium text-white/60">Sources</h4>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {answer.citations.slice(0, 4).map((citation, i) => (
+                      {answer.citations.slice(0, 6).map((citation, i) => (
                         <CitationBadge key={i} citation={citation} />
                       ))}
-                      {answer.citations.length > 4 && (
+                      {answer.citations.length > 6 && (
                         <span className="text-[10px] text-white/40">
-                          +{answer.citations.length - 4} more
+                          +{answer.citations.length - 6} more
                         </span>
                       )}
                     </div>
