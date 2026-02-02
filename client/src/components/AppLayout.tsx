@@ -10,7 +10,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, Activity } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { NavigationLoader } from "./NavigationLoader";
+import { InteractionGuideModal } from "./framework";
 import { useAuth } from "../contexts/AuthContext";
+
+// Storage key for tracking first visit
+const INTRO_SHOWN_KEY = "adl_framework_intro_shown";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -48,6 +52,23 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const previousPath = useRef(location.pathname);
   const navigationTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Executive Briefing (Interactive Guide) modal state
+  const [showExecutiveBriefing, setShowExecutiveBriefing] = useState(() => {
+    // Check if user has seen the intro before - show on first visit
+    const hasSeenIntro = localStorage.getItem(INTRO_SHOWN_KEY);
+    return !hasSeenIntro;
+  });
+
+  // Mark intro as shown when modal closes
+  const handleCloseExecutiveBriefing = () => {
+    setShowExecutiveBriefing(false);
+    localStorage.setItem(INTRO_SHOWN_KEY, "true");
+  };
+
+  const handleOpenExecutiveBriefing = () => {
+    setShowExecutiveBriefing(true);
+  };
 
   // Detect route changes and trigger navigation animation
   useEffect(() => {
@@ -113,7 +134,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar Navigation - Desktop fixed, Mobile overlay */}
       <Sidebar 
         mobileOpen={mobileMenuOpen} 
-        onMobileClose={() => setMobileMenuOpen(false)} 
+        onMobileClose={() => setMobileMenuOpen(false)}
+        onOpenExecutiveBriefing={handleOpenExecutiveBriefing}
+      />
+      
+      {/* Executive Briefing Modal - Interactive Guide */}
+      <InteractionGuideModal
+        isOpen={showExecutiveBriefing}
+        onClose={handleCloseExecutiveBriefing}
       />
       
       {/* Mobile Header - Only visible on mobile (< lg breakpoint) */}

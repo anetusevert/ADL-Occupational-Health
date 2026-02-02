@@ -6,12 +6,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Info, BookOpen, Sparkles } from "lucide-react";
-import { InteractiveTemple, DetailPanel, StatCardModal, InteractionGuideModal } from "../components/framework";
+import { Info } from "lucide-react";
+import { InteractiveTemple, DetailPanel, StatCardModal } from "../components/framework";
 import { cn } from "../lib/utils";
-
-// Storage key for tracking first visit
-const INTRO_SHOWN_KEY = "adl_framework_intro_shown";
 
 type StatCardType = "components" | "metrics" | "bestPractices" | "maturityLevels";
 
@@ -72,19 +69,6 @@ const statCards: StatCard[] = [
 export function FrameworkPage() {
   const [activeBlock, setActiveBlock] = useState<string | null>(null);
   const [selectedStatCard, setSelectedStatCard] = useState<StatCardType | null>(null);
-  
-  // Show interaction guide automatically on first visit only
-  const [showInteractionGuide, setShowInteractionGuide] = useState(() => {
-    // Check if user has seen the intro before
-    const hasSeenIntro = localStorage.getItem(INTRO_SHOWN_KEY);
-    return !hasSeenIntro; // Show if never seen
-  });
-
-  // Mark intro as shown when modal closes
-  const handleCloseGuide = () => {
-    setShowInteractionGuide(false);
-    localStorage.setItem(INTRO_SHOWN_KEY, "true");
-  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -93,16 +77,6 @@ export function FrameworkPage() {
         isOpen={selectedStatCard !== null}
         onClose={() => setSelectedStatCard(null)}
         cardType={selectedStatCard}
-      />
-
-      {/* Interaction Guide Modal - Shows automatically on first visit */}
-      <InteractionGuideModal
-        isOpen={showInteractionGuide}
-        onClose={handleCloseGuide}
-        onNavigateToBlock={(blockId) => {
-          setActiveBlock(blockId);
-          handleCloseGuide();
-        }}
       />
 
       {/* Page Header - Fixed */}
@@ -131,16 +105,6 @@ export function FrameworkPage() {
               <Info className="w-3.5 h-3.5 text-white/40" />
               <span className="text-xs text-white/40">Click blocks to explore</span>
             </div>
-            <motion.button
-              onClick={() => setShowInteractionGuide(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-adl-accent/10 border border-adl-accent/20 rounded-lg hover:bg-adl-accent/20 hover:border-adl-accent/40 transition-all cursor-pointer group"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-adl-accent" />
-              <span className="text-xs text-adl-accent font-medium">Interactive Guide</span>
-              <Sparkles className="w-3 h-3 text-adl-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-            </motion.button>
           </div>
         </div>
       </div>

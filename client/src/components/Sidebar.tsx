@@ -29,6 +29,8 @@ import {
   X,
   Workflow,
   HardDrive,
+  Play,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -45,6 +47,7 @@ interface NavItem {
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  onOpenExecutiveBriefing?: () => void;
 }
 
 // Framework - Standalone at top
@@ -73,7 +76,7 @@ const adminNavItems: NavItem[] = [
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
 ];
 
-export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBriefing }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const { user, isAdmin, logout } = useAuth();
@@ -148,6 +151,89 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Main Navigation */}
       <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 px-3">
+        {/* Executive Briefing - Premium ADL + GOSI Co-Branded Button */}
+        <motion.button
+          onClick={() => {
+            onOpenExecutiveBriefing?.();
+            if (onMobileClose) onMobileClose();
+          }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "w-full mb-5 relative group overflow-hidden rounded-xl",
+            "bg-gradient-to-r from-purple-900/40 via-adl-navy to-cyan-900/40",
+            "border border-purple-500/30 hover:border-cyan-400/50",
+            "transition-all duration-500",
+            !isMobile && isCollapsed ? "p-2" : "p-3"
+          )}
+        >
+          {/* Animated gradient border */}
+          <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 via-transparent to-cyan-500/20 animate-pulse" />
+          </div>
+          
+          {/* Glow effect on hover */}
+          <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_30px_rgba(139,92,246,0.3),0_0_60px_rgba(6,182,212,0.2)]" />
+          
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Logo Row */}
+            <div className={cn(
+              "flex items-center gap-2 mb-2",
+              !isMobile && isCollapsed ? "justify-center" : "justify-center"
+            )}>
+              {/* ADL Logo */}
+              <div className="h-6 w-10 flex-shrink-0 overflow-hidden">
+                <img 
+                  src="/adl-logo.png" 
+                  alt="ADL"
+                  className="h-full w-full object-contain brightness-0 invert opacity-90"
+                />
+              </div>
+              
+              {(isMobile || !isCollapsed) && (
+                <>
+                  {/* Divider */}
+                  <div className="h-5 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
+                  
+                  {/* GOSI Logo */}
+                  <div className="h-6 w-12 flex-shrink-0 overflow-hidden">
+                    <img 
+                      src="/gosi-logo.png" 
+                      alt="GOSI"
+                      className="h-full w-full object-contain brightness-0 invert opacity-90 scale-125"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Text and CTA */}
+            {(isMobile || !isCollapsed) && (
+              <div className="text-center">
+                <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wider mb-1">
+                  Executive Briefing
+                </p>
+                <div className="flex items-center justify-center gap-1.5 text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                  <Play className="w-3 h-3 fill-current" />
+                  <span className="text-[10px] font-medium">Launch Experience</span>
+                  <Sparkles className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            )}
+            
+            {/* Collapsed state icon */}
+            {!isMobile && isCollapsed && (
+              <div className="flex justify-center">
+                <Play className="w-4 h-4 text-cyan-400 fill-current" />
+              </div>
+            )}
+          </div>
+          
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </motion.button>
+
         {/* Platform Status */}
         <div
           className={cn(
