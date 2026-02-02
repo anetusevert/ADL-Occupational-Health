@@ -1920,3 +1920,137 @@ export async function runFinalReportWorkflow(
   );
   return response.data;
 }
+
+
+// ============================================================================
+// COMPARISON REPORTS API
+// ============================================================================
+
+/**
+ * Comparison Report Response
+ */
+export interface ComparisonReportResponse {
+  id: string;
+  primary_iso: string;
+  comparison_iso: string;
+  executive_summary: string | null;
+  framework_analysis: Array<{
+    pillar: string;
+    pillar_id?: string;
+    saudi_score: number;
+    comparison_score: number;
+    gap_percentage?: number;
+    headline?: string;
+    saudi_assessment?: string;
+    comparison_assessment?: string;
+    key_differences?: string[];
+    priority_actions?: string[];
+    key_metrics?: Array<{
+      name: string;
+      saudi: string;
+      comparison: string;
+      gap?: string;
+    }>;
+  }> | null;
+  socioeconomic_comparison: {
+    summary?: string;
+    metrics?: Array<{
+      name: string;
+      saudi: string;
+      comparison: string;
+      insight?: string;
+    }>;
+  } | null;
+  metric_comparisons: Array<{
+    metric_id?: string;
+    metric_name: string;
+    pillar?: string;
+    saudi_value: string;
+    comparison_value: string;
+    gap_percentage?: number;
+    gap_direction?: string;
+    significance?: string;
+    benchmark_practice?: string;
+  }> | null;
+  strategic_recommendations: Array<{
+    priority: number;
+    title: string;
+    recommendation: string;
+    rationale?: string;
+    expected_impact?: string;
+    complexity?: string;
+    timeline?: string;
+    quick_win?: boolean;
+  }> | null;
+  sources_cited: string[] | null;
+  created_at: string | null;
+  updated_at: string | null;
+  version: number;
+  generation_time_seconds: number | null;
+  primary_name?: string;
+  comparison_name?: string;
+}
+
+/**
+ * Fetch cached comparison report
+ * Returns null if no report exists
+ */
+export async function fetchComparisonReport(
+  comparisonIso: string
+): Promise<ComparisonReportResponse | null> {
+  try {
+    const response = await apiClient.get<ComparisonReportResponse | null>(
+      `/api/v1/comparison/${comparisonIso.toUpperCase()}`
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Generate comparison report
+ * Checks cache first, generates if not found
+ */
+export async function generateComparisonReport(
+  comparisonIso: string,
+  force: boolean = false
+): Promise<ComparisonReportResponse> {
+  const response = await aiApiClient.post<ComparisonReportResponse>(
+    `/api/v1/comparison/${comparisonIso.toUpperCase()}/generate`,
+    { force }
+  );
+  return response.data;
+}
+
+/**
+ * Force regenerate comparison report (admin only)
+ */
+export async function regenerateComparisonReport(
+  comparisonIso: string
+): Promise<ComparisonReportResponse> {
+  const response = await aiApiClient.put<ComparisonReportResponse>(
+    `/api/v1/comparison/${comparisonIso.toUpperCase()}/regenerate`
+  );
+  return response.data;
+}
+
+/**
+ * List all cached comparison reports (admin only)
+ */
+export async function listComparisonReports(): Promise<{
+  total: number;
+  reports: Array<{
+    id: string;
+    comparison_iso: string;
+    comparison_name?: string;
+    created_at?: string;
+    version: number;
+  }>;
+}> {
+  const response = await apiClient.get("/api/v1/comparison/all");
+  return response.data;
+}

@@ -20,6 +20,7 @@ import {
   CountryData,
 } from "./pages";
 import { CompareV2 } from "./pages/CompareV2";
+import { CompareExperience } from "./pages/CompareExperience";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { AIOrchestration } from "./pages/admin/AIOrchestration";
 import { AIOrchestrationLayer } from "./pages/admin/AIOrchestrationLayer";
@@ -247,6 +248,18 @@ function AppContent() {
 
           <Route
             path="/compare"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <CompareExperience />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          {/* Legacy Compare V2 Route */}
+          <Route
+            path="/compare-v2"
             element={
               <AppLayout>
                 <ProtectedRoute>

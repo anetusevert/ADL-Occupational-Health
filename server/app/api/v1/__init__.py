@@ -56,6 +56,14 @@ except Exception as e:
     logger.error(f"Failed to import database_explorer router: {e}")
     database_explorer_router = None
 
+# Import comparison_reports router with error handling
+try:
+    from app.api.endpoints.comparison_reports import router as comparison_reports_router
+    logger.info("Comparison reports router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import comparison_reports router: {e}")
+    comparison_reports_router = None
+
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -112,3 +120,10 @@ if database_explorer_router:
     logger.info("Database explorer router registered at /api/v1/admin/database")
 else:
     logger.warning("Database explorer router not available")
+
+# Include comparison_reports router if it loaded successfully
+if comparison_reports_router:
+    api_router.include_router(comparison_reports_router)
+    logger.info("Comparison reports router registered at /api/v1/comparison")
+else:
+    logger.warning("Comparison reports router not available")

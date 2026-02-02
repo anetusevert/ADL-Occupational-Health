@@ -56,6 +56,8 @@ from app.models.best_practice import (
     get_question_by_id,
 )
 
+from app.models.comparison_report import ComparisonReport
+
 __all__ = [
     # Country Enums
     "HeatStressRegulationType",
@@ -99,4 +101,6 @@ __all__ = [
     "STRATEGIC_QUESTIONS",
     "get_questions_by_pillar",
     "get_question_by_id",
+    # Comparison Reports
+    "ComparisonReport",
 ]
