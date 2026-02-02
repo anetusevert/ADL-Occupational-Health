@@ -241,7 +241,7 @@ export function PillarPage() {
     return currentCountry[pillarDef.scoreField as keyof typeof currentCountry] as number | null;
   }, [currentCountry, pillarDef]);
   
-  // Fetch analysis
+  // Fetch analysis - with automatic fallback on non-404 errors
   const { 
     data: analysis, 
     isLoading: analysisLoading,
@@ -250,7 +250,22 @@ export function PillarPage() {
   } = useQuery({
     queryKey: ["pillar-analysis", iso, pillar],
     queryFn: async () => {
-      return await fetchPillarAnalysis(iso!, pillar!);
+      try {
+        return await fetchPillarAnalysis(iso!, pillar!);
+      } catch (error: any) {
+        // If it's a 404 (not generated), re-throw so we can show the "Generate" UI
+        if (error.response?.status === 404) {
+          throw error;
+        }
+        // For any other error (timeout, 500, etc.), return fallback data
+        console.warn("[PillarPage] API error, using fallback:", error);
+        const pillarDefinition = getPillarDefinition(pillar!);
+        if (pillarDefinition && currentCountry) {
+          const score = currentCountry[pillarDefinition.scoreField as keyof typeof currentCountry] as number | null;
+          return generateFallbackAnalysis(pillar!, currentCountry.name, score);
+        }
+        throw error;
+      }
     },
     enabled: !!iso && !!pillar && !!currentCountry && isValidPillar,
     staleTime: 5 * 60 * 1000,

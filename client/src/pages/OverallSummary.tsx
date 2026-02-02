@@ -397,7 +397,20 @@ export function OverallSummary() {
   } = useQuery({
     queryKey: ["summary-report", iso, comparisonIso],
     queryFn: async () => {
-      return await fetchSummaryReport(iso!, comparisonIso);
+      try {
+        return await fetchSummaryReport(iso!, comparisonIso);
+      } catch (error: any) {
+        // If it's a 404 (not generated), re-throw so we can show the "Generate" UI
+        if (error.response?.status === 404) {
+          throw error;
+        }
+        // For any other error (timeout, 500, etc.), return fallback data
+        console.warn("[OverallSummary] API error, using fallback:", error);
+        if (currentCountry) {
+          return generateSummaryFallback(currentCountry.name, scores);
+        }
+        throw error;
+      }
     },
     enabled: !!iso && !!currentCountry,
     staleTime: 5 * 60 * 1000,
