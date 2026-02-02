@@ -185,7 +185,7 @@ async function fetchSummaryReport(
   const response = await aiApiClient.post(
     `/api/v1/summary-report/${isoCode}`,
     requestBody,
-    { timeout: 180000 }
+    { timeout: 300000 } // 5 minutes for LLM generation
   );
   
   if (response.data) {
@@ -311,6 +311,8 @@ export function OverallSummary() {
   const [comparisonIso, setComparisonIso] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [fallbackReport, setFallbackReport] = useState<SummaryReportData | null>(null);
   
   // Fetch countries data
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({
@@ -411,13 +413,40 @@ export function OverallSummary() {
     if (!isAdmin || !iso) return;
     
     setIsRegenerating(true);
+    setGenerationError(null);
     try {
       await fetchSummaryReport(iso, comparisonIso, forceRegenerate);
       // Invalidate cache to refetch
       queryClient.invalidateQueries({ queryKey: ["summary-report", iso] });
+      setFallbackReport(null);
       refetchReport();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Generation failed:", error);
+      
+      // Check if it's a timeout error
+      const isTimeout = error.code === 'ECONNABORTED' || 
+                       error.message?.includes('timeout') ||
+                       error.message?.includes('exceeded');
+      
+      if (isTimeout) {
+        setGenerationError("Generation timed out. Using estimated data.");
+        // Use fallback data
+        if (currentCountry) {
+          const fallback = generateSummaryFallback(currentCountry.name, scores);
+          setFallbackReport(fallback);
+        }
+      } else if (error.response?.status === 403) {
+        setGenerationError("Admin access required for regeneration.");
+      } else if (error.response?.status === 404) {
+        setGenerationError("Report generation service unavailable.");
+      } else {
+        setGenerationError("Generation failed. Using estimated data.");
+        // Use fallback data for any error
+        if (currentCountry) {
+          const fallback = generateSummaryFallback(currentCountry.name, scores);
+          setFallbackReport(fallback);
+        }
+      }
     } finally {
       setIsRegenerating(false);
     }
@@ -667,29 +696,49 @@ export function OverallSummary() {
             <div className="flex-1 overflow-hidden flex">
               {/* Left: Report Content */}
               <div className="flex-1 p-6 overflow-hidden flex flex-col">
-                {reportLoading ? (
+                {/* Error/Warning Banner */}
+                {generationError && (
+                  <div className="flex-shrink-0 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <p className="text-xs text-amber-300">{generationError}</p>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleGenerate(true)}
+                        disabled={isRegenerating}
+                        className="ml-auto text-xs text-amber-400 hover:text-amber-300 underline"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {(reportLoading || isRegenerating) ? (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                       <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
-                      <p className="text-sm text-white/50">Generating strategic assessment...</p>
+                      <p className="text-sm text-white/50">
+                        {isRegenerating ? "Generating strategic assessment..." : "Loading report..."}
+                      </p>
+                      <p className="text-xs text-white/30 mt-1">This may take up to 5 minutes</p>
                     </div>
                   </div>
-                ) : (
+                ) : (report || fallbackReport) ? (
                   <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {/* Executive Summary Text */}
                     <div className="flex-1 min-h-0 overflow-hidden">
                       <div className="h-full overflow-y-auto pr-2 space-y-3 scrollbar-thin">
-                        {report?.executive_summary.map((para, i) => (
+                        {(report || fallbackReport)?.executive_summary.map((para, i) => (
                           <p key={i} className="text-sm text-white/80 leading-relaxed">
                             {para}
                           </p>
                         ))}
                         
-                        {report?.overall_assessment && (
+                        {(report || fallbackReport)?.overall_assessment && (
                           <div className="pt-3 mt-3 border-t border-white/10">
                             <p className="text-sm text-white/80 leading-relaxed">
                               <span className="font-semibold text-cyan-400">Strategic Outlook: </span>
-                              {report.overall_assessment}
+                              {(report || fallbackReport)?.overall_assessment}
                             </p>
                           </div>
                         )}
@@ -705,7 +754,7 @@ export function OverallSummary() {
                       </div>
                       
                       <div className="space-y-2">
-                        {report?.strategic_priorities.slice(0, 3).map((priority, i) => (
+                        {(report || fallbackReport)?.strategic_priorities.slice(0, 3).map((priority, i) => (
                           <ClickablePriority
                             key={i}
                             priority={priority}
@@ -715,6 +764,19 @@ export function OverallSummary() {
                           />
                         ))}
                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                      <p className="text-sm text-white/50">Unable to load report</p>
+                      <button
+                        onClick={() => refetchReport()}
+                        className="mt-3 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors"
+                      >
+                        Try Again
+                      </button>
                     </div>
                   </div>
                 )}

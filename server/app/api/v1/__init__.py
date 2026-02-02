@@ -53,9 +53,7 @@ api_router.include_router(metric_config_router, prefix="/admin/metric-config", t
 api_router.include_router(simulator_router)
 api_router.include_router(orchestration_router)
 api_router.include_router(strategic_deep_dive_router)
-api_router.include_router(best_practices_router)
-
-# Include view_analysis router if it loaded successfully
+api_router.include_router(best_practices_router)# Include view_analysis router if it loaded successfully
 if view_analysis_router:
     api_router.include_router(view_analysis_router)
     logger.info("View analysis router registered at /api/v1/view-analysis")

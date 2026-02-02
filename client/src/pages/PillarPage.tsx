@@ -177,7 +177,7 @@ async function fetchPillarAnalysis(
   const response = await aiApiClient.post(
     `/api/v1/pillar-analysis/${isoCode}/${pillarId}`,
     requestBody,
-    { timeout: 180000 }
+    { timeout: 300000 } // 5 minutes for LLM generation
   );
   
   // Validate response has the new questions format
@@ -207,6 +207,8 @@ export function PillarPage() {
     index: number;
   } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [fallbackData, setFallbackData] = useState<PillarAnalysisResponse | null>(null);
   
   // Handle "summary" route - redirect to OverallSummary
   if (pillar === "summary") {
@@ -268,13 +270,40 @@ export function PillarPage() {
     if (!isAdmin || !iso || !pillar) return;
     
     setIsGenerating(true);
+    setGenerationError(null);
     try {
       await fetchPillarAnalysis(iso, pillar, forceRegenerate);
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["pillar-analysis", iso, pillar] });
+      setFallbackData(null); // Clear any fallback data
       refetchAnalysis();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Generation failed:", error);
+      
+      // Check if it's a timeout error
+      const isTimeout = error.code === 'ECONNABORTED' || 
+                       error.message?.includes('timeout') ||
+                       error.message?.includes('exceeded');
+      
+      if (isTimeout) {
+        setGenerationError("Generation timed out. Using estimated analysis data.");
+        // Use fallback data
+        if (pillarDef && currentCountry) {
+          const fallback = generateFallbackAnalysis(pillar, currentCountry.name, pillarScore);
+          setFallbackData(fallback);
+        }
+      } else if (error.response?.status === 403) {
+        setGenerationError("Admin access required for regeneration.");
+      } else if (error.response?.status === 404) {
+        setGenerationError("Report generation service unavailable.");
+      } else {
+        setGenerationError("Generation failed. Using estimated analysis data.");
+        // Use fallback data for any error
+        if (pillarDef && currentCountry) {
+          const fallback = generateFallbackAnalysis(pillar, currentCountry.name, pillarScore);
+          setFallbackData(fallback);
+        }
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -292,10 +321,11 @@ export function PillarPage() {
   
   // Handle question click
   const handleQuestionClick = (questionIndex: number) => {
-    if (!pillarDef || !analysis?.questions) return;
+    const effectiveData = analysis || fallbackData;
+    if (!pillarDef || !effectiveData?.questions) return;
     
     const question = pillarDef.questions[questionIndex];
-    const questionData = analysis.questions.find(q => q.question_id === question.id);
+    const questionData = effectiveData.questions.find(q => q.question_id === question.id);
     
     if (questionData) {
       setSelectedQuestion({
@@ -518,54 +548,75 @@ export function PillarPage() {
       
       {/* Main Content - 2x2 Grid */}
       <main className="flex-1 p-4 overflow-hidden">
-        <div className="h-full max-w-5xl mx-auto">
-          {(analysisLoading || isGenerating) ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-                <p className="text-sm text-white/50">
-                  {isGenerating ? "Generating deep analysis..." : "Loading analysis..."}
-                </p>
-                <p className="text-xs text-white/30 mt-1">This may take a moment</p>
-              </div>
-            </div>
-          ) : analysis ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="h-full grid grid-cols-2 grid-rows-2 gap-4"
-            >
-              {pillarDef.questions.map((question, index) => {
-                const questionData = analysis?.questions?.find(q => q.question_id === question.id);
-                return (
-                  <StrategicQuestionCard
-                    key={question.id}
-                    question={question}
-                    answer={questionData?.answer || null}
-                    questionIndex={index}
-                    isLoading={false}
-                    pillarColor={pillarDef.color}
-                    pillarBgColor={pillarDef.bgColor}
-                    pillarBorderColor={pillarDef.borderColor}
-                    onClick={() => handleQuestionClick(index)}
-                  />
-                );
-              })}
-            </motion.div>
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-4" />
-                <p className="text-sm text-white/50">Unable to load analysis</p>
+        <div className="h-full max-w-5xl mx-auto flex flex-col">
+          {/* Error/Warning Banner */}
+          {generationError && (
+            <div className="flex-shrink-0 mb-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <p className="text-xs text-amber-300">{generationError}</p>
+              {isAdmin && (
                 <button
-                  onClick={() => refetchAnalysis()}
-                  className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors"
+                  onClick={() => handleGenerate(true)}
+                  disabled={isGenerating}
+                  className="ml-auto text-xs text-amber-400 hover:text-amber-300 underline"
                 >
-                  Try Again
+                  Retry
                 </button>
-              </div>
+              )}
             </div>
           )}
+          
+          {/* Content Area */}
+          <div className="flex-1 min-h-0">
+            {(analysisLoading || isGenerating) ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
+                  <p className="text-sm text-white/50">
+                    {isGenerating ? "Generating deep analysis..." : "Loading analysis..."}
+                  </p>
+                  <p className="text-xs text-white/30 mt-1">This may take up to 5 minutes</p>
+                </div>
+              </div>
+            ) : (analysis || fallbackData) ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="h-full grid grid-cols-2 grid-rows-2 gap-4"
+              >
+                {pillarDef.questions.map((question, index) => {
+                  const effectiveData = analysis || fallbackData;
+                  const questionData = effectiveData?.questions?.find(q => q.question_id === question.id);
+                  return (
+                    <StrategicQuestionCard
+                      key={question.id}
+                      question={question}
+                      answer={questionData?.answer || null}
+                      questionIndex={index}
+                      isLoading={false}
+                      pillarColor={pillarDef.color}
+                      pillarBgColor={pillarDef.bgColor}
+                      pillarBorderColor={pillarDef.borderColor}
+                      onClick={() => handleQuestionClick(index)}
+                    />
+                  );
+                })}
+              </motion.div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-4" />
+                  <p className="text-sm text-white/50">Unable to load analysis</p>
+                  <button
+                    onClick={() => refetchAnalysis()}
+                    className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
       
