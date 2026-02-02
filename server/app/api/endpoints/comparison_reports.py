@@ -303,6 +303,40 @@ async def generate_comparison_report(
 # ENDPOINTS
 # =============================================================================
 
+# NOTE: /all must be defined BEFORE /{comparison_iso} to avoid "all" being
+# captured as an ISO code parameter
+
+@router.get("/all", response_model=ReportListResponse)
+async def list_all_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List all cached comparison reports (admin only).
+    """
+    # Check admin
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view all reports"
+        )
+    
+    reports = db.query(ComparisonReport).order_by(ComparisonReport.created_at.desc()).all()
+    
+    summaries = []
+    for report in reports:
+        comparison_country = get_country_data(db, report.comparison_iso)
+        summaries.append(ComparisonReportSummary(
+            id=report.id,
+            comparison_iso=report.comparison_iso,
+            comparison_name=comparison_country.name if comparison_country else None,
+            created_at=report.created_at.isoformat() if report.created_at else None,
+            version=report.version or 1,
+        ))
+    
+    return ReportListResponse(total=len(summaries), reports=summaries)
+
+
 @router.get("/{comparison_iso}", response_model=Optional[ComparisonReportResponse])
 async def get_comparison_report(
     comparison_iso: str,
@@ -450,34 +484,3 @@ async def regenerate_report(
         generation_time_seconds=report.generation_time_seconds,
         comparison_name=comparison_name,
     )
-
-
-@router.get("/all", response_model=ReportListResponse)
-async def list_all_reports(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    List all cached comparison reports (admin only).
-    """
-    # Check admin
-    if current_user.role != UserRole.admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can view all reports"
-        )
-    
-    reports = db.query(ComparisonReport).order_by(ComparisonReport.created_at.desc()).all()
-    
-    summaries = []
-    for report in reports:
-        comparison_country = get_country_data(db, report.comparison_iso)
-        summaries.append(ComparisonReportSummary(
-            id=report.id,
-            comparison_iso=report.comparison_iso,
-            comparison_name=comparison_country.name if comparison_country else None,
-            created_at=report.created_at.isoformat() if report.created_at else None,
-            version=report.version or 1,
-        ))
-    
-    return ReportListResponse(total=len(summaries), reports=summaries)
