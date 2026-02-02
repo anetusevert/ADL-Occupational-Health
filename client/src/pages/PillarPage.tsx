@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -308,14 +308,23 @@ function CountrySelector({
 // MAIN COMPONENT
 // ============================================================================
 
+// Valid pillar IDs
+const VALID_PILLARS = ["governance", "hazard-control", "vigilance", "restoration"];
+
 export function PillarPage() {
   const { iso, pillar } = useParams<{ iso: string; pillar: string }>();
   const navigate = useNavigate();
   const [comparisonIso, setComparisonIso] = useState<string | null>(null);
   
-  // Validate pillar
-  const pillarConfig = pillar ? PILLAR_CONFIGS[pillar as PillarId] : null;
-  const architecture = pillar ? getArchitecture(pillar) : null;
+  // Handle "summary" route - redirect to OverallSummary
+  if (pillar === "summary") {
+    return <Navigate to={`/country/${iso}/summary`} replace />;
+  }
+  
+  // Validate pillar - must be one of the valid pillars
+  const isValidPillar = pillar && VALID_PILLARS.includes(pillar);
+  const pillarConfig = isValidPillar ? PILLAR_CONFIGS[pillar as PillarId] : null;
+  const architecture = isValidPillar ? getArchitecture(pillar) : null;
   
   // Fetch countries data
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({

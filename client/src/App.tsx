@@ -218,57 +218,25 @@ function AppContent() {
             element={<Navigate to="summary" replace />}
           />
 
-          {/* Pillar-specific routes */}
-          <Route
-            path="/country/:iso/governance"
-            element={
-              <AppLayout>
-                <ProtectedRoute>
-                  <PillarPage />
-                </ProtectedRoute>
-              </AppLayout>
-            }
-          />
-
-          <Route
-            path="/country/:iso/hazard-control"
-            element={
-              <AppLayout>
-                <ProtectedRoute>
-                  <PillarPage />
-                </ProtectedRoute>
-              </AppLayout>
-            }
-          />
-
-          <Route
-            path="/country/:iso/vigilance"
-            element={
-              <AppLayout>
-                <ProtectedRoute>
-                  <PillarPage />
-                </ProtectedRoute>
-              </AppLayout>
-            }
-          />
-
-          <Route
-            path="/country/:iso/restoration"
-            element={
-              <AppLayout>
-                <ProtectedRoute>
-                  <PillarPage />
-                </ProtectedRoute>
-              </AppLayout>
-            }
-          />
-
+          {/* Summary route (separate component) */}
           <Route
             path="/country/:iso/summary"
             element={
               <AppLayout>
                 <ProtectedRoute>
                   <OverallSummary />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          {/* Dynamic pillar route - handles governance, hazard-control, vigilance, restoration */}
+          <Route
+            path="/country/:iso/:pillar"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <PillarPage />
                 </ProtectedRoute>
               </AppLayout>
             }
