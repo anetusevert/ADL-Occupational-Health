@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Map,
   Layers,
-  Target,
   Brain,
   Trophy,
   GitCompare,
@@ -24,12 +23,12 @@ import {
   Shield,
   Activity,
   BarChart3,
-  Bot,
   Table2,
   Calculator,
   Wrench,
   X,
   Workflow,
+  HardDrive,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -62,13 +61,13 @@ const analyticsSuiteItems: NavItem[] = [
 
 // Tool Suite - Interactive tools for users
 const toolSuiteItems: NavItem[] = [
-  { path: "/simulator", label: "Policy Simulator", icon: Target, beta: true, restrictedForNonAdmin: true },
   { path: "/data-engine", label: "Data Engine", icon: Database },
   { path: "/metric-calculator", label: "Scoring", icon: Calculator },
 ];
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
+  { path: "/admin/database", label: "Database", icon: HardDrive, adminOnly: true },
   { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
@@ -99,7 +98,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // Sidebar content (shared between mobile and desktop)
   const renderSidebarContent = (isMobile: boolean) => (
     <>
-      {/* Header with ADL Logo */}
+      {/* Header with GOSI Logo */}
       <div className="h-[72px] border-b border-white/5 flex items-center justify-between px-4">
         <Link 
           to="/framework" 
@@ -108,13 +107,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         >
           <div className="flex flex-col items-center text-center">
             <img 
-              src="/adl-logo.png" 
-              alt="Arthur D. Little"
-              className={cn("object-contain", isMobile || !isCollapsed ? "h-9" : "h-10")}
+              src="/gosi-logo.png" 
+              alt="GOSI - Social Insurance"
+              className={cn("object-contain", isMobile || !isCollapsed ? "h-10" : "h-10")}
             />
             {(isMobile || !isCollapsed) && (
               <span className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center">
-                Global Health Intelligence
+                Occupational Health Intelligence
               </span>
             )}
           </div>

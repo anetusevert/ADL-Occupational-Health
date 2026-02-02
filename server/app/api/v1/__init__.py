@@ -40,6 +40,22 @@ except Exception as e:
     summary_report_router = None
     batch_generation_router = None
 
+# Import saudi_analysis router with error handling
+try:
+    from app.api.endpoints.saudi_analysis import router as saudi_analysis_router
+    logger.info("Saudi analysis router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import saudi_analysis router: {e}")
+    saudi_analysis_router = None
+
+# Import database_explorer router with error handling
+try:
+    from app.api.endpoints.database_explorer import router as database_explorer_router
+    logger.info("Database explorer router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import database_explorer router: {e}")
+    database_explorer_router = None
+
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -82,3 +98,17 @@ if batch_generation_router:
     logger.info("Batch generation router registered at /api/v1/batch-generate")
 else:
     logger.warning("Batch generation router not available")
+
+# Include saudi_analysis router if it loaded successfully
+if saudi_analysis_router:
+    api_router.include_router(saudi_analysis_router)
+    logger.info("Saudi analysis router registered at /api/v1/saudi-analysis")
+else:
+    logger.warning("Saudi analysis router not available")
+
+# Include database_explorer router if it loaded successfully
+if database_explorer_router:
+    api_router.include_router(database_explorer_router)
+    logger.info("Database explorer router registered at /api/v1/admin/database")
+else:
+    logger.warning("Database explorer router not available")

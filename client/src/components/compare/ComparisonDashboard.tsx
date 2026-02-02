@@ -21,6 +21,7 @@ import { ADLScoreBadge } from "./ADLScoreBadge";
 import { CompactPillarTile, PILLAR_CONFIGS, type PillarId } from "./CompactPillarTile";
 import { CriticalGapsBar } from "./CriticalGapsBar";
 import { PillarDetailModal } from "./PillarDetailModal";
+import { SaudiAnalysisPanel } from "./SaudiAnalysisPanel";
 import type { Country } from "../../types/country";
 
 // ============================================================================
@@ -45,6 +46,7 @@ interface ComparisonDashboardProps {
     pillarName: string,
     pillarColor: string
   ) => void;
+  leftLocked?: boolean;
 }
 
 // ============================================================================
@@ -60,8 +62,10 @@ export function ComparisonDashboard({
   onRightChange,
   onReset,
   onMetricClick,
+  leftLocked = false,
 }: ComparisonDashboardProps) {
   const [activePillar, setActivePillar] = useState<PillarId | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const handlePillarClick = (pillarId: PillarId) => {
     setActivePillar(pillarId);
@@ -88,7 +92,7 @@ export function ComparisonDashboard({
       >
         <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-4">
           <div className="flex items-center justify-between">
-            {/* Left Country */}
+            {/* Left Country - Locked for GOSI */}
             <CompactCountryCard
               country={leftCountry}
               countries={countries}
@@ -96,6 +100,7 @@ export function ComparisonDashboard({
               excludeValue={rightCountry.iso_code}
               onChange={onLeftChange}
               side="left"
+              locked={leftLocked}
             />
 
             {/* VS Indicator */}
@@ -145,12 +150,22 @@ export function ComparisonDashboard({
       </div>
 
       {/* Footer: Critical Gaps */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 space-y-4">
         <CriticalGapsBar
           leftCountry={leftCountry}
           rightCountry={rightCountry}
           onGapClick={onMetricClick}
         />
+
+        {/* AI Strategic Analysis Panel - GOSI Feature */}
+        {leftLocked && (
+          <SaudiAnalysisPanel
+            comparisonIso={rightCountry.iso_code}
+            comparisonName={rightCountry.name || rightCountry.iso_code}
+            isVisible={showAnalysis}
+            onToggle={() => setShowAnalysis(!showAnalysis)}
+          />
+        )}
       </div>
 
       {/* Pillar Detail Modal */}
@@ -177,6 +192,7 @@ interface CompactCountryCardProps {
   excludeValue: string;
   onChange: (iso: string) => void;
   side: "left" | "right";
+  locked?: boolean;
 }
 
 function CompactCountryCard({
@@ -186,6 +202,7 @@ function CompactCountryCard({
   excludeValue,
   onChange,
   side,
+  locked = false,
 }: CompactCountryCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -211,12 +228,16 @@ function CompactCountryCard({
     <div className="relative flex-1">
       {/* Card */}
       <motion.div
-        whileHover={{ scale: 1.01 }}
-        onClick={() => setIsOpen(!isOpen)}
+        whileHover={locked ? {} : { scale: 1.01 }}
+        onClick={locked ? undefined : () => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all",
+          "flex items-center gap-4 p-3 rounded-xl transition-all",
           "bg-slate-900/50 border",
-          isOpen ? "border-purple-500/50" : "border-transparent hover:border-slate-600"
+          locked 
+            ? "border-emerald-500/30 cursor-default"
+            : isOpen 
+              ? "border-purple-500/50 cursor-pointer" 
+              : "border-transparent hover:border-slate-600 cursor-pointer"
         )}
       >
         {/* Flag */}
@@ -257,13 +278,19 @@ function CompactCountryCard({
           animate={false}
         />
 
-        {/* Chevron */}
-        <ChevronDown
-          className={cn(
-            "w-4 h-4 text-slate-400 transition-transform flex-shrink-0",
-            isOpen && "rotate-180"
-          )}
-        />
+        {/* Locked indicator or Chevron */}
+        {locked ? (
+          <span className="px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30 flex-shrink-0">
+            Fixed
+          </span>
+        ) : (
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 text-slate-400 transition-transform flex-shrink-0",
+              isOpen && "rotate-180"
+            )}
+          />
+        )}
       </motion.div>
 
       {/* Dropdown */}

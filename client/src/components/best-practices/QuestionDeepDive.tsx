@@ -14,6 +14,7 @@ import {
   Trophy, Flag, Crown, Shield, Eye, Heart
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { SaudiPositioning } from "./SaudiPositioning";
 import { ExportDropdown } from "./ExportDropdown";
 import { 
   exportBestPracticeToPDF, 
@@ -548,6 +549,14 @@ export function QuestionDeepDive({
                 ))}
               </div>
             </motion.div>
+          )}
+
+          {/* Saudi Arabia Positioning - GOSI Focus Section */}
+          {data.top_countries && data.top_countries.length > 0 && (
+            <SaudiPositioning
+              topCountries={data.top_countries}
+              onSelectSaudi={() => onSelectCountry("SAU")}
+            />
           )}
 
           {/* Generated timestamp */}

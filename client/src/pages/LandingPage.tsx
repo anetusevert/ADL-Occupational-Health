@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Globe2, 
   Layers, 
-  TrendingUp,
   ArrowRight,
   MapPin,
   Activity,
@@ -21,7 +20,7 @@ import { LoginModal } from "../components/LoginModal";
 import { FeatureDetailModal, type FeatureType } from "../components/FeatureDetailModal";
 import { cn } from "../lib/utils";
 
-// Value proposition cards - compact configuration
+// Value proposition cards - compact configuration (GOSI-focused, no simulator)
 const valueProps: Array<{
   id: FeatureType;
   icon: typeof Layers;
@@ -48,15 +47,6 @@ const valueProps: Array<{
     bgColor: "bg-cyan-500/10",
     borderColor: "border-cyan-500/20",
     iconColor: "text-cyan-400",
-  },
-  {
-    id: "simulator",
-    icon: TrendingUp,
-    title: "Simulator",
-    shortDesc: "Policy modeling",
-    bgColor: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/20",
-    iconColor: "text-emerald-400",
   },
 ];
 
@@ -172,6 +162,19 @@ export function LandingPage() {
                   transition={{ duration: 0.5, delay: 0.2 }}
                   className="mb-4 lg:mb-6"
                 >
+                  {/* GOSI Partnership Badge */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.15 }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] sm:text-xs font-medium text-emerald-400 uppercase tracking-wider">
+                      Developed for GOSI Saudi Arabia
+                    </span>
+                  </motion.div>
+                  
                   <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-[1.1] tracking-tight">
                     Global Occupational{" "}
                     <span className="text-adl-accent">Health Intelligence</span>
@@ -240,7 +243,7 @@ export function LandingPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.5 }}
-                  className="grid grid-cols-3 gap-2"
+                  className="grid grid-cols-2 gap-2"
                 >
                   {valueProps.map((prop, index) => {
                     const Icon = prop.icon;

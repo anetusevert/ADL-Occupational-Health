@@ -2,12 +2,15 @@
  * Arthur D. Little - Global Health Platform
  * Compare Page V2 - Premium Framework Comparison
  * 
+ * GOSI-Focused: Saudi Arabia is always the primary (left) country
+ * 
  * Complete redesign with:
  * - Zero-scroll experience
  * - Premium animations matching Framework screen
  * - Flow-based UX (selection -> comparison)
  * - ADL Score branding
  * - Interactive pillar tiles with modals
+ * - Saudi Arabia locked as primary benchmark
  */
 
 import { useState, useMemo, useEffect } from "react";
@@ -50,8 +53,8 @@ export function CompareV2() {
   // Phase state
   const [phase, setPhase] = useState<Phase>("selection");
   
-  // Country selection state
-  const [leftCountry, setLeftCountry] = useState<string>("SAU");
+  // Country selection state - Saudi Arabia is ALWAYS the primary (locked)
+  const leftCountry = "SAU"; // Locked for GOSI focus
   const [rightCountry, setRightCountry] = useState<string>("DEU");
   
   // Metric detail modal state
@@ -86,16 +89,13 @@ export function CompareV2() {
     return comparisonData?.countries || [];
   }, [comparisonData]);
 
-  // Ensure selected countries exist in the database
+  // Ensure selected comparison country exists in the database
   useEffect(() => {
     if (countries.length > 0) {
-      if (!countriesMap.has(leftCountry)) {
-        const firstAvailable = countries[0]?.iso_code;
-        if (firstAvailable) setLeftCountry(firstAvailable);
-      }
+      // Saudi Arabia (leftCountry) is locked, only validate right country
       if (!countriesMap.has(rightCountry)) {
-        const secondAvailable = countries.find(c => c.iso_code !== leftCountry)?.iso_code || countries[0]?.iso_code;
-        if (secondAvailable) setRightCountry(secondAvailable);
+        const availableCountry = countries.find(c => c.iso_code !== leftCountry)?.iso_code || countries[0]?.iso_code;
+        if (availableCountry) setRightCountry(availableCountry);
       }
     }
   }, [countries, countriesMap, leftCountry, rightCountry]);
@@ -207,9 +207,10 @@ export function CompareV2() {
                 countriesMap={countriesMap}
                 leftCountry={leftCountry}
                 rightCountry={rightCountry}
-                onLeftChange={setLeftCountry}
+                onLeftChange={() => {}} // Locked - Saudi Arabia cannot be changed
                 onRightChange={setRightCountry}
                 onCompare={handleCompare}
+                leftLocked={true}
               />
             </motion.div>
           )}
@@ -228,14 +229,13 @@ export function CompareV2() {
                 rightCountry={rightData}
                 countriesMap={countriesMap}
                 countries={countries}
-                onLeftChange={(iso) => {
-                  setLeftCountry(iso);
-                }}
+                onLeftChange={() => {}} // Locked - Saudi Arabia cannot be changed
                 onRightChange={(iso) => {
                   setRightCountry(iso);
                 }}
                 onReset={handleReset}
                 onMetricClick={openMetricModal}
+                leftLocked={true}
               />
             </motion.div>
           )}
@@ -278,13 +278,20 @@ function PageHeader({ totalCountries }: { totalCountries: number }) {
       <div className="w-11 h-11 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/30">
         <ArrowLeftRight className="w-5 h-5 text-purple-400" />
       </div>
-      <div>
+      <div className="flex-1">
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Framework Comparison
+          Saudi Arabia Benchmark Comparison
         </h1>
         <p className="text-white/40 text-sm">
-          Side-by-side 25-metric analysis • {totalCountries} countries available
+          Compare Saudi Arabia against {totalCountries} global frameworks • 25 metrics
         </p>
+      </div>
+      {/* GOSI Badge */}
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+          GOSI Focus
+        </span>
       </div>
     </motion.div>
   );

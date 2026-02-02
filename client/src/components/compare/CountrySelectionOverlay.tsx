@@ -31,6 +31,7 @@ interface CountrySelectionOverlayProps {
   onLeftChange: (iso: string) => void;
   onRightChange: (iso: string) => void;
   onCompare: () => void;
+  leftLocked?: boolean;
 }
 
 // ============================================================================
@@ -45,6 +46,7 @@ export function CountrySelectionOverlay({
   onLeftChange,
   onRightChange,
   onCompare,
+  leftLocked = false,
 }: CountrySelectionOverlayProps) {
   const leftData = countriesMap.get(leftCountry);
   const rightData = countriesMap.get(rightCountry);
@@ -67,29 +69,33 @@ export function CountrySelectionOverlay({
         className="text-center mb-8"
       >
         <h1 className="text-3xl font-bold text-white mb-2">
-          Compare Countries
+          {leftLocked ? "Compare Saudi Arabia" : "Compare Countries"}
         </h1>
         <p className="text-slate-400">
-          Select two countries to compare their occupational health frameworks
+          {leftLocked 
+            ? "Select a country to benchmark against Saudi Arabia's occupational health framework"
+            : "Select two countries to compare their occupational health frameworks"
+          }
         </p>
       </motion.div>
 
       {/* Selection Cards */}
       <div className="flex items-center gap-6 mb-8">
-        {/* Left Country Card */}
+        {/* Left Country Card - Locked for GOSI */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <CountrySelectionCard
-            label="First Country"
+            label={leftLocked ? "Saudi Arabia (Fixed)" : "First Country"}
             value={leftCountry}
             onChange={onLeftChange}
             countries={countries}
             countriesMap={countriesMap}
             excludeValue={rightCountry}
             side="left"
+            locked={leftLocked}
           />
         </motion.div>
 
@@ -159,6 +165,7 @@ interface CountrySelectionCardProps {
   countriesMap: Map<string, Country>;
   excludeValue?: string;
   side: "left" | "right";
+  locked?: boolean;
 }
 
 function CountrySelectionCard({
@@ -169,6 +176,7 @@ function CountrySelectionCard({
   countriesMap,
   excludeValue,
   side,
+  locked = false,
 }: CountrySelectionCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -196,19 +204,31 @@ function CountrySelectionCard({
     <div className="relative">
       {/* Card */}
       <motion.div
-        whileHover={{ scale: 1.01 }}
+        whileHover={locked ? {} : { scale: 1.01 }}
         className={cn(
-          "w-72 bg-slate-800/80 backdrop-blur-md border rounded-2xl p-6 cursor-pointer transition-all",
-          isOpen
-            ? "border-purple-500/50 shadow-lg shadow-purple-500/20"
-            : "border-slate-700/50 hover:border-slate-600"
+          "w-72 bg-slate-800/80 backdrop-blur-md border rounded-2xl p-6 transition-all",
+          locked 
+            ? "border-emerald-500/30 cursor-default"
+            : isOpen
+              ? "border-purple-500/50 shadow-lg shadow-purple-500/20 cursor-pointer"
+              : "border-slate-700/50 hover:border-slate-600 cursor-pointer"
         )}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={locked ? undefined : () => setIsOpen(!isOpen)}
       >
         {/* Label */}
-        <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">
-          {label}
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <p className={cn(
+            "text-xs uppercase tracking-wider",
+            locked ? "text-emerald-400" : "text-slate-500"
+          )}>
+            {label}
+          </p>
+          {locked && (
+            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">
+              Locked
+            </span>
+          )}
+        </div>
 
         {/* Flag & Country */}
         <div className="flex flex-col items-center">
@@ -246,15 +266,17 @@ function CountrySelectionCard({
           />
         </div>
 
-        {/* Chevron */}
-        <div className="absolute top-4 right-4">
-          <ChevronDown
-            className={cn(
-              "w-5 h-5 text-slate-400 transition-transform",
-              isOpen && "rotate-180"
-            )}
-          />
-        </div>
+        {/* Chevron - only show when not locked */}
+        {!locked && (
+          <div className="absolute top-4 right-4">
+            <ChevronDown
+              className={cn(
+                "w-5 h-5 text-slate-400 transition-transform",
+                isOpen && "rotate-180"
+              )}
+            />
+          </div>
+        )}
       </motion.div>
 
       {/* Dropdown */}

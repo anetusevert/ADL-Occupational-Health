@@ -29,6 +29,7 @@ import CountryDeepDive from "./pages/CountryDeepDive";
 import { DeepDiveReports } from "./pages/DeepDiveReports";
 import BestPractices from "./pages/BestPractices";
 import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
+import { DatabaseExplorer } from "./pages/admin/DatabaseExplorer";
 import { PillarPage } from "./pages/PillarPage";
 import { OverallSummary } from "./pages/OverallSummary";
 
@@ -393,6 +394,19 @@ function AppContent() {
                 <ProtectedRoute>
                   <AdminRoute>
                     <ReportWorkshop />
+                  </AdminRoute>
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          <Route
+            path="/admin/database"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <DatabaseExplorer />
                   </AdminRoute>
                 </ProtectedRoute>
               </AppLayout>
