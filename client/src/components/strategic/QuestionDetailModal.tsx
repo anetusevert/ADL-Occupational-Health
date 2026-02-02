@@ -223,10 +223,10 @@ export function QuestionDetailModal({
               </p>
             </div>
 
-            {/* Content - Two column, NO scrolling */}
-            <div className="flex">
+            {/* Content - Two column, fixed height, NO scrolling */}
+            <div className="flex max-h-[55vh] overflow-hidden">
               {/* Left: Deep Analysis */}
-              <div className="flex-1 p-5 border-r border-slate-700/50">
+              <div className="flex-1 p-5 border-r border-slate-700/50 overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
                   <BookOpen className={cn("w-4 h-4", pillarColor)} />
                   <h3 className="text-sm font-semibold text-white">Deep Analysis</h3>
@@ -235,7 +235,7 @@ export function QuestionDetailModal({
                 {/* Analysis text - limited lines, no scroll */}
                 <div className="space-y-3 mb-4">
                   {answer.detailed.slice(0, 2).map((para, i) => (
-                    <p key={i} className="text-sm text-white/70 leading-relaxed line-clamp-4">
+                    <p key={i} className="text-sm text-white/70 leading-relaxed line-clamp-3">
                       {para}
                     </p>
                   ))}
@@ -262,30 +262,30 @@ export function QuestionDetailModal({
                 )}
               </div>
 
-              {/* Right: Best Practice Leaders - Compact grid */}
-              <div className="w-[340px] p-5 bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-3">
+              {/* Right: Best Practice Leaders - Fixed height, no scroll */}
+              <div className="w-[320px] p-4 bg-slate-800/30 overflow-hidden">
+                <div className="flex items-center gap-2 mb-2">
                   <Trophy className="w-4 h-4 text-amber-400" />
                   <h3 className="text-sm font-semibold text-white">Best Practice Leaders</h3>
                 </div>
-                <p className="text-[10px] text-white/40 mb-3">Top 3 performing countries in this area</p>
+                <p className="text-[10px] text-white/40 mb-2">Top 3 performing countries</p>
                 
-                {/* Leaders - Compact cards */}
-                <div className="space-y-2">
+                {/* Leaders - Ultra compact cards */}
+                <div className="space-y-1.5">
                   {bestPractices.slice(0, 3).map((leader, idx) => (
                     <button
                       key={leader.country_iso}
                       onClick={() => onLeaderClick?.(leader)}
                       className={cn(
-                        "w-full p-3 rounded-lg border text-left transition-all group",
+                        "w-full p-2 rounded-lg border text-left transition-all group",
                         "bg-slate-800/50 border-slate-700",
                         onLeaderClick && "hover:bg-slate-700/50 hover:border-slate-600 cursor-pointer"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {/* Rank */}
                         <div className={cn(
-                          "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                          "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0",
                           idx === 0 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
                           idx === 1 ? "bg-slate-500/20 text-slate-300 border border-slate-500/30" :
                           "bg-orange-900/20 text-orange-400 border border-orange-900/30"
@@ -294,33 +294,19 @@ export function QuestionDetailModal({
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-white/60">{leader.country_iso}</span>
-                              <span className="text-sm font-semibold text-white">{leader.country_name}</span>
-                            </div>
-                            <span className={cn("text-sm font-bold", pillarColor)}>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs font-semibold text-white">{leader.country_name}</span>
+                            <span className={cn("text-xs font-bold", pillarColor)}>
                               {leader.score}%
                             </span>
                           </div>
                           
-                          {/* What they do - single line */}
-                          <p className="text-xs text-white/60 mt-1 line-clamp-1">{leader.what_they_do}</p>
-                          
-                          {/* Key lesson - compact */}
-                          <div className={cn(
-                            "mt-2 p-2 rounded text-xs",
-                            pillarBgColor,
-                            "border",
-                            pillarBorderColor
-                          )}>
-                            <p className={cn("text-[10px] uppercase tracking-wider mb-0.5", pillarColor)}>Key Lesson</p>
-                            <p className="text-white/80 line-clamp-1">{leader.key_lesson}</p>
-                          </div>
+                          {/* Key lesson only - very compact */}
+                          <p className="text-[10px] text-white/60 line-clamp-2">{leader.key_lesson}</p>
                         </div>
                         
                         {onLeaderClick && (
-                          <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
+                          <ChevronRight className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
                         )}
                       </div>
                     </button>
