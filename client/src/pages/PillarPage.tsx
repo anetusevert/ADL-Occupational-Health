@@ -167,9 +167,13 @@ async function fetchPillarAnalysis(
       { timeout: 180000 }
     );
     
-    if (response.data) {
+    // Validate response has the new questions format
+    if (response.data && Array.isArray(response.data.questions)) {
       return response.data;
     }
+    
+    // If API returns old format (without questions array), use fallback
+    console.warn("[PillarPage] API returned old format, using fallback");
   } catch (error) {
     console.warn("[PillarPage] Analysis unavailable, using fallback", error);
   }
@@ -275,7 +279,7 @@ export function PillarPage() {
   
   // Handle question click
   const handleQuestionClick = (questionIndex: number) => {
-    if (!pillarDef || !analysis) return;
+    if (!pillarDef || !analysis?.questions) return;
     
     const question = pillarDef.questions[questionIndex];
     const questionData = analysis.questions.find(q => q.question_id === question.id);
@@ -284,7 +288,7 @@ export function PillarPage() {
       setSelectedQuestion({
         question,
         answer: questionData.answer,
-        bestPractices: questionData.best_practices,
+        bestPractices: questionData.best_practices || [],
         index: questionIndex,
       });
     }
@@ -409,7 +413,7 @@ export function PillarPage() {
               className="h-full grid grid-cols-2 grid-rows-2 gap-4"
             >
               {pillarDef.questions.map((question, index) => {
-                const questionData = analysis?.questions.find(q => q.question_id === question.id);
+                const questionData = analysis?.questions?.find(q => q.question_id === question.id);
                 return (
                   <StrategicQuestionCard
                     key={question.id}
