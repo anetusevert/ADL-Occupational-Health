@@ -22,6 +22,7 @@ import {
   Loader2,
   AlertCircle,
   ChevronDown,
+  ChevronRight,
   RefreshCw,
   Target,
   Download,
