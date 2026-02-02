@@ -13,6 +13,12 @@ import {
   ArrowRight, FileText, Target
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { ExportDropdown } from "./ExportDropdown";
+import {
+  exportCountryBestPracticeToPDF,
+  exportCountryBestPracticeToWord,
+  CountryBestPracticeExportOptions,
+} from "../../services/reportExport";
 
 interface KeyMetric {
   metric: string;
@@ -51,6 +57,7 @@ interface CountryBestPracticeModalProps {
   isLoading: boolean;
   isGenerating: boolean;
   isAdmin: boolean;
+  userName: string;
   onClose: () => void;
   onGenerate: () => void;
 }
@@ -61,10 +68,80 @@ export function CountryBestPracticeModal({
   isLoading,
   isGenerating,
   isAdmin,
+  userName,
   onClose,
   onGenerate,
 }: CountryBestPracticeModalProps) {
   const hasContent = data?.status === "completed" && data?.approach_description;
+
+  // Pillar display name mapping
+  const pillarDisplayNames: Record<string, string> = {
+    governance: "Governance & Financing",
+    hazard: "Hazard Control",
+    vigilance: "Vigilance",
+    restoration: "Restoration & Compensation",
+  };
+
+  // Export handlers
+  const handleExportPDF = async () => {
+    if (!data || !hasContent) return;
+
+    const exportOptions: CountryBestPracticeExportOptions = {
+      userName,
+      countryName: data.country_name,
+      questionTitle: data.question_title,
+      pillarName: pillarDisplayNames[data.pillar] || data.pillar,
+      rank: data.rank,
+      score: data.score,
+      approachDescription: data.approach_description || "",
+      whyBestPractice: data.why_best_practice || "",
+      keyMetrics: (data.key_metrics || []).map((m) => ({
+        metric: m.metric,
+        value: m.value,
+        context: m.context,
+      })),
+      policyHighlights: (data.policy_highlights || []).map((p) => ({
+        policy: p.policy,
+        description: p.description,
+        yearEnacted: p.year_enacted,
+      })),
+      lessonsLearned: data.lessons_learned || "",
+      transferability: data.transferability || "",
+      generatedAt: data.generated_at,
+    };
+
+    await exportCountryBestPracticeToPDF(exportOptions);
+  };
+
+  const handleExportWord = async () => {
+    if (!data || !hasContent) return;
+
+    const exportOptions: CountryBestPracticeExportOptions = {
+      userName,
+      countryName: data.country_name,
+      questionTitle: data.question_title,
+      pillarName: pillarDisplayNames[data.pillar] || data.pillar,
+      rank: data.rank,
+      score: data.score,
+      approachDescription: data.approach_description || "",
+      whyBestPractice: data.why_best_practice || "",
+      keyMetrics: (data.key_metrics || []).map((m) => ({
+        metric: m.metric,
+        value: m.value,
+        context: m.context,
+      })),
+      policyHighlights: (data.policy_highlights || []).map((p) => ({
+        policy: p.policy,
+        description: p.description,
+        yearEnacted: p.year_enacted,
+      })),
+      lessonsLearned: data.lessons_learned || "",
+      transferability: data.transferability || "",
+      generatedAt: data.generated_at,
+    };
+
+    await exportCountryBestPracticeToWord(exportOptions);
+  };
 
   return (
     <AnimatePresence>
@@ -134,6 +211,15 @@ export function CountryBestPracticeModal({
                   </div>
                   
                   <div className="flex items-center gap-2">
+                    {/* Export Dropdown - visible when content is available */}
+                    {hasContent && (
+                      <ExportDropdown
+                        onExportPDF={handleExportPDF}
+                        onExportWord={handleExportWord}
+                        disabled={isGenerating}
+                      />
+                    )}
+                    
                     {/* Admin Regenerate */}
                     {isAdmin && (
                       <motion.button

@@ -14,6 +14,12 @@ import {
   Trophy, Flag, Crown, Shield, Eye, Heart
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { ExportDropdown } from "./ExportDropdown";
+import { 
+  exportBestPracticeToPDF, 
+  exportBestPracticeToWord,
+  BestPracticeExportOptions 
+} from "../../services/reportExport";
 
 // Pillar icon mapping
 const PILLAR_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -72,6 +78,7 @@ interface QuestionDeepDiveProps {
   isGenerating: boolean;
   isAdmin: boolean;
   error?: string | null;
+  userName: string;
   onBack: () => void;
   onGenerate: () => void;
   onSelectCountry: (isoCode: string) => void;
@@ -83,6 +90,7 @@ export function QuestionDeepDive({
   isGenerating,
   isAdmin,
   error,
+  userName,
   onBack,
   onGenerate,
   onSelectCountry,
@@ -94,6 +102,65 @@ export function QuestionDeepDive({
   const colors = PILLAR_COLORS[pillarId] || PILLAR_COLORS.governance;
   
   const hasContent = data?.status === "completed" && data?.best_practice_overview;
+
+  // Pillar display name mapping
+  const pillarDisplayNames: Record<string, string> = {
+    governance: "Governance & Financing",
+    hazard: "Hazard Control",
+    vigilance: "Vigilance",
+    restoration: "Restoration & Compensation",
+  };
+
+  // Export handlers
+  const handleExportPDF = async () => {
+    if (!data || !hasContent) return;
+    
+    const exportOptions: BestPracticeExportOptions = {
+      userName,
+      pillarName: pillarDisplayNames[pillarId] || pillarId,
+      questionTitle: data.question_title,
+      questionText: data.question_text,
+      bestPracticeOverview: data.best_practice_overview || "",
+      keyPrinciples: data.key_principles || [],
+      implementationElements: data.implementation_elements || [],
+      successFactors: data.success_factors || [],
+      commonPitfalls: data.common_pitfalls || [],
+      topCountries: (data.top_countries || []).map(c => ({
+        name: c.name,
+        rank: c.rank,
+        score: c.score,
+        summary: c.summary,
+      })),
+      generatedAt: data.generated_at,
+    };
+    
+    await exportBestPracticeToPDF(exportOptions);
+  };
+
+  const handleExportWord = async () => {
+    if (!data || !hasContent) return;
+    
+    const exportOptions: BestPracticeExportOptions = {
+      userName,
+      pillarName: pillarDisplayNames[pillarId] || pillarId,
+      questionTitle: data.question_title,
+      questionText: data.question_text,
+      bestPracticeOverview: data.best_practice_overview || "",
+      keyPrinciples: data.key_principles || [],
+      implementationElements: data.implementation_elements || [],
+      successFactors: data.success_factors || [],
+      commonPitfalls: data.common_pitfalls || [],
+      topCountries: (data.top_countries || []).map(c => ({
+        name: c.name,
+        rank: c.rank,
+        score: c.score,
+        summary: c.summary,
+      })),
+      generatedAt: data.generated_at,
+    };
+    
+    await exportBestPracticeToWord(exportOptions);
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -114,28 +181,39 @@ export function QuestionDeepDive({
             <span className="text-sm">Back to Questions</span>
           </motion.button>
           
-          {/* Admin Regenerate Button */}
-          {isAdmin && (
-            <motion.button
-              onClick={onGenerate}
-              disabled={isGenerating}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                isGenerating
-                  ? "bg-amber-500/20 border border-amber-500/40 text-amber-400 cursor-not-allowed"
-                  : "bg-purple-500/20 border border-purple-500/40 text-purple-400 hover:bg-purple-500/30"
-              )}
-              whileHover={!isGenerating ? { scale: 1.02 } : undefined}
-              whileTap={!isGenerating ? { scale: 0.98 } : undefined}
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              <span>{isGenerating ? "Generating..." : hasContent ? "Regenerate" : "Generate"}</span>
-            </motion.button>
-          )}
+          <div className="flex items-center gap-3">
+            {/* Export Dropdown - visible when content is available */}
+            {hasContent && (
+              <ExportDropdown
+                onExportPDF={handleExportPDF}
+                onExportWord={handleExportWord}
+                disabled={isGenerating}
+              />
+            )}
+            
+            {/* Admin Regenerate Button */}
+            {isAdmin && (
+              <motion.button
+                onClick={onGenerate}
+                disabled={isGenerating}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  isGenerating
+                    ? "bg-amber-500/20 border border-amber-500/40 text-amber-400 cursor-not-allowed"
+                    : "bg-purple-500/20 border border-purple-500/40 text-purple-400 hover:bg-purple-500/30"
+                )}
+                whileHover={!isGenerating ? { scale: 1.02 } : undefined}
+                whileTap={!isGenerating ? { scale: 0.98 } : undefined}
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                <span>{isGenerating ? "Generating..." : hasContent ? "Regenerate" : "Generate"}</span>
+              </motion.button>
+            )}
+          </div>
         </div>
         
         {/* Question Header */}

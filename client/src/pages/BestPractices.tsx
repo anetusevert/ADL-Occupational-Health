@@ -361,6 +361,7 @@ export default function BestPractices() {
                 isGenerating={generateMutation.isPending}
                 isAdmin={isAdmin}
                 error={generateError}
+                userName={user?.name || user?.email || "User"}
                 onBack={handleBackToQuestions}
                 onGenerate={handleGenerate}
                 onSelectCountry={handleSelectCountry}
@@ -377,6 +378,7 @@ export default function BestPractices() {
         isLoading={countryQuery.isLoading}
         isGenerating={generateCountryMutation.isPending}
         isAdmin={isAdmin}
+        userName={user?.name || user?.email || "User"}
         onClose={handleCloseCountryModal}
         onGenerate={handleGenerateCountry}
       />
