@@ -23,11 +23,11 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
-  ChevronLeft,
   RefreshCw,
   Target,
   Download,
-  ExternalLink,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from "recharts";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
@@ -53,6 +53,7 @@ interface SummaryReportData {
   strategic_priorities: StrategicPriority[];
   overall_assessment: string;
   generated_at: string;
+  cached?: boolean;
 }
 
 // ============================================================================
@@ -173,29 +174,25 @@ async function fetchSummaryReport(
   comparisonIso: string | null,
   forceRegenerate: boolean = false
 ): Promise<SummaryReportData> {
-  try {
-    const requestBody: Record<string, string | boolean> = {
-      comparison_country: comparisonIso || "global",
-    };
-    
-    if (forceRegenerate) {
-      requestBody.force_regenerate = true;
-    }
-    
-    const response = await aiApiClient.post(
-      `/api/v1/summary-report/${isoCode}`,
-      requestBody,
-      { timeout: 180000 }
-    );
-    
-    if (response.data) {
-      return response.data;
-    }
-  } catch (error) {
-    console.warn("[OverallSummary] Report unavailable, using fallback", error);
+  const requestBody: Record<string, string | boolean> = {
+    comparison_country: comparisonIso || "global",
+  };
+  
+  if (forceRegenerate) {
+    requestBody.force_regenerate = true;
   }
   
-  return generateSummaryFallback(isoCode, {});
+  const response = await aiApiClient.post(
+    `/api/v1/summary-report/${isoCode}`,
+    requestBody,
+    { timeout: 180000 }
+  );
+  
+  if (response.data) {
+    return response.data;
+  }
+  
+  throw new Error("No data returned");
 }
 
 // ============================================================================
@@ -393,30 +390,34 @@ export function OverallSummary() {
   const { 
     data: report, 
     isLoading: reportLoading,
+    error: reportError,
+    refetch: refetchReport,
   } = useQuery({
     queryKey: ["summary-report", iso, comparisonIso],
     queryFn: async () => {
-      try {
-        return await fetchSummaryReport(iso!, comparisonIso);
-      } catch {
-        return generateSummaryFallback(currentCountry?.name || iso!, scores);
-      }
+      return await fetchSummaryReport(iso!, comparisonIso);
     },
     enabled: !!iso && !!currentCountry,
     staleTime: 5 * 60 * 1000,
+    retry: false, // Don't retry on 404/403
   });
   
-  // Handle regenerate (admin only)
-  const handleRegenerate = async () => {
+  // Check if error is "not generated" (404)
+  const isNotGenerated = reportError && 
+    (reportError as any)?.response?.status === 404;
+  
+  // Handle generate/regenerate (admin only)
+  const handleGenerate = async (forceRegenerate: boolean = false) => {
     if (!isAdmin || !iso) return;
     
     setIsRegenerating(true);
     try {
-      await fetchSummaryReport(iso, comparisonIso, true);
+      await fetchSummaryReport(iso, comparisonIso, forceRegenerate);
       // Invalidate cache to refetch
       queryClient.invalidateQueries({ queryKey: ["summary-report", iso] });
+      refetchReport();
     } catch (error) {
-      console.error("Regeneration failed:", error);
+      console.error("Generation failed:", error);
     } finally {
       setIsRegenerating(false);
     }
@@ -477,6 +478,97 @@ export function OverallSummary() {
     );
   }
   
+  // Report not generated state
+  if (isNotGenerated && !reportLoading) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/home")}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              title="Back to Global Map"
+            >
+              <ArrowLeft className="w-4 h-4 text-white/60" />
+            </button>
+            
+            <CountryFlag
+              isoCode={currentCountry.iso_code}
+              flagUrl={currentCountry.flag_url}
+              size="md"
+              className="shadow-lg"
+            />
+            
+            <div>
+              <h1 className="text-base font-bold text-white">{currentCountry.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3 h-3 text-cyan-400" />
+                <span className="text-xs font-medium text-cyan-400">Strategic Assessment</span>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        {/* Not Generated Message */}
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-cyan-500/10 border border-cyan-500/30">
+              {isAdmin ? (
+                <Sparkles className="w-8 h-8 text-cyan-400" />
+              ) : (
+                <Lock className="w-8 h-8 text-white/40" />
+              )}
+            </div>
+            
+            <h2 className="text-xl font-bold text-white mb-2">
+              {isAdmin ? "Report Not Yet Generated" : "Report Pending Generation"}
+            </h2>
+            
+            <p className="text-sm text-white/60 mb-6">
+              {isAdmin 
+                ? `The strategic assessment for ${currentCountry.name} has not been generated yet. Click below to generate a comprehensive executive summary.`
+                : `The strategic assessment for ${currentCountry.name} is not yet available. Please contact an administrator to generate this report.`
+              }
+            </p>
+            
+            {isAdmin ? (
+              <button
+                onClick={() => handleGenerate(false)}
+                disabled={isRegenerating}
+                className={cn(
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all",
+                  "bg-cyan-500/20 border border-cyan-500/30 text-cyan-400",
+                  "hover:bg-cyan-500/30",
+                  isRegenerating && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Generating Report...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    <span>Generate Report</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/home")}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors"
+              >
+                Return to Global Map
+              </button>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Compact Header */}
@@ -515,10 +607,17 @@ export function OverallSummary() {
             </div>
           )}
           
+          {/* Cached indicator */}
+          {report?.cached && (
+            <span className="px-2 py-1 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+              Cached
+            </span>
+          )}
+          
           {/* Admin Regenerate Button */}
           {isAdmin && (
             <button
-              onClick={handleRegenerate}
+              onClick={() => handleGenerate(true)}
               disabled={isRegenerating || reportLoading}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
               title="Regenerate Report (Admin Only)"

@@ -14,6 +14,9 @@ from app.models.country import (
     Pillar1Hazard,
     Pillar2Vigilance,
     Pillar3Restoration,
+    # Cached Reports
+    CachedPillarReport,
+    CachedSummaryReport,
 )
 
 from app.models.user import (
@@ -70,6 +73,9 @@ __all__ = [
     "Pillar1Hazard",
     "Pillar2Vigilance",
     "Pillar3Restoration",
+    # Cached Reports
+    "CachedPillarReport",
+    "CachedSummaryReport",
     # User Models
     "User",
     "AIConfig",

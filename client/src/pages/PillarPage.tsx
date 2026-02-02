@@ -4,6 +4,9 @@
  * 
  * Strategic question-based analysis for each pillar.
  * 2x2 grid layout with no scrolling, modal for details.
+ * 
+ * Report persistence: Reports are cached server-side.
+ * Only admins can generate/regenerate reports.
  */
 
 import { useState, useMemo } from "react";
@@ -16,6 +19,9 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
+  FileText,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { apiClient, aiApiClient } from "../services/api";
@@ -54,10 +60,17 @@ interface PillarAnalysisResponse {
   overall_score: number;
   questions: StrategicQuestionResponse[];
   generated_at: string;
+  cached?: boolean;
   sources_used: {
     database_fields: string[];
     web_sources: Array<{ title: string; url: string }>;
   };
+}
+
+// API Error types
+interface ApiError {
+  status: number;
+  message: string;
 }
 
 // Valid pillar IDs
@@ -136,6 +149,7 @@ function generateFallbackAnalysis(
       ],
     })),
     generated_at: new Date().toISOString(),
+    cached: false,
     sources_used: {
       database_fields: [pillarDef.scoreField],
       web_sources: [],
@@ -152,33 +166,27 @@ async function fetchPillarAnalysis(
   pillarId: string,
   forceRegenerate: boolean = false
 ): Promise<PillarAnalysisResponse> {
-  try {
-    const requestBody: Record<string, string | boolean> = {
-      comparison_country: "global",
-    };
-    
-    if (forceRegenerate) {
-      requestBody.force_regenerate = true;
-    }
-    
-    const response = await aiApiClient.post(
-      `/api/v1/pillar-analysis/${isoCode}/${pillarId}`,
-      requestBody,
-      { timeout: 180000 }
-    );
-    
-    // Validate response has the new questions format
-    if (response.data && Array.isArray(response.data.questions)) {
-      return response.data;
-    }
-    
-    // If API returns old format (without questions array), use fallback
-    console.warn("[PillarPage] API returned old format, using fallback");
-  } catch (error) {
-    console.warn("[PillarPage] Analysis unavailable, using fallback", error);
+  const requestBody: Record<string, string | boolean> = {
+    comparison_country: "global",
+  };
+  
+  if (forceRegenerate) {
+    requestBody.force_regenerate = true;
   }
   
-  throw new Error("API unavailable");
+  const response = await aiApiClient.post(
+    `/api/v1/pillar-analysis/${isoCode}/${pillarId}`,
+    requestBody,
+    { timeout: 180000 }
+  );
+  
+  // Validate response has the new questions format
+  if (response.data && Array.isArray(response.data.questions)) {
+    return response.data;
+  }
+  
+  // If API returns old format (without questions array), throw to use fallback
+  throw new Error("API returned old format");
 }
 
 // ============================================================================
@@ -198,7 +206,7 @@ export function PillarPage() {
     bestPractices: BestPracticeLeader[];
     index: number;
   } | null>(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Handle "summary" route - redirect to OverallSummary
   if (pillar === "summary") {
@@ -235,35 +243,40 @@ export function PillarPage() {
   const { 
     data: analysis, 
     isLoading: analysisLoading,
+    error: analysisError,
+    refetch: refetchAnalysis,
   } = useQuery({
     queryKey: ["pillar-analysis", iso, pillar],
     queryFn: async () => {
-      try {
-        return await fetchPillarAnalysis(iso!, pillar!);
-      } catch {
-        return generateFallbackAnalysis(
-          pillar!,
-          currentCountry?.name || iso!,
-          pillarScore
-        );
-      }
+      return await fetchPillarAnalysis(iso!, pillar!);
     },
     enabled: !!iso && !!pillar && !!currentCountry && isValidPillar,
     staleTime: 5 * 60 * 1000,
+    retry: false, // Don't retry on 404/403
   });
   
-  // Handle regenerate (admin only)
-  const handleRegenerate = async () => {
+  // Check if error is "not generated" (404)
+  const isNotGenerated = analysisError && 
+    (analysisError as any)?.response?.status === 404;
+  
+  // Check if error is "forbidden" (403)
+  const isForbidden = analysisError && 
+    (analysisError as any)?.response?.status === 403;
+  
+  // Handle generate/regenerate (admin only)
+  const handleGenerate = async (forceRegenerate: boolean = false) => {
     if (!isAdmin || !iso || !pillar) return;
     
-    setIsRegenerating(true);
+    setIsGenerating(true);
     try {
-      await fetchPillarAnalysis(iso, pillar, true);
+      await fetchPillarAnalysis(iso, pillar, forceRegenerate);
+      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["pillar-analysis", iso, pillar] });
+      refetchAnalysis();
     } catch (error) {
-      console.error("Regeneration failed:", error);
+      console.error("Generation failed:", error);
     } finally {
-      setIsRegenerating(false);
+      setIsGenerating(false);
     }
   };
   
@@ -325,6 +338,107 @@ export function PillarPage() {
 
   const Icon = pillarDef.icon;
   
+  // Report not generated state (for non-admins or when admin needs to generate)
+  if (isNotGenerated && !analysisLoading) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-700 bg-gradient-to-r from-slate-800/50 to-slate-800/30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              title="Back"
+            >
+              <ArrowLeft className="w-4 h-4 text-white/60" />
+            </button>
+            
+            <CountryFlag
+              isoCode={currentCountry.iso_code}
+              flagUrl={currentCountry.flag_url}
+              size="md"
+              className="shadow-lg"
+            />
+            
+            <div>
+              <h1 className="text-base font-bold text-white">{currentCountry.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <Icon className={cn("w-3 h-3", pillarDef.color)} />
+                <span className={cn("text-xs font-medium", pillarDef.color)}>
+                  {pillarDef.name}
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        {/* Not Generated Message */}
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className={cn(
+              "w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center",
+              pillarDef.bgColor,
+              "border",
+              pillarDef.borderColor
+            )}>
+              {isAdmin ? (
+                <Sparkles className={cn("w-8 h-8", pillarDef.color)} />
+              ) : (
+                <Lock className="w-8 h-8 text-white/40" />
+              )}
+            </div>
+            
+            <h2 className="text-xl font-bold text-white mb-2">
+              {isAdmin ? "Report Not Yet Generated" : "Report Pending Generation"}
+            </h2>
+            
+            <p className="text-sm text-white/60 mb-6">
+              {isAdmin 
+                ? `The ${pillarDef.name} analysis for ${currentCountry.name} has not been generated yet. Click below to generate a comprehensive strategic assessment.`
+                : `The ${pillarDef.name} analysis for ${currentCountry.name} is not yet available. Please contact an administrator to generate this report.`
+              }
+            </p>
+            
+            {isAdmin ? (
+              <button
+                onClick={() => handleGenerate(false)}
+                disabled={isGenerating}
+                className={cn(
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all",
+                  pillarDef.bgColor,
+                  "border",
+                  pillarDef.borderColor,
+                  pillarDef.color,
+                  "hover:opacity-80",
+                  isGenerating && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Generating Analysis...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    <span>Generate Report</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleBack}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors"
+              >
+                Return to Overview
+              </button>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
@@ -371,15 +485,22 @@ export function PillarPage() {
             </div>
           )}
           
+          {/* Cached indicator */}
+          {analysis?.cached && (
+            <span className="px-2 py-1 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+              Cached
+            </span>
+          )}
+          
           {/* Admin Regenerate Button */}
           {isAdmin && (
             <button
-              onClick={handleRegenerate}
-              disabled={isRegenerating || analysisLoading}
+              onClick={() => handleGenerate(true)}
+              disabled={isGenerating || analysisLoading}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
               title="Regenerate Analysis (Admin Only)"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", (isRegenerating || analysisLoading) && "animate-spin")} />
+              <RefreshCw className={cn("w-3.5 h-3.5", (isGenerating || analysisLoading) && "animate-spin")} />
               <span>Regenerate</span>
             </button>
           )}
@@ -398,15 +519,17 @@ export function PillarPage() {
       {/* Main Content - 2x2 Grid */}
       <main className="flex-1 p-4 overflow-hidden">
         <div className="h-full max-w-5xl mx-auto">
-          {analysisLoading ? (
+          {(analysisLoading || isGenerating) ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
                 <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-                <p className="text-sm text-white/50">Generating deep analysis...</p>
+                <p className="text-sm text-white/50">
+                  {isGenerating ? "Generating deep analysis..." : "Loading analysis..."}
+                </p>
                 <p className="text-xs text-white/30 mt-1">This may take a moment</p>
               </div>
             </div>
-          ) : (
+          ) : analysis ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -429,6 +552,19 @@ export function PillarPage() {
                 );
               })}
             </motion.div>
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-4" />
+                <p className="text-sm text-white/50">Unable to load analysis</p>
+                <button
+                  onClick={() => refetchAnalysis()}
+                  className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </main>

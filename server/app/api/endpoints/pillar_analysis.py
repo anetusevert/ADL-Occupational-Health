@@ -3,11 +3,12 @@ GOHIP Platform - Pillar Analysis API Endpoints
 ===============================================
 
 AI-powered deep analysis for individual framework pillars.
+With persistent caching and admin-only generation.
 
 Endpoints:
-- POST /api/v1/pillar-analysis/{iso_code}/{pillar_id} - Generate pillar analysis
+- POST /api/v1/pillar-analysis/{iso_code}/{pillar_id} - Get or generate pillar analysis
 - GET /api/v1/pillar-analysis/{iso_code}/{pillar_id}/fallback - Get quick fallback
-- POST /api/v1/summary-report/{iso_code} - Generate comprehensive summary
+- POST /api/v1/summary-report/{iso_code} - Get or generate comprehensive summary
 - GET /api/v1/summary-report/{iso_code}/fallback - Get quick summary fallback
 """
 
@@ -25,7 +26,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user_optional
 from app.models.user import User, AIConfig
-from app.models.country import Country
+from app.models.country import Country, CachedPillarReport, CachedSummaryReport
 from app.models.agent import Agent, DEFAULT_AGENTS
 from app.services.agent_runner import AgentRunner
 from app.services.country_data_provider import CountryDataProvider
@@ -47,6 +48,7 @@ logger.info("Pillar Analysis router initialized")
 class PillarAnalysisRequest(BaseModel):
     """Request for pillar analysis."""
     comparison_country: Optional[str] = Field("global", description="Comparison country ISO or 'global'")
+    force_regenerate: bool = Field(False, description="Force regeneration (admin only)")
 
 
 class KeyInsight(BaseModel):
@@ -72,6 +74,7 @@ class PillarAnalysisResponse(BaseModel):
     key_insights: List[KeyInsight]
     recommendations: List[Recommendation]
     generated_at: str
+    cached: bool = False  # Indicates if this was from cache
 
 
 class StrategicPriority(BaseModel):
@@ -90,6 +93,7 @@ class SummaryReportResponse(BaseModel):
     strategic_priorities: List[StrategicPriority]
     overall_assessment: str
     generated_at: str
+    cached: bool = False  # Indicates if this was from cache
 
 
 # =============================================================================
@@ -124,6 +128,11 @@ def get_country_data(db: Session, iso_code: str) -> Optional[Country]:
     except Exception as e:
         logger.error(f"Error fetching country {iso_code}: {e}")
         return None
+
+
+def is_admin(user: Optional[User]) -> bool:
+    """Check if user is admin."""
+    return user is not None and user.role == "admin"
 
 
 def parse_agent_response(response_text: str) -> Dict[str, Any]:
@@ -164,6 +173,60 @@ def ensure_agent_exists(db: Session, agent_id: str) -> Optional[Agent]:
     return agent
 
 
+def get_cached_pillar_report(db: Session, iso_code: str, pillar_id: str) -> Optional[CachedPillarReport]:
+    """Get cached pillar report from database."""
+    return db.query(CachedPillarReport).filter(
+        CachedPillarReport.iso_code == iso_code.upper(),
+        CachedPillarReport.pillar_id == pillar_id
+    ).first()
+
+
+def get_cached_summary_report(db: Session, iso_code: str) -> Optional[CachedSummaryReport]:
+    """Get cached summary report from database."""
+    return db.query(CachedSummaryReport).filter(
+        CachedSummaryReport.iso_code == iso_code.upper()
+    ).first()
+
+
+def store_pillar_report(db: Session, iso_code: str, pillar_id: str, report_dict: dict, user_id: Optional[int]) -> None:
+    """Store pillar report in database."""
+    # Delete existing if any
+    existing = get_cached_pillar_report(db, iso_code, pillar_id)
+    if existing:
+        db.delete(existing)
+    
+    # Create new cached report
+    cached = CachedPillarReport(
+        iso_code=iso_code.upper(),
+        pillar_id=pillar_id,
+        report_json=json.dumps(report_dict),
+        generated_at=datetime.utcnow(),
+        generated_by_id=user_id
+    )
+    db.add(cached)
+    db.commit()
+    logger.info(f"Stored pillar report: {iso_code}/{pillar_id}")
+
+
+def store_summary_report(db: Session, iso_code: str, report_dict: dict, user_id: Optional[int]) -> None:
+    """Store summary report in database."""
+    # Delete existing if any
+    existing = get_cached_summary_report(db, iso_code)
+    if existing:
+        db.delete(existing)
+    
+    # Create new cached report
+    cached = CachedSummaryReport(
+        iso_code=iso_code.upper(),
+        report_json=json.dumps(report_dict),
+        generated_at=datetime.utcnow(),
+        generated_by_id=user_id
+    )
+    db.add(cached)
+    db.commit()
+    logger.info(f"Stored summary report: {iso_code}")
+
+
 # =============================================================================
 # PILLAR ANALYSIS ENDPOINTS
 # =============================================================================
@@ -171,8 +234,8 @@ def ensure_agent_exists(db: Session, agent_id: str) -> Optional[Agent]:
 @router.post(
     "/{iso_code}/{pillar_id}",
     response_model=PillarAnalysisResponse,
-    summary="Generate pillar analysis",
-    description="Generate AI-powered deep analysis for a specific framework pillar.",
+    summary="Get or generate pillar analysis",
+    description="Returns cached report if available, or generates new one (admin only).",
 )
 async def generate_pillar_analysis(
     iso_code: str,
@@ -181,7 +244,7 @@ async def generate_pillar_analysis(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Generate in-depth analysis for a framework pillar."""
+    """Get or generate pillar analysis with caching."""
     
     # Validate pillar
     if pillar_id not in PILLAR_NAMES:
@@ -195,6 +258,33 @@ async def generate_pillar_analysis(
     if not country:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Country not found: {iso_code}")
     
+    # 1. Check for cached report
+    cached = get_cached_pillar_report(db, iso_code, pillar_id)
+    
+    # 2. If cached and not force_regenerate, return cached
+    if cached and not request.force_regenerate:
+        logger.info(f"Returning cached pillar report: {iso_code}/{pillar_id}")
+        report_dict = json.loads(cached.report_json)
+        report_dict["cached"] = True
+        return PillarAnalysisResponse(**report_dict)
+    
+    # 3. If force_regenerate requested, must be admin
+    if request.force_regenerate and not is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required for report regeneration"
+        )
+    
+    # 4. If no cache exists, only admin can generate
+    if not cached and not is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not yet generated for this country/pillar. Please contact an administrator."
+        )
+    
+    # 5. Generate new report (admin only reaches here)
+    logger.info(f"Generating new pillar report: {iso_code}/{pillar_id} by user {current_user.id if current_user else 'unknown'}")
+    
     # Get comparison data
     comparison_context = "No comparison country selected."
     if request.comparison_country and request.comparison_country != "global":
@@ -207,11 +297,13 @@ async def generate_pillar_analysis(
     ai_config = get_ai_config(db)
     if not ai_config:
         # Return fallback if no AI config
+        logger.warning("No AI config found, returning fallback")
         return generate_pillar_fallback_response(country, pillar_id)
     
     # Ensure agent exists
     agent = ensure_agent_exists(db, "pillar-analysis")
     if not agent:
+        logger.warning("Agent not found, returning fallback")
         return generate_pillar_fallback_response(country, pillar_id)
     
     try:
@@ -230,15 +322,32 @@ async def generate_pillar_analysis(
         
         parsed = parse_agent_response(result.get("output", ""))
         
+        # Build response dict
+        response_dict = {
+            "iso_code": iso_code.upper(),
+            "country_name": country.name,
+            "pillar_id": pillar_id,
+            "title": parsed.get("title", f"{country.name} - {PILLAR_NAMES[pillar_id]} Analysis"),
+            "analysis_paragraphs": parsed.get("analysis_paragraphs", []),
+            "key_insights": parsed.get("key_insights", []),
+            "recommendations": parsed.get("recommendations", []),
+            "generated_at": datetime.utcnow().isoformat(),
+            "cached": False,
+        }
+        
+        # Store in database
+        store_pillar_report(
+            db, 
+            iso_code, 
+            pillar_id, 
+            response_dict, 
+            current_user.id if current_user else None
+        )
+        
         return PillarAnalysisResponse(
-            iso_code=iso_code.upper(),
-            country_name=country.name,
-            pillar_id=pillar_id,
-            title=parsed.get("title", f"{country.name} - {PILLAR_NAMES[pillar_id]} Analysis"),
-            analysis_paragraphs=parsed.get("analysis_paragraphs", []),
-            key_insights=[KeyInsight(**i) for i in parsed.get("key_insights", [])],
-            recommendations=[Recommendation(**r) for r in parsed.get("recommendations", [])],
-            generated_at=datetime.utcnow().isoformat(),
+            **response_dict,
+            key_insights=[KeyInsight(**i) if isinstance(i, dict) else i for i in response_dict["key_insights"]],
+            recommendations=[Recommendation(**r) if isinstance(r, dict) else r for r in response_dict["recommendations"]],
         )
         
     except Exception as e:
@@ -310,6 +419,7 @@ def generate_pillar_fallback_response(country: Country, pillar_id: str) -> Pilla
             Recommendation(action="Review component-level gaps", rationale="Identify specific infrastructure weaknesses", expected_impact="Targeted improvement opportunities")
         ],
         generated_at=datetime.utcnow().isoformat(),
+        cached=False,
     )
 
 
@@ -320,8 +430,8 @@ def generate_pillar_fallback_response(country: Country, pillar_id: str) -> Pilla
 @summary_router.post(
     "/{iso_code}",
     response_model=SummaryReportResponse,
-    summary="Generate summary report",
-    description="Generate comprehensive McKinsey-grade summary across all pillars.",
+    summary="Get or generate summary report",
+    description="Returns cached report if available, or generates new one (admin only).",
 )
 async def generate_summary_report(
     iso_code: str,
@@ -329,11 +439,38 @@ async def generate_summary_report(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Generate comprehensive summary report."""
+    """Get or generate summary report with caching."""
     
     country = get_country_data(db, iso_code)
     if not country:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Country not found: {iso_code}")
+    
+    # 1. Check for cached report
+    cached = get_cached_summary_report(db, iso_code)
+    
+    # 2. If cached and not force_regenerate, return cached
+    if cached and not request.force_regenerate:
+        logger.info(f"Returning cached summary report: {iso_code}")
+        report_dict = json.loads(cached.report_json)
+        report_dict["cached"] = True
+        return SummaryReportResponse(**report_dict)
+    
+    # 3. If force_regenerate requested, must be admin
+    if request.force_regenerate and not is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required for report regeneration"
+        )
+    
+    # 4. If no cache exists, only admin can generate
+    if not cached and not is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not yet generated for this country. Please contact an administrator."
+        )
+    
+    # 5. Generate new report (admin only reaches here)
+    logger.info(f"Generating new summary report: {iso_code} by user {current_user.id if current_user else 'unknown'}")
     
     # Get comparison data
     comparison_context = "No comparison country selected."
@@ -345,10 +482,12 @@ async def generate_summary_report(
     
     ai_config = get_ai_config(db)
     if not ai_config:
+        logger.warning("No AI config found, returning fallback")
         return generate_summary_fallback_response(country)
     
     agent = ensure_agent_exists(db, "summary-report")
     if not agent:
+        logger.warning("Agent not found, returning fallback")
         return generate_summary_fallback_response(country)
     
     try:
@@ -365,15 +504,31 @@ async def generate_summary_report(
         
         parsed = parse_agent_response(result.get("output", ""))
         
+        # Build response dict
+        response_dict = {
+            "iso_code": iso_code.upper(),
+            "country_name": country.name,
+            "executive_summary": parsed.get("executive_summary", []),
+            "strategic_priorities": parsed.get("strategic_priorities", []),
+            "overall_assessment": parsed.get("overall_assessment", ""),
+            "generated_at": datetime.utcnow().isoformat(),
+            "cached": False,
+        }
+        
+        # Store in database
+        store_summary_report(
+            db,
+            iso_code,
+            response_dict,
+            current_user.id if current_user else None
+        )
+        
         return SummaryReportResponse(
-            iso_code=iso_code.upper(),
-            country_name=country.name,
-            executive_summary=parsed.get("executive_summary", []),
+            **response_dict,
             strategic_priorities=[
-                StrategicPriority(**p) for p in parsed.get("strategic_priorities", [])
+                StrategicPriority(**p) if isinstance(p, dict) else p 
+                for p in response_dict["strategic_priorities"]
             ],
-            overall_assessment=parsed.get("overall_assessment", ""),
-            generated_at=datetime.utcnow().isoformat(),
         )
         
     except Exception as e:
@@ -456,4 +611,5 @@ def generate_summary_fallback_response(country: Country) -> SummaryReportRespons
         strategic_priorities=priorities,
         overall_assessment=f"{country.name} presents a {'developing' if avg_score < 50 else 'advancing'} occupational health framework with clear opportunities for targeted improvement across multiple pillars.",
         generated_at=datetime.utcnow().isoformat(),
+        cached=False,
     )

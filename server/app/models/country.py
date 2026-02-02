@@ -890,3 +890,55 @@ class CountryDeepDive(Base):
             "generated_at": self.generated_at.isoformat() if self.generated_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+# ============================================================================
+# CACHED REPORTS (Persistent Report Storage)
+# ============================================================================
+
+class CachedPillarReport(Base):
+    """
+    Cached pillar analysis reports for persistent storage.
+    Reports are generated once by admins and served to all users.
+    """
+    __tablename__ = "cached_pillar_reports"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    iso_code = Column(String(3), ForeignKey("countries.iso_code"), index=True, nullable=False)
+    pillar_id = Column(String(50), index=True, nullable=False, comment="governance, hazard-control, vigilance, restoration")
+    report_json = Column(Text, nullable=False, comment="Full JSON response from LLM")
+    generated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    generated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Unique constraint: one report per country-pillar combination
+    __table_args__ = (
+        UniqueConstraint('iso_code', 'pillar_id', name='uq_cached_pillar_report'),
+    )
+    
+    # Relationships
+    country = relationship("Country", backref="cached_pillar_reports")
+    generated_by = relationship("User", backref="generated_pillar_reports")
+    
+    def __repr__(self):
+        return f"<CachedPillarReport(country='{self.iso_code}', pillar='{self.pillar_id}')>"
+
+
+class CachedSummaryReport(Base):
+    """
+    Cached overall summary reports for persistent storage.
+    Reports are generated once by admins and served to all users.
+    """
+    __tablename__ = "cached_summary_reports"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    iso_code = Column(String(3), ForeignKey("countries.iso_code"), unique=True, index=True, nullable=False)
+    report_json = Column(Text, nullable=False, comment="Full JSON response from LLM")
+    generated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    generated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    country = relationship("Country", backref="cached_summary_report")
+    generated_by = relationship("User", backref="generated_summary_reports")
+    
+    def __repr__(self):
+        return f"<CachedSummaryReport(country='{self.iso_code}')>"
