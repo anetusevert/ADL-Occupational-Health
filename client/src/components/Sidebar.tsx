@@ -40,6 +40,7 @@ interface NavItem {
   icon: React.ElementType;
   adminOnly?: boolean;
   beta?: boolean;
+  restrictedForNonAdmin?: boolean;
 }
 
 interface SidebarProps {
@@ -54,21 +55,20 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
   { path: "/country-data", label: "Country Data", icon: Table2 },
-  { path: "/deep-dive", label: "Best Practices", icon: Brain, beta: true },
+  { path: "/deep-dive", label: "Best Practices", icon: Brain },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/compare", label: "Compare", icon: GitCompare },
 ];
 
 // Tool Suite - Interactive tools for users
 const toolSuiteItems: NavItem[] = [
-  { path: "/simulator", label: "Policy Simulator", icon: Target, beta: true },
+  { path: "/simulator", label: "Policy Simulator", icon: Target, beta: true, restrictedForNonAdmin: true },
   { path: "/data-engine", label: "Data Engine", icon: Database },
   { path: "/metric-calculator", label: "Scoring", icon: Calculator },
 ];
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/generation-progress", label: "Report Status", icon: Activity, adminOnly: true },
   { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
@@ -209,6 +209,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               item={item}
               isActive={location.pathname === item.path}
               isCollapsed={!isMobile && isCollapsed}
+              isUserAdmin={isAdmin}
               onClick={handleNavClick}
             />
           ))}
@@ -353,6 +354,7 @@ function NavLink({
   isCollapsed,
   isAdmin = false,
   isHighlight = false,
+  isUserAdmin = false,
   onClick,
 }: {
   item: NavItem;
@@ -360,14 +362,25 @@ function NavLink({
   isCollapsed: boolean;
   isAdmin?: boolean;
   isHighlight?: boolean;
+  isUserAdmin?: boolean;
   onClick?: () => void;
 }) {
   const Icon = item.icon;
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Check if this item is restricted for non-admin users
+    if (item.restrictedForNonAdmin && !isUserAdmin) {
+      e.preventDefault();
+      alert("This feature is currently in development and only accessible for administrators.");
+      return;
+    }
+    onClick?.();
+  };
+
   return (
     <Link
       to={item.path}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
         isActive
