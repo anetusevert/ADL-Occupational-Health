@@ -72,6 +72,14 @@ except Exception as e:
     logger.error(f"Failed to import insights router: {e}")
     insights_router = None
 
+# Import personas router with error handling
+try:
+    from app.api.endpoints.personas import router as personas_router
+    logger.info("Personas router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import personas router: {e}")
+    personas_router = None
+
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -142,3 +150,10 @@ if insights_router:
     logger.info("Insights router registered at /api/v1/insights")
 else:
     logger.warning("Insights router not available")
+
+# Include personas router if it loaded successfully
+if personas_router:
+    api_router.include_router(personas_router)
+    logger.info("Personas router registered at /api/v1/personas")
+else:
+    logger.warning("Personas router not available")
