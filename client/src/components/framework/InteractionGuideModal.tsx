@@ -100,6 +100,7 @@ const colors: Record<string, {
   amber: { bg: "bg-amber-500/20", bgSolid: "bg-amber-500", border: "border-amber-500/30", text: "text-amber-400", hex: "#f59e0b", glow: "shadow-amber-500/40" },
   cyan: { bg: "bg-cyan-500/20", bgSolid: "bg-cyan-500", border: "border-cyan-500/30", text: "text-cyan-400", hex: "#06b6d4", glow: "shadow-cyan-500/40" },
   slate: { bg: "bg-slate-500/20", bgSolid: "bg-slate-600", border: "border-slate-500/30", text: "text-slate-400", hex: "#475569", glow: "shadow-slate-500/40" },
+  red: { bg: "bg-red-500/20", bgSolid: "bg-red-600", border: "border-red-500/30", text: "text-red-400", hex: "#ef4444", glow: "shadow-red-500/40" },
 };
 
 // ============================================================================
