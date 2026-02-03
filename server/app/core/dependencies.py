@@ -124,3 +124,7 @@ def update_last_login(user: User, db: Session) -> None:
     """
     user.last_login = datetime.utcnow()
     db.commit()
+
+
+# Alias for backward compatibility
+get_admin_user = get_current_admin_user
