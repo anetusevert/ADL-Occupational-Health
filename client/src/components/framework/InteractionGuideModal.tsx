@@ -42,6 +42,8 @@ import {
   BookOpen,
   BarChart3,
   ArrowDown,
+  Calendar,
+  Zap,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
@@ -1835,43 +1837,51 @@ function GlobalChallengeVisual() {
 }
 
 // ============================================================================
-// ADL SOLUTION VISUAL - Premium company credentials showcase
+// ADL SOLUTION VISUAL - Premium company showcase with offices & capabilities
 // ============================================================================
 
 function ADLSolutionVisual() {
+  // ADL credentials based on research
   const credentials = [
-    { icon: TrendingUp, value: 100, suffix: "+", label: "Years", sublabel: "Consulting Excellence", color: "purple" },
-    { icon: Globe, value: 40, suffix: "+", label: "Countries", sublabel: "Global Presence", color: "cyan" },
-    { icon: Database, value: 180, suffix: "+", label: "Nations", sublabel: "Data Coverage", color: "blue" },
-    { icon: Zap, value: 24, suffix: "/7", label: "Real-Time", sublabel: "Analytics Platform", color: "emerald" },
+    { icon: Calendar, value: 1886, suffix: "", label: "Founded", sublabel: "Boston, USA", color: "purple" },
+    { icon: Building2, value: 51, suffix: "", label: "Offices", sublabel: "Worldwide", color: "cyan" },
+    { icon: Globe, value: 39, suffix: "", label: "Countries", sublabel: "Global Reach", color: "blue" },
+    { icon: Users, value: 140, suffix: "+", label: "Years", sublabel: "Excellence", color: "emerald" },
+  ];
+  
+  // Key global regions
+  const regions = [
+    { name: "Americas", offices: "New York • Boston • Houston • San Francisco", flag: "🇺🇸" },
+    { name: "Europe", offices: "London • Paris • Frankfurt • Stockholm", flag: "🇪🇺" },
+    { name: "Middle East", offices: "Dubai • Riyadh • Bahrain", flag: "🇦🇪" },
+    { name: "Asia Pacific", offices: "Singapore • Tokyo • Shanghai", flag: "🇸🇬" },
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center p-6 overflow-hidden">
       {/* Premium purple/cyan particle field */}
-      <ParticleField count={50} color="mixed" speed="slow" />
+      <ParticleField count={40} color="mixed" speed="slow" />
       
       {/* Floating glow accents */}
-      <FloatingGlowOrb color="purple" size="xl" position="top-left" delay={0} />
-      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
+      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="md" position="bottom-right" delay={0.5} />
       
-      <div className="relative z-10 w-full max-w-md">
-        {/* Central ADL logo with premium glow */}
+      <div className="relative z-10 w-full max-w-2xl">
+        {/* Header with ADL logo */}
         <ScaleReveal delay={0} initialScale={0.5}>
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <GlowOrb color="purple" size="lg" intensity="intense" pulse>
               <img 
                 src="/adl-logo.png" 
                 alt="ADL" 
-                className="h-16 object-contain brightness-0 invert relative z-10" 
+                className="h-14 object-contain brightness-0 invert relative z-10" 
               />
             </GlowOrb>
             
-            {/* Company name with dramatic reveal */}
             <HeroReveal delay={0.4} direction="up" blur={15}>
               <DramaticTextReveal
                 text="Arthur D. Little"
-                className="mt-6 text-xl font-bold text-white"
+                className="mt-4 text-2xl font-bold text-white"
                 delay={0.6}
                 glow
                 glowColor="rgba(147, 51, 234, 0.4)"
@@ -1884,72 +1894,76 @@ function ADLSolutionVisual() {
               </p>
             </HeroReveal>
             
-            {/* Year badge */}
             <HeroReveal delay={1} direction="up">
               <motion.div
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="inline-flex items-center gap-2 mt-3 px-3 py-1 bg-purple-500/10 rounded-full border border-purple-500/20"
+                className="inline-flex items-center gap-3 mt-3 px-4 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20"
               >
-                <span className="text-purple-400 text-xs">Est. 1886</span>
+                <span className="text-purple-400 text-xs">Est. 1886 • Boston, USA</span>
                 <div className="w-1 h-1 rounded-full bg-purple-400" />
-                <span className="text-purple-400 text-xs">Boston, USA</span>
+                <span className="text-purple-400 text-xs">"Other people's troubles are our business"</span>
               </motion.div>
             </HeroReveal>
           </div>
         </ScaleReveal>
 
-        {/* Credentials grid with 3D flip cards */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Credentials grid */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
           {credentials.map((item, i) => (
-            <HeroReveal 
-              key={i} 
-              delay={1.2 + i * 0.15} 
-              direction={i % 2 === 0 ? "left" : "right"}
-            >
+            <HeroReveal key={i} delay={1.1 + i * 0.1} direction="up">
               <motion.div
-                whileHover={{ 
-                  scale: 1.05, 
-                  rotateY: 5,
-                  z: 50,
-                }}
-                transition={{ type: "spring", stiffness: 300 }}
+                whileHover={{ scale: 1.05, y: -3 }}
                 className={cn(
-                  "p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden cursor-pointer",
-                  "bg-gradient-to-br",
+                  "p-3 rounded-xl border backdrop-blur-sm relative overflow-hidden text-center",
                   colors[item.color].bg,
                   colors[item.color].border,
-                  "hover:shadow-lg transition-shadow"
                 )}
-                style={{ transformStyle: "preserve-3d" }}
               >
-                <ShimmerOverlay delay={1.4 + i * 0.2} duration={2.5} />
-                
-                <div className="flex items-start gap-3">
-                  <IconGlow color={item.color as "purple" | "cyan" | "blue" | "emerald" | "amber"}>
-                    <item.icon className="w-6 h-6 text-white" />
-                  </IconGlow>
-                  
-                  <div className="flex-1">
-                    <div className={cn("text-2xl font-bold", colors[item.color].text)}>
-                      <NumberCounter 
-                        value={item.value} 
-                        suffix={item.suffix} 
-                        duration={2} 
-                        delay={1.4 + i * 0.15} 
-                      />
-                    </div>
-                    <p className="text-white font-semibold text-sm">{item.label}</p>
-                    <p className="text-white/50 text-xs mt-0.5">{item.sublabel}</p>
-                  </div>
+                <ShimmerOverlay delay={1.3 + i * 0.15} duration={3} />
+                <IconGlow color={item.color as "purple" | "cyan" | "blue" | "emerald" | "amber"} size="sm">
+                  <item.icon className="w-4 h-4 text-white" />
+                </IconGlow>
+                <div className={cn("text-xl font-bold mt-2", colors[item.color].text)}>
+                  {item.value === 1886 ? "1886" : (
+                    <NumberCounter value={item.value} suffix={item.suffix} duration={1.5} delay={1.3 + i * 0.1} />
+                  )}
                 </div>
+                <p className="text-white text-xs font-semibold">{item.label}</p>
+                <p className="text-white/40 text-[10px]">{item.sublabel}</p>
               </motion.div>
             </HeroReveal>
           ))}
         </div>
 
+        {/* Global regions */}
+        <HeroReveal delay={1.6} direction="up">
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
+            <h4 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3 text-center">
+              Global Presence
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              {regions.map((region, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.8 + i * 0.1 }}
+                  className="flex items-start gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <span className="text-lg">{region.flag}</span>
+                  <div className="min-w-0">
+                    <p className="text-white text-xs font-semibold">{region.name}</p>
+                    <p className="text-white/40 text-[10px] truncate">{region.offices}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </HeroReveal>
+
         {/* Bottom tagline */}
-        <HeroReveal delay={2} direction="up">
+        <HeroReveal delay={2.2} direction="up">
           <motion.p
             animate={{ opacity: [0.5, 0.8, 0.5] }}
             transition={{ duration: 3, repeat: Infinity }}
@@ -2448,22 +2462,14 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       );
 
     case "solution":
+      // Premium ADL promotional layout - full visual showcase
       return (
-        <EvidenceLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          description={slide.content}
-          evidence={[
-            { title: "100+ Years", achievement: "Consulting Excellence", detail: "Founded in 1886" },
-            { title: "40+ Countries", achievement: "Global Presence", detail: "Worldwide expertise" },
-            { title: "Healthcare", achievement: "Deep Expertise", detail: "Public sector specialists" },
-            { title: "Proprietary", achievement: "Data Methodology", detail: "Evidence-based insights" },
-          ]}
-          highlights={slide.highlights?.slice(0, 2)}
-          color="purple"
-          icon={<Briefcase className="w-5 h-5 text-purple-400" />}
-          gridColumns={4}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900">
+          {/* Full-bleed ADL visual showcase */}
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <ADLSolutionVisual />
+          </div>
+        </div>
       );
 
     default:
@@ -2654,69 +2660,170 @@ function CompactTempleVisual() {
 }
 
 function CompactIntegrationVisual() {
+  const nodes = [
+    { angle: -90, icon: Crown, color: "purple" as const, label: "Governance" },
+    { angle: 0, icon: Shield, color: "blue" as const, label: "Prevention" },
+    { angle: 90, icon: Eye, color: "emerald" as const, label: "Surveillance" },
+    { angle: 180, icon: Heart, color: "amber" as const, label: "Restoration" },
+  ];
+  
+  const radius = 90;
+  
   return (
-    <div className="relative w-full max-w-md h-48 flex items-center justify-center">
-      {/* Central hub */}
+    <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] flex items-center justify-center">
+      {/* Outer rotating ring */}
       <motion.div
+        className="absolute w-full h-full border-2 border-cyan-500/20 rounded-full"
         animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Inner rotating ring (opposite direction) */}
+      <motion.div
+        className="absolute w-3/4 h-3/4 border border-purple-500/20 rounded-full"
+        animate={{ rotate: -360 }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute"
+      />
+      
+      {/* Central hub - pulsing */}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, type: "spring" }}
+        className="absolute z-20"
       >
-        <GlowOrb color="cyan" size="md" intensity="medium">
-          <RefreshCcw className="w-6 h-6 text-white" />
-        </GlowOrb>
+        <motion.div
+          animate={{ 
+            scale: [1, 1.1, 1],
+            boxShadow: [
+              "0 0 20px rgba(6,182,212,0.3)",
+              "0 0 40px rgba(6,182,212,0.5)",
+              "0 0 20px rgba(6,182,212,0.3)"
+            ]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        >
+          <GlowOrb color="cyan" size="lg" intensity="intense">
+            <RefreshCcw className="w-8 h-8 text-white" />
+          </GlowOrb>
+        </motion.div>
       </motion.div>
       
       {/* Connected nodes */}
-      {[
-        { angle: 0, icon: Crown, color: "purple", label: "Governance" },
-        { angle: 90, icon: Shield, color: "blue", label: "Prevention" },
-        { angle: 180, icon: Eye, color: "emerald", label: "Surveillance" },
-        { angle: 270, icon: Heart, color: "amber", label: "Restoration" },
-      ].map((node, i) => {
-        const radius = 80;
+      {nodes.map((node, i) => {
         const x = Math.cos((node.angle * Math.PI) / 180) * radius;
         const y = Math.sin((node.angle * Math.PI) / 180) * radius;
+        const NodeIcon = node.icon;
+        
         return (
           <motion.div
             key={i}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3 + i * 0.15 }}
-            className="absolute flex flex-col items-center"
-            style={{ transform: `translate(${x}px, ${y}px)` }}
+            transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 200 }}
+            className="absolute flex flex-col items-center z-10"
+            style={{ 
+              left: `calc(50% + ${x}px)`,
+              top: `calc(50% + ${y}px)`,
+              transform: 'translate(-50%, -50%)'
+            }}
           >
-            <IconGlow color={node.color as "purple" | "cyan" | "blue" | "emerald" | "amber"}>
-              <node.icon className="w-5 h-5 text-white" />
-            </IconGlow>
-            <span className="text-[10px] text-white/50 mt-1">{node.label}</span>
+            <motion.div
+              whileHover={{ scale: 1.15 }}
+              animate={{ 
+                y: [0, -3, 0],
+              }}
+              transition={{ 
+                y: { duration: 2, repeat: Infinity, delay: i * 0.3 },
+              }}
+            >
+              <IconGlow color={node.color}>
+                <NodeIcon className="w-6 h-6 text-white" />
+              </IconGlow>
+            </motion.div>
+            <motion.span 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 + i * 0.1 }}
+              className="text-[11px] text-white/70 mt-2 font-medium"
+            >
+              {node.label}
+            </motion.span>
           </motion.div>
         );
       })}
       
-      {/* Connection lines */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: "translate(50%, 50%)" }}>
-        {[0, 1, 2, 3].map((i) => {
-          const angle1 = i * 90;
-          const angle2 = ((i + 1) % 4) * 90;
-          const radius = 80;
-          const x1 = Math.cos((angle1 * Math.PI) / 180) * radius;
-          const y1 = Math.sin((angle1 * Math.PI) / 180) * radius;
-          const x2 = Math.cos((angle2 * Math.PI) / 180) * radius;
-          const y2 = Math.sin((angle2 * Math.PI) / 180) * radius;
+      {/* Connection lines with animated flow */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(6,182,212,0.5)" />
+            <stop offset="50%" stopColor="rgba(147,51,234,0.5)" />
+            <stop offset="100%" stopColor="rgba(6,182,212,0.5)" />
+          </linearGradient>
+        </defs>
+        {nodes.map((node, i) => {
+          const nextNode = nodes[(i + 1) % 4];
+          const x1 = 140 + Math.cos((node.angle * Math.PI) / 180) * radius * 0.7;
+          const y1 = 140 + Math.sin((node.angle * Math.PI) / 180) * radius * 0.7;
+          const x2 = 140 + Math.cos((nextNode.angle * Math.PI) / 180) * radius * 0.7;
+          const y2 = 140 + Math.sin((nextNode.angle * Math.PI) / 180) * radius * 0.7;
           return (
             <motion.line
               key={i}
               x1={x1} y1={y1} x2={x2} y2={y2}
-              stroke="rgba(6,182,212,0.3)"
-              strokeWidth="1"
+              stroke="url(#lineGradient)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ delay: 1 + i * 0.15, duration: 0.6 }}
+            />
+          );
+        })}
+        {/* Lines to center */}
+        {nodes.map((node, i) => {
+          const x1 = 140 + Math.cos((node.angle * Math.PI) / 180) * radius * 0.5;
+          const y1 = 140 + Math.sin((node.angle * Math.PI) / 180) * radius * 0.5;
+          return (
+            <motion.line
+              key={`center-${i}`}
+              x1={140} y1={140} x2={x1} y2={y1}
+              stroke={`rgba(${node.color === "purple" ? "147,51,234" : node.color === "blue" ? "37,99,235" : node.color === "emerald" ? "16,185,129" : "245,158,11"},0.4)`}
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+              transition={{ delay: 1.5 + i * 0.1, duration: 0.4 }}
             />
           );
         })}
       </svg>
+      
+      {/* Floating data particles */}
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={`particle-${i}`}
+          className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400/50"
+          initial={{ 
+            x: 140, 
+            y: 140,
+            scale: 0 
+          }}
+          animate={{ 
+            x: [140, 140 + Math.cos(i * 60 * Math.PI / 180) * 120, 140],
+            y: [140, 140 + Math.sin(i * 60 * Math.PI / 180) * 120, 140],
+            scale: [0, 1, 0],
+            opacity: [0, 0.8, 0]
+          }}
+          transition={{ 
+            duration: 4,
+            repeat: Infinity,
+            delay: i * 0.7,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -3038,20 +3145,17 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
             className="fixed inset-0 bg-black/95 z-50"
           />
 
-          {/* Modal - Full screen on mobile, centered on desktop */}
+          {/* Immersive Full-Screen Experience - Like intro flows, no modal feel */}
           <motion.div
             ref={modalRef}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={cn(
-              "fixed bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col",
-              isFullscreen ? "inset-0 rounded-none" : "inset-2 sm:inset-4 md:inset-6 lg:inset-10 xl:inset-12"
-            )}
+            className="fixed inset-0 bg-black z-50 overflow-hidden flex flex-col"
           >
             {/* Loader - Premium 3-phase cinematic opening */}
             <AnimatePresence>
@@ -3060,25 +3164,30 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
               )}
             </AnimatePresence>
 
-            {/* Top controls bar */}
+            {/* Top controls bar - Subtle, floating */}
             {!showLoader && (
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="absolute top-4 right-4 z-20 flex items-center gap-2"
+              >
                 {/* Auto-advance toggle */}
                 <motion.button
                   onClick={() => setIsAutoAdvance(!isAutoAdvance)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm",
+                    "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all text-sm backdrop-blur-sm border",
                     isAutoAdvance 
-                      ? "bg-cyan-500/30 border border-cyan-500/50 text-cyan-300"
-                      : "bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+                      ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                      : "bg-white/5 border-white/10 hover:bg-white/10 text-white/60 hover:text-white"
                   )}
                 >
                   {isAutoAdvance ? (
                     <>
                       <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
+                        animate={{ scale: [1, 1.3, 1] }}
                         transition={{ duration: 1, repeat: Infinity }}
                         className="w-2 h-2 rounded-full bg-cyan-400"
                       />
@@ -3093,9 +3202,11 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
                 </motion.button>
 
                 {/* Fullscreen toggle */}
-                <button
+                <motion.button
                   onClick={toggleFullscreen}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 text-white/60 hover:text-white transition-all"
                   title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
                 >
                   {isFullscreen ? (
@@ -3107,16 +3218,18 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
                     </svg>
                   )}
-                </button>
+                </motion.button>
 
                 {/* Close */}
-                <button
+                <motion.button
                   onClick={onClose}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 text-white/60 hover:text-white transition-all"
                 >
                   <X className="w-5 h-5" />
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
 
             {/* Auto-advance progress bar */}
@@ -3133,16 +3246,16 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
               />
             )}
 
-            {/* Main Content - Full-width Consulting Deck Layout */}
+            {/* Main Content - Immersive Full-Screen Experience */}
             {!showLoader && slide && (
-              <div className="flex-1 min-h-0 overflow-hidden relative">
+              <div className="flex-1 min-h-0 overflow-hidden relative pb-24">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slide.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="absolute inset-0"
                   >
                     {renderConsultingSlide(slide, {
@@ -3160,100 +3273,115 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
                   color={slide?.color || "cyan"}
                 />
 
-                {/* Slide number - Bottom right */}
-                <div className="absolute bottom-4 right-4 z-10 flex items-baseline gap-1 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-                  <span className={cn("text-2xl font-bold", c.text)}>
+                {/* Slide number - Elegant bottom right */}
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="absolute bottom-20 right-6 z-10 flex items-baseline gap-1"
+                >
+                  <span className={cn("text-3xl font-bold tracking-tight", c.text)}>
                     {String(currentSlide + 1).padStart(2, '0')}
                   </span>
-                  <span className="text-slate-500 text-base">
+                  <span className="text-white/20 text-lg font-light">
                     /{String(guideSlides.length).padStart(2, '0')}
                   </span>
-                </div>
+                </motion.div>
               </div>
             )}
 
-            {/* Navigation Bar */}
+            {/* Immersive Navigation - Minimal, elegant */}
             {!showLoader && (
-              <div className="flex-shrink-0 px-3 sm:px-6 py-3 sm:py-4 bg-slate-800/80 border-t border-slate-700/50 flex items-center justify-between">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex-shrink-0 px-4 sm:px-8 py-4 sm:py-5 bg-gradient-to-t from-black via-black/90 to-transparent flex items-center justify-between absolute bottom-0 left-0 right-0 z-20"
+              >
                 {/* Previous */}
-                <button
+                <motion.button
                   onClick={prevSlide}
                   disabled={currentSlide === 0}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all",
                     currentSlide === 0
-                      ? "opacity-30 cursor-not-allowed text-slate-500"
-                      : "bg-slate-700/50 hover:bg-slate-600/50 text-white"
+                      ? "opacity-20 cursor-not-allowed text-slate-600"
+                      : "bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/20 text-white"
                   )}
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span className="text-sm font-medium">Previous</span>
-                </button>
+                  <span className="text-sm font-medium hidden sm:inline">Previous</span>
+                </motion.button>
 
-                {/* Progress dots */}
-                <div className="flex items-center gap-2">
+                {/* Progress dots - Elegant minimal */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {guideSlides.map((s, i) => {
                     const dotColor = colors[s.color || "cyan"];
                     return (
-                      <button
+                      <motion.button
                         key={i}
                         onClick={() => goToSlide(i)}
+                        whileHover={{ scale: 1.3 }}
                         className={cn(
-                          "w-2 h-2 rounded-full transition-all",
+                          "rounded-full transition-all duration-300",
                           i === currentSlide
-                            ? cn(dotColor.bgSolid, "scale-150")
+                            ? cn(dotColor.bgSolid, "w-3 h-3 shadow-lg", `shadow-${s.color || "cyan"}-500/50`)
                             : i < currentSlide
-                              ? "bg-slate-500"
-                              : "bg-slate-700 hover:bg-slate-600"
+                              ? "w-2 h-2 bg-white/40"
+                              : "w-2 h-2 bg-white/20 hover:bg-white/40"
                         )}
                       />
                     );
                   })}
                 </div>
 
-                {/* Next */}
-                <button
+                {/* Next - Premium CTA */}
+                <motion.button
                   onClick={nextSlide}
+                  whileHover={{ scale: 1.05, boxShadow: `0 0 30px ${c.hex}40` }}
+                  whileTap={{ scale: 0.95 }}
                   className={cn(
-                    "flex items-center gap-2 px-5 py-2 rounded-lg transition-all font-medium",
-                    c.bgSolid,
-                    "text-white shadow-lg hover:shadow-xl"
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-medium",
+                    "bg-gradient-to-r from-cyan-500 to-purple-600",
+                    "text-white shadow-xl shadow-cyan-500/20 border border-white/10"
                   )}
                 >
                   <span className="text-sm">
-                    {currentSlide === guideSlides.length - 1 ? "Start Exploring" : "Continue"}
+                    {currentSlide === guideSlides.length - 1 ? "Explore" : "Continue"}
                   </span>
                   {currentSlide === guideSlides.length - 1 ? (
                     <Play className="w-4 h-4" />
                   ) : (
                     <ChevronRight className="w-4 h-4" />
                   )}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
 
-            {/* Skip Tour Link and Keyboard Shortcuts */}
+            {/* Subtle bottom info bar */}
             {!showLoader && (
-              <div className="flex-shrink-0 px-3 sm:px-6 py-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <button onClick={onClose} className="hover:text-white transition-colors">
+              <div className="flex-shrink-0 px-4 sm:px-8 py-2 bg-black/80 flex items-center justify-between text-[10px] sm:text-xs text-white/30">
+                <button onClick={onClose} className="hover:text-white/60 transition-colors">
                   Skip Briefing
                 </button>
                 <div className="hidden sm:flex items-center gap-4">
                   <span>← → Navigate</span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Space</kbd>
+                    <kbd className="px-1 py-0.5 bg-white/10 rounded text-[9px]">Space</kbd>
                     <span>Auto</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">F</kbd>
+                    <kbd className="px-1 py-0.5 bg-white/10 rounded text-[9px]">F</kbd>
                     <span>Fullscreen</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Esc</kbd>
+                    <kbd className="px-1 py-0.5 bg-white/10 rounded text-[9px]">Esc</kbd>
                     <span>Close</span>
                   </span>
                 </div>
-                <div className="sm:hidden flex items-center gap-2 text-[10px]">
+                <div className="sm:hidden text-[9px]">
                   <span>Swipe to navigate</span>
                 </div>
               </div>

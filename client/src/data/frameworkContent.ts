@@ -806,19 +806,27 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "amber"
   },
-  // Slide 3: The ADL Solution (NEW)
+  // Slide 3: The ADL Solution (NEW) - Promotional for Arthur D. Little
   {
     id: "adl-solution",
     type: "solution",
-    title: "The ADL Advantage",
-    actionTitle: "100 Years of Evidence-Based Consulting Excellence",
-    subtitle: "Transforming Complex Data into Actionable Insights",
-    content: "With over 100 years of management consulting expertise, Arthur D. Little brings a unique evidence-based approach to occupational health assessment. Our framework transforms complex data into actionable insights.",
+    title: "Arthur D. Little",
+    actionTitle: "The World's First Management Consultancy, Since 1886",
+    subtitle: "140 Years of Pioneering Innovation & Strategic Excellence",
+    content: "Founded in Boston in 1886, Arthur D. Little is the world's first management consulting firm. With 51 offices across 39 countries, we combine deep industry expertise with cutting-edge innovation to solve the world's most complex challenges.",
     highlights: [
-      "100+ years of consulting excellence",
-      "Global presence across 40+ countries",
-      "Deep expertise in healthcare and public sector",
-      "Proprietary data integration methodology"
+      "World's first management consulting firm (1886)",
+      "51 offices across 39 countries globally",
+      "Middle East hub with dedicated regional leadership",
+      "Pioneers of R&D consulting - organized first GM R&D lab (1911)",
+      "Deep healthcare and public sector transformation expertise",
+      "Proprietary evidence-based analytical frameworks"
+    ],
+    stats: [
+      { value: "1886", label: "Founded", color: "purple" },
+      { value: "51", label: "Global Offices", color: "cyan" },
+      { value: "39", label: "Countries", color: "blue" },
+      { value: "140+", label: "Years Excellence", color: "emerald" }
     ],
     color: "purple"
   },
