@@ -35,6 +35,7 @@ import { PillarPage } from "./pages/PillarPage";
 import { OverallSummary } from "./pages/OverallSummary";
 import { CountryDashboard } from "./pages/CountryDashboard";
 import { FocusKSA } from "./pages/FocusKSA";
+import { Personas } from "./pages/Personas";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
