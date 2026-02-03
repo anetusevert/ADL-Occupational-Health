@@ -1,17 +1,14 @@
 /**
  * Arthur D. Little - Global Health Platform
- * PersonaDetailModal Component
+ * PersonaDetailModal Component - Master-Detail Layout
  * 
- * Full-screen modal displaying comprehensive persona information including:
- * - Avatar and demographics
- * - GOSI coverage details
- * - OH journey timeline
- * - Key risks and challenges
- * - AI research with source citations
+ * Two-column layout with:
+ * - Left sidebar: Avatar, navigation, quick stats
+ * - Right content: Tab panels (no scrolling)
  */
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, 
   Shield, 
@@ -21,13 +18,13 @@ import {
   TrendingUp,
   Users,
   Briefcase,
-  DollarSign,
   Clock,
   FileText,
-  ChevronRight,
-  ExternalLink,
   Sparkles,
   Building2,
+  ChevronRight,
+  Percent,
+  Route,
 } from "lucide-react";
 import { type Persona, getCoverageStatus, getCoverageLabel } from "../../data/personas";
 import { PersonaAvatar } from "./PersonaAvatar";
@@ -44,7 +41,7 @@ interface PersonaDetailModalProps {
   onClose: () => void;
 }
 
-type TabId = 'overview' | 'journey' | 'research';
+type TabId = 'overview' | 'journey' | 'research' | 'coverage';
 
 // ============================================================================
 // ANIMATION VARIANTS
@@ -57,109 +54,122 @@ const backdropVariants = {
 };
 
 const modalVariants = {
-  initial: { 
-    opacity: 0, 
-    scale: 0.95,
-    y: 20,
-  },
+  initial: { opacity: 0, scale: 0.95 },
   animate: { 
     opacity: 1, 
     scale: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
+    transition: { type: "spring", damping: 25, stiffness: 300 }
   },
-  exit: { 
-    opacity: 0, 
-    scale: 0.95,
-    y: 20,
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15 } }
+};
+
+const sidebarItemVariants = {
+  inactive: { backgroundColor: "rgba(255,255,255,0)" },
+  active: { 
+    backgroundColor: "rgba(255,255,255,0.1)",
     transition: { duration: 0.2 }
   }
 };
 
 const contentVariants = {
-  initial: { opacity: 0, y: 10 },
-  animate: { 
-    opacity: 1, 
-    y: 0,
-    transition: { delay: 0.2, duration: 0.4 }
-  }
+  initial: { opacity: 0, x: 20 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.15 } }
+};
+
+// ============================================================================
+// COLOR CONFIG
+// ============================================================================
+
+const colorConfig: Record<string, { 
+  accent: string; 
+  gradient: string; 
+  bg: string;
+  border: string;
+  ring: string;
+}> = {
+  purple: { 
+    accent: "text-purple-400", 
+    gradient: "from-purple-500/20 to-violet-600/20",
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/30",
+    ring: "ring-purple-500/30"
+  },
+  cyan: { 
+    accent: "text-cyan-400", 
+    gradient: "from-cyan-500/20 to-teal-600/20",
+    bg: "bg-cyan-500/10",
+    border: "border-cyan-500/30",
+    ring: "ring-cyan-500/30"
+  },
+  amber: { 
+    accent: "text-amber-400", 
+    gradient: "from-amber-500/20 to-orange-600/20",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    ring: "ring-amber-500/30"
+  },
+  rose: { 
+    accent: "text-rose-400", 
+    gradient: "from-rose-500/20 to-pink-600/20",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+    ring: "ring-rose-500/30"
+  },
+  emerald: { 
+    accent: "text-emerald-400", 
+    gradient: "from-emerald-500/20 to-green-600/20",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+    ring: "ring-emerald-500/30"
+  },
 };
 
 // ============================================================================
 // HELPER COMPONENTS
 // ============================================================================
 
-function CoverageBadge({ status }: { status: 'full' | 'partial' | 'none' }) {
+function CoverageBadge({ status, size = 'md' }: { status: 'full' | 'partial' | 'none'; size?: 'sm' | 'md' }) {
   const config = {
     full: { 
       icon: CheckCircle2, 
+      label: "Full Coverage",
       color: "text-emerald-400", 
       bg: "bg-emerald-500/15", 
       border: "border-emerald-500/30" 
     },
     partial: { 
       icon: AlertTriangle, 
+      label: "Partial",
       color: "text-amber-400", 
       bg: "bg-amber-500/15", 
       border: "border-amber-500/30" 
     },
     none: { 
       icon: XCircle, 
+      label: "No Coverage",
       color: "text-rose-400", 
       bg: "bg-rose-500/15", 
       border: "border-rose-500/30" 
     },
   };
   
-  const { icon: Icon, color, bg, border } = config[status];
+  const { icon: Icon, label, color, bg, border } = config[status];
+  const isSmall = size === 'sm';
   
   return (
-    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full", bg, border, "border")}>
-      <Icon className={cn("w-4 h-4", color)} />
-      <span className={cn("text-sm font-medium", color)}>{getCoverageLabel(status)}</span>
+    <div className={cn(
+      "flex items-center gap-1.5 rounded-full border",
+      bg, border,
+      isSmall ? "px-2 py-1" : "px-3 py-1.5"
+    )}>
+      <Icon className={cn(isSmall ? "w-3 h-3" : "w-4 h-4", color)} />
+      <span className={cn(isSmall ? "text-[10px]" : "text-xs", "font-medium", color)}>{label}</span>
     </div>
   );
 }
 
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  subtext,
-  color = "cyan"
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string | number;
-  subtext?: string;
-  color?: string;
-}) {
-  const colorClasses: Record<string, string> = {
-    cyan: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    purple: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-    rose: "text-rose-400 bg-rose-500/10 border-rose-500/20",
-  };
-  
-  return (
-    <div className="p-4 rounded-xl bg-slate-800/60 border border-white/10">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn("p-1.5 rounded-lg border", colorClasses[color])}>
-          <Icon className="w-4 h-4" />
-        </div>
-        <span className="text-xs text-white/50 uppercase tracking-wider">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      {subtext && <p className="text-xs text-white/40 mt-1">{subtext}</p>}
-    </div>
-  );
-}
-
-function TabButton({ 
+function NavButton({ 
   id, 
   label, 
   icon: Icon, 
@@ -173,47 +183,98 @@ function TabButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      role="tab"
-      aria-selected={isActive}
-      aria-controls={`tabpanel-${id}`}
+      variants={sidebarItemVariants}
+      animate={isActive ? "active" : "inactive"}
+      whileHover={{ backgroundColor: "rgba(255,255,255,0.08)" }}
       className={cn(
-        "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap",
+        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
         isActive 
-          ? "bg-white/10 text-white border border-white/20" 
-          : "text-white/50 hover:text-white/80 hover:bg-white/5"
+          ? "text-white border-l-2 border-cyan-400" 
+          : "text-white/50 hover:text-white/80 border-l-2 border-transparent"
       )}
     >
-      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
+      <Icon className="w-4 h-4" />
       {label}
-    </button>
+    </motion.button>
   );
 }
 
-function RiskChip({ risk }: { risk: string }) {
+function QuickStat({ 
+  label, 
+  value, 
+  icon: Icon,
+  color 
+}: { 
+  label: string; 
+  value: string; 
+  icon: React.ElementType;
+  color: string;
+}) {
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-      <AlertTriangle className="w-3 h-3 text-amber-400" />
-      <span className="text-xs text-amber-200">{risk}</span>
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50">
+      <Icon className={cn("w-4 h-4", color)} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-white/40 uppercase tracking-wider truncate">{label}</p>
+        <p className="text-sm font-semibold text-white">{value}</p>
+      </div>
     </div>
   );
 }
 
-function ChallengeItem({ challenge }: { challenge: string }) {
+function CompactStatCard({ 
+  icon: Icon, 
+  label, 
+  value,
+  color = "cyan"
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  value: string | number;
+  color?: string;
+}) {
+  const colorClasses: Record<string, string> = {
+    cyan: "text-cyan-400",
+    emerald: "text-emerald-400",
+    amber: "text-amber-400",
+    purple: "text-purple-400",
+    rose: "text-rose-400",
+  };
+  
   return (
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-800/40">
-      <ChevronRight className="w-4 h-4 text-white/30 mt-0.5 flex-shrink-0" />
-      <span className="text-sm text-white/70">{challenge}</span>
+    <div className="p-3 rounded-lg bg-slate-800/60 border border-white/10">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className={cn("w-3.5 h-3.5", colorClasses[color])} />
+        <span className="text-[10px] text-white/50 uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-lg font-bold text-white">{value}</p>
     </div>
   );
 }
 
-function SectorBadge({ sector }: { sector: string }) {
+function CoverageRow({ 
+  label, 
+  value, 
+  isBoolean = false 
+}: { 
+  label: string; 
+  value: boolean | string; 
+  isBoolean?: boolean;
+}) {
   return (
-    <span className="px-2.5 py-1 rounded-full bg-slate-700/50 border border-white/10 text-xs text-white/60">
-      {sector}
-    </span>
+    <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-700/40">
+      <span className="text-xs text-white/60">{label}</span>
+      {isBoolean ? (
+        value ? (
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        ) : (
+          <XCircle className="w-4 h-4 text-rose-400" />
+        )
+      ) : (
+        <span className="text-xs font-medium text-white">{value}</span>
+      )}
+    </div>
   );
 }
 
@@ -224,17 +285,14 @@ function SectorBadge({ sector }: { sector: string }) {
 export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const coverageStatus = getCoverageStatus(persona);
-  
-  // Color config based on persona
-  const colorConfig: Record<string, { accent: string; gradient: string }> = {
-    purple: { accent: "text-purple-400", gradient: "from-purple-500/20 to-violet-600/20" },
-    cyan: { accent: "text-cyan-400", gradient: "from-cyan-500/20 to-teal-600/20" },
-    amber: { accent: "text-amber-400", gradient: "from-amber-500/20 to-orange-600/20" },
-    rose: { accent: "text-rose-400", gradient: "from-rose-500/20 to-pink-600/20" },
-    emerald: { accent: "text-emerald-400", gradient: "from-emerald-500/20 to-green-600/20" },
-  };
-  
   const colors = colorConfig[persona.color] || colorConfig.cyan;
+
+  const navItems: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Overview', icon: Users },
+    { id: 'journey', label: 'OH Journey', icon: Route },
+    { id: 'coverage', label: 'Coverage', icon: Shield },
+    { id: 'research', label: 'Research', icon: FileText },
+  ];
 
   return (
     <>
@@ -245,10 +303,10 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
         animate="animate"
         exit="exit"
         onClick={onClose}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
       />
 
-      {/* Modal */}
+      {/* Modal - Master-Detail Layout */}
       <motion.div
         variants={modalVariants}
         initial="initial"
@@ -257,337 +315,340 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
         role="dialog"
         aria-modal="true"
         aria-labelledby="persona-modal-title"
-        className="fixed inset-2 sm:inset-4 md:inset-8 lg:inset-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl sm:rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col shadow-2xl"
+        className="fixed inset-3 sm:inset-6 md:inset-10 lg:inset-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 z-50 overflow-hidden shadow-2xl flex"
       >
-        {/* Header */}
+        {/* ===== LEFT SIDEBAR ===== */}
         <div className={cn(
-          "flex-shrink-0 p-4 sm:p-6 border-b border-white/10",
-          "bg-gradient-to-r",
+          "w-[260px] flex-shrink-0 flex flex-col border-r border-white/10",
+          "bg-gradient-to-b",
           colors.gradient
         )}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
-              <PersonaAvatar persona={persona} size="lg" showGlow />
-              
+          {/* Avatar Section */}
+          <div className="p-5 flex flex-col items-center border-b border-white/10">
+            <PersonaAvatar persona={persona} size="xl" showGlow />
+            
+            <h2 id="persona-modal-title" className="text-lg font-bold text-white mt-4 text-center">
+              {persona.name}
+            </h2>
+            <p className={cn("text-xs font-medium mt-1 text-center", colors.accent)}>
+              {persona.tagline}
+            </p>
+            <p className="text-[10px] text-white/30 mt-1 font-arabic" dir="rtl">
+              {persona.arabicName}
+            </p>
+            
+            {/* Coverage Badge */}
+            <div className="mt-3">
+              <CoverageBadge status={coverageStatus} size="sm" />
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-1">
+            {navItems.map((item) => (
+              <NavButton
+                key={item.id}
+                id={item.id}
+                label={item.label}
+                icon={item.icon}
+                isActive={activeTab === item.id}
+                onClick={() => setActiveTab(item.id)}
+              />
+            ))}
+          </nav>
+
+          {/* Quick Stats */}
+          <div className="p-3 border-t border-white/10 space-y-2">
+            <QuickStat 
+              label="Participation" 
+              value={`${persona.demographics.participationRate}%`}
+              icon={TrendingUp}
+              color={colors.accent}
+            />
+            <QuickStat 
+              label="Labor Force" 
+              value={`${persona.demographics.populationShare}%`}
+              icon={Percent}
+              color="text-white/60"
+            />
+          </div>
+        </div>
+
+        {/* ===== RIGHT CONTENT PANEL ===== */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className={cn("p-2 rounded-lg", colors.bg, colors.border, "border")}>
+                {activeTab === 'overview' && <Users className={cn("w-5 h-5", colors.accent)} />}
+                {activeTab === 'journey' && <Route className={cn("w-5 h-5", colors.accent)} />}
+                {activeTab === 'coverage' && <Shield className={cn("w-5 h-5", colors.accent)} />}
+                {activeTab === 'research' && <FileText className={cn("w-5 h-5", colors.accent)} />}
+              </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                  <h2 id="persona-modal-title" className="text-xl sm:text-2xl font-bold text-white">{persona.name}</h2>
-                  <CoverageBadge status={coverageStatus} />
-                </div>
-                <p className={cn("text-xs sm:text-sm font-medium mb-1", colors.accent)}>
-                  {persona.tagline}
-                </p>
-                <p className="text-xs sm:text-sm text-white/50 max-w-xl hidden sm:block">
-                  {persona.description}
-                </p>
-                <p className="text-[10px] sm:text-xs text-white/30 mt-1 sm:mt-2 font-arabic" dir="rtl">
-                  {persona.arabicName}
-                </p>
+                <h3 className="text-lg font-semibold text-white">
+                  {activeTab === 'overview' && 'Demographic Overview'}
+                  {activeTab === 'journey' && 'Occupational Health Journey'}
+                  {activeTab === 'coverage' && 'GOSI Coverage Details'}
+                  {activeTab === 'research' && 'Research & Sources'}
+                </h3>
+                <p className="text-xs text-white/40">{persona.name}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
               aria-label="Close modal"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all flex-shrink-0"
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
             >
-              <X className="w-5 h-5" aria-hidden="true" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Tabs */}
-          <nav aria-label="Persona details navigation" className="flex items-center gap-1 sm:gap-2 mt-4 sm:mt-6 overflow-x-auto">
-            <TabButton 
-              id="overview" 
-              label="Overview" 
-              icon={Users} 
-              isActive={activeTab === 'overview'}
-              onClick={() => setActiveTab('overview')}
-            />
-            <TabButton 
-              id="journey" 
-              label="OH Journey" 
-              icon={Clock} 
-              isActive={activeTab === 'journey'}
-              onClick={() => setActiveTab('journey')}
-            />
-            <TabButton 
-              id="research" 
-              label="Sources" 
-              icon={FileText} 
-              isActive={activeTab === 'research'}
-              onClick={() => setActiveTab('research')}
-            />
-          </nav>
+          {/* Content Panel - No Scrolling */}
+          <div className="flex-1 p-5 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                variants={contentVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="h-full"
+              >
+                {activeTab === 'overview' && <OverviewPanel persona={persona} colors={colors} />}
+                {activeTab === 'journey' && <JourneyPanel persona={persona} colors={colors} />}
+                {activeTab === 'coverage' && <CoveragePanel persona={persona} colors={colors} />}
+                {activeTab === 'research' && <ResearchPanel persona={persona} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
-
-        {/* Content */}
-        <motion.div 
-          variants={contentVariants}
-          className="flex-1 overflow-auto p-6"
-        >
-          {activeTab === 'overview' && (
-            <OverviewTab persona={persona} colors={colors} />
-          )}
-          
-          {activeTab === 'journey' && (
-            <JourneyTab persona={persona} />
-          )}
-          
-          {activeTab === 'research' && (
-            <ResearchTab persona={persona} />
-          )}
-        </motion.div>
       </motion.div>
     </>
   );
 }
 
 // ============================================================================
-// TAB COMPONENTS
+// COMPACT PANEL COMPONENTS (No Scrolling)
 // ============================================================================
 
-function OverviewTab({ persona, colors }: { persona: Persona; colors: { accent: string; gradient: string } }) {
+function OverviewPanel({ persona, colors }: { persona: Persona; colors: typeof colorConfig.cyan }) {
+  return (
+    <div className="h-full grid grid-cols-2 gap-4">
+      {/* Left Column */}
+      <div className="space-y-4">
+        {/* Key Stats - 2x2 Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <CompactStatCard 
+            icon={Users}
+            label="Labor Force"
+            value={`${persona.demographics.populationShare}%`}
+            color={persona.color}
+          />
+          <CompactStatCard 
+            icon={TrendingUp}
+            label="Participation"
+            value={`${persona.demographics.participationRate}%`}
+            color="emerald"
+          />
+          <CompactStatCard 
+            icon={AlertTriangle}
+            label="Unemployment"
+            value={`${persona.demographics.unemploymentRate}%`}
+            color={persona.demographics.unemploymentRate > 10 ? "amber" : "cyan"}
+          />
+          <CompactStatCard 
+            icon={Briefcase}
+            label="Age Group"
+            value={persona.demographics.keyAgeGroup}
+            color="purple"
+          />
+        </div>
+
+        {/* Primary Sectors */}
+        <div className="p-3 rounded-lg bg-slate-800/40 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 className="w-4 h-4 text-white/50" />
+            <span className="text-xs text-white/50 uppercase tracking-wider">Primary Sectors</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {persona.demographics.primarySectors.slice(0, 5).map((sector) => (
+              <span key={sector} className="px-2 py-0.5 rounded bg-slate-700/50 text-[10px] text-white/60">
+                {sector}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column */}
+      <div className="space-y-4">
+        {/* Key Risks */}
+        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-amber-400 font-medium">Key Occupational Risks</span>
+          </div>
+          <ul className="space-y-1">
+            {persona.research.keyRisks.slice(0, 3).map((risk, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <ChevronRight className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-1">{risk}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Current Challenges */}
+        <div className="p-3 rounded-lg bg-slate-800/40 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-xs text-white/50 uppercase tracking-wider">Challenges</span>
+          </div>
+          <ul className="space-y-1">
+            {persona.research.challenges.slice(0, 3).map((challenge, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <ChevronRight className="w-3 h-3 text-white/30 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-1">{challenge}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Recent Changes */}
+        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-emerald-400 font-medium">Recent Policy Changes</span>
+          </div>
+          <ul className="space-y-1">
+            {persona.research.recentChanges.slice(0, 2).map((change, i) => (
+              <li key={i} className="flex items-start gap-2 text-[11px] text-white/60">
+                <span className="text-emerald-400">•</span>
+                <span className="line-clamp-1">{change}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JourneyPanel({ persona, colors }: { persona: Persona; colors: typeof colorConfig.cyan }) {
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header Info */}
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <p className="text-sm text-white/60">
+          What happens when <span className="text-white font-medium">{persona.name}</span> experiences a workplace injury?
+        </p>
+        <div className="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-white/10">
+          <span className="text-[10px] text-white/40 uppercase">Duration:</span>
+          <span className={cn("ml-2 text-sm font-semibold", colors.accent)}>{persona.ohJourney.totalDuration}</span>
+        </div>
+      </div>
+
+      {/* Horizontal Timeline */}
+      <div className="flex-1">
+        <CoverageTimeline 
+          steps={persona.ohJourney.steps}
+          outcome={persona.ohJourney.outcome}
+          personaColor={persona.color}
+          variant="horizontal"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CoveragePanel({ persona, colors }: { persona: Persona; colors: typeof colorConfig.cyan }) {
   const coverageStatus = getCoverageStatus(persona);
   
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left Column - Demographics & Stats */}
-      <div className="lg:col-span-2 space-y-6">
-        {/* Key Statistics */}
-        <section>
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Key Statistics
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard 
-              icon={Users}
-              label="Labor Force Share"
-              value={`${persona.demographics.populationShare}%`}
-              color={persona.color}
-            />
-            <StatCard 
-              icon={TrendingUp}
-              label="Participation Rate"
-              value={`${persona.demographics.participationRate}%`}
-              color="emerald"
-            />
-            <StatCard 
-              icon={AlertTriangle}
-              label="Unemployment"
-              value={`${persona.demographics.unemploymentRate}%`}
-              color={persona.demographics.unemploymentRate > 10 ? "amber" : "cyan"}
-            />
-            <StatCard 
-              icon={Briefcase}
-              label="Key Age Group"
-              value={persona.demographics.keyAgeGroup}
-              subtext="years"
-              color="purple"
-            />
+    <div className="h-full grid grid-cols-2 gap-5">
+      {/* Left - Coverage Status */}
+      <div className="space-y-4">
+        {/* Large Status Badge */}
+        <div className={cn(
+          "p-4 rounded-xl border",
+          coverageStatus === 'full' ? "bg-emerald-500/10 border-emerald-500/30" :
+          coverageStatus === 'partial' ? "bg-amber-500/10 border-amber-500/30" :
+          "bg-rose-500/10 border-rose-500/30"
+        )}>
+          <div className="flex items-center gap-3">
+            {coverageStatus === 'full' && <CheckCircle2 className="w-8 h-8 text-emerald-400" />}
+            {coverageStatus === 'partial' && <AlertTriangle className="w-8 h-8 text-amber-400" />}
+            {coverageStatus === 'none' && <XCircle className="w-8 h-8 text-rose-400" />}
+            <div>
+              <p className="text-lg font-bold text-white">{getCoverageLabel(coverageStatus)}</p>
+              <p className="text-xs text-white/50">GOSI Social Insurance</p>
+            </div>
           </div>
-        </section>
+        </div>
 
-        {/* Primary Sectors */}
-        <section>
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Building2 className="w-4 h-4" />
-            Primary Sectors
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {persona.demographics.primarySectors.map((sector) => (
-              <SectorBadge key={sector} sector={sector} />
-            ))}
-          </div>
-        </section>
-
-        {/* Key Risks */}
-        <section>
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Occupational Health Risks
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {persona.research.keyRisks.map((risk) => (
-              <RiskChip key={risk} risk={risk} />
-            ))}
-          </div>
-        </section>
-
-        {/* Challenges */}
-        <section>
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4">
-            Current Challenges
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {persona.research.challenges.map((challenge) => (
-              <ChallengeItem key={challenge} challenge={challenge} />
-            ))}
-          </div>
-        </section>
+        {/* Coverage Details */}
+        <div className="space-y-2">
+          <CoverageRow label="Annuities (Pension)" value={persona.coverage.annuities} isBoolean />
+          <CoverageRow label="Occupational Hazards" value={persona.coverage.occupationalHazards} isBoolean />
+          <CoverageRow label="Contribution Rate" value={persona.coverage.contributionRate} />
+          <CoverageRow label="Paid By" value={persona.coverage.payer.charAt(0).toUpperCase() + persona.coverage.payer.slice(1)} />
+        </div>
       </div>
 
-      {/* Right Column - Coverage Details */}
-      <div className="space-y-6">
-        {/* GOSI Coverage Card */}
-        <section className="p-5 rounded-xl bg-slate-800/60 border border-white/10">
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            GOSI Coverage
-          </h3>
-          
-          <div className="space-y-4">
-            {/* Coverage Status */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-              <span className="text-sm text-white/70">Status</span>
-              <CoverageBadge status={coverageStatus} />
+      {/* Right - Gaps & Impact */}
+      <div className="space-y-4">
+        {/* Coverage Gaps */}
+        {persona.coverage.gaps.length > 0 && (
+          <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-medium text-amber-400">Coverage Gaps</span>
             </div>
-
-            {/* Annuities */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-              <span className="text-sm text-white/70">Annuities (Pension)</span>
-              {persona.coverage.annuities ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              ) : (
-                <XCircle className="w-5 h-5 text-rose-400" />
-              )}
-            </div>
-
-            {/* Occupational Hazards */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-              <span className="text-sm text-white/70">Occupational Hazards</span>
-              {persona.coverage.occupationalHazards ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              ) : (
-                <XCircle className="w-5 h-5 text-rose-400" />
-              )}
-            </div>
-
-            {/* Contribution Rate */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-              <span className="text-sm text-white/70">Contribution Rate</span>
-              <span className="text-sm font-medium text-white">{persona.coverage.contributionRate}</span>
-            </div>
-
-            {/* Payer */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50">
-              <span className="text-sm text-white/70">Paid By</span>
-              <span className="text-sm font-medium text-white capitalize">{persona.coverage.payer}</span>
-            </div>
+            <ul className="space-y-2">
+              {persona.coverage.gaps.map((gap, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                  <span className="text-amber-400 mt-0.5">!</span>
+                  {gap}
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
 
-          {/* Coverage Gaps */}
-          {persona.coverage.gaps.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">
-                Coverage Gaps
-              </h4>
-              <ul className="space-y-2">
-                {persona.coverage.gaps.map((gap) => (
-                  <li key={gap} className="flex items-start gap-2 text-xs text-white/50">
-                    <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
-                    {gap}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-
-        {/* Recent Changes */}
-        <section className="p-5 rounded-xl bg-slate-800/60 border border-white/10">
-          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            Recent Policy Changes
-          </h3>
-          <ul className="space-y-3">
-            {persona.research.recentChanges.map((change) => (
-              <li key={change} className="flex items-start gap-2 text-sm text-white/70">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                {change}
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function JourneyTab({ persona }: { persona: Persona }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-1">
-            What Happens When {persona.name} Gets Injured?
-          </h3>
-          <p className="text-sm text-white/50">
-            The typical occupational health journey from incident to recovery
+        {/* What This Means */}
+        <div className="p-4 rounded-xl bg-slate-800/40 border border-white/10">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-white/50" />
+            <span className="text-sm font-medium text-white/70">What This Means</span>
+          </div>
+          <p className="text-xs text-white/50 leading-relaxed">
+            {coverageStatus === 'full' && "Full access to GOSI benefits including pension, occupational injury compensation, medical care, and rehabilitation services."}
+            {coverageStatus === 'partial' && "Limited to occupational hazard coverage only. No pension or retirement benefits. Medical and injury compensation available for work-related incidents."}
+            {coverageStatus === 'none' && "Not covered by GOSI. No formal protections for workplace injuries. Dependent on employer goodwill for any support."}
           </p>
         </div>
-        <div className="px-4 py-2 rounded-lg bg-slate-800/60 border border-white/10">
-          <span className="text-xs text-white/50">Typical Duration:</span>
-          <span className="ml-2 text-sm font-semibold text-cyan-400">{persona.ohJourney.totalDuration}</span>
-        </div>
       </div>
-
-      <CoverageTimeline 
-        steps={persona.ohJourney.steps}
-        outcome={persona.ohJourney.outcome}
-        personaColor={persona.color}
-      />
     </div>
   );
 }
 
-function ResearchTab({ persona }: { persona: Persona }) {
+function ResearchPanel({ persona }: { persona: Persona }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+    <div className="h-full flex flex-col">
+      {/* AI Badge */}
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 mb-4 flex-shrink-0">
         <Sparkles className="w-5 h-5 text-purple-400" />
         <div>
-          <h3 className="text-sm font-semibold text-purple-300">AI-Powered Research</h3>
-          <p className="text-xs text-purple-300/70">
-            Data compiled from official sources, academic research, and verified reports
-          </p>
+          <p className="text-sm font-medium text-purple-300">AI-Powered Research</p>
+          <p className="text-[10px] text-purple-300/60">Data from official sources with full citations</p>
         </div>
       </div>
 
-      <SourceCitations sources={persona.research.sources} />
-
-      {/* Research Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Key Risks */}
-        <div className="p-5 rounded-xl bg-slate-800/60 border border-white/10">
-          <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4">
-            Key Occupational Risks
-          </h4>
-          <ul className="space-y-2">
-            {persona.research.keyRisks.map((risk, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-white/70">
-                <span className="text-amber-400">{index + 1}.</span>
-                {risk}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Challenges */}
-        <div className="p-5 rounded-xl bg-slate-800/60 border border-white/10">
-          <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4">
-            Systemic Challenges
-          </h4>
-          <ul className="space-y-2">
-            {persona.research.challenges.map((challenge, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-white/70">
-                <span className="text-cyan-400">{index + 1}.</span>
-                {challenge}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Sources */}
+      <div className="flex-1 overflow-hidden">
+        <SourceCitations sources={persona.research.sources} compact />
       </div>
     </div>
   );

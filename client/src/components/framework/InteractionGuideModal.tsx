@@ -101,7 +101,13 @@ const colors: Record<string, {
   cyan: { bg: "bg-cyan-500/20", bgSolid: "bg-cyan-500", border: "border-cyan-500/30", text: "text-cyan-400", hex: "#06b6d4", glow: "shadow-cyan-500/40" },
   slate: { bg: "bg-slate-500/20", bgSolid: "bg-slate-600", border: "border-slate-500/30", text: "text-slate-400", hex: "#475569", glow: "shadow-slate-500/40" },
   red: { bg: "bg-red-500/20", bgSolid: "bg-red-600", border: "border-red-500/30", text: "text-red-400", hex: "#ef4444", glow: "shadow-red-500/40" },
+  teal: { bg: "bg-teal-500/20", bgSolid: "bg-teal-600", border: "border-teal-500/30", text: "text-teal-400", hex: "#14b8a6", glow: "shadow-teal-500/40" },
+  rose: { bg: "bg-rose-500/20", bgSolid: "bg-rose-600", border: "border-rose-500/30", text: "text-rose-400", hex: "#f43f5e", glow: "shadow-rose-500/40" },
+  orange: { bg: "bg-orange-500/20", bgSolid: "bg-orange-600", border: "border-orange-500/30", text: "text-orange-400", hex: "#f97316", glow: "shadow-orange-500/40" },
 };
+
+// Safe color getter with fallback to prevent undefined errors
+const getColor = (color: string | undefined) => colors[color || "cyan"] || colors.cyan;
 
 // ============================================================================
 // INSIGHT OVERLAY - Glassmorphic panel for element insights
@@ -1645,7 +1651,7 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
                   }}
                   className={cn(
                     "w-16 h-16 rounded-2xl flex items-center justify-center cursor-pointer relative",
-                    colors[item.color].bgSolid,
+                    getColor(item.color).bgSolid,
                     "shadow-xl"
                   )}
                 >
@@ -1654,9 +1660,9 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
                   <motion.div
                     animate={{
                       boxShadow: [
-                        `0 0 20px ${colors[item.color].hex}40`,
-                        `0 0 40px ${colors[item.color].hex}60`,
-                        `0 0 20px ${colors[item.color].hex}40`,
+                        `0 0 20px ${getColor(item.color).hex}40`,
+                        `0 0 40px ${getColor(item.color).hex}60`,
+                        `0 0 20px ${getColor(item.color).hex}40`,
                       ]
                     }}
                     transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
@@ -1672,8 +1678,8 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
                   >
                     <span className={cn(
                       "text-xs font-medium whitespace-nowrap px-2 py-1 rounded-lg",
-                      colors[item.color].bg,
-                      colors[item.color].text
+                      getColor(item.color).bg,
+                      getColor(item.color).text
                     )}>
                       {item.label}
                     </span>
@@ -1681,7 +1687,7 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
                   
                   {/* Pulse ring */}
                   <motion.div
-                    className={cn("absolute inset-0 rounded-2xl border-2", colors[item.color].border)}
+                    className={cn("absolute inset-0 rounded-2xl border-2", getColor(item.color).border)}
                     animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
                     transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.25 }}
                   />
@@ -1884,11 +1890,11 @@ function GlobalChallengeVisual() {
                     whileHover={{ scale: 1.03 }}
                     className={cn(
                       "p-2 sm:p-3 rounded-lg border backdrop-blur-sm text-center",
-                      colors[stat.color].bg,
-                      colors[stat.color].border
+                      getColor(stat.color).bg,
+                      getColor(stat.color).border
                     )}
                   >
-                    <p className={cn("text-lg sm:text-xl font-bold", colors[stat.color].text)}>
+                    <p className={cn("text-lg sm:text-xl font-bold", getColor(stat.color).text)}>
                       <NumberCounter value={stat.value} suffix={stat.suffix} duration={1.5} delay={1.3 + i * 0.1} />
                     </p>
                     <p className="text-white/50 text-[10px] sm:text-xs">{stat.label}</p>
@@ -1990,15 +1996,15 @@ function ADLSolutionVisual() {
                 whileHover={{ scale: 1.05, y: -3 }}
                 className={cn(
                   "p-3 rounded-xl border backdrop-blur-sm relative overflow-hidden text-center",
-                  colors[item.color].bg,
-                  colors[item.color].border,
+                  getColor(item.color).bg,
+                  getColor(item.color).border,
                 )}
               >
                 <ShimmerOverlay delay={1.3 + i * 0.15} duration={3} />
                 <IconGlow color={item.color as "purple" | "cyan" | "blue" | "emerald" | "amber"} size="sm">
                   <item.icon className="w-4 h-4 text-white" />
                 </IconGlow>
-                <div className={cn("text-xl font-bold mt-2", colors[item.color].text)}>
+                <div className={cn("text-xl font-bold mt-2", getColor(item.color).text)}>
                   {item.value === 1886 ? "1886" : (
                     <NumberCounter value={item.value} suffix={item.suffix} duration={1.5} delay={1.3 + i * 0.1} />
                   )}
@@ -2145,8 +2151,8 @@ function SuccessStoriesVisual() {
                 transition={{ type: "spring", stiffness: 300 }}
                 className={cn(
                   "p-3 sm:p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden h-full",
-                  colors[country.color].bg,
-                  colors[country.color].border,
+                  getColor(country.color).bg,
+                  getColor(country.color).border,
                 )}
               >
                 <ShimmerOverlay delay={0.5 + i * 0.15} duration={3.5} />
@@ -2170,7 +2176,7 @@ function SuccessStoriesVisual() {
                   {/* Headline stat */}
                   <div className="mb-2">
                     {!country.isText ? (
-                      <div className={cn("text-xl sm:text-2xl font-bold", colors[country.color].text)}>
+                      <div className={cn("text-xl sm:text-2xl font-bold", getColor(country.color).text)}>
                         <NumberCounter 
                           value={country.stat} 
                           suffix={country.suffix || "%"} 
@@ -2179,7 +2185,7 @@ function SuccessStoriesVisual() {
                         />
                       </div>
                     ) : (
-                      <div className={cn("text-lg sm:text-xl font-bold", colors[country.color].text)}>
+                      <div className={cn("text-lg sm:text-xl font-bold", getColor(country.color).text)}>
                         Vision Zero
                       </div>
                     )}
@@ -2188,7 +2194,7 @@ function SuccessStoriesVisual() {
                   
                   {/* Key practice */}
                   <div className="flex-1 min-h-0">
-                    <p className={cn("text-[10px] sm:text-xs font-semibold mb-0.5", colors[country.color].text)}>
+                    <p className={cn("text-[10px] sm:text-xs font-semibold mb-0.5", getColor(country.color).text)}>
                       {country.keyPractice}
                     </p>
                     <p className="text-white/50 text-[9px] sm:text-[10px] leading-snug line-clamp-2">
@@ -2374,11 +2380,11 @@ function GOSIOpportunityVisual() {
                       whileHover={{ x: 3 }}
                       className={cn(
                         "flex items-start gap-3 p-3 rounded-xl border",
-                        colors[pillar.color].bg,
-                        colors[pillar.color].border
+                        getColor(pillar.color).bg,
+                        getColor(pillar.color).border
                       )}
                     >
-                      <PillarIcon className={cn("w-5 h-5 mt-0.5 flex-shrink-0", colors[pillar.color].text)} />
+                      <PillarIcon className={cn("w-5 h-5 mt-0.5 flex-shrink-0", getColor(pillar.color).text)} />
                       <div className="min-w-0">
                         <p className="text-white text-sm font-semibold">{pillar.name}</p>
                         <p className="text-white/50 text-xs leading-snug">{pillar.description}</p>
@@ -2423,11 +2429,11 @@ function GOSIOpportunityVisual() {
                     transition={{ delay: 1.4 + i * 0.1 }}
                     className={cn(
                       "p-2 rounded-lg border text-center",
-                      colors[item.color].bg,
-                      colors[item.color].border
+                      getColor(item.color).bg,
+                      getColor(item.color).border
                     )}
                   >
-                    <p className={cn("text-lg font-bold", colors[item.color].text)}>{item.value}</p>
+                    <p className={cn("text-lg font-bold", getColor(item.color).text)}>{item.value}</p>
                     <p className="text-white/50 text-[10px]">{item.label}</p>
                   </motion.div>
                 ))}
@@ -2796,18 +2802,18 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
             className={cn(
               "flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all",
               isActive 
-                ? cn(colors[el.color].bg, colors[el.color].border, "border")
+                ? cn(getColor(el.color).bg, getColor(el.color).border, "border")
                 : "opacity-40 hover:opacity-60"
             )}
           >
-            <ElIcon className={cn("w-3.5 h-3.5", isActive ? colors[el.color].text : "text-white/50")} />
+            <ElIcon className={cn("w-3.5 h-3.5", isActive ? getColor(el.color).text : "text-white/50")} />
             <span className={cn("text-[10px] font-medium", isActive ? "text-white" : "text-white/50")}>
               {el.label}
             </span>
             {isActive && (
               <motion.div
                 layoutId="navigator-indicator"
-                className={cn("w-1.5 h-1.5 rounded-full ml-auto", colors[el.color].bgSolid)}
+                className={cn("w-1.5 h-1.5 rounded-full ml-auto", getColor(el.color).bgSolid)}
               />
             )}
           </motion.div>
@@ -3299,7 +3305,7 @@ function IsometricCubeVisual() {
                       >
                         <QuadIcon className={cn(
                           "w-8 h-8 sm:w-10 sm:h-10",
-                          colors[quad.color].text
+                          getColor(quad.color).text
                         )} />
                       </motion.div>
                       <p className="mt-2 text-white font-semibold text-xs sm:text-sm">{quad.label}</p>
@@ -3994,7 +4000,7 @@ function SpinningEngineVisual() {
               >
                 <span className={cn(
                   "text-lg font-bold",
-                  colors[quad.color].text
+                  getColor(quad.color).text
                 )}>{quad.label}</span>
               </motion.div>
             ))}
@@ -4164,7 +4170,7 @@ function WorldMapVisual() {
                 <p className="text-white font-semibold text-xs text-center">{country.name}</p>
                 <p className={cn(
                   "text-[9px] text-center",
-                  colors[country.color].text
+                  getColor(country.color).text
                 )}>{country.achievement}</p>
               </motion.div>
             </motion.div>
@@ -4273,7 +4279,7 @@ function AscentVisual() {
                   
                   <p className={cn(
                     "font-bold text-sm mt-2",
-                    colors[step.color].text
+                    getColor(step.color).text
                   )}>{step.title}</p>
                   <p className="text-white/60 text-xs mt-1">{step.desc}</p>
                 </motion.div>

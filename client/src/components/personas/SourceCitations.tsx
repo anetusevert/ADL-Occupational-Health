@@ -31,6 +31,7 @@ import { cn } from "../../lib/utils";
 interface SourceCitationsProps {
   sources: PersonaSource[];
   className?: string;
+  compact?: boolean;
 }
 
 type SourceType = 'all' | 'official' | 'academic' | 'news';
@@ -269,7 +270,7 @@ function SourceCard({ source, index }: { source: PersonaSource; index: number })
 // MAIN COMPONENT
 // ============================================================================
 
-export function SourceCitations({ sources, className }: SourceCitationsProps) {
+export function SourceCitations({ sources, className, compact = false }: SourceCitationsProps) {
   const [filter, setFilter] = useState<SourceType>('all');
 
   // Filter sources
@@ -285,6 +286,61 @@ export function SourceCitations({ sources, className }: SourceCitationsProps) {
     news: sources.filter(s => s.type === 'news').length,
   };
 
+  // Compact mode - Grid of source cards
+  if (compact) {
+    return (
+      <div className={cn("h-full flex flex-col", className)}>
+        {/* Compact Header */}
+        <div className="flex items-center justify-between mb-3 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-white/50" />
+            <h3 className="text-sm font-semibold text-white/70">Sources</h3>
+            <span className="px-2 py-0.5 rounded bg-white/5 text-xs text-white/40">
+              {sources.length}
+            </span>
+          </div>
+        </div>
+
+        {/* Compact Grid */}
+        <div className="grid grid-cols-3 gap-3 flex-1">
+          {sources.slice(0, 3).map((source) => {
+            const config = sourceTypeConfig[source.type];
+            const Icon = config?.icon || FileText;
+            
+            return (
+              <a
+                key={source.url}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 transition-all group"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn("p-1.5 rounded", config?.bg, config?.border, "border")}>
+                    <Icon className={cn("w-3.5 h-3.5", config?.color)} />
+                  </div>
+                  <span className={cn("text-[10px] font-medium", config?.color)}>{config?.label}</span>
+                </div>
+                <p className="text-xs text-white/70 line-clamp-2 mb-2">{source.title}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-white/40">{source.date}</span>
+                  <ExternalLink className="w-3 h-3 text-white/30 group-hover:text-white/60 transition-colors" />
+                </div>
+              </a>
+            );
+          })}
+        </div>
+
+        {sources.length > 3 && (
+          <p className="text-[10px] text-white/30 text-center mt-3 flex-shrink-0">
+            +{sources.length - 3} more sources available
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Full mode (default)
   return (
     <div className={cn("space-y-4", className)}>
       {/* Header with Filters */}

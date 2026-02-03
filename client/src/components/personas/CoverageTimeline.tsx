@@ -4,9 +4,14 @@
  * 
  * Visual timeline showing the occupational health journey
  * from incident to recovery/outcome.
+ * 
+ * Supports two variants:
+ * - vertical (default): Traditional vertical timeline with full descriptions
+ * - horizontal: Compact horizontal timeline for no-scroll layouts
  */
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText,
   Send,
@@ -33,6 +38,7 @@ interface CoverageTimelineProps {
   steps: PersonaJourneyStep[];
   outcome: string;
   personaColor: string;
+  variant?: 'vertical' | 'horizontal';
 }
 
 // ============================================================================
@@ -117,52 +123,57 @@ const containerVariants = {
   animate: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2,
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
     },
   },
 };
 
 const stepVariants = {
-  initial: { opacity: 0, x: -20 },
+  initial: { opacity: 0, y: 10 },
   animate: {
     opacity: 1,
-    x: 0,
+    y: 0,
     transition: {
-      duration: 0.5,
+      duration: 0.4,
       ease: [0.25, 0.46, 0.45, 0.94],
     },
   },
 };
 
-const lineVariants = {
-  initial: { scaleY: 0 },
+const horizontalStepVariants = {
+  initial: { opacity: 0, y: 20 },
   animate: {
-    scaleY: 1,
+    opacity: 1,
+    y: 0,
     transition: {
       duration: 0.4,
-      ease: "easeOut",
+      ease: [0.25, 0.46, 0.45, 0.94],
     },
   },
 };
 
-const dotVariants = {
-  initial: { scale: 0 },
-  animate: {
+const tooltipVariants = {
+  initial: { opacity: 0, y: 10, scale: 0.95 },
+  animate: { 
+    opacity: 1, 
+    y: 0, 
     scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 20,
-    },
+    transition: { duration: 0.2 }
   },
+  exit: { 
+    opacity: 0, 
+    y: 5, 
+    scale: 0.95,
+    transition: { duration: 0.15 }
+  }
 };
 
 // ============================================================================
-// HELPER COMPONENTS
+// VERTICAL TIMELINE COMPONENTS
 // ============================================================================
 
-function TimelineStep({ 
+function VerticalTimelineStep({ 
   step, 
   index, 
   isLast, 
@@ -182,9 +193,7 @@ function TimelineStep({
     >
       {/* Timeline Line and Dot */}
       <div className="flex flex-col items-center">
-        {/* Dot */}
         <motion.div
-          variants={dotVariants}
           className={cn(
             "relative z-10 w-10 h-10 rounded-full flex items-center justify-center",
             colors.bg,
@@ -197,45 +206,28 @@ function TimelineStep({
           <Icon className={cn("w-5 h-5", colors.text)} />
         </motion.div>
 
-        {/* Connecting Line */}
         {!isLast && (
-          <motion.div
-            variants={lineVariants}
-            className={cn(
-              "w-0.5 flex-1 min-h-[60px] origin-top",
-              `bg-gradient-to-b ${colors.line}`,
-              "opacity-30"
-            )}
-          />
+          <div className={cn(
+            "w-0.5 flex-1 min-h-[60px]",
+            `bg-gradient-to-b ${colors.line}`,
+            "opacity-30"
+          )} />
         )}
       </div>
 
       {/* Content */}
-      <div className={cn(
-        "flex-1 pb-8",
-        isLast && "pb-0"
-      )}>
+      <div className={cn("flex-1 pb-8", isLast && "pb-0")}>
         <div className="p-4 rounded-xl bg-slate-800/60 border border-white/10 hover:border-white/20 transition-colors">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={cn(
-                  "text-xs font-bold px-2 py-0.5 rounded",
-                  colors.bg,
-                  colors.text
-                )}>
+                <span className={cn("text-xs font-bold px-2 py-0.5 rounded", colors.bg, colors.text)}>
                   Step {index + 1}
                 </span>
-                <h4 className="text-base font-semibold text-white">
-                  {step.title}
-                </h4>
+                <h4 className="text-base font-semibold text-white">{step.title}</h4>
               </div>
-              <p className="text-sm text-white/60 leading-relaxed">
-                {step.description}
-              </p>
+              <p className="text-sm text-white/60 leading-relaxed">{step.description}</p>
             </div>
-            
-            {/* Duration Badge */}
             <div className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-700/50 border border-white/10">
               <span className="text-[10px] text-white/40 uppercase tracking-wider block">Duration</span>
               <span className="text-sm font-medium text-white">{step.duration}</span>
@@ -248,12 +240,189 @@ function TimelineStep({
 }
 
 // ============================================================================
+// HORIZONTAL TIMELINE COMPONENTS
+// ============================================================================
+
+function HorizontalTimelineStep({ 
+  step, 
+  index, 
+  isLast,
+  isFirst,
+  colors,
+  isSelected,
+  onSelect
+}: { 
+  step: PersonaJourneyStep; 
+  index: number; 
+  isLast: boolean;
+  isFirst: boolean;
+  colors: typeof colorConfig.cyan;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const Icon = iconMap[step.icon] || FileText;
+
+  return (
+    <motion.div 
+      variants={horizontalStepVariants}
+      className="flex-1 flex flex-col items-center relative"
+    >
+      {/* Connecting Line */}
+      {!isFirst && (
+        <div className={cn(
+          "absolute top-5 right-1/2 w-full h-0.5",
+          `bg-gradient-to-r ${colors.line}`,
+          "opacity-30"
+        )} />
+      )}
+
+      {/* Step Node */}
+      <motion.button
+        onClick={onSelect}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className={cn(
+          "relative z-10 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all",
+          isSelected ? [colors.bg, colors.border, "border-2", "ring-2", "ring-offset-2 ring-offset-slate-900", colors.glow.replace("shadow", "ring")] 
+                     : [colors.bg, colors.border, "border", "hover:border-2"],
+          "shadow-lg",
+          colors.glow
+        )}
+      >
+        <Icon className={cn("w-4 h-4", colors.text)} />
+      </motion.button>
+
+      {/* Step Label */}
+      <div className="mt-2 text-center">
+        <p className={cn(
+          "text-[10px] font-medium",
+          isSelected ? colors.text : "text-white/50"
+        )}>
+          Step {index + 1}
+        </p>
+        <p className={cn(
+          "text-xs font-semibold mt-0.5 max-w-[80px] truncate",
+          isSelected ? "text-white" : "text-white/70"
+        )}>
+          {step.title}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+function HorizontalTimeline({ 
+  steps, 
+  outcome, 
+  colors 
+}: { 
+  steps: PersonaJourneyStep[]; 
+  outcome: string;
+  colors: typeof colorConfig.cyan;
+}) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedStep = steps[selectedIndex];
+  const Icon = iconMap[selectedStep?.icon] || FileText;
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Timeline Track */}
+      <motion.div
+        variants={containerVariants}
+        initial="initial"
+        animate="animate"
+        className="flex items-start justify-between px-4 mb-4"
+      >
+        {steps.map((step, index) => (
+          <HorizontalTimelineStep
+            key={step.title}
+            step={step}
+            index={index}
+            isFirst={index === 0}
+            isLast={index === steps.length - 1}
+            colors={colors}
+            isSelected={selectedIndex === index}
+            onSelect={() => setSelectedIndex(index)}
+          />
+        ))}
+      </motion.div>
+
+      {/* Selected Step Details */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selectedIndex}
+          variants={tooltipVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="flex-1 p-4 rounded-xl bg-slate-800/60 border border-white/10"
+        >
+          <div className="flex items-start gap-4">
+            {/* Icon */}
+            <div className={cn(
+              "p-3 rounded-xl",
+              colors.bg,
+              colors.border,
+              "border"
+            )}>
+              <Icon className={cn("w-6 h-6", colors.text)} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn("text-xs font-bold px-2 py-0.5 rounded", colors.bg, colors.text)}>
+                    Step {selectedIndex + 1}
+                  </span>
+                  <h4 className="text-lg font-semibold text-white">{selectedStep.title}</h4>
+                </div>
+                <div className="px-3 py-1 rounded-lg bg-slate-700/50 border border-white/10">
+                  <span className="text-xs text-white/60">Duration: </span>
+                  <span className="text-sm font-medium text-white">{selectedStep.duration}</span>
+                </div>
+              </div>
+              <p className="text-sm text-white/60 leading-relaxed">
+                {selectedStep.description}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Outcome */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className={cn(
+          "mt-3 p-3 rounded-lg border flex items-center gap-3",
+          colors.bg,
+          colors.border
+        )}
+      >
+        <CheckCircle2 className={cn("w-5 h-5 flex-shrink-0", colors.text)} />
+        <div className="min-w-0">
+          <span className={cn("text-xs font-semibold", colors.text)}>Expected Outcome: </span>
+          <span className="text-xs text-white/70">{outcome}</span>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export function CoverageTimeline({ steps, outcome, personaColor }: CoverageTimelineProps) {
+export function CoverageTimeline({ steps, outcome, personaColor, variant = 'vertical' }: CoverageTimelineProps) {
   const colors = colorConfig[personaColor] || colorConfig.cyan;
 
+  if (variant === 'horizontal') {
+    return <HorizontalTimeline steps={steps} outcome={outcome} colors={colors} />;
+  }
+
+  // Vertical Timeline (Default)
   return (
     <motion.div
       variants={containerVariants}
@@ -267,7 +436,7 @@ export function CoverageTimeline({ steps, outcome, personaColor }: CoverageTimel
       {/* Timeline Steps */}
       <div className="space-y-0">
         {steps.map((step, index) => (
-          <TimelineStep
+          <VerticalTimelineStep
             key={step.title}
             step={step}
             index={index}
@@ -284,25 +453,14 @@ export function CoverageTimeline({ steps, outcome, personaColor }: CoverageTimel
         transition={{ delay: steps.length * 0.15 + 0.3, duration: 0.5 }}
         className="mt-6 ml-14"
       >
-        <div className={cn(
-          "p-5 rounded-xl border",
-          colors.bg,
-          colors.border
-        )}>
+        <div className={cn("p-5 rounded-xl border", colors.bg, colors.border)}>
           <div className="flex items-start gap-3">
-            <div className={cn(
-              "p-2 rounded-lg",
-              colors.bg
-            )}>
+            <div className={cn("p-2 rounded-lg", colors.bg)}>
               <CheckCircle2 className={cn("w-5 h-5", colors.text)} />
             </div>
             <div>
-              <h4 className={cn("text-sm font-semibold mb-1", colors.text)}>
-                Expected Outcome
-              </h4>
-              <p className="text-sm text-white/70">
-                {outcome}
-              </p>
+              <h4 className={cn("text-sm font-semibold mb-1", colors.text)}>Expected Outcome</h4>
+              <p className="text-sm text-white/70">{outcome}</p>
             </div>
           </div>
         </div>

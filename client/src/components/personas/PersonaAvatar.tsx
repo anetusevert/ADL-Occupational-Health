@@ -17,7 +17,7 @@ import { cn } from "../../lib/utils";
 
 interface PersonaAvatarProps {
   persona: Persona;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   showGlow?: boolean;
   className?: string;
 }
@@ -32,24 +32,35 @@ const sizeConfig = {
     icon: "w-6 h-6",
     ring: "ring-2",
     iconBg: "p-2",
+    glowScale: 1.15,
   },
   md: {
     container: "w-16 h-16",
     icon: "w-8 h-8",
     ring: "ring-2",
     iconBg: "p-3",
+    glowScale: 1.15,
   },
   lg: {
     container: "w-20 h-20",
     icon: "w-10 h-10",
     ring: "ring-3",
     iconBg: "p-4",
+    glowScale: 1.15,
   },
   xl: {
-    container: "w-32 h-32",
-    icon: "w-14 h-14",
+    container: "w-28 h-28",
+    icon: "w-12 h-12",
     ring: "ring-4",
-    iconBg: "p-6",
+    iconBg: "p-5",
+    glowScale: 1.12,
+  },
+  xxl: {
+    container: "w-36 h-36",
+    icon: "w-16 h-16",
+    ring: "ring-4",
+    iconBg: "p-7",
+    glowScale: 1.1,
   },
 };
 
@@ -208,7 +219,7 @@ export function PersonaAvatar({
           "pointer-events-none"
         )}
         style={{ 
-          transform: "scale(1.15)",
+          transform: `scale(${sizes.glowScale})`,
           transformOrigin: "center"
         }}
       />
