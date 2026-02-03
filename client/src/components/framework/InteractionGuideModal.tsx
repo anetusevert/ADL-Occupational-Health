@@ -42,8 +42,11 @@ import {
   BookOpen,
   BarChart3,
   ArrowDown,
+  ArrowRight,
   Calendar,
   Zap,
+  DollarSign,
+  Star,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
@@ -2577,21 +2580,30 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         />
       );
 
+    // SLIDE 12: THE HANDSHAKE - ADL + GOSI Partnership
     case "cta":
       return (
-        <HeroSlideLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          description={slide.content}
-          highlights={slide.highlights}
-          color={(slide.color as "cyan" | "purple" | "blue" | "emerald" | "amber") || "cyan"}
-          showLogos={true}
-          visual={<CompactConclusionVisual />}
-          ctaButton={{
-            label: "Start Exploring",
-            onClick: onCloseAndExplore || (() => {}),
-          }}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <HandshakeVisual />
+          </div>
+          {/* CTA Button overlay */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.5 }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onCloseAndExplore}
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-white font-semibold shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] transition-all"
+            >
+              Start Exploring the Platform
+            </motion.button>
+          </motion.div>
+        </div>
       );
 
     // DATA IMPACT LAYOUT - Challenge and opportunity slides
@@ -2614,32 +2626,40 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         />
       );
 
+    // SLIDE 11: THE ASCENT - 3-Year Strategic Transformation
     case "opportunity":
-      // Full-bleed Saudi Arabia / GOSI Opportunity visual with Vision 2030
       return (
         <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<TrendingUp className="w-5 h-5 text-cyan-400" />}
+            color="cyan"
+          />
           <div className="flex-1 min-h-0 relative overflow-hidden">
-            <GOSIOpportunityVisual />
+            <AscentVisual />
           </div>
         </div>
       );
 
-    // FRAMEWORK LAYOUT - Overview and integration slides  
+    // SLIDE 4: THE ARCHITECTURE - 3D Isometric Cube
     case "overview":
       return (
-        <FrameworkLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          visual={<CompactTempleVisual />}
-          highlights={slide.highlights}
-          insight="25 key performance indicators across 4 maturity levels provide comprehensive assessment."
-          color="purple"
-          icon={<Layers className="w-5 h-5 text-purple-400" />}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Layers className="w-5 h-5 text-purple-400" />}
+            color="purple"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <IsometricCubeVisual />
+          </div>
+        </div>
       );
 
+    // SLIDE 9: THE ENGINE - Spinning Cube with Data Particles
     case "integration":
-      // Full-bleed integration visual showing connected framework
       return (
         <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
           <ConsultingSlideHeader
@@ -2648,35 +2668,13 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
             icon={<RefreshCcw className="w-5 h-5 text-cyan-400" />}
             color="cyan"
           />
-          <SlideBody particleColor="rgba(6,182,212,0.15)">
-            <div className="h-full flex flex-col items-center justify-center">
-              <CompactIntegrationVisual />
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.5 }}
-                className="mt-6 max-w-2xl"
-              >
-                <KeyPointsList points={slide.highlights?.slice(0, 4) || []} color="cyan" columns={2} />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2 }}
-                className="mt-4"
-              >
-                <InsightBox
-                  insight="Countries with integrated systems show 40% lower fatality rates than those with fragmented approaches."
-                  color="cyan"
-                  variant="callout"
-                />
-              </motion.div>
-            </div>
-          </SlideBody>
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <SpinningEngineVisual />
+          </div>
         </div>
       );
 
-    // DEEP STORYTELLING - Governance and pillar slides with framework navigator
+    // SOVEREIGN SHIELD VISUALS - Slides 5-8 (Governance + Pillars)
     case "component":
       const componentColors: Record<string, "purple" | "blue" | "emerald" | "amber" | "cyan"> = {
         governance: "purple",
@@ -2685,18 +2683,18 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         "pillar-3": "amber",
       };
       
-      // Map to deep storytelling visuals
-      const deepStoryVisuals: Record<string, React.ReactNode> = {
-        governance: <GovernanceStoryVisual onInsightClick={onInsightClick} />,
-        "pillar-1": <PreventionStoryVisual onInsightClick={onInsightClick} />,
-        "pillar-2": <SurveillanceStoryVisual onInsightClick={onInsightClick} />,
-        "pillar-3": <RestorationStoryVisual onInsightClick={onInsightClick} />,
+      // Map to Sovereign Shield visuals
+      const sovereignVisuals: Record<string, React.ReactNode> = {
+        governance: <ControlTowerVisual onInsightClick={onInsightClick} />,
+        "pillar-1": <HierarchyPyramidVisual onInsightClick={onInsightClick} />,
+        "pillar-2": <DigitalTwinVisual onInsightClick={onInsightClick} />,
+        "pillar-3": <FastTrackVisual onInsightClick={onInsightClick} />,
       };
 
       const componentId = slide.componentId || "governance";
       const colorKey = componentColors[componentId];
 
-      // Full-bleed deep storytelling with framework navigator
+      // Full-bleed Sovereign Shield visual with framework navigator
       return (
         <div className={cn(
           "h-full flex flex-col overflow-hidden",
@@ -2716,19 +2714,25 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
             color={colorKey}
           />
           
-          {/* Deep storytelling visual */}
+          {/* Sovereign Shield visual */}
           <div className="flex-1 min-h-0 relative overflow-hidden">
-            {deepStoryVisuals[componentId]}
+            {sovereignVisuals[componentId]}
           </div>
         </div>
       );
 
-    // Full-bleed Success Stories visual with country case studies
+    // SLIDE 10: THE WORLD MAP - Pulsing Country Shields
     case "success":
       return (
         <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Globe className="w-5 h-5 text-emerald-400" />}
+            color="emerald"
+          />
           <div className="flex-1 min-h-0 relative overflow-hidden">
-            <SuccessStoriesVisual />
+            <WorldMapVisual />
           </div>
         </div>
       );
@@ -2815,409 +2819,1189 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
 }
 
 // ============================================================================
-// DEEP STORYTELLING VISUALS - McKinsey-style framework element presentations
+// SOVEREIGN SHIELD VISUALS - Dark Mode Executive Design System
 // ============================================================================
 
-interface DeepStoryVisualProps {
+interface SovereignVisualProps {
   onInsightClick?: (id: string) => void;
 }
 
-// Governance Deep Storytelling Visual (Slide 5)
-function GovernanceStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
-  const keyQuestions = [
-    { id: "c187", question: "ILO C187 Ratified?", good: "Yes - Framework established", bad: "No - Voluntary only", metric: "62/187 countries" },
-    { id: "inspectors", question: "Inspector Ratio", good: ">1:10,000 workers", bad: "<1:50,000 workers", metric: "Global avg: 1:53,000" },
-    { id: "whistleblower", question: "Whistleblower Protection", good: "Legal protection + anonymous reporting", bad: "No protection - fear of retaliation", metric: "Reduces under-reporting 60%" },
-    { id: "tripartite", question: "Tripartite Governance", good: "Gov + Employers + Workers collaborate", bad: "Top-down regulation only", metric: "Better compliance rates" },
+// ============================================================================
+// SLIDE 4: THE ARCHITECTURE - 3D Isometric Cube
+// ============================================================================
+
+function IsometricCubeVisual() {
+  const quadrants = [
+    { id: "governance", label: "Governance", color: "purple", icon: Crown, position: "top-left" },
+    { id: "prevention", label: "Prevention", color: "blue", icon: Shield, position: "top-right" },
+    { id: "surveillance", label: "Surveillance", color: "emerald", icon: Eye, position: "bottom-left" },
+    { id: "restoration", label: "Restoration", color: "amber", icon: Heart, position: "bottom-right" },
   ];
 
-  const bestPractice = {
-    country: "Germany",
-    flag: "🇩🇪",
-    practice: "Berufsgenossenschaften (BGs)",
-    detail: "Sector-specific insurance associations combining prevention, insurance, and rehabilitation under one roof",
-    result: "47% lower fatality rates"
-  };
-
   return (
-    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
-      <ParticleField count={30} color="purple" speed="slow" />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={40} color="cyan" speed="slow" />
       
-      {/* Header with animated crown */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <ScaleReveal delay={0} initialScale={0.5}>
-          <GlowOrb color="purple" size="lg" intensity="intense">
-            <Crown className="w-10 h-10 text-white" />
-          </GlowOrb>
-        </ScaleReveal>
-        <HeroReveal delay={0.3} direction="left">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Governance Ecosystem</h2>
-            <p className="text-purple-400 text-xs sm:text-sm">The Overarching Driver</p>
-          </div>
-        </HeroReveal>
-      </div>
-
-      {/* Key Questions Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
-        {keyQuestions.map((q, i) => (
-          <HeroReveal key={q.id} delay={0.5 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              onClick={() => onInsightClick?.(q.id)}
-              className="h-full p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-left flex flex-col"
-            >
-              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
-                </div>
-              </div>
-              <p className="text-purple-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
-            </motion.button>
-          </HeroReveal>
-        ))}
-      </div>
-
-      {/* Best Practice Example */}
-      <HeroReveal delay={1.2} direction="up">
+      {/* Floating glow orbs */}
+      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="md" position="bottom-right" delay={0.5} />
+      
+      {/* Central 3D Isometric Cube */}
+      <div className="relative z-10 flex flex-col items-center">
+        {/* The Cube Structure */}
         <motion.div
-          whileHover={{ scale: 1.01 }}
-          className="p-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/10 border border-purple-500/40"
+          initial={{ opacity: 0, scale: 0.5, rotateY: -30 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="relative"
+          style={{ perspective: "1000px" }}
         >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{bestPractice.flag}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
-                <span className="text-purple-400 text-xs">{bestPractice.practice}</span>
-              </div>
-              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
+          {/* Cube container with 3D transform */}
+          <motion.div
+            animate={{ rotateY: [0, 5, 0, -5, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="relative w-64 h-64 sm:w-80 sm:h-80"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            {/* Cube faces - Glass effect */}
+            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-1 p-2">
+              {quadrants.map((quad, i) => {
+                const QuadIcon = quad.icon;
+                return (
+                  <motion.div
+                    key={quad.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + i * 0.15 }}
+                    whileHover={{ scale: 1.05, zIndex: 10 }}
+                    className={cn(
+                      "relative rounded-xl backdrop-blur-md border cursor-pointer transition-all duration-300",
+                      "bg-gradient-to-br",
+                      quad.color === "purple" && "from-purple-500/20 to-purple-900/40 border-purple-500/40 hover:border-purple-400",
+                      quad.color === "blue" && "from-blue-500/20 to-blue-900/40 border-blue-500/40 hover:border-blue-400",
+                      quad.color === "emerald" && "from-emerald-500/20 to-emerald-900/40 border-emerald-500/40 hover:border-emerald-400",
+                      quad.color === "amber" && "from-amber-500/20 to-amber-900/40 border-amber-500/40 hover:border-amber-400",
+                    )}
+                  >
+                    {/* Glassmorphism shimmer */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl"
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                    />
+                    
+                    <div className="relative z-10 h-full flex flex-col items-center justify-center p-3">
+                      <motion.div
+                        animate={{ 
+                          boxShadow: [
+                            `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+                            `0 0 40px ${quad.color === "purple" ? "rgba(168,85,247,0.5)" : quad.color === "blue" ? "rgba(59,130,246,0.5)" : quad.color === "emerald" ? "rgba(16,185,129,0.5)" : "rgba(245,158,11,0.5)"}`,
+                            `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="p-3 rounded-full bg-black/40 backdrop-blur-sm"
+                      >
+                        <QuadIcon className={cn(
+                          "w-8 h-8 sm:w-10 sm:h-10",
+                          colors[quad.color].text
+                        )} />
+                      </motion.div>
+                      <p className="mt-2 text-white font-semibold text-xs sm:text-sm">{quad.label}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
-            <div className="text-right">
-              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
-            </div>
-          </div>
+            
+            {/* Center connection point */}
+            <motion.div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <div className="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.8)]" />
+            </motion.div>
+          </motion.div>
         </motion.div>
-      </HeroReveal>
+        
+        {/* Base plate label */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5 }}
+          className="mt-6 px-6 py-2 rounded-full bg-gradient-to-r from-slate-800/80 to-slate-700/80 border border-cyan-500/30 backdrop-blur-sm"
+        >
+          <p className="text-cyan-400 text-xs sm:text-sm font-medium tracking-wider">
+            UNIFIED DATA FOUNDATION
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
 
-// Hazard Prevention Deep Storytelling Visual (Slide 6)
-function PreventionStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
-  const keyQuestions = [
-    { id: "oels", question: "Exposure Limits (OELs)", good: "Comprehensive limits for 500+ substances", bad: "No or outdated limits", metric: "Aligned with ACGIH TLVs" },
-    { id: "training", question: "Safety Training", good: ">90% annual coverage", bad: "<50% coverage", metric: "Avg: 8-16 hrs/worker/year" },
-    { id: "risk-assess", question: "Risk Assessments", good: "Mandatory + audited", bad: "Voluntary or paper-only", metric: "35-40% injury reduction" },
-    { id: "registry", question: "Hazard Registry", good: "National database + tracking", bad: "No systematic tracking", metric: "REACH: 23,000+ substances" },
-  ];
+// ============================================================================
+// SLIDE 5: THE CONTROL TOWER - Mission Control Interface
+// ============================================================================
 
-  const bestPractice = {
-    country: "Netherlands",
-    flag: "🇳🇱",
-    practice: "Arbocatalogus",
-    detail: "Sector-specific hazard control catalogs developed jointly by employers and unions",
-    result: "Engineering > PPE focus"
-  };
+function ControlTowerVisual({ onInsightClick }: SovereignVisualProps) {
+  const dataPoints = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    x: 10 + Math.random() * 80,
+    y: 15 + Math.random() * 70,
+    risk: Math.random() > 0.7 ? "high" : Math.random() > 0.4 ? "medium" : "low",
+  }));
 
   return (
     <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={25} color="purple" speed="slow" />
+      
+      {/* Header */}
+      <HeroReveal delay={0} direction="down">
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 mb-2">
+            <motion.div
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-2 h-2 rounded-full bg-emerald-400"
+            />
+            <span className="text-purple-400 text-xs font-medium">MISSION CONTROL ACTIVE</span>
+          </div>
+        </div>
+      </HeroReveal>
+
+      {/* Main dashboard area */}
+      <div className="flex-1 min-h-0 grid grid-cols-3 gap-3">
+        {/* Saudi Arabia Map with data points */}
+        <HeroReveal delay={0.2} direction="left" className="col-span-2">
+          <div className="h-full rounded-xl bg-slate-900/80 border border-purple-500/30 backdrop-blur-sm p-3 relative overflow-hidden">
+            {/* Glassmorphism effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
+            
+            {/* Map placeholder with grid */}
+            <div className="relative h-full">
+              <div className="absolute inset-0 grid grid-cols-8 grid-rows-6 gap-px opacity-20">
+                {Array.from({ length: 48 }).map((_, i) => (
+                  <div key={i} className="border border-purple-500/30" />
+                ))}
+              </div>
+              
+              {/* Data points */}
+              {dataPoints.map((point, i) => (
+                <motion.div
+                  key={point.id}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.5 + i * 0.05 }}
+                  className="absolute"
+                  style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                >
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.5, 1],
+                      opacity: [0.8, 1, 0.8]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, delay: Math.random() * 2 }}
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      point.risk === "high" && "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]",
+                      point.risk === "medium" && "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]",
+                      point.risk === "low" && "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                    )}
+                  />
+                </motion.div>
+              ))}
+              
+              {/* KSA Label */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              >
+                <span className="text-purple-400/40 text-3xl font-bold">KSA</span>
+              </motion.div>
+            </div>
+          </div>
+        </HeroReveal>
+        
+        {/* Control panels */}
+        <div className="flex flex-col gap-3">
+          {/* Toggle switch */}
+          <HeroReveal delay={0.4} direction="right">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onInsightClick?.("inspection-toggle")}
+              className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 backdrop-blur-sm"
+            >
+              <p className="text-white/60 text-[10px] mb-2">INSPECTION MODE</p>
+              <div className="flex items-center gap-2">
+                <span className="text-red-400 text-[9px] line-through opacity-50">Random</span>
+                <motion.div
+                  className="flex-1 h-6 rounded-full bg-gradient-to-r from-red-500/20 to-emerald-500/20 p-1"
+                >
+                  <motion.div
+                    animate={{ x: [0, 32, 32] }}
+                    transition={{ duration: 1.5, delay: 1 }}
+                    className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
+                  />
+                </motion.div>
+                <span className="text-emerald-400 text-[9px] font-semibold">AI-Targeted</span>
+              </div>
+            </motion.button>
+          </HeroReveal>
+          
+          {/* Stats */}
+          <HeroReveal delay={0.6} direction="right">
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 backdrop-blur-sm">
+              <p className="text-white/60 text-[10px] mb-2">FATALITY REDUCTION</p>
+              <div className="flex items-end gap-1">
+                <NumberCounter end={47} duration={2} className="text-3xl font-bold text-purple-400" />
+                <span className="text-purple-400 text-lg mb-1">%</span>
+              </div>
+              <p className="text-white/40 text-[9px]">vs baseline</p>
+            </div>
+          </HeroReveal>
+          
+          {/* Benchmark */}
+          <HeroReveal delay={0.8} direction="right">
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🇩🇪</span>
+                <div>
+                  <p className="text-white text-xs font-semibold">DGUV Model</p>
+                  <p className="text-purple-400/60 text-[9px]">German Benchmark</p>
+                </div>
+              </div>
+              <div className="h-1 rounded-full bg-purple-500/20">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "85%" }}
+                  transition={{ delay: 1.2, duration: 1 }}
+                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
+                />
+              </div>
+            </div>
+          </HeroReveal>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SLIDE 6: THE HIERARCHY - Inverted Pyramid with ROI Funnel
+// ============================================================================
+
+function HierarchyPyramidVisual({ onInsightClick }: SovereignVisualProps) {
+  const levels = [
+    { id: "elimination", label: "Elimination", desc: "Remove the hazard entirely", intensity: 1 },
+    { id: "substitution", label: "Substitution", desc: "Replace with safer alternative", intensity: 0.85 },
+    { id: "engineering", label: "Engineering", desc: "Isolate people from hazard", intensity: 0.7 },
+    { id: "administrative", label: "Administrative", desc: "Change the way people work", intensity: 0.5 },
+    { id: "ppe", label: "PPE", desc: "Protect the worker (last resort)", intensity: 0.3 },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-4">
       <ParticleField count={30} color="blue" speed="slow" />
       
-      {/* Header with animated shield */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <ScaleReveal delay={0} initialScale={0.5}>
-          <GlowOrb color="blue" size="lg" intensity="intense">
-            <Shield className="w-10 h-10 text-white" />
-          </GlowOrb>
-        </ScaleReveal>
-        <HeroReveal delay={0.3} direction="left">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Hazard Prevention</h2>
-            <p className="text-blue-400 text-xs sm:text-sm">Pillar I — The Proactive Shield</p>
+      <div className="relative z-10 flex items-center gap-8 w-full max-w-3xl">
+        {/* Inverted Pyramid */}
+        <div className="flex-1 flex flex-col items-center">
+          <HeroReveal delay={0} direction="down">
+            <p className="text-blue-400 text-xs font-medium tracking-wider mb-4">HIERARCHY OF CONTROLS</p>
+          </HeroReveal>
+          
+          <div className="relative w-full max-w-xs">
+            {levels.map((level, i) => {
+              const width = 100 - i * 15;
+              return (
+                <HeroReveal key={level.id} delay={0.2 + i * 0.15} direction="down">
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    onClick={() => onInsightClick?.(level.id)}
+                    className="relative w-full mb-1"
+                    style={{ paddingLeft: `${(100 - width) / 2}%`, paddingRight: `${(100 - width) / 2}%` }}
+                  >
+                    <motion.div
+                      animate={{ 
+                        opacity: [level.intensity, level.intensity + 0.1, level.intensity],
+                        boxShadow: i === 0 ? [
+                          "0 0 20px rgba(59,130,246,0.3)",
+                          "0 0 40px rgba(59,130,246,0.5)",
+                          "0 0 20px rgba(59,130,246,0.3)",
+                        ] : undefined
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className={cn(
+                        "py-2 px-3 rounded-lg border backdrop-blur-sm transition-all",
+                        i === 0 
+                          ? "bg-blue-500/30 border-blue-400 text-white" 
+                          : i === levels.length - 1
+                            ? "bg-slate-800/50 border-slate-600/50 text-white/50"
+                            : "bg-blue-500/10 border-blue-500/30 text-white/80"
+                      )}
+                    >
+                      <p className="font-semibold text-xs">{level.label}</p>
+                      <p className="text-[9px] opacity-60">{level.desc}</p>
+                    </motion.div>
+                  </motion.button>
+                </HeroReveal>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* ROI Funnel */}
+        <HeroReveal delay={1} direction="right">
+          <div className="flex flex-col items-center">
+            <p className="text-emerald-400 text-xs font-medium tracking-wider mb-4">ROI MULTIPLIER</p>
+            
+            <div className="relative">
+              {/* Input coin */}
+              <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.2 }}
+                className="flex items-center gap-2 mb-4"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)]"
+                >
+                  <DollarSign className="w-6 h-6 text-white" />
+                </motion.div>
+                <span className="text-amber-400 font-bold">$1</span>
+              </motion.div>
+              
+              {/* Funnel */}
+              <motion.div
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ delay: 1.4, duration: 0.5 }}
+                className="w-16 h-20 relative mx-auto"
+                style={{ transformOrigin: "top" }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/30 to-emerald-500/30 rounded-t-xl border border-blue-500/30" 
+                     style={{ clipPath: "polygon(10% 0%, 90% 0%, 70% 100%, 30% 100%)" }} />
+              </motion.div>
+              
+              {/* Output coins */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 2 }}
+                className="flex items-center justify-center gap-1 mt-2"
+              >
+                {[1, 2, 3, 4, 5, 6].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 2 + i * 0.1 }}
+                    className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                  >
+                    <DollarSign className="w-4 h-4 text-white" />
+                  </motion.div>
+                ))}
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2.5 }}
+                className="text-emerald-400 font-bold text-lg mt-2 text-center"
+              >
+                $4-6
+              </motion.p>
+            </div>
           </div>
         </HeroReveal>
       </div>
+    </div>
+  );
+}
 
-      {/* Hierarchy of Controls mini-visual */}
-      <HeroReveal delay={0.4} direction="down">
-        <div className="flex justify-center gap-1 mb-3">
-          {["Eliminate", "Substitute", "Engineer", "Admin", "PPE"].map((step, i) => (
+// ============================================================================
+// SLIDE 7: THE DIGITAL TWIN - Holographic Body Scan
+// ============================================================================
+
+function DigitalTwinVisual({ onInsightClick }: SovereignVisualProps) {
+  const bodyZones = [
+    { id: "lungs", label: "Lungs", risk: "high", top: "35%", left: "50%", desc: "Respiratory hazards" },
+    { id: "joints", label: "Joints", risk: "medium", top: "55%", left: "35%", desc: "Musculoskeletal stress" },
+    { id: "hearing", label: "Hearing", risk: "medium", top: "15%", left: "60%", desc: "Noise exposure" },
+    { id: "skin", label: "Skin", risk: "low", top: "45%", left: "65%", desc: "Chemical contact" },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-4">
+      <ParticleField count={35} color="emerald" speed="slow" />
+      
+      <div className="relative z-10 flex items-center gap-8 w-full max-w-3xl">
+        {/* Holographic Body */}
+        <HeroReveal delay={0} direction="left">
+          <div className="relative w-48 h-72 mx-auto">
+            {/* Body silhouette with wireframe effect */}
             <motion.div
-              key={step}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
-              className={cn(
-                "px-2 py-1 rounded text-[9px] font-medium",
-                i === 0 ? "bg-emerald-500/30 text-emerald-400" :
-                i === 4 ? "bg-red-500/20 text-red-400" :
-                "bg-blue-500/20 text-blue-400"
-              )}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0"
             >
-              {step}
+              {/* Hologram container */}
+              <div className="relative w-full h-full">
+                {/* Scan lines */}
+                <motion.div
+                  animate={{ y: ["-100%", "100%"] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-x-0 h-1 bg-gradient-to-b from-transparent via-emerald-400/50 to-transparent"
+                />
+                
+                {/* Body outline */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    {/* Head */}
+                    <motion.div
+                      animate={{ boxShadow: ["0 0 20px rgba(16,185,129,0.3)", "0 0 40px rgba(16,185,129,0.5)", "0 0 20px rgba(16,185,129,0.3)"] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-12 h-14 rounded-full border-2 border-emerald-400/50 mx-auto"
+                    />
+                    {/* Torso */}
+                    <div className="w-20 h-28 border-2 border-emerald-400/40 rounded-t-xl mt-2 mx-auto relative">
+                      {/* Lung heatmap */}
+                      <motion.div
+                        animate={{ opacity: [0.4, 0.8, 0.4] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="absolute top-4 left-2 right-2 h-12 rounded bg-gradient-to-b from-red-500/40 to-amber-500/20"
+                      />
+                    </div>
+                    {/* Legs */}
+                    <div className="flex justify-center gap-2 mt-1">
+                      <div className="w-6 h-24 border-2 border-emerald-400/30 rounded-b-lg" />
+                      <div className="w-6 h-24 border-2 border-emerald-400/30 rounded-b-lg" />
+                    </div>
+                    {/* Arms */}
+                    <div className="absolute top-16 -left-6 w-4 h-20 border-2 border-emerald-400/30 rounded-lg" />
+                    <div className="absolute top-16 -right-6 w-4 h-20 border-2 border-emerald-400/30 rounded-lg" />
+                  </div>
+                </div>
+                
+                {/* Heatmap zones */}
+                {bodyZones.map((zone, i) => (
+                  <motion.button
+                    key={zone.id}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5 + i * 0.2 }}
+                    whileHover={{ scale: 1.2 }}
+                    onClick={() => onInsightClick?.(zone.id)}
+                    className="absolute"
+                    style={{ top: zone.top, left: zone.left, transform: "translate(-50%, -50%)" }}
+                  >
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.3, 1],
+                        opacity: [0.7, 1, 0.7]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                      className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center",
+                        zone.risk === "high" && "bg-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.8)]",
+                        zone.risk === "medium" && "bg-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.6)]",
+                        zone.risk === "low" && "bg-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
+                      )}
+                    >
+                      <span className="text-white text-[8px] font-bold">!</span>
+                    </motion.div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </HeroReveal>
+        
+        {/* Diagnosis Timeline */}
+        <HeroReveal delay={0.5} direction="right">
+          <div className="flex-1 max-w-xs">
+            <p className="text-emerald-400 text-xs font-medium tracking-wider mb-4">DIAGNOSIS ACCELERATION</p>
+            
+            {/* Timeline comparison */}
+            <div className="space-y-4">
+              {/* Before */}
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-red-500/30 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-red-400 text-xs font-medium">BEFORE</span>
+                  <span className="text-red-400 text-lg font-bold">30 days</span>
+                </div>
+                <div className="h-2 rounded-full bg-red-500/20">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ delay: 1, duration: 1.5 }}
+                    className="h-full rounded-full bg-red-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Arrow */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2 }}
+                className="flex justify-center"
+              >
+                <ArrowDown className="w-6 h-6 text-emerald-400" />
+              </motion.div>
+              
+              {/* After */}
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-emerald-400 text-xs font-medium">REAL-TIME</span>
+                  <span className="text-emerald-400 text-lg font-bold">&lt;7 days</span>
+                </div>
+                <div className="h-2 rounded-full bg-emerald-500/20">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "23%" }}
+                    transition={{ delay: 2.5, duration: 0.5 }}
+                    className="h-full rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                  />
+                </div>
+              </div>
+              
+              {/* Impact stat */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 3 }}
+                className="text-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30"
+              >
+                <p className="text-emerald-400 text-2xl font-bold">60%</p>
+                <p className="text-white/60 text-xs">Cost Reduction</p>
+              </motion.div>
+            </div>
+          </div>
+        </HeroReveal>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SLIDE 8: THE FAST TRACK - Litigation vs No-Fault Flowcharts
+// ============================================================================
+
+function FastTrackVisual({ onInsightClick }: SovereignVisualProps) {
+  return (
+    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden p-4">
+      <ParticleField count={25} color="amber" speed="slow" />
+      
+      <div className="relative z-10 w-full max-w-2xl space-y-6">
+        {/* Old Way - Litigation */}
+        <HeroReveal delay={0} direction="left">
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-red-500/30 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-red-500/20">
+                <X className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-red-400 font-semibold text-sm">OLD WAY: Litigation System</p>
+                <p className="text-white/40 text-xs">Average resolution: 2+ years</p>
+              </div>
+            </div>
+            
+            {/* Tangled flowchart */}
+            <div className="relative h-16 overflow-hidden">
+              <svg className="w-full h-full" viewBox="0 0 400 60">
+                <motion.path
+                  d="M 20,30 Q 60,10 80,30 T 120,30 Q 140,50 160,30 T 200,30 Q 220,10 240,30 T 280,30 Q 300,50 320,30 T 360,30 Q 380,10 400,30"
+                  stroke="rgb(239,68,68)"
+                  strokeWidth="3"
+                  fill="none"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 2, delay: 0.3 }}
+                />
+                {/* Knot points */}
+                {[80, 160, 240, 320].map((x, i) => (
+                  <motion.circle
+                    key={i}
+                    cx={x}
+                    cy={30}
+                    r={6}
+                    fill="rgb(239,68,68)"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5 + i * 0.2 }}
+                  />
+                ))}
+              </svg>
+              {/* Labels */}
+              <div className="absolute inset-0 flex justify-between items-center px-6 text-[9px] text-red-400/60">
+                <span>Incident</span>
+                <span>Lawyer</span>
+                <span>Discovery</span>
+                <span>Trial</span>
+                <span>Appeal</span>
+              </div>
+            </div>
+          </div>
+        </HeroReveal>
+        
+        {/* Arrow */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="flex justify-center"
+        >
+          <ArrowDown className="w-8 h-8 text-emerald-400" />
+        </motion.div>
+        
+        {/* New Way - No-Fault */}
+        <HeroReveal delay={0.5} direction="right">
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-emerald-500/30 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-emerald-500/20">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-emerald-400 font-semibold text-sm">NEW WAY: No-Fault System</p>
+                <p className="text-white/40 text-xs">Average processing: 45 days</p>
+              </div>
+            </div>
+            
+            {/* Straight laser line */}
+            <div className="relative h-16 overflow-hidden">
+              <svg className="w-full h-full" viewBox="0 0 400 60">
+                {/* Glow effect */}
+                <defs>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <motion.line
+                  x1="20"
+                  y1="30"
+                  x2="380"
+                  y2="30"
+                  stroke="rgb(16,185,129)"
+                  strokeWidth="4"
+                  filter="url(#glow)"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1, delay: 2.5 }}
+                />
+                {/* Checkpoints */}
+                {[20, 140, 260, 380].map((x, i) => (
+                  <motion.circle
+                    key={i}
+                    cx={x}
+                    cy={30}
+                    r={8}
+                    fill="rgb(16,185,129)"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 2.5 + i * 0.15 }}
+                  />
+                ))}
+              </svg>
+              {/* Labels */}
+              <div className="absolute inset-0 flex justify-between items-center px-2 text-[9px] text-emerald-400/80 font-medium">
+                <span>Incident</span>
+                <span>Report</span>
+                <span>Assess</span>
+                <span>Payment</span>
+              </div>
+            </div>
+          </div>
+        </HeroReveal>
+        
+        {/* Key stat */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3.5 }}
+          className="flex justify-center"
+        >
+          <div className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border border-amber-500/30 backdrop-blur-sm">
+            <p className="text-amber-400 text-3xl font-bold text-center">70%</p>
+            <p className="text-white/60 text-xs text-center">Faster Claims Processing</p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SLIDE 9: THE ENGINE - Spinning Cube with Data Particles
+// ============================================================================
+
+function SpinningEngineVisual() {
+  const quadrants = [
+    { id: "governance", label: "GOV", color: "purple" },
+    { id: "prevention", label: "PRV", color: "blue" },
+    { id: "surveillance", label: "SRV", color: "emerald" },
+    { id: "restoration", label: "RST", color: "amber" },
+  ];
+
+  // Data particles flying between quadrants
+  const particles = Array.from({ length: 12 }, (_, i) => ({
+    id: i,
+    startQuadrant: i % 4,
+    delay: i * 0.3,
+  }));
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={50} color="cyan" speed="fast" />
+      
+      <FloatingGlowOrb color="cyan" size="lg" position="top-right" delay={0} />
+      <FloatingGlowOrb color="purple" size="md" position="bottom-left" delay={0.5} />
+      
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Spinning Cube */}
+        <motion.div
+          animate={{ rotateY: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="relative w-56 h-56 sm:w-72 sm:h-72"
+          style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+        >
+          {/* Cube grid */}
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-2 p-2">
+            {quadrants.map((quad, i) => (
+              <motion.div
+                key={quad.id}
+                animate={{ 
+                  boxShadow: [
+                    `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+                    `0 0 40px ${quad.color === "purple" ? "rgba(168,85,247,0.6)" : quad.color === "blue" ? "rgba(59,130,246,0.6)" : quad.color === "emerald" ? "rgba(16,185,129,0.6)" : "rgba(245,158,11,0.6)"}`,
+                    `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
+                className={cn(
+                  "rounded-xl backdrop-blur-md border flex items-center justify-center",
+                  "bg-gradient-to-br",
+                  quad.color === "purple" && "from-purple-500/30 to-purple-900/50 border-purple-500/50",
+                  quad.color === "blue" && "from-blue-500/30 to-blue-900/50 border-blue-500/50",
+                  quad.color === "emerald" && "from-emerald-500/30 to-emerald-900/50 border-emerald-500/50",
+                  quad.color === "amber" && "from-amber-500/30 to-amber-900/50 border-amber-500/50",
+                )}
+              >
+                <span className={cn(
+                  "text-lg font-bold",
+                  colors[quad.color].text
+                )}>{quad.label}</span>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* Data particles flying between quadrants */}
+          {particles.map((particle) => {
+            const paths = [
+              "M 25% 25% Q 50% 50% 75% 25%",
+              "M 75% 25% Q 50% 50% 75% 75%",
+              "M 75% 75% Q 50% 50% 25% 75%",
+              "M 25% 75% Q 50% 50% 25% 25%",
+            ];
+            return (
+              <motion.div
+                key={particle.id}
+                className="absolute w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                initial={{ opacity: 0 }}
+                animate={{
+                  offsetPath: `path('${paths[particle.startQuadrant]}')`,
+                  offsetDistance: ["0%", "100%"],
+                  opacity: [0, 1, 1, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: particle.delay,
+                  ease: "easeInOut",
+                }}
+              />
+            );
+          })}
+          
+          {/* Center hub */}
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            animate={{ scale: [1, 1.2, 1], rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >
+            <div className="w-12 h-12 rounded-full bg-cyan-500/30 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.6)]">
+              <RefreshCcw className="w-6 h-6 text-cyan-400" />
+            </div>
+          </motion.div>
+        </motion.div>
+        
+        {/* Feedback loop labels */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+          className="mt-6 flex items-center gap-2 text-xs text-white/60"
+        >
+          <span className="text-amber-400">Incident</span>
+          <ArrowRight className="w-4 h-4 text-cyan-400" />
+          <span className="text-emerald-400">Surveillance</span>
+          <ArrowRight className="w-4 h-4 text-cyan-400" />
+          <span className="text-blue-400">Prevention</span>
+          <ArrowRight className="w-4 h-4 text-cyan-400" />
+          <span className="text-purple-400">Governance</span>
+        </motion.div>
+        
+        {/* Key stat */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="mt-4 px-6 py-2 rounded-full bg-cyan-500/20 border border-cyan-500/30"
+        >
+          <p className="text-cyan-400 text-sm font-semibold">40% Lower Fatality Rates in Integrated Systems</p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SLIDE 10: THE WORLD MAP - Pulsing Country Shields
+// ============================================================================
+
+function WorldMapVisual() {
+  const countries = [
+    { id: "germany", name: "Germany", flag: "🇩🇪", achievement: "75% Fatality Reduction", color: "blue", x: 52, y: 35 },
+    { id: "singapore", name: "Singapore", flag: "🇸🇬", achievement: "Zero Fatality Goal", color: "emerald", x: 75, y: 55 },
+    { id: "newzealand", name: "New Zealand", flag: "🇳🇿", achievement: "Universal No-Fault", color: "amber", x: 90, y: 75 },
+    { id: "sweden", name: "Sweden", flag: "🇸🇪", achievement: "Vision Zero Pioneer", color: "cyan", x: 55, y: 25 },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-4">
+      <ParticleField count={30} color="emerald" speed="slow" />
+      
+      <div className="relative z-10 w-full max-w-3xl">
+        {/* World map container */}
+        <div className="relative w-full aspect-[2/1] bg-slate-900/50 rounded-2xl border border-emerald-500/20 backdrop-blur-sm overflow-hidden">
+          {/* Grid overlay */}
+          <div className="absolute inset-0 opacity-10">
+            <svg className="w-full h-full">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <line key={`v-${i}`} x1={`${i * 5}%`} y1="0" x2={`${i * 5}%`} y2="100%" stroke="currentColor" className="text-emerald-500" />
+              ))}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <line key={`h-${i}`} x1="0" y1={`${i * 10}%`} x2="100%" y2={`${i * 10}%`} stroke="currentColor" className="text-emerald-500" />
+              ))}
+            </svg>
+          </div>
+          
+          {/* Continents placeholder (simplified shapes) */}
+          <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 100 50">
+            {/* Europe */}
+            <ellipse cx="50" cy="18" rx="8" ry="6" fill="currentColor" className="text-emerald-500" />
+            {/* Asia */}
+            <ellipse cx="70" cy="22" rx="15" ry="10" fill="currentColor" className="text-emerald-500" />
+            {/* Australia/NZ */}
+            <ellipse cx="82" cy="38" rx="6" ry="4" fill="currentColor" className="text-emerald-500" />
+            {/* Americas */}
+            <ellipse cx="25" cy="25" rx="10" ry="15" fill="currentColor" className="text-emerald-500" />
+            {/* Africa */}
+            <ellipse cx="50" cy="32" rx="6" ry="8" fill="currentColor" className="text-emerald-500" />
+          </svg>
+          
+          {/* Country shields */}
+          {countries.map((country, i) => (
+            <motion.div
+              key={country.id}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3 + i * 0.2 }}
+              className="absolute"
+              style={{ left: `${country.x}%`, top: `${country.y}%`, transform: "translate(-50%, -50%)" }}
+            >
+              {/* Pulsing shield */}
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  boxShadow: [
+                    `0 0 20px ${country.color === "blue" ? "rgba(59,130,246,0.5)" : country.color === "emerald" ? "rgba(16,185,129,0.5)" : country.color === "amber" ? "rgba(245,158,11,0.5)" : "rgba(6,182,212,0.5)"}`,
+                    `0 0 40px ${country.color === "blue" ? "rgba(59,130,246,0.8)" : country.color === "emerald" ? "rgba(16,185,129,0.8)" : country.color === "amber" ? "rgba(245,158,11,0.8)" : "rgba(6,182,212,0.8)"}`,
+                    `0 0 20px ${country.color === "blue" ? "rgba(59,130,246,0.5)" : country.color === "emerald" ? "rgba(16,185,129,0.5)" : country.color === "amber" ? "rgba(245,158,11,0.5)" : "rgba(6,182,212,0.5)"}`,
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  country.color === "blue" && "bg-blue-500/30 border-2 border-blue-400",
+                  country.color === "emerald" && "bg-emerald-500/30 border-2 border-emerald-400",
+                  country.color === "amber" && "bg-amber-500/30 border-2 border-amber-400",
+                  country.color === "cyan" && "bg-cyan-500/30 border-2 border-cyan-400",
+                )}
+              >
+                <span className="text-xl">{country.flag}</span>
+              </motion.div>
+              
+              {/* Floating glass card */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 + i * 0.2 }}
+                className={cn(
+                  "absolute top-full mt-2 left-1/2 -translate-x-1/2 w-32 p-2 rounded-lg backdrop-blur-md border",
+                  "bg-slate-900/80",
+                  country.color === "blue" && "border-blue-500/40",
+                  country.color === "emerald" && "border-emerald-500/40",
+                  country.color === "amber" && "border-amber-500/40",
+                  country.color === "cyan" && "border-cyan-500/40",
+                )}
+              >
+                <p className="text-white font-semibold text-xs text-center">{country.name}</p>
+                <p className={cn(
+                  "text-[9px] text-center",
+                  colors[country.color].text
+                )}>{country.achievement}</p>
+              </motion.div>
             </motion.div>
           ))}
         </div>
-      </HeroReveal>
-
-      {/* Key Questions Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
-        {keyQuestions.map((q, i) => (
-          <HeroReveal key={q.id} delay={0.6 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              onClick={() => onInsightClick?.(q.id)}
-              className="h-full p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left flex flex-col"
-            >
-              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
-                </div>
-              </div>
-              <p className="text-blue-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
-            </motion.button>
-          </HeroReveal>
-        ))}
       </div>
-
-      {/* Best Practice Example */}
-      <HeroReveal delay={1.3} direction="up">
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border border-blue-500/40"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{bestPractice.flag}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
-                <span className="text-blue-400 text-xs">{bestPractice.practice}</span>
-              </div>
-              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-emerald-400 font-bold text-xs">{bestPractice.result}</p>
-            </div>
-          </div>
-        </motion.div>
-      </HeroReveal>
     </div>
   );
 }
 
-// Surveillance Deep Storytelling Visual (Slide 7)
-function SurveillanceStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
-  const keyQuestions = [
-    { id: "exams", question: "Health Examinations", good: ">90% in hazardous jobs", bad: "<50% coverage", metric: "179 job categories (Korea)" },
-    { id: "registry", question: "Disease Registry", good: "Mandatory + comprehensive", bad: "Voluntary or fragmented", metric: "Links exposure to outcomes" },
-    { id: "latency", question: "Reporting Latency", good: "<7 days to report", bad: ">30 days delay", metric: "RIDDOR standard (UK)" },
-    { id: "biomarker", question: "Biomarker Monitoring", good: "Active programs for key hazards", bad: "No systematic monitoring", metric: "Detects disease 3-5 yrs earlier" },
+// ============================================================================
+// SLIDE 11: THE ASCENT - 3-Year Staircase to Vision 2030
+// ============================================================================
+
+function AscentVisual() {
+  const steps = [
+    { year: "Year 1", title: "Foundation", desc: "Baseline Assessment & Gap Analysis", color: "blue" },
+    { year: "Year 2", title: "Optimization", desc: "System Integration & Quick Wins", color: "emerald" },
+    { year: "Year 3", title: "Excellence", desc: "Regional Leadership Position", color: "purple" },
   ];
 
-  const bestPractice = {
-    country: "Finland",
-    flag: "🇫🇮",
-    practice: "FIOH Registry",
-    detail: "Comprehensive exposure and health registries enabling long-term epidemiological studies",
-    result: "60% earlier detection"
-  };
-
   return (
-    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
-      <ParticleField count={30} color="emerald" speed="slow" />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden p-4">
+      <ParticleField count={40} color="cyan" speed="slow" />
       
-      {/* Header with animated eye */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <ScaleReveal delay={0} initialScale={0.5}>
+      <FloatingGlowOrb color="purple" size="lg" position="top-right" delay={0} />
+      
+      <div className="relative z-10 flex flex-col items-center w-full max-w-2xl">
+        {/* Vision 2030 Star at the top */}
+        <HeroReveal delay={0} direction="down">
           <motion.div
             animate={{ 
+              scale: [1, 1.1, 1],
               boxShadow: [
-                "0 0 20px rgba(16,185,129,0.3)",
-                "0 0 40px rgba(16,185,129,0.5)",
-                "0 0 20px rgba(16,185,129,0.3)",
+                "0 0 30px rgba(168,85,247,0.5)",
+                "0 0 60px rgba(168,85,247,0.8)",
+                "0 0 30px rgba(168,85,247,0.5)",
               ]
             }}
-            transition={{ duration: 2, repeat: Infinity }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="mb-8 p-4 rounded-full bg-gradient-to-br from-purple-500/30 to-cyan-500/30 border-2 border-purple-400"
           >
-            <GlowOrb color="emerald" size="lg" intensity="intense">
-              <Eye className="w-10 h-10 text-white" />
-            </GlowOrb>
+            <Star className="w-12 h-12 text-purple-400" fill="currentColor" />
           </motion.div>
-        </ScaleReveal>
-        <HeroReveal delay={0.3} direction="left">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Surveillance & Detection</h2>
-            <p className="text-emerald-400 text-xs sm:text-sm">Pillar II — The Watchful Eye</p>
+          <p className="text-purple-400 font-bold text-lg mb-8 tracking-wider">VISION 2030</p>
+        </HeroReveal>
+        
+        {/* Staircase */}
+        <div className="relative w-full">
+          {/* Connection line */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+            <motion.path
+              d="M 15% 90% L 35% 60% L 65% 60% L 85% 30%"
+              stroke="url(#stairGradient)"
+              strokeWidth="3"
+              fill="none"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, delay: 0.5 }}
+            />
+            <defs>
+              <linearGradient id="stairGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgb(59,130,246)" />
+                <stop offset="50%" stopColor="rgb(16,185,129)" />
+                <stop offset="100%" stopColor="rgb(168,85,247)" />
+              </linearGradient>
+            </defs>
+          </svg>
+          
+          {/* Steps */}
+          <div className="relative flex justify-between items-end h-48">
+            {steps.map((step, i) => (
+              <HeroReveal key={step.year} delay={0.5 + i * 0.3} direction="up">
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className={cn(
+                    "relative p-4 rounded-xl backdrop-blur-md border w-40",
+                    "bg-slate-900/80",
+                    step.color === "blue" && "border-blue-500/40",
+                    step.color === "emerald" && "border-emerald-500/40",
+                    step.color === "purple" && "border-purple-500/40",
+                  )}
+                  style={{ 
+                    marginBottom: `${i * 30}%`,
+                  }}
+                >
+                  {/* Step indicator */}
+                  <motion.div
+                    animate={{ 
+                      boxShadow: [
+                        `0 0 15px ${step.color === "blue" ? "rgba(59,130,246,0.5)" : step.color === "emerald" ? "rgba(16,185,129,0.5)" : "rgba(168,85,247,0.5)"}`,
+                        `0 0 30px ${step.color === "blue" ? "rgba(59,130,246,0.8)" : step.color === "emerald" ? "rgba(16,185,129,0.8)" : "rgba(168,85,247,0.8)"}`,
+                        `0 0 15px ${step.color === "blue" ? "rgba(59,130,246,0.5)" : step.color === "emerald" ? "rgba(16,185,129,0.5)" : "rgba(168,85,247,0.5)"}`,
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                    className={cn(
+                      "absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold",
+                      step.color === "blue" && "bg-blue-500 text-white",
+                      step.color === "emerald" && "bg-emerald-500 text-white",
+                      step.color === "purple" && "bg-purple-500 text-white",
+                    )}
+                  >
+                    {step.year}
+                  </motion.div>
+                  
+                  <p className={cn(
+                    "font-bold text-sm mt-2",
+                    colors[step.color].text
+                  )}>{step.title}</p>
+                  <p className="text-white/60 text-xs mt-1">{step.desc}</p>
+                </motion.div>
+              </HeroReveal>
+            ))}
+          </div>
+        </div>
+        
+        {/* GOSI starting point */}
+        <HeroReveal delay={1.5} direction="up">
+          <div className="mt-8 flex items-center gap-3">
+            <img src="/gosi-logo.png" alt="GOSI" className="h-8 object-contain opacity-80" />
+            <span className="text-white/60 text-sm">Ready to Ascend</span>
           </div>
         </HeroReveal>
       </div>
-
-      {/* Key Questions Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
-        {keyQuestions.map((q, i) => (
-          <HeroReveal key={q.id} delay={0.5 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              onClick={() => onInsightClick?.(q.id)}
-              className="h-full p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left flex flex-col"
-            >
-              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
-                </div>
-              </div>
-              <p className="text-emerald-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
-            </motion.button>
-          </HeroReveal>
-        ))}
-      </div>
-
-      {/* Best Practice Example */}
-      <HeroReveal delay={1.2} direction="up">
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/10 border border-emerald-500/40"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{bestPractice.flag}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
-                <span className="text-emerald-400 text-xs">{bestPractice.practice}</span>
-              </div>
-              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
-            </div>
-          </div>
-        </motion.div>
-      </HeroReveal>
     </div>
   );
 }
 
-// Restoration Deep Storytelling Visual (Slide 8)
-function RestorationStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
-  const keyQuestions = [
-    { id: "coverage", question: "Workforce Coverage", good: ">95% covered", bad: "<50% coverage", metric: "Incl. informal sector" },
-    { id: "nofault", question: "No-Fault System", good: "No need to prove negligence", bad: "Litigation required", metric: "70% faster claims" },
-    { id: "processing", question: "Claim Processing", good: "<30 days to payment", bad: ">90 days delay", metric: "Avg: 45 days (leaders)" },
-    { id: "rtw", question: "Return to Work", good: ">80% RTW success", bad: "<50% return", metric: "With employer obligations" },
-  ];
+// ============================================================================
+// SLIDE 12: THE HANDSHAKE - ADL + GOSI Connected Logos
+// ============================================================================
 
-  const bestPractice = {
-    country: "New Zealand",
-    flag: "🇳🇿",
-    practice: "ACC No-Fault",
-    detail: "Universal no-fault coverage for ALL injuries (work and non-work), eliminating litigation entirely",
-    result: "Zero litigation"
-  };
-
+function HandshakeVisual() {
   return (
-    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
-      <ParticleField count={30} color="amber" speed="slow" />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={30} color="cyan" speed="slow" />
       
-      {/* Header with animated heart */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <ScaleReveal delay={0} initialScale={0.5}>
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            <GlowOrb color="amber" size="lg" intensity="intense">
-              <Heart className="w-10 h-10 text-white" />
-            </GlowOrb>
-          </motion.div>
-        </ScaleReveal>
-        <HeroReveal delay={0.3} direction="left">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Restoration & Compensation</h2>
-            <p className="text-amber-400 text-xs sm:text-sm">Pillar III — The Safety Net</p>
-          </div>
-        </HeroReveal>
-      </div>
-
-      {/* No-Fault vs Litigation comparison */}
-      <HeroReveal delay={0.4} direction="down">
-        <div className="flex justify-center gap-4 mb-3">
-          <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-            <p className="text-emerald-400 text-[10px] font-semibold">No-Fault System</p>
-            <p className="text-white/60 text-[9px]">45 days avg processing</p>
-          </div>
-          <div className="px-3 py-1 rounded-lg bg-red-500/20 border border-red-500/30">
-            <p className="text-red-400 text-[10px] font-semibold">Litigation System</p>
-            <p className="text-white/60 text-[9px]">2+ years avg resolution</p>
-          </div>
-        </div>
-      </HeroReveal>
-
-      {/* Key Questions Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
-        {keyQuestions.map((q, i) => (
-          <HeroReveal key={q.id} delay={0.6 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              onClick={() => onInsightClick?.(q.id)}
-              className="h-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left flex flex-col"
+      <FloatingGlowOrb color="cyan" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="purple" size="md" position="bottom-right" delay={0.5} />
+      
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Logo connection */}
+        <div className="flex items-center gap-8">
+          {/* ADL Logo */}
+          <HeroReveal delay={0} direction="left">
+            <motion.div
+              animate={{ 
+                boxShadow: [
+                  "0 0 30px rgba(168,85,247,0.3)",
+                  "0 0 50px rgba(168,85,247,0.5)",
+                  "0 0 30px rgba(168,85,247,0.3)",
+                ]
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="p-6 rounded-2xl bg-slate-900/80 border border-purple-500/40 backdrop-blur-md"
             >
-              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
-                </div>
-              </div>
-              <p className="text-amber-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
-            </motion.button>
+              <img src="/adl-logo.png" alt="Arthur D. Little" className="h-16 object-contain" />
+            </motion.div>
           </HeroReveal>
-        ))}
-      </div>
-
-      {/* Best Practice Example */}
-      <HeroReveal delay={1.3} direction="up">
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          className="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-cyan-500/10 border border-amber-500/40"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{bestPractice.flag}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
-                <span className="text-amber-400 text-xs">{bestPractice.practice}</span>
-              </div>
-              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
-            </div>
+          
+          {/* Connecting data line */}
+          <div className="relative w-32">
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.5, duration: 1 }}
+              className="h-1 bg-gradient-to-r from-purple-500 via-cyan-500 to-emerald-500 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+              style={{ transformOrigin: "left" }}
+            />
+            
+            {/* Data particles along the line */}
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                animate={{ x: [0, 128, 0] }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  delay: 1 + i * 0.5,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
           </div>
+          
+          {/* GOSI Logo */}
+          <HeroReveal delay={0.3} direction="right">
+            <motion.div
+              animate={{ 
+                boxShadow: [
+                  "0 0 30px rgba(16,185,129,0.3)",
+                  "0 0 50px rgba(16,185,129,0.5)",
+                  "0 0 30px rgba(16,185,129,0.3)",
+                ]
+              }}
+              transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}
+              className="p-6 rounded-2xl bg-slate-900/80 border border-emerald-500/40 backdrop-blur-md"
+            >
+              <img src="/gosi-logo.png" alt="GOSI" className="h-16 object-contain" />
+            </motion.div>
+          </HeroReveal>
+        </div>
+        
+        {/* Next Step CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5 }}
+          className="mt-12 text-center"
+        >
+          <p className="text-white/40 text-xs tracking-widest mb-2">NEXT STEP</p>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500/20 via-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 backdrop-blur-md"
+          >
+            <p className="text-cyan-400 font-bold text-lg">The National Baseline Assessment</p>
+            <p className="text-white/60 text-sm mt-1">Comprehensive gap analysis against global leaders</p>
+          </motion.div>
         </motion.div>
-      </HeroReveal>
+        
+        {/* Defining the future tagline */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="mt-8 text-white/30 text-xs tracking-[0.3em]"
+        >
+          DEFINING THE FUTURE OF WORK
+        </motion.p>
+      </div>
     </div>
   );
 }

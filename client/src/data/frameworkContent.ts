@@ -830,166 +830,166 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "purple"
   },
-  // Slide 4: Temple Structure Overview
+  // Slide 4: THE ARCHITECTURE - The 3D Isometric Cube
   {
     id: "overview",
     type: "overview",
-    title: "The Temple Structure",
-    actionTitle: "Four Integrated Components Create Complete Protection",
-    subtitle: "A Visual Architecture for Worker Protection",
-    content: "The framework is visualized as a temple structure, where Governance forms the roof that protects and enables everything below, while three operational pillars support the entire system.",
+    title: "The Architecture",
+    actionTitle: "Four Integrated Components of Complete Protection",
+    subtitle: "The Sovereign Shield Framework",
+    content: "A revolutionary architecture where four distinct yet interlocking components create an impenetrable defense system. Each quadrant specializes, yet all share a unified data foundation.",
     highlights: [
-      "Governance acts as the overarching enabler",
-      "Three pillars work in concert for comprehensive protection",
-      "Each component has measurable metrics and scoring criteria",
-      "25 key performance indicators across 4 maturity levels"
+      "Governance: The regulatory command layer",
+      "Prevention: Proactive hazard elimination",
+      "Surveillance: Real-time health intelligence",
+      "Restoration: Rapid recovery pathways"
     ],
     color: "purple"
   },
-  // Slide 5: Governance
+  // Slide 5: PILLAR I - GOVERNANCE (The Control Tower)
   {
     id: "governance",
     type: "component",
-    title: "Governance Ecosystem",
-    actionTitle: "Strong Governance Reduces Fatalities by 47%",
-    subtitle: "The Overarching Driver",
-    content: "The brain and law that drives the entire occupational health system. This layer establishes the regulatory framework, enforcement mechanisms, and institutional capacity that make everything else possible.",
+    title: "The Control Tower",
+    actionTitle: "Governance: Reducing Fatalities by 47%",
+    subtitle: "Mission Control for Worker Safety",
+    content: "A stylized mission control interface monitoring every corner of the industrial ecosystem. AI-targeted inspection replaces random audits, transforming enforcement from reactive to predictive.",
     highlights: [
-      "ILO Convention ratification status",
-      "Labor inspector density and enforcement",
-      "Whistleblower protections",
-      "Tripartite consultation mechanisms"
+      "AI-powered risk targeting vs random inspection",
+      "German DGUV benchmark integration",
+      "Real-time compliance dashboards",
+      "Predictive violation modeling"
     ],
     componentId: "governance",
     color: "purple",
     icon: "Crown"
   },
-  // Slide 6: Hazard Prevention
+  // Slide 6: PILLAR II - PREVENTION (The Hierarchy)
   {
     id: "pillar-1",
     type: "component",
-    title: "Hazard Prevention",
-    actionTitle: "Every $1 in Prevention Saves $4-6 Downstream",
-    subtitle: "Pillar I — The Proactive Shield",
-    content: "The first line of defense focusing on identifying, assessing, and eliminating hazards before they cause harm. Every dollar invested in prevention saves $4-6 in downstream costs.",
+    title: "The Hierarchy",
+    actionTitle: "Prevention: The $1 to $6 Multiplier",
+    subtitle: "The Inverted Pyramid of Control",
+    content: "The Hierarchy of Controls visualized as an inverted pyramid. Elimination sits at the apex, glowing brightest—the gold standard. PPE dims at the base—the last resort, not the first response.",
     highlights: [
-      "Occupational exposure limits (OELs)",
-      "Safety training coverage",
-      "Risk assessment requirements",
-      "PPE compliance monitoring"
+      "Elimination → Substitution → Engineering",
+      "Administrative Controls → PPE (last resort)",
+      "Every $1 invested returns $4-6",
+      "ROI funnel visualization"
     ],
     componentId: "pillar-1",
     color: "blue",
     icon: "Shield"
   },
-  // Slide 7: Surveillance & Detection
+  // Slide 7: PILLAR III - SURVEILLANCE (The Digital Twin)
   {
     id: "pillar-2",
     type: "component",
-    title: "Surveillance & Detection",
-    actionTitle: "Early Detection Cuts Treatment Costs by 60%",
-    subtitle: "Pillar II — The Watchful Eye",
-    content: "Continuous health monitoring and early detection systems that catch occupational diseases before they become chronic. Early detection can reduce treatment costs by 60%.",
+    title: "The Digital Twin",
+    actionTitle: "Surveillance: Rendering the Invisible, Visible",
+    subtitle: "Holographic Worker Health Monitoring",
+    content: "A holographic human body scan reveals what the naked eye cannot see. Heatmap zones illuminate stress points on lungs and joints. The invisible threat becomes visible—and actionable.",
     highlights: [
-      "Periodic health examinations",
-      "Occupational disease registries",
-      "Incident reporting systems",
-      "Biomarker monitoring programs"
+      "Real-time biomarker monitoring",
+      "Diagnosis time: 30 days → <7 days",
+      "Predictive health deterioration alerts",
+      "Occupational disease early detection"
     ],
     componentId: "pillar-2",
     color: "emerald",
     icon: "Eye"
   },
-  // Slide 8: Restoration & Compensation
+  // Slide 8: PILLAR IV - RESTORATION (The Fast Track)
   {
     id: "pillar-3",
     type: "component",
-    title: "Restoration & Compensation",
-    actionTitle: "No-Fault Systems Process Claims 70% Faster",
-    subtitle: "Pillar III — The Safety Net",
-    content: "When prevention fails and harm occurs, this pillar ensures fair compensation, medical treatment, rehabilitation, and return-to-work support for affected workers.",
+    title: "The Fast Track",
+    actionTitle: "Restoration: Decoupling Liability from Care",
+    subtitle: "No-Fault vs Litigation Pathways",
+    content: "Two paths diverge: the tangled red knot of litigation versus the laser-straight green line of no-fault resolution. One traps workers in years of legal limbo; the other delivers care in days.",
     highlights: [
-      "Workers' compensation coverage",
-      "No-fault insurance systems",
-      "Rehabilitation services",
-      "Return-to-work programs"
+      "70% faster claims processing",
+      "Litigation: 2+ years average resolution",
+      "No-Fault: 45 days to first payment",
+      "80% return-to-work success rate"
     ],
     componentId: "pillar-3",
     color: "amber",
     icon: "Heart"
   },
-  // Slide 9: Integration & Data Flow
+  // Slide 9: THE ENGINE - Integration & Data Flow
   {
     id: "integration",
     type: "integration",
-    title: "Framework Integration",
-    actionTitle: "Integrated Systems Achieve 40% Lower Fatality Rates",
-    subtitle: "The Power of Connected Systems",
-    content: "The true power of the framework lies in how components interact. Governance enables all pillars. Prevention reduces burden on Surveillance and Restoration. Surveillance data informs Prevention priorities. Restoration claims feed back into hazard identification.",
+    title: "The Engine",
+    actionTitle: "The Power of Connected Systems",
+    subtitle: "Data Particles in Motion",
+    content: "The 3D Cube now spins. Particles of light—representing live data—stream between quadrants in real-time. Incident triggers Surveillance, Surveillance informs Prevention, Prevention shapes Governance.",
     highlights: [
-      "Governance creates the accountability loop",
-      "Data flows between all components",
-      "Continuous improvement through feedback",
-      "Measurable outcomes at each level"
+      "Live data feedback loops",
+      "Cross-component intelligence sharing",
+      "40% lower fatality rates in integrated systems",
+      "Continuous improvement engine"
     ],
     color: "cyan"
   },
-  // Slide 10: Success Stories (NEW)
+  // Slide 10: GLOBAL BENCHMARKS (The World Map)
   {
     id: "success-stories",
     type: "success",
-    title: "Global Success Stories",
-    actionTitle: "Leading Nations Prove the Framework Works",
-    subtitle: "Learning from the Leaders",
-    content: "Countries that have implemented comprehensive occupational health frameworks have seen dramatic improvements in worker safety and significant economic returns on investment.",
+    title: "The World Map",
+    actionTitle: "Validated by Global Leaders",
+    subtitle: "Shields of Excellence",
+    content: "A dark vector world map illuminates with pulsing shields over nations that have mastered occupational health. Germany's blue shield. Singapore's green shield. New Zealand's orange shield. Each a beacon of proven success.",
     highlights: [
-      "Germany: 75% reduction in fatalities since 1990",
-      "Singapore: 94% compliance rate in construction",
-      "Sweden: Zero workplace fatalities goal by 2030",
-      "Japan: OSHMS certification linked to 40% fewer incidents"
+      "Germany: 75% fatality reduction (Blue Shield)",
+      "Singapore: Zero fatality goal achieved (Green Shield)",
+      "New Zealand: Universal no-fault coverage (Orange Shield)",
+      "Sweden: Vision Zero pioneer"
     ],
     countries: [
       { code: "DEU", name: "Germany", achievement: "75% fatality reduction" },
-      { code: "SGP", name: "Singapore", achievement: "94% compliance rate" },
-      { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" },
-      { code: "JPN", name: "Japan", achievement: "OSHMS excellence" }
+      { code: "SGP", name: "Singapore", achievement: "Zero fatality goal" },
+      { code: "NZL", name: "New Zealand", achievement: "Universal no-fault" },
+      { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" }
     ],
     color: "emerald"
   },
-  // Slide 11: GOSI Opportunity (NEW)
+  // Slide 11: THE ROADMAP (The Ascent)
   {
     id: "gosi-opportunity",
     type: "opportunity",
-    title: "GOSI's Path Forward",
-    actionTitle: "Saudi Arabia Can Become the GCC Benchmark",
-    subtitle: "Regional Leadership Opportunity",
-    content: "Saudi Arabia has the opportunity to become the regional benchmark for occupational health. With GOSI's institutional strength and Vision 2030 alignment, the Kingdom can lead the GCC in worker protection.",
+    title: "The Ascent",
+    actionTitle: "The 3-Year Strategic Transformation",
+    subtitle: "Climbing to Vision 2030",
+    content: "A futuristic staircase rises toward a glowing Vision 2030 star. Three distinct plateaus mark the journey: Foundation, Optimization, Global Excellence. GOSI stands at the base, ready to climb.",
     highlights: [
-      "Position Saudi Arabia as GCC OH leader",
-      "Align with Vision 2030 workforce goals",
-      "Reduce occupational injury costs by 40%",
-      "Attract global talent through safety excellence"
+      "Year 1: Foundation — Baseline assessment & gap analysis",
+      "Year 2: Optimization — System integration & quick wins",
+      "Year 3: Global Excellence — Regional leadership position",
+      "Vision 2030 alignment at every step"
     ],
     stats: [
-      { value: "40%", label: "Cost Reduction Potential", color: "emerald" },
-      { value: "#1", label: "GCC Leadership Target", color: "cyan" },
-      { value: "2030", label: "Vision Alignment", color: "purple" }
+      { value: "Y1", label: "Foundation", color: "blue" },
+      { value: "Y2", label: "Optimization", color: "emerald" },
+      { value: "Y3", label: "Excellence", color: "purple" }
     ],
     color: "cyan"
   },
-  // Slide 12: Call to Action
+  // Slide 12: THE HANDSHAKE - Call to Action
   {
     id: "conclusion",
     type: "cta",
-    title: "Begin the Journey",
-    actionTitle: "Explore 180+ Countries in the Intelligence Platform",
-    subtitle: "Your Platform Awaits",
-    content: "Explore the full power of the ADL Occupational Health Intelligence Platform. Dive into country data, compare benchmarks, analyze metrics, and build your roadmap to excellence.",
+    title: "Defining the Future",
+    actionTitle: "Next Step: The National Baseline Assessment",
+    subtitle: "ADL + GOSI: A Strategic Partnership",
+    content: "Two logos. One mission. A thin, glowing data line connects ADL and GOSI—symbolizing the partnership that will define the future of work in Saudi Arabia and beyond.",
     highlights: [
-      "Explore 180+ country profiles",
-      "Compare against global benchmarks",
-      "Access detailed metric breakdowns",
-      "Generate custom reports"
+      "Comprehensive baseline assessment",
+      "Gap analysis against global leaders",
+      "Custom transformation roadmap",
+      "Ongoing strategic partnership"
     ],
     color: "cyan"
   }
