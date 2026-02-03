@@ -175,14 +175,17 @@ function TabButton({
   return (
     <button
       onClick={onClick}
+      role="tab"
+      aria-selected={isActive}
+      aria-controls={`tabpanel-${id}`}
       className={cn(
-        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+        "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap",
         isActive 
           ? "bg-white/10 text-white border border-white/20" 
           : "text-white/50 hover:text-white/80 hover:bg-white/5"
       )}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
       {label}
     </button>
   );
@@ -251,30 +254,33 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
         initial="initial"
         animate="animate"
         exit="exit"
-        className="fixed inset-4 md:inset-8 lg:inset-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="persona-modal-title"
+        className="fixed inset-2 sm:inset-4 md:inset-8 lg:inset-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl sm:rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col shadow-2xl"
       >
         {/* Header */}
         <div className={cn(
-          "flex-shrink-0 p-6 border-b border-white/10",
+          "flex-shrink-0 p-4 sm:p-6 border-b border-white/10",
           "bg-gradient-to-r",
           colors.gradient
         )}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-5">
-              <PersonaAvatar persona={persona} size="xl" showGlow />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
+              <PersonaAvatar persona={persona} size="lg" showGlow />
               
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl font-bold text-white">{persona.name}</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                  <h2 id="persona-modal-title" className="text-xl sm:text-2xl font-bold text-white">{persona.name}</h2>
                   <CoverageBadge status={coverageStatus} />
                 </div>
-                <p className={cn("text-sm font-medium mb-1", colors.accent)}>
+                <p className={cn("text-xs sm:text-sm font-medium mb-1", colors.accent)}>
                   {persona.tagline}
                 </p>
-                <p className="text-sm text-white/50 max-w-xl">
+                <p className="text-xs sm:text-sm text-white/50 max-w-xl hidden sm:block">
                   {persona.description}
                 </p>
-                <p className="text-xs text-white/30 mt-2 font-arabic">
+                <p className="text-[10px] sm:text-xs text-white/30 mt-1 sm:mt-2 font-arabic" dir="rtl">
                   {persona.arabicName}
                 </p>
               </div>
@@ -282,14 +288,15 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
 
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
+              aria-label="Close modal"
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all flex-shrink-0"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-2 mt-6">
+          <nav aria-label="Persona details navigation" className="flex items-center gap-1 sm:gap-2 mt-4 sm:mt-6 overflow-x-auto">
             <TabButton 
               id="overview" 
               label="Overview" 
@@ -306,12 +313,12 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
             />
             <TabButton 
               id="research" 
-              label="Research & Sources" 
+              label="Sources" 
               icon={FileText} 
               isActive={activeTab === 'research'}
               onClick={() => setActiveTab('research')}
             />
-          </div>
+          </nav>
         </div>
 
         {/* Content */}

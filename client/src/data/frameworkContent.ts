@@ -785,24 +785,24 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "cyan"
   },
-  // Slide 2: The Global Challenge (NEW)
+  // Slide 2: THE CRISIS - The Iceberg (Saudi Arabia's Silent Hemorrhage)
   {
     id: "global-challenge",
     type: "challenge",
-    title: "The Global Challenge",
-    actionTitle: "2.9 Million Deaths Annually Demand Urgent Action",
-    subtitle: "A Crisis Larger Than Road Accidents, Malaria, and HIV Combined",
-    content: "Occupational accidents and diseases claim 2.9 million lives every year—more than road accidents, malaria, and HIV/AIDS combined. The economic burden exceeds 4% of global GDP.",
+    title: "The Silent Hemorrhage",
+    actionTitle: "A $68 Billion Economic Leak",
+    subtitle: "The Hidden Cost of Inaction",
+    content: "Inaction is not just a human cost; it is a sovereign economic risk. Saudi Arabia's growth is taxed by preventable workplace incidents—most of which remain invisible beneath the surface.",
     highlights: [
-      "395 million non-fatal workplace injuries annually",
-      "160 million cases of work-related disease",
-      "$3.94 trillion in annual economic losses",
-      "Only 33% of countries have ratified ILO Convention C187"
+      "Direct claims costs (visible): ~SAR 56B ($15B)",
+      "Lost GDP and productivity (hidden): ~SAR 199B ($53B)",
+      "2.9 million global deaths annually from occupational causes",
+      "4% of GDP lost to occupational incidents worldwide (ILO)"
     ],
     stats: [
-      { value: "2.9M", label: "Annual Deaths", color: "amber" },
-      { value: "4%", label: "Global GDP Lost", color: "purple" },
-      { value: "395M", label: "Injuries/Year", color: "blue" }
+      { value: "$68B", label: "Total Annual Loss", color: "red" },
+      { value: "4%", label: "GDP Impact", color: "amber" },
+      { value: "78%", label: "Hidden Costs", color: "cyan" }
     ],
     color: "amber"
   },

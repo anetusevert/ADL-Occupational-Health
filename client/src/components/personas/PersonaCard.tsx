@@ -195,12 +195,22 @@ export function PersonaCard({ persona, index, onClick }: PersonaCardProps) {
       whileHover="hover"
       whileTap="tap"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${persona.name} - ${getCoverageStatus(persona) === 'full' ? 'Full GOSI coverage' : getCoverageStatus(persona) === 'partial' ? 'Partial coverage' : 'No coverage'}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
         "group relative cursor-pointer",
         "rounded-2xl overflow-hidden",
         "bg-gradient-to-br from-slate-800/90 to-slate-900/90",
         "border border-white/10",
         "ring-2 ring-transparent transition-all duration-300",
+        "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
         colors.ring
       )}
       style={{ 

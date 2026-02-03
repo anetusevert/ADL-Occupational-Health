@@ -47,6 +47,7 @@ import {
   Zap,
   DollarSign,
   Star,
+  AlertTriangle,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
