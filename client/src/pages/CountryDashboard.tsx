@@ -17,13 +17,12 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { apiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
-import { cn, getEffectiveOHIScore } from "../lib/utils";
+import { getEffectiveOHIScore } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { EconomicQuadrant } from "../components/dashboard/EconomicQuadrant";
 import { PillarQuadrant } from "../components/dashboard/PillarQuadrant";
 import { SlideshowQuadrant } from "../components/dashboard/SlideshowQuadrant";
 import { HeaderPositioningBar } from "../components/dashboard/HeaderPositioningBar";
-import { PillarDetailOverlay } from "../components/dashboard/PillarDetailOverlay";
 import { CentralInsightModal, type InsightCategory } from "../components/dashboard/CentralInsightModal";
 import type { GeoJSONMetadataResponse } from "../types/country";
 
@@ -71,7 +70,6 @@ export function CountryDashboard() {
   const { iso } = useParams<{ iso: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const [selectedPillar, setSelectedPillar] = useState<PillarType | null>(null);
   const [selectedInsightCategory, setSelectedInsightCategory] = useState<InsightCategory | null>(null);
 
   // Fetch countries data for current country and global stats
@@ -260,7 +258,7 @@ export function CountryDashboard() {
           >
             <PillarQuadrant
               country={currentCountry}
-              onPillarClick={(pillar) => setSelectedPillar(pillar)}
+              onPillarClick={(pillar) => setSelectedInsightCategory(pillar as InsightCategory)}
             />
           </motion.div>
         </div>
@@ -280,19 +278,7 @@ export function CountryDashboard() {
         </motion.div>
       </main>
 
-      {/* Pillar Detail Overlay */}
-      <PillarDetailOverlay
-        isOpen={selectedPillar !== null}
-        pillar={selectedPillar}
-        country={currentCountry}
-        onClose={() => setSelectedPillar(null)}
-        onNavigateToFullPage={(pillar) => {
-          setSelectedPillar(null);
-          navigate(`/country/${iso}/${pillar}`);
-        }}
-      />
-
-      {/* Central Insight Modal - Opens for any tile click */}
+      {/* Central Insight Modal - Opens for any tile click (including Framework Pillars) */}
       <CentralInsightModal
         isOpen={selectedInsightCategory !== null}
         onClose={() => setSelectedInsightCategory(null)}
@@ -316,6 +302,12 @@ export function CountryDashboard() {
           medianAge: intelligence.median_age,
           lifeExpectancy: intelligence.life_expectancy_at_birth,
         } : undefined}
+        pillarScores={{
+          governance: currentCountry.governance_score,
+          hazardControl: currentCountry.pillar1_score,
+          vigilance: currentCountry.pillar2_score,
+          restoration: currentCountry.pillar3_score,
+        }}
       />
     </div>
   );

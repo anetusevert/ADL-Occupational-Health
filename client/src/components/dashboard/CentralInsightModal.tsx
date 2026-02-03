@@ -40,6 +40,7 @@ export type InsightCategory =
 
 // Economic categories that show charts instead of images
 const ECONOMIC_CATEGORIES: InsightCategory[] = ["labor-force", "gdp-per-capita", "population", "unemployment"];
+const PILLAR_CATEGORIES: InsightCategory[] = ["governance", "hazard-control", "vigilance", "restoration"];
 const COUNTRY_INSIGHT_CATEGORIES: InsightCategory[] = ["culture", "oh-infrastructure", "industry", "urban", "workforce", "political"];
 
 // ============================================================================
@@ -65,6 +66,12 @@ interface CentralInsightModalProps {
     urbanPopulation?: number | null;
     medianAge?: number | null;
     lifeExpectancy?: number | null;
+  };
+  pillarScores?: {
+    governance?: number | null;
+    hazardControl?: number | null;
+    vigilance?: number | null;
+    restoration?: number | null;
   };
 }
 
@@ -531,6 +538,7 @@ export function CentralInsightModal({
   isAdmin,
   onRegenerate,
   economicData,
+  pillarScores,
 }: CentralInsightModalProps) {
   const [insightData, setInsightData] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -538,6 +546,7 @@ export function CentralInsightModal({
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   const isEconomicCategory = category ? ECONOMIC_CATEGORIES.includes(category) : false;
+  const isPillarCategory = category ? PILLAR_CATEGORIES.includes(category) : false;
   const isCountryInsightCategory = category ? COUNTRY_INSIGHT_CATEGORIES.includes(category) : false;
 
   const economicMetricConfig = useMemo(() => {
@@ -553,6 +562,18 @@ export function CentralInsightModal({
     const percentile = getPercentilePosition(value, benchmark);
     return { value, benchmark, percentile };
   }, [economicMetricConfig, economicData]);
+
+  // Get pillar score for pillar categories
+  const pillarScore = useMemo(() => {
+    if (!isPillarCategory || !pillarScores || !category) return null;
+    const scoreMap: Record<string, number | null | undefined> = {
+      "governance": pillarScores.governance,
+      "hazard-control": pillarScores.hazardControl,
+      "vigilance": pillarScores.vigilance,
+      "restoration": pillarScores.restoration,
+    };
+    return scoreMap[category] ?? null;
+  }, [isPillarCategory, pillarScores, category]);
 
   // Fetch insight data from API
   const fetchInsightFromApi = useCallback(async () => {
@@ -857,6 +878,118 @@ export function CentralInsightModal({
                         <Info className="w-3 h-3" />
                         Source: World Bank, ILO (2023 data)
                       </div>
+                    </motion.div>
+                  </div>
+                </div>
+              ) : isPillarCategory ? (
+                // FRAMEWORK PILLAR LAYOUT - Score-based with AI analysis
+                <div className="h-full p-5 overflow-y-auto">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Left: Score and Position */}
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      {/* Score Display */}
+                      <div className="bg-white/5 rounded-xl p-5 border border-white/10 text-center">
+                        <div className="relative inline-flex items-center justify-center mb-3">
+                          <svg className="w-28 h-28 -rotate-90">
+                            <circle
+                              cx="56"
+                              cy="56"
+                              r="48"
+                              fill="none"
+                              stroke="rgba(255,255,255,0.1)"
+                              strokeWidth="8"
+                            />
+                            <motion.circle
+                              cx="56"
+                              cy="56"
+                              r="48"
+                              fill="none"
+                              stroke={config.chartColor}
+                              strokeWidth="8"
+                              strokeLinecap="round"
+                              strokeDasharray={`${((pillarScore ?? 0) / 100) * 301.59} 301.59`}
+                              initial={{ strokeDasharray: "0 301.59" }}
+                              animate={{ strokeDasharray: `${((pillarScore ?? 0) / 100) * 301.59} 301.59` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className={cn("text-3xl font-bold", config.color)}>{pillarScore ?? "N/A"}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-white/60">{config.title} Score</p>
+                        <p className={cn("text-xs font-medium mt-1", 
+                          (pillarScore ?? 0) >= 70 ? "text-emerald-400" :
+                          (pillarScore ?? 0) >= 50 ? "text-amber-400" : "text-red-400"
+                        )}>
+                          {(pillarScore ?? 0) >= 70 ? "Strong Performance" :
+                           (pillarScore ?? 0) >= 50 ? "Developing" : "Needs Attention"}
+                        </p>
+                      </div>
+
+                      {/* Position Comparison */}
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-cyan-400" />
+                          Global Position
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-white/60">Score</span>
+                              <span className={config.color}>{pillarScore ?? 0}/100</span>
+                            </div>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pillarScore ?? 0}%` }}
+                                transition={{ duration: 0.8 }}
+                                className={cn("h-full rounded-full", config.bgColor.replace("/20", ""))}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-between text-xs text-white/50">
+                            <span>Global Average: ~48</span>
+                            <span>Top Performers: 85+</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Right: AI Analysis */}
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className={cn("text-sm font-medium mb-3 flex items-center gap-2", config.color)}>
+                          <Icon className="w-4 h-4" />
+                          What is {config.title}?
+                        </h4>
+                        <p className="text-[13px] text-white/70 leading-relaxed">
+                          {category === "governance" && `Governance measures ${countryName}'s legal framework, institutional architecture, and strategic capacity for occupational health. This includes ILO convention ratification, dedicated OH legislation, regulatory bodies, and national OH strategies.`}
+                          {category === "hazard-control" && `Hazard Control assesses ${countryName}'s systems for workplace risk prevention. This includes exposure standards, risk assessment requirements, safety management systems, and industry-specific regulations for high-risk sectors.`}
+                          {category === "vigilance" && `Vigilance evaluates ${countryName}'s capacity for occupational disease surveillance and detection. This covers reporting systems, occupational health registries, monitoring programs, and data quality for policy decisions.`}
+                          {category === "restoration" && `Restoration measures ${countryName}'s workers' compensation and rehabilitation systems. This includes injury compensation coverage, benefit adequacy, return-to-work programs, and rehabilitation service accessibility.`}
+                        </p>
+                      </div>
+
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className="text-sm font-medium text-cyan-400 mb-3 flex items-center gap-2">
+                          <HeartPulse className="w-4 h-4" />
+                          OH Implications
+                        </h4>
+                        <p className="text-[13px] text-white/70 leading-relaxed">
+                          {category === "governance" && `With a score of ${pillarScore ?? "N/A"}, ${countryName}'s governance framework ${(pillarScore ?? 0) >= 50 ? 'provides a foundation for' : 'faces challenges in'} comprehensive OH policy implementation. ${(pillarScore ?? 0) >= 70 ? 'Strong legal frameworks support worker protection.' : 'Strengthening institutions and legislation could improve outcomes.'}`}
+                          {category === "hazard-control" && `A score of ${pillarScore ?? "N/A"} indicates ${(pillarScore ?? 0) >= 50 ? 'developing' : 'limited'} hazard control capabilities. ${(pillarScore ?? 0) >= 70 ? 'Robust exposure standards help prevent occupational diseases.' : 'Enhanced risk assessment and control measures would benefit worker safety.'}`}
+                          {category === "vigilance" && `${countryName}'s vigilance score of ${pillarScore ?? "N/A"} reflects ${(pillarScore ?? 0) >= 50 ? 'functional' : 'emerging'} disease surveillance capacity. ${(pillarScore ?? 0) >= 70 ? 'Comprehensive monitoring enables evidence-based policy.' : 'Improved data collection would strengthen preventive interventions.'}`}
+                          {category === "restoration" && `With ${pillarScore ?? "N/A"} in restoration, ${countryName} ${(pillarScore ?? 0) >= 50 ? 'has established' : 'is developing'} compensation and rehabilitation systems. ${(pillarScore ?? 0) >= 70 ? 'Workers benefit from comprehensive injury support.' : 'Expanding coverage and benefits would improve worker protection.'}`}
+                        </p>
+                      </div>
+
+                      {isAdmin && (
+                        <div className="text-[10px] text-white/30 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Click "Regenerate with AI" for detailed country-specific analysis
+                        </div>
+                      )}
                     </motion.div>
                   </div>
                 </div>
