@@ -2,11 +2,12 @@
  * Arthur D. Little - Global Health Platform
  * Country Dashboard
  * 
- * Immersive 4-quadrant country overview:
- * - Top Left: Economic Data (4 animated tiles)
- * - Top Right: Framework Pillars (4 pillar tiles)
- * - Bottom Left: Country Slideshow (6 interesting facts)
- * - Bottom Right: Relative Positioning (visual bars)
+ * New layout structure:
+ * - Header: Country name, Flag, Relative Positioning bars (hoverable), OHI Score, View Report
+ * - Top Row: Economic Data (left) + Framework Pillars (right)
+ * - Bottom Row: Country Insights (full width - 6 tiles)
+ * 
+ * Central modal opens when clicking ANY tile on the page.
  */
 
 import { useState, useMemo } from "react";
@@ -16,13 +17,14 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { apiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
-import { ADLIcon } from "../components/ADLLogo";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
+import { useAuth } from "../contexts/AuthContext";
 import { EconomicQuadrant } from "../components/dashboard/EconomicQuadrant";
 import { PillarQuadrant } from "../components/dashboard/PillarQuadrant";
 import { SlideshowQuadrant } from "../components/dashboard/SlideshowQuadrant";
-import { PositioningQuadrant } from "../components/dashboard/PositioningQuadrant";
+import { HeaderPositioningBar } from "../components/dashboard/HeaderPositioningBar";
 import { PillarDetailOverlay } from "../components/dashboard/PillarDetailOverlay";
+import { CentralInsightModal } from "../components/dashboard/CentralInsightModal";
 import type { GeoJSONMetadataResponse } from "../types/country";
 
 // ============================================================================
@@ -58,6 +60,16 @@ export interface CountryIntelligence {
 
 export type PillarType = "governance" | "hazard-control" | "vigilance" | "restoration";
 
+// Category types for central modal (all clickable tiles)
+export type InsightCategory = 
+  // Economic tiles
+  | "labor-force" | "gdp-per-capita" | "population" | "unemployment"
+  // Framework pillars
+  | "governance" | "hazard-control" | "vigilance" | "restoration"
+  // Country insights
+  | "culture" | "oh-infrastructure" | "industry" 
+  | "urban" | "workforce" | "political";
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -65,7 +77,9 @@ export type PillarType = "governance" | "hazard-control" | "vigilance" | "restor
 export function CountryDashboard() {
   const { iso } = useParams<{ iso: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [selectedPillar, setSelectedPillar] = useState<PillarType | null>(null);
+  const [selectedInsightCategory, setSelectedInsightCategory] = useState<InsightCategory | null>(null);
 
   // Fetch countries data for current country and global stats
   const { data: geoData, isLoading: geoLoading, error: geoError } = useQuery({
@@ -182,61 +196,54 @@ export function CountryDashboard() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm">
-        <div className="flex items-center gap-4">
+      {/* Header with Positioning Bars */}
+      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm relative">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/home")}
-            className="p-2 hover:bg-white/10 rounded-xl transition-colors group"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors group"
             title="Back to Global Map"
           >
-            <ArrowLeft className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+            <ArrowLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
           </button>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <CountryFlag
               isoCode={currentCountry.iso_code}
               flagUrl={currentCountry.flag_url}
-              size="lg"
-              className="shadow-lg rounded-lg"
+              size="md"
+              className="shadow-lg rounded"
             />
             
             <div>
-              <h1 className="text-xl font-bold text-white">{currentCountry.name}</h1>
-              <p className="text-sm text-white/50">Country Intelligence Dashboard</p>
+              <h1 className="text-lg font-bold text-white leading-tight">{currentCountry.name}</h1>
+              <p className="text-xs text-white/50">Country Intelligence Dashboard</p>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          {/* OHI Score Badge */}
-          {ohiScore !== null && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30"
-            >
-              <ADLIcon className="w-5 h-5" />
-              <div className="text-right">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider">OHI Score</p>
-                <p className="text-lg font-bold text-cyan-400">{ohiScore.toFixed(1)}</p>
-              </div>
-            </motion.div>
-          )}
+        <div className="flex items-center gap-3">
+          {/* Relative Positioning Bars (hoverable) */}
+          <HeaderPositioningBar
+            country={currentCountry}
+            globalAverages={globalAverages}
+            ohiScore={ohiScore}
+          />
           
           {/* View Full Report Button */}
           <button
             onClick={() => navigate(`/country/${iso}/summary`)}
-            className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-xl text-cyan-400 text-sm font-medium transition-colors"
+            className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-400 text-xs font-medium transition-colors whitespace-nowrap"
           >
             View Full Report
           </button>
         </div>
       </header>
 
-      {/* 4-Quadrant Grid */}
-      <main className="flex-1 p-4 overflow-hidden">
-        <div className="h-full grid grid-cols-2 grid-rows-2 gap-4">
+      {/* New Layout: Top Row (2 quadrants) + Bottom Row (full width) */}
+      <main className="flex-1 p-3 overflow-hidden flex flex-col gap-3">
+        {/* Top Row: Economic Data + Framework Pillars */}
+        <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
           {/* Top Left: Economic Data */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -247,6 +254,7 @@ export function CountryDashboard() {
             <EconomicQuadrant
               country={currentCountry}
               intelligence={intelligence}
+              onTileClick={(category) => setSelectedInsightCategory(category as InsightCategory)}
             />
           </motion.div>
 
@@ -262,34 +270,21 @@ export function CountryDashboard() {
               onPillarClick={(pillar) => setSelectedPillar(pillar)}
             />
           </motion.div>
-
-          {/* Bottom Left: Country Slideshow */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm overflow-hidden"
-          >
-            <SlideshowQuadrant
-              country={currentCountry}
-              intelligence={intelligence}
-            />
-          </motion.div>
-
-          {/* Bottom Right: Relative Positioning */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm overflow-hidden"
-          >
-            <PositioningQuadrant
-              country={currentCountry}
-              globalAverages={globalAverages}
-              ohiScore={ohiScore}
-            />
-          </motion.div>
         </div>
+
+        {/* Bottom Row: Country Insights (Full Width) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex-1 rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm overflow-hidden min-h-0"
+        >
+          <SlideshowQuadrant
+            country={currentCountry}
+            intelligence={intelligence}
+            onTileClick={(category) => setSelectedInsightCategory(category as InsightCategory)}
+          />
+        </motion.div>
       </main>
 
       {/* Pillar Detail Overlay */}
@@ -301,6 +296,20 @@ export function CountryDashboard() {
         onNavigateToFullPage={(pillar) => {
           setSelectedPillar(null);
           navigate(`/country/${iso}/${pillar}`);
+        }}
+      />
+
+      {/* Central Insight Modal - Opens for any tile click */}
+      <CentralInsightModal
+        isOpen={selectedInsightCategory !== null}
+        onClose={() => setSelectedInsightCategory(null)}
+        category={selectedInsightCategory}
+        countryIso={currentCountry.iso_code}
+        countryName={currentCountry.name}
+        isAdmin={isAdmin}
+        onRegenerate={() => {
+          // TODO: Invalidate cache and refetch
+          console.log("Regenerating insight for", selectedInsightCategory);
         }}
       />
     </div>

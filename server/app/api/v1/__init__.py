@@ -64,6 +64,14 @@ except Exception as e:
     logger.error(f"Failed to import comparison_reports router: {e}")
     comparison_reports_router = None
 
+# Import insights router with error handling
+try:
+    from app.api.endpoints.insights import router as insights_router
+    logger.info("Insights router imported successfully")
+except Exception as e:
+    logger.error(f"Failed to import insights router: {e}")
+    insights_router = None
+
 # Create v1 router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -127,3 +135,10 @@ if comparison_reports_router:
     logger.info("Comparison reports router registered at /api/v1/comparison")
 else:
     logger.warning("Comparison reports router not available")
+
+# Include insights router if it loaded successfully
+if insights_router:
+    api_router.include_router(insights_router)
+    logger.info("Insights router registered at /api/v1/insights")
+else:
+    logger.warning("Insights router not available")

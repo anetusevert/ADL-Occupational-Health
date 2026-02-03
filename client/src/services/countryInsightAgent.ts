@@ -2,22 +2,24 @@
  * Country Insight AI Agent Service
  * 
  * Generates rich, contextual content about countries for the Country Insights feature.
- * Provides information about:
- * - Culture & Society
- * - Famous Landmarks
- * - Industry & Economy
- * - Urban Development
- * - People & Community
- * - Political System
+ * Now aligned with OH-focused categories:
+ * - Culture & Society (workplace culture, social norms)
+ * - OH Infrastructure (rehab centers, institutions)
+ * - Industry & Economy (high-risk sectors)
+ * - Urban Development (facility distribution)
+ * - Workforce Demographics (migrant workers, vulnerable populations)
+ * - Political Capacity (government ability to drive change)
  * 
  * Features:
+ * - Consulting-style analysis format
+ * - "What is X?" and "What does this mean for OH?" sections
  * - Pre-generated content for major countries
- * - Contextual integration with intelligence data
- * - Caching for performance
+ * - API integration for persistence
  */
 
 import type { ImageCategory } from "./unsplashService";
 import type { CountryIntelligence } from "../pages/CountryDashboard";
+import { apiClient } from "./api";
 
 // ============================================================================
 // TYPES
@@ -26,10 +28,27 @@ import type { CountryIntelligence } from "../pages/CountryDashboard";
 export interface CountryInsightContent {
   category: ImageCategory;
   countryIso: string;
+  whatIsAnalysis: string;     // "What is X?" - 3-4 paragraphs
+  ohImplications: string;     // "What does this mean for OH?" - 3-4 paragraphs
+  // Legacy fields for backwards compatibility
   overview: string;
   keyPoints: string[];
   context: string;
   generatedAt: string;
+  status: "pending" | "generating" | "completed" | "error";
+}
+
+// API response type
+interface InsightApiResponse {
+  id: number;
+  country_iso: string;
+  category: string;
+  images: { url: string; thumbnail_url?: string; alt: string; photographer?: string }[];
+  what_is_analysis: string | null;
+  oh_implications: string | null;
+  status: string;
+  error_message: string | null;
+  generated_at: string | null;
 }
 
 // ============================================================================
@@ -313,12 +332,67 @@ function generateDefaultContent(
 }
 
 // ============================================================================
+// API INTEGRATION
+// ============================================================================
+
+// Map frontend categories to API categories
+const CATEGORY_TO_API: Record<ImageCategory, string> = {
+  culture: "culture",
+  landmarks: "oh-infrastructure",
+  industry: "industry",
+  cityscape: "urban",
+  people: "workforce",
+  political: "political",
+};
+
+/**
+ * Fetch insight from backend API
+ */
+export async function fetchInsightFromApi(
+  countryIso: string,
+  category: ImageCategory
+): Promise<InsightApiResponse | null> {
+  try {
+    const apiCategory = CATEGORY_TO_API[category];
+    const response = await apiClient.get(`/api/v1/insights/${countryIso}/${apiCategory}`);
+    return response.data;
+  } catch (error) {
+    console.warn("Failed to fetch insight from API:", error);
+    return null;
+  }
+}
+
+/**
+ * Request insight regeneration (admin only)
+ */
+export async function regenerateInsight(
+  countryIso: string,
+  category: ImageCategory
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const apiCategory = CATEGORY_TO_API[category];
+    const response = await apiClient.post(`/api/v1/insights/${countryIso}/${apiCategory}/regenerate`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to regenerate insight:", error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || "Failed to regenerate insight"
+    };
+  }
+}
+
+// ============================================================================
 // MAIN FUNCTION
 // ============================================================================
 
 /**
  * Generate insight content for a country and category
- * Uses pre-generated content where available, generates defaults otherwise
+ * 
+ * Priority:
+ * 1. Try to fetch from backend API (persistent storage)
+ * 2. Use pre-generated content if available
+ * 3. Generate default content as fallback
  */
 export async function generateCountryInsight(
   countryIso: string,
@@ -333,8 +407,31 @@ export async function generateCountryInsight(
     return insightCache[cacheKey];
   }
 
-  // Simulate API call delay for realistic UX
-  await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 500));
+  // Try to fetch from API first
+  try {
+    const apiResponse = await fetchInsightFromApi(countryIso, category);
+    if (apiResponse && apiResponse.status === "completed" && apiResponse.what_is_analysis) {
+      const result: CountryInsightContent = {
+        category,
+        countryIso,
+        whatIsAnalysis: apiResponse.what_is_analysis || "",
+        ohImplications: apiResponse.oh_implications || "",
+        // Legacy compatibility
+        overview: apiResponse.what_is_analysis?.split("\n\n")[0] || "",
+        keyPoints: [],
+        context: apiResponse.oh_implications?.split("\n\n")[0] || "",
+        generatedAt: apiResponse.generated_at || new Date().toISOString(),
+        status: apiResponse.status as CountryInsightContent["status"],
+      };
+      insightCache[cacheKey] = result;
+      return result;
+    }
+  } catch (error) {
+    console.warn("API fetch failed, using local content:", error);
+  }
+
+  // Simulate API call delay for realistic UX when using local content
+  await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
 
   // Get pre-generated content or generate default
   const countryData = COUNTRY_INSIGHTS[countryIso];
@@ -342,13 +439,21 @@ export async function generateCountryInsight(
     ? countryData[category]
     : generateDefaultContent(countryName, category, intelligence);
   
+  // Convert to new format with whatIsAnalysis and ohImplications
+  const whatIsAnalysis = `${content.overview}\n\n${content.keyPoints.slice(0, 2).map(p => `${p}.`).join(" ")}`;
+  const ohImplications = `${content.context}\n\n${content.keyPoints.slice(2).map(p => `${p}.`).join(" ")}`;
+  
   const result: CountryInsightContent = {
     category,
     countryIso,
+    whatIsAnalysis,
+    ohImplications,
+    // Legacy compatibility
     overview: content.overview,
     keyPoints: content.keyPoints,
     context: content.context,
     generatedAt: new Date().toISOString(),
+    status: "completed",
   };
 
   // Cache the result

@@ -41,6 +41,7 @@ interface SlideshowQuadrantProps {
     maturity_score?: number | null;
   };
   intelligence: CountryIntelligence | null;
+  onTileClick?: (category: string) => void;
 }
 
 interface ImageTileProps {
@@ -107,7 +108,7 @@ function ImageTile({ category, imageUrl, title, onClick, delay, isLoading }: Ima
   );
 }
 
-export function SlideshowQuadrant({ country, intelligence }: SlideshowQuadrantProps) {
+export function SlideshowQuadrant({ country, intelligence, onTileClick }: SlideshowQuadrantProps) {
   const [images, setImages] = useState<CountryImageSet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<ImageCategory | null>(null);
@@ -147,6 +148,25 @@ export function SlideshowQuadrant({ country, intelligence }: SlideshowQuadrantPr
     return getCountryImageSync(country.iso_code, category).thumbnailUrl;
   };
 
+  // Map old category keys to new InsightCategory keys
+  const categoryMapping: Record<ImageCategory, string> = {
+    culture: "culture",
+    landmarks: "oh-infrastructure",  // Will be renamed
+    industry: "industry",
+    cityscape: "urban",
+    people: "workforce",  // Will be renamed
+    political: "political"
+  };
+
+  // Handle tile click - use onTileClick callback if provided, otherwise use internal modal
+  const handleTileClick = (category: ImageCategory) => {
+    if (onTileClick) {
+      onTileClick(categoryMapping[category]);
+    } else {
+      setSelectedCategory(category);
+    }
+  };
+
   const categories: ImageCategory[] = ["culture", "landmarks", "industry", "cityscape", "people", "political"];
 
   return (
@@ -160,16 +180,16 @@ export function SlideshowQuadrant({ country, intelligence }: SlideshowQuadrantPr
         <p className="text-[10px] text-white/40">{country.name} • Click to explore</p>
       </div>
       
-      {/* Image Grid - 3x2 layout, no scroll */}
+      {/* Image Grid - 6x1 layout for full width bottom row */}
       <div className="flex-1 p-2">
-        <div className="h-full grid grid-cols-3 grid-rows-2 gap-2">
+        <div className="h-full grid grid-cols-6 gap-2">
           {categories.map((category, index) => (
             <ImageTile
               key={category}
               category={category}
               imageUrl={getImageUrl(category)}
               title={CATEGORY_INFO[category].title}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => handleTileClick(category)}
               delay={0.1 + index * 0.05}
               isLoading={isLoading}
             />
@@ -177,15 +197,17 @@ export function SlideshowQuadrant({ country, intelligence }: SlideshowQuadrantPr
         </div>
       </div>
       
-      {/* Country Insight Modal */}
-      <CountryInsightModal
-        isOpen={selectedCategory !== null}
-        category={selectedCategory || "culture"}
-        country={country}
-        intelligence={intelligence}
-        imageUrl={selectedCategory ? (images?.[selectedCategory]?.url || getCountryImageSync(country.iso_code, selectedCategory).url) : ""}
-        onClose={() => setSelectedCategory(null)}
-      />
+      {/* Country Insight Modal - Only shown if onTileClick is not provided */}
+      {!onTileClick && (
+        <CountryInsightModal
+          isOpen={selectedCategory !== null}
+          category={selectedCategory || "culture"}
+          country={country}
+          intelligence={intelligence}
+          imageUrl={selectedCategory ? (images?.[selectedCategory]?.url || getCountryImageSync(country.iso_code, selectedCategory).url) : ""}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </div>
   );
 }

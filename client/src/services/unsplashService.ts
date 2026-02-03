@@ -47,24 +47,24 @@ export type ImageCategory = keyof CountryImageSet;
 // Unsplash API access key (demo key for development - replace with env var in production)
 const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY || "demo";
 
-// Search queries for each category
+// Search queries for each category (OH-focused)
 const CATEGORY_QUERIES: Record<ImageCategory, (country: string) => string> = {
-  culture: (country) => `${country} traditional culture festival`,
-  landmarks: (country) => `${country} famous landmark monument`,
-  industry: (country) => `${country} industry factory workers`,
-  cityscape: (country) => `${country} city skyline downtown`,
-  people: (country) => `${country} people street life`,
-  political: (country) => `${country} government parliament building`,
+  culture: (country) => `${country} workplace culture office`,
+  landmarks: (country) => `${country} hospital medical facility healthcare`,
+  industry: (country) => `${country} construction factory workers safety`,
+  cityscape: (country) => `${country} city infrastructure development`,
+  people: (country) => `${country} workers labor workforce`,
+  political: (country) => `${country} government ministry building`,
 };
 
-// Category display names and descriptions
+// Category display names and descriptions (OH-focused)
 export const CATEGORY_INFO: Record<ImageCategory, { title: string; description: string; icon: string }> = {
-  culture: { title: "Culture & Society", description: "Traditions, festivals, and cultural heritage", icon: "🎭" },
-  landmarks: { title: "Famous Landmarks", description: "Iconic monuments and tourist attractions", icon: "🏛️" },
-  industry: { title: "Industry & Economy", description: "Manufacturing, trade, and economic activity", icon: "🏭" },
-  cityscape: { title: "Urban Development", description: "Modern cities and infrastructure", icon: "🌆" },
-  people: { title: "People & Community", description: "Daily life and social dynamics", icon: "👥" },
-  political: { title: "Political System", description: "Government and administrative structures", icon: "🏛️" },
+  culture: { title: "Culture & Society", description: "Workplace culture, social norms affecting OH", icon: "🎭" },
+  landmarks: { title: "OH Infrastructure", description: "Rehab centers, OH institutions, research facilities", icon: "🏥" },
+  industry: { title: "Industry & Economy", description: "High-risk industries, accident-prone sectors", icon: "🏭" },
+  cityscape: { title: "Urban Development", description: "Healthcare facility distribution, regional coverage", icon: "🌆" },
+  people: { title: "Workforce Demographics", description: "Migrant workers, vulnerable populations, informal employment", icon: "👷" },
+  political: { title: "Political Capacity", description: "Government ability to drive OH change", icon: "🏛️" },
 };
 
 // Fallback images per category (high-quality Unsplash photos with known IDs)

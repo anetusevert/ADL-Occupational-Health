@@ -105,6 +105,7 @@ interface EconomicQuadrantProps {
     name: string;
   };
   intelligence: CountryIntelligence | null;
+  onTileClick?: (category: "labor-force" | "gdp-per-capita" | "population" | "unemployment") => void;
 }
 
 interface AnimatedCounterProps {
@@ -557,8 +558,24 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
   );
 }
 
-export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProps) {
+export function EconomicQuadrant({ country, intelligence, onTileClick }: EconomicQuadrantProps) {
   const [selectedTile, setSelectedTile] = useState<"labor" | "gdp" | "population" | "unemployment" | null>(null);
+
+  // Handle tile click - use onTileClick callback if provided, otherwise use internal modal
+  const handleTileClick = (tile: "labor" | "gdp" | "population" | "unemployment") => {
+    if (onTileClick) {
+      // Map internal tile names to InsightCategory types
+      const categoryMap: Record<string, "labor-force" | "gdp-per-capita" | "population" | "unemployment"> = {
+        labor: "labor-force",
+        gdp: "gdp-per-capita",
+        population: "population",
+        unemployment: "unemployment"
+      };
+      onTileClick(categoryMap[tile]);
+    } else {
+      setSelectedTile(tile);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -583,7 +600,7 @@ export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProp
           bgColor="bg-emerald-500/10"
           suffix="%"
           decimals={1}
-          onClick={() => setSelectedTile("labor")}
+          onClick={() => handleTileClick("labor")}
           delay={0.1}
         />
         
@@ -594,7 +611,7 @@ export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProp
           color="text-cyan-400"
           bgColor="bg-cyan-500/10"
           prefix="$"
-          onClick={() => setSelectedTile("gdp")}
+          onClick={() => handleTileClick("gdp")}
           delay={0.2}
         />
         
@@ -604,7 +621,7 @@ export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProp
           icon={Users}
           color="text-purple-400"
           bgColor="bg-purple-500/10"
-          onClick={() => setSelectedTile("population")}
+          onClick={() => handleTileClick("population")}
           delay={0.3}
         />
         
@@ -616,19 +633,21 @@ export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProp
           bgColor="bg-amber-500/10"
           suffix="%"
           decimals={1}
-          onClick={() => setSelectedTile("unemployment")}
+          onClick={() => handleTileClick("unemployment")}
           delay={0.4}
         />
       </div>
       
-      {/* Detail Modal */}
-      <EconomicDetailModal
-        isOpen={selectedTile !== null}
-        onClose={() => setSelectedTile(null)}
-        type={selectedTile || "labor"}
-        country={country}
-        intelligence={intelligence}
-      />
+      {/* Detail Modal - Only shown if onTileClick is not provided */}
+      {!onTileClick && (
+        <EconomicDetailModal
+          isOpen={selectedTile !== null}
+          onClose={() => setSelectedTile(null)}
+          type={selectedTile || "labor"}
+          country={country}
+          intelligence={intelligence}
+        />
+      )}
     </div>
   );
 }
