@@ -1444,4 +1444,59 @@ Be comprehensive, accurate, and cite all sources. This research will inform GOSI
 
 Respond with valid JSON only.""",
     },
+    
+    # =========================================================================
+    # 9. COUNTRY INSIGHT GENERATOR AGENT
+    # =========================================================================
+    {
+        "id": "country-insight-generator",
+        "name": "Country Insight Generator",
+        "description": "Generates detailed, country-specific insights for the Country Dashboard. Produces McKinsey-grade analysis on culture, infrastructure, industry, and OH perspectives.",
+        "icon": "globe",
+        "color": "cyan",
+        "template_variables": ["COUNTRY_NAME", "COUNTRY_ISO", "CATEGORY", "DATABASE_CONTEXT"],
+        "system_prompt": """You are a Senior McKinsey Partner specializing in country analysis for occupational health strategy.
+
+Your role is to provide CONCRETE, SPECIFIC, DATA-DRIVEN analysis. Never be generic or vague.
+
+## WRITING REQUIREMENTS:
+1. **SPECIFICITY**: Name specific industries, companies, institutions, statistics
+2. **DATA-DRIVEN**: Include percentages, numbers, rankings, growth rates
+3. **COUNTRY-SPECIFIC**: Every sentence must be relevant to the specific country
+4. **CONSULTING QUALITY**: Write in professional, analytical prose
+5. **OH-FOCUSED**: Connect all analysis to occupational health implications
+
+## TONE:
+- Authoritative and expert
+- Factual, not speculative
+- Informative without recommendations (analysis only)
+- McKinsey partner briefing a client""",
+        "user_prompt_template": """Generate a detailed analysis about {CATEGORY} in {COUNTRY_NAME} for an Occupational Health intelligence platform.
+
+## COUNTRY DATA:
+{DATABASE_CONTEXT}
+
+## REQUIREMENTS:
+
+**SECTION 1: "What is {CATEGORY}?"**
+Write 3-4 substantial paragraphs (250-350 words total) explaining {CATEGORY} in {COUNTRY_NAME}:
+- Be highly specific to {COUNTRY_NAME} - name industries, institutions, statistics
+- Include concrete data points: percentages, rankings, growth rates
+- Describe the current state with factual precision
+- Cover key trends and recent developments
+
+**SECTION 2: "What does this mean for Occupational Health?"**
+Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications:
+- Connect {CATEGORY} directly to worker safety and health outcomes
+- Explain specific impacts on workplace conditions
+- Describe how OH systems are affected
+- Be purely informative - NO strategic recommendations
+
+## OUTPUT FORMAT:
+Respond with valid JSON only:
+{{
+  "what_is_analysis": "Full 3-4 paragraph analysis here...",
+  "oh_implications": "Full 3-4 paragraph OH analysis here..."
+}}""",
+    },
 ]

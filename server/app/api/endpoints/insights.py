@@ -149,6 +149,22 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
     )
 
 
+def ensure_insight_agent_exists(db: Session) -> None:
+    """Ensure the country insight agent exists in the database."""
+    from app.models.agent import Agent, DEFAULT_AGENTS
+    
+    agent_id = "country-insight-generator"
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        # Find in default agents
+        agent_config = next((a for a in DEFAULT_AGENTS if a["id"] == agent_id), None)
+        if agent_config:
+            agent = Agent(**agent_config)
+            db.add(agent)
+            db.commit()
+            logger.info(f"Created {agent_id} agent")
+
+
 async def generate_insight_content(
     db: Session,
     country: Country,
@@ -157,94 +173,123 @@ async def generate_insight_content(
     user: User,
 ) -> Dict[str, Any]:
     """
-    Generate AI insight content.
+    Generate AI insight content using the country-insight-generator agent.
     
     Returns dict with:
     - what_is_analysis: str (3-4 paragraphs)
     - oh_implications: str (3-4 paragraphs)
-    - images: list of image objects
     """
     ai_config = get_ai_config(db)
     if not ai_config:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service not configured"
+            detail="AI service not configured. Please configure AI settings in admin panel."
         )
+    
+    # Ensure agent exists
+    ensure_insight_agent_exists(db)
     
     category_meta = CATEGORY_METADATA.get(category, {})
     category_title = category_meta.get("title", category.value)
     
-    # Build context for AI
+    # Build comprehensive context for AI
     context_parts = [
-        f"Country: {country.name} ({country.iso_code})",
-        f"Category: {category_title}",
-        f"Category Description: {category_meta.get('description', '')}",
+        f"Country: {country.name}",
+        f"ISO Code: {country.iso_code}",
+        f"Region: {country.region or 'N/A'}",
+        "",
+        "## Socioeconomic Data:",
     ]
     
     if intelligence:
-        context_parts.extend([
-            f"\nSocioeconomic Data:",
-            f"- GDP per Capita (PPP): ${intelligence.gdp_per_capita_ppp:,.0f}" if intelligence.gdp_per_capita_ppp else "",
-            f"- Population: {intelligence.population_total:,.0f}" if intelligence.population_total else "",
-            f"- Labor Force Participation: {intelligence.labor_force_participation}%" if intelligence.labor_force_participation else "",
-            f"- Unemployment Rate: {intelligence.unemployment_rate}%" if intelligence.unemployment_rate else "",
-            f"- Life Expectancy: {intelligence.life_expectancy_at_birth} years" if intelligence.life_expectancy_at_birth else "",
-            f"- Urban Population: {intelligence.urban_population_pct}%" if intelligence.urban_population_pct else "",
-        ])
+        if intelligence.gdp_per_capita_ppp:
+            context_parts.append(f"- GDP per Capita (PPP): ${intelligence.gdp_per_capita_ppp:,.0f}")
+        if intelligence.population_total:
+            context_parts.append(f"- Population: {intelligence.population_total:,.0f}")
+        if intelligence.labor_force_participation:
+            context_parts.append(f"- Labor Force Participation: {intelligence.labor_force_participation}%")
+        if intelligence.unemployment_rate:
+            context_parts.append(f"- Unemployment Rate: {intelligence.unemployment_rate}%")
+        if intelligence.life_expectancy_at_birth:
+            context_parts.append(f"- Life Expectancy: {intelligence.life_expectancy_at_birth} years")
+        if intelligence.urban_population_pct:
+            context_parts.append(f"- Urban Population: {intelligence.urban_population_pct}%")
+        if intelligence.hdi_score:
+            context_parts.append(f"- HDI Score: {intelligence.hdi_score}")
+    
+    context_parts.append("")
+    context_parts.append("## Occupational Health Scores:")
     
     if country.governance_score:
-        context_parts.append(f"- OH Governance Score: {country.governance_score}")
+        context_parts.append(f"- OH Governance Score: {country.governance_score}/100")
     if country.pillar1_score:
-        context_parts.append(f"- Hazard Control Score: {country.pillar1_score}")
+        context_parts.append(f"- Hazard Control Score: {country.pillar1_score}/100")
     if country.pillar2_score:
-        context_parts.append(f"- Vigilance Score: {country.pillar2_score}")
+        context_parts.append(f"- Vigilance Score: {country.pillar2_score}/100")
     if country.pillar3_score:
-        context_parts.append(f"- Restoration Score: {country.pillar3_score}")
+        context_parts.append(f"- Restoration Score: {country.pillar3_score}/100")
+    if country.maturity_score:
+        context_parts.append(f"- Overall OHI Score: {country.maturity_score}/100")
     
-    context = "\n".join([p for p in context_parts if p])
+    database_context = "\n".join([p for p in context_parts if p is not None])
     
-    # Build prompt
-    prompt = f"""You are a senior consultant writing analytical content about {category_title} in {country.name} for an Occupational Health intelligence platform.
-
-CONTEXT:
-{context}
-
-Generate two sections of analysis:
-
-SECTION 1: "What is {category_title}?"
-Write 3-4 paragraphs explaining {category_title} in {country.name}.
-- Be factual, informative, and data-driven
-- Include country-specific context and statistics where relevant
-- Write in a professional consulting style (McKinsey-like)
-- Focus on factual description, not opinions
-
-SECTION 2: "What does this mean for Occupational Health?"
-Write 3-4 paragraphs analyzing the OH implications.
-- Connect {category_title} to occupational health outcomes
-- Explain specific impacts on workplace safety, worker health, and OH systems
-- Be purely informative - NO strategic recommendations
-- Ground analysis in the country context
-
-Format your response as JSON:
-{{
-  "what_is_analysis": "Paragraph 1\\n\\nParagraph 2\\n\\nParagraph 3\\n\\nParagraph 4",
-  "oh_implications": "Paragraph 1\\n\\nParagraph 2\\n\\nParagraph 3\\n\\nParagraph 4"
-}}
-"""
-
+    # Use ai_service for direct LLM call with the agent's prompt pattern
     try:
-        runner = AgentRunner(db, ai_config)
-        
-        # Use a generic analysis agent or create content directly
-        # For now, we'll use direct API call pattern
         from app.services.ai_service import call_ai_api
         
+        # Build prompt following agent pattern
+        prompt = f"""Generate a detailed analysis about {category_title} in {country.name} for an Occupational Health intelligence platform.
+
+## COUNTRY DATA:
+{database_context}
+
+## REQUIREMENTS:
+
+**SECTION 1: "What is {category_title}?"**
+Write 3-4 substantial paragraphs (250-350 words total) explaining {category_title} in {country.name}:
+- Be highly specific to {country.name} - name industries, institutions, statistics
+- Include concrete data points: percentages, rankings, growth rates
+- Describe the current state with factual precision
+- Cover key trends and recent developments
+
+**SECTION 2: "What does this mean for Occupational Health?"**
+Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications:
+- Connect {category_title} directly to worker safety and health outcomes
+- Explain specific impacts on workplace conditions
+- Describe how OH systems are affected
+- Be purely informative - NO strategic recommendations
+
+## OUTPUT FORMAT:
+Respond with valid JSON only:
+{{
+  "what_is_analysis": "Full 3-4 paragraph analysis here...",
+  "oh_implications": "Full 3-4 paragraph OH analysis here..."
+}}"""
+
+        system_prompt = """You are a Senior McKinsey Partner specializing in country analysis for occupational health strategy.
+
+Your role is to provide CONCRETE, SPECIFIC, DATA-DRIVEN analysis. Never be generic or vague.
+
+WRITING REQUIREMENTS:
+1. SPECIFICITY: Name specific industries, companies, institutions, statistics
+2. DATA-DRIVEN: Include percentages, numbers, rankings, growth rates
+3. COUNTRY-SPECIFIC: Every sentence must be relevant to the specific country
+4. CONSULTING QUALITY: Write in professional, analytical prose
+5. OH-FOCUSED: Connect all analysis to occupational health implications
+
+TONE:
+- Authoritative and expert
+- Factual, not speculative
+- Informative without recommendations (analysis only)
+- McKinsey partner briefing a client"""
+
         result = await call_ai_api(
             db=db,
             ai_config=ai_config,
             prompt=prompt,
             agent_id="country-insight-generator",
             user_email=user.email if user else None,
+            system_prompt=system_prompt,
         )
         
         # Parse JSON response
@@ -268,6 +313,7 @@ Format your response as JSON:
             }
         except json.JSONDecodeError:
             logger.error(f"Failed to parse AI response as JSON: {result[:500]}")
+            # Return raw result as what_is_analysis
             return {
                 "what_is_analysis": result,
                 "oh_implications": "",
@@ -276,7 +322,7 @@ Format your response as JSON:
             }
             
     except Exception as e:
-        logger.error(f"AI generation failed: {e}")
+        logger.error(f"AI generation failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate insight content: {str(e)}"
