@@ -34,7 +34,7 @@ import { DatabaseExplorer } from "./pages/admin/DatabaseExplorer";
 import { PillarPage } from "./pages/PillarPage";
 import { OverallSummary } from "./pages/OverallSummary";
 import { CountryDashboard } from "./pages/CountryDashboard";
-import { CountryFocus } from "./pages/CountryFocus";
+import { FocusKSA } from "./pages/FocusKSA";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -277,13 +277,13 @@ function AppContent() {
             }
           />
 
-          {/* Country Focus - Framework Architecture Analysis */}
+          {/* Focus: KSA - Saudi Arabia Strategic Framework Analysis */}
           <Route
-            path="/country-focus"
+            path="/focus-ksa"
             element={
               <AppLayout>
                 <ProtectedRoute>
-                  <CountryFocus />
+                  <FocusKSA />
                 </ProtectedRoute>
               </AppLayout>
             }

@@ -153,7 +153,7 @@ export function ComparisonLoader({
           transition={{ delay: 0.3 }}
           className="text-slate-400 text-center mb-8"
         >
-          Our AI analyst is conducting a deep comparative analysis...
+          Conducting a deep comparative analysis of both countries...
         </motion.p>
 
         {/* Progress Steps */}
@@ -167,7 +167,7 @@ export function ComparisonLoader({
             "Analyzing framework metrics",
             "Comparing socioeconomic indicators",
             "Identifying strategic gaps",
-            "Generating recommendations",
+            "Preparing recommendations",
           ].map((step, index) => (
             <motion.div
               key={step}

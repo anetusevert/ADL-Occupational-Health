@@ -1,8 +1,8 @@
 /**
  * Country Focus Components
  * 
- * Components for the Country Focus page - framework architecture analysis.
+ * Components for the Focus: KSA page - Saudi Arabia strategic framework analysis.
  */
 
 export { FrameworkQuadrant } from "./FrameworkQuadrant";
-export { QuestionDetailModal } from "./QuestionDetailModal";
+export { KSADeepAnalysisModal } from "./KSADeepAnalysisModal";

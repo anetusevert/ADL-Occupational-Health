@@ -49,7 +49,20 @@ import {
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
-import { CinematicLoader } from "./premium-visuals";
+import { 
+  CinematicLoader, 
+  ParticleField, 
+  TextReveal,
+  NumberCounter,
+  GlowOrb,
+  FloatingGlowOrb,
+  IconGlow,
+  HeroReveal,
+  ScaleReveal,
+  DramaticTextReveal,
+  ShimmerOverlay,
+  PulseRing
+} from "./premium-visuals";
 
 interface InteractionGuideModalProps {
   isOpen: boolean;
@@ -388,70 +401,147 @@ function OrbitingElement({ Icon, label, color, index, total, delay = 0, radius =
 }
 
 // ============================================================================
-// INTRO VISUAL - ADL Logo with animated rings
+// INTRO VISUAL - Cinematic ADL Logo reveal with premium animations
 // ============================================================================
 
 function IntroVisual() {
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="cyan" count={25} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      {/* Premium particle field */}
+      <ParticleField count={50} color="mixed" speed="slow" />
       
-      {/* Orbiting rings */}
-      {[1, 2, 3].map((i) => (
+      {/* Floating glow orbs for depth */}
+      <FloatingGlowOrb color="purple" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={1} />
+      
+      {/* Cinematic orbiting rings with blur reveal */}
+      {[1, 2, 3, 4].map((i) => (
         <motion.div
           key={i}
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 0.3, scale: 1, rotate: i % 2 === 0 ? 360 : -360 }}
+          initial={{ opacity: 0, scale: 0.3, filter: "blur(20px)" }}
+          animate={{ 
+            opacity: [0, 0.4, 0.3], 
+            scale: 1, 
+            filter: "blur(0px)",
+            rotate: i % 2 === 0 ? 360 : -360 
+          }}
           transition={{ 
-            opacity: { delay: i * 0.2, duration: 0.5 },
-            scale: { delay: i * 0.2, duration: 0.5 },
-            rotate: { duration: 20 + i * 10, repeat: Infinity, ease: "linear" }
+            opacity: { delay: i * 0.15, duration: 0.8 },
+            scale: { delay: i * 0.15, duration: 0.8, type: "spring" },
+            filter: { delay: i * 0.15, duration: 0.6 },
+            rotate: { duration: 25 + i * 8, repeat: Infinity, ease: "linear" }
           }}
           className={cn(
-            "absolute rounded-full border-2",
-            i === 1 && "w-48 h-48 border-cyan-500/40",
-            i === 2 && "w-72 h-72 border-purple-500/30",
-            i === 3 && "w-96 h-96 border-cyan-500/20",
+            "absolute rounded-full border",
+            i === 1 && "w-40 h-40 border-cyan-400/50 border-2",
+            i === 2 && "w-64 h-64 border-purple-500/40",
+            i === 3 && "w-80 h-80 border-cyan-500/25",
+            i === 4 && "w-[26rem] h-[26rem] border-purple-500/15",
           )}
-        />
+        >
+          {/* Orbital dots */}
+          {i <= 2 && (
+            <motion.div
+              animate={{ rotate: i % 2 === 0 ? -360 : 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0"
+            >
+              <div className={cn(
+                "absolute w-2 h-2 rounded-full -top-1",
+                i === 1 ? "bg-cyan-400 left-1/2 -translate-x-1/2" : "bg-purple-400 left-1/2 -translate-x-1/2",
+                "shadow-lg",
+                i === 1 ? "shadow-cyan-400/50" : "shadow-purple-400/50"
+              )} />
+            </motion.div>
+          )}
+        </motion.div>
       ))}
 
-      {/* Center content */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, type: "spring" }}
-        className="relative z-10 text-center"
-      >
-        <motion.div
-          animate={{ 
-            filter: ["drop-shadow(0 0 30px rgba(6,182,212,0.3))", "drop-shadow(0 0 50px rgba(6,182,212,0.5))", "drop-shadow(0 0 30px rgba(6,182,212,0.3))"]
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <img src="/adl-logo.png" alt="ADL" className="h-20 mx-auto" />
-        </motion.div>
+      {/* Center content with blur-to-focus */}
+      <div className="relative z-10 text-center">
+        {/* Main logo container with glow orb */}
+        <ScaleReveal delay={0.2} initialScale={0.6}>
+          <div className="relative">
+            {/* Pulsing glow behind logo */}
+            <motion.div
+              animate={{
+                boxShadow: [
+                  "0 0 60px rgba(6,182,212,0.3), 0 0 120px rgba(139,92,246,0.2)",
+                  "0 0 100px rgba(6,182,212,0.5), 0 0 200px rgba(139,92,246,0.3)",
+                  "0 0 60px rgba(6,182,212,0.3), 0 0 120px rgba(139,92,246,0.2)",
+                ],
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="absolute inset-0 rounded-3xl"
+            />
+            
+            {/* Logo with shimmer */}
+            <div className="relative w-32 h-32 mx-auto rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/60 border border-white/10 flex items-center justify-center overflow-hidden backdrop-blur-sm">
+              <ShimmerOverlay delay={1} duration={2.5} />
+              <motion.img 
+                src="/adl-logo.png" 
+                alt="ADL" 
+                className="h-20 object-contain relative z-10"
+                animate={{
+                  filter: [
+                    "drop-shadow(0 0 20px rgba(6,182,212,0.4))",
+                    "drop-shadow(0 0 40px rgba(6,182,212,0.6))",
+                    "drop-shadow(0 0 20px rgba(6,182,212,0.4))",
+                  ]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+              />
+            </div>
+          </div>
+        </ScaleReveal>
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-6"
-        >
-          <p className="text-xl font-bold text-white">Arthur D. Little</p>
-          <p className="text-cyan-400 text-sm mt-1">Global Health Intelligence</p>
-        </motion.div>
+        {/* Title with dramatic text reveal */}
+        <HeroReveal delay={0.6} direction="up" blur={15}>
+          <div className="mt-8">
+            <DramaticTextReveal
+              text="Arthur D. Little"
+              className="text-2xl font-bold text-white"
+              delay={0.8}
+              glow
+              glowColor="rgba(6, 182, 212, 0.4)"
+            />
+          </div>
+        </HeroReveal>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-8 flex items-center justify-center gap-2 text-white/50 text-sm"
-        >
-          <Layers className="w-4 h-4" />
-          <span>ADL Occupational Health Framework v2.0</span>
-        </motion.div>
-      </motion.div>
+        {/* Subtitle with reveal */}
+        <HeroReveal delay={1.2} direction="up" blur={10}>
+          <p className="text-cyan-400 text-sm mt-2 font-medium tracking-wide">
+            Global Health Intelligence Platform
+          </p>
+        </HeroReveal>
+
+        {/* Partnership indicator */}
+        <HeroReveal delay={1.6} direction="up">
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10"
+            >
+              <img src="/adl-logo.png" alt="ADL" className="h-5 object-contain" />
+              <div className="w-8 h-px bg-gradient-to-r from-purple-500 to-cyan-500" />
+              <img src="/gosi-logo.png" alt="GOSI" className="h-5 object-contain" />
+            </motion.div>
+          </div>
+        </HeroReveal>
+
+        {/* Framework badge */}
+        <HeroReveal delay={2} direction="up">
+          <motion.div
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-full border border-cyan-500/20"
+          >
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <span className="text-white/70 text-sm">ADL Occupational Health Framework v2.0</span>
+          </motion.div>
+        </HeroReveal>
+      </div>
     </div>
   );
 }

@@ -333,7 +333,7 @@ function SelectionPhase({
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             Compare Saudi Arabia's occupational health framework against global benchmarks 
-            with AI-powered analysis
+            with comprehensive strategic analysis
           </p>
         </div>
 
@@ -440,10 +440,10 @@ function SelectionPhase({
               "shadow-lg shadow-purple-500/25"
             )}
           >
-            Generate Comparison Report
+            View Comparison Report
           </motion.button>
           <p className="mt-4 text-sm text-slate-500">
-            Powered by McKinsey-grade AI analysis
+            Comprehensive McKinsey-grade strategic analysis
           </p>
         </motion.div>
       </motion.div>

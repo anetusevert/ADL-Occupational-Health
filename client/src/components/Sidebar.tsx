@@ -57,7 +57,7 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 // Analytics Suite - Data exploration and analysis
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
-  { path: "/country-focus", label: "Country Focus", icon: Target },
+  { path: "/focus-ksa", label: "Focus: KSA", icon: Target },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Best Practices", icon: Brain },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
