@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Sparkles,
   Globe2,
 } from "lucide-react";
 import { personas, getCoverageStatus, getCoverageLabel, type Persona } from "../data/personas";
@@ -170,14 +169,8 @@ export function Personas() {
             </div>
           </div>
 
-          {/* Right: Stats and Badges */}
+          {/* Right: Data Badge */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {/* AI Research Badge */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs text-purple-400 font-medium">AI-Powered</span>
-            </div>
-
             {/* Global Data Badge */}
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-slate-800/60 border border-white/10">
               <Globe2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/50" aria-hidden="true" />
@@ -226,7 +219,7 @@ export function Personas() {
           </div>
           <p className="text-[10px] text-white/30 text-center max-w-md mt-2">
             Click on any persona card to explore their occupational health journey, 
-            coverage details, and AI-researched insights with source citations.
+            coverage details, and researched insights with source citations.
           </p>
         </motion.div>
       </main>

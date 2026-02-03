@@ -291,7 +291,7 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
     { id: 'overview', label: 'Overview', icon: Users },
     { id: 'journey', label: 'OH Journey', icon: Route },
     { id: 'coverage', label: 'Coverage', icon: Shield },
-    { id: 'research', label: 'Research', icon: FileText },
+    { id: 'research', label: 'Sources', icon: FileText },
   ];
 
   return (
@@ -390,7 +390,7 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
                   {activeTab === 'overview' && 'Demographic Overview'}
                   {activeTab === 'journey' && 'Occupational Health Journey'}
                   {activeTab === 'coverage' && 'GOSI Coverage Details'}
-                  {activeTab === 'research' && 'Research & Sources'}
+                  {activeTab === 'research' && 'Sources'}
                 </h3>
                 <p className="text-[10px] text-white/40">{persona.name}</p>
               </div>
@@ -637,15 +637,6 @@ function CoveragePanel({ persona, colors }: { persona: Persona; colors: typeof c
 function ResearchPanel({ persona }: { persona: Persona }) {
   return (
     <div className="h-full flex flex-col">
-      {/* AI Badge */}
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 mb-4 flex-shrink-0">
-        <Sparkles className="w-5 h-5 text-purple-400" />
-        <div>
-          <p className="text-sm font-medium text-purple-300">AI-Powered Research</p>
-          <p className="text-[10px] text-purple-300/60">Data from official sources with full citations</p>
-        </div>
-      </div>
-
       {/* Sources */}
       <div className="flex-1 overflow-hidden">
         <SourceCitations sources={persona.research.sources} compact />
