@@ -19,6 +19,7 @@ import {
   LogOut,
   User,
   Users,
+  Users2,
   Cpu,
   Shield,
   Activity,
@@ -58,6 +59,7 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
   { path: "/focus-ksa", label: "Focus: KSA", icon: Target },
+  { path: "/personas", label: "Personas", icon: Users2 },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Best Practices", icon: Brain },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
