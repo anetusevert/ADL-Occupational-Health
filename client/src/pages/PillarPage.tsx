@@ -329,9 +329,9 @@ export function PillarPage() {
     }
   };
   
-  // Handle back navigation - always go back to pillar selection modal
+  // Handle back navigation - go back to country dashboard
   const handleBack = () => {
-    navigate("/home", { state: { openPillarModal: iso } });
+    navigate(`/country/${iso}`);
   };
   
   // Handle question click

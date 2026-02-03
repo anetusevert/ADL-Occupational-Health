@@ -758,6 +758,7 @@ export interface GuideSlide {
   id: string;
   type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta';
   title: string;
+  actionTitle: string; // McKinsey-style action title stating the key insight
   subtitle?: string;
   content: string;
   highlights?: string[];
@@ -774,6 +775,7 @@ export const guideSlides: GuideSlide[] = [
     id: "intro",
     type: "intro",
     title: "Transforming Occupational Health",
+    actionTitle: "GOSI Can Lead Regional Worker Protection",
     subtitle: "A Strategic Partnership for Saudi Arabia",
     content: "GOSI stands at a pivotal moment to lead the region in worker protection. This framework represents Arthur D. Little's comprehensive approach to building world-class occupational health systems.",
     highlights: [
@@ -788,7 +790,8 @@ export const guideSlides: GuideSlide[] = [
     id: "global-challenge",
     type: "challenge",
     title: "The Global Challenge",
-    subtitle: "2.9 Million Deaths Annually",
+    actionTitle: "2.9 Million Deaths Annually Demand Urgent Action",
+    subtitle: "A Crisis Larger Than Road Accidents, Malaria, and HIV Combined",
     content: "Occupational accidents and diseases claim 2.9 million lives every year—more than road accidents, malaria, and HIV/AIDS combined. The economic burden exceeds 4% of global GDP.",
     highlights: [
       "395 million non-fatal workplace injuries annually",
@@ -808,7 +811,8 @@ export const guideSlides: GuideSlide[] = [
     id: "adl-solution",
     type: "solution",
     title: "The ADL Advantage",
-    subtitle: "A Framework Built on Evidence",
+    actionTitle: "100 Years of Evidence-Based Consulting Excellence",
+    subtitle: "Transforming Complex Data into Actionable Insights",
     content: "With over 100 years of management consulting expertise, Arthur D. Little brings a unique evidence-based approach to occupational health assessment. Our framework transforms complex data into actionable insights.",
     highlights: [
       "100+ years of consulting excellence",
@@ -823,6 +827,7 @@ export const guideSlides: GuideSlide[] = [
     id: "overview",
     type: "overview",
     title: "The Temple Structure",
+    actionTitle: "Four Integrated Components Create Complete Protection",
     subtitle: "A Visual Architecture for Worker Protection",
     content: "The framework is visualized as a temple structure, where Governance forms the roof that protects and enables everything below, while three operational pillars support the entire system.",
     highlights: [
@@ -838,6 +843,7 @@ export const guideSlides: GuideSlide[] = [
     id: "governance",
     type: "component",
     title: "Governance Ecosystem",
+    actionTitle: "Strong Governance Reduces Fatalities by 47%",
     subtitle: "The Overarching Driver",
     content: "The brain and law that drives the entire occupational health system. This layer establishes the regulatory framework, enforcement mechanisms, and institutional capacity that make everything else possible.",
     highlights: [
@@ -855,6 +861,7 @@ export const guideSlides: GuideSlide[] = [
     id: "pillar-1",
     type: "component",
     title: "Hazard Prevention",
+    actionTitle: "Every $1 in Prevention Saves $4-6 Downstream",
     subtitle: "Pillar I — The Proactive Shield",
     content: "The first line of defense focusing on identifying, assessing, and eliminating hazards before they cause harm. Every dollar invested in prevention saves $4-6 in downstream costs.",
     highlights: [
@@ -872,6 +879,7 @@ export const guideSlides: GuideSlide[] = [
     id: "pillar-2",
     type: "component",
     title: "Surveillance & Detection",
+    actionTitle: "Early Detection Cuts Treatment Costs by 60%",
     subtitle: "Pillar II — The Watchful Eye",
     content: "Continuous health monitoring and early detection systems that catch occupational diseases before they become chronic. Early detection can reduce treatment costs by 60%.",
     highlights: [
@@ -889,6 +897,7 @@ export const guideSlides: GuideSlide[] = [
     id: "pillar-3",
     type: "component",
     title: "Restoration & Compensation",
+    actionTitle: "No-Fault Systems Process Claims 70% Faster",
     subtitle: "Pillar III — The Safety Net",
     content: "When prevention fails and harm occurs, this pillar ensures fair compensation, medical treatment, rehabilitation, and return-to-work support for affected workers.",
     highlights: [
@@ -906,6 +915,7 @@ export const guideSlides: GuideSlide[] = [
     id: "integration",
     type: "integration",
     title: "Framework Integration",
+    actionTitle: "Integrated Systems Achieve 40% Lower Fatality Rates",
     subtitle: "The Power of Connected Systems",
     content: "The true power of the framework lies in how components interact. Governance enables all pillars. Prevention reduces burden on Surveillance and Restoration. Surveillance data informs Prevention priorities. Restoration claims feed back into hazard identification.",
     highlights: [
@@ -921,6 +931,7 @@ export const guideSlides: GuideSlide[] = [
     id: "success-stories",
     type: "success",
     title: "Global Success Stories",
+    actionTitle: "Leading Nations Prove the Framework Works",
     subtitle: "Learning from the Leaders",
     content: "Countries that have implemented comprehensive occupational health frameworks have seen dramatic improvements in worker safety and significant economic returns on investment.",
     highlights: [
@@ -942,6 +953,7 @@ export const guideSlides: GuideSlide[] = [
     id: "gosi-opportunity",
     type: "opportunity",
     title: "GOSI's Path Forward",
+    actionTitle: "Saudi Arabia Can Become the GCC Benchmark",
     subtitle: "Regional Leadership Opportunity",
     content: "Saudi Arabia has the opportunity to become the regional benchmark for occupational health. With GOSI's institutional strength and Vision 2030 alignment, the Kingdom can lead the GCC in worker protection.",
     highlights: [
@@ -962,6 +974,7 @@ export const guideSlides: GuideSlide[] = [
     id: "conclusion",
     type: "cta",
     title: "Begin the Journey",
+    actionTitle: "Explore 180+ Countries in the Intelligence Platform",
     subtitle: "Your Platform Awaits",
     content: "Explore the full power of the ADL Occupational Health Intelligence Platform. Dive into country data, compare benchmarks, analyze metrics, and build your roadmap to excellence.",
     highlights: [

@@ -31,7 +31,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalMap } from "../components";
 import { ADLIcon } from "../components/ADLLogo";
-import { PillarSelectionModal } from "../components/PillarSelectionModal";
+// PillarSelectionModal removed - now using CountryDashboard
 import { apiClient } from "../services/api";
 import { cn, getApiBaseUrl, getEffectiveOHIScore } from "../lib/utils";
 import { useGeneration } from "../contexts/GenerationContext";
@@ -120,11 +120,7 @@ export function Home() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MapCountryData | null>(null);
   
-  // View Selection Modal state
-  const [viewSelectionCountry, setViewSelectionCountry] = useState<MapCountryData | null>(null);
-  
-  // Pending pillar modal ISO code (set from navigation state)
-  const [pendingPillarModalIso, setPendingPillarModalIso] = useState<string | null>(null);
+  // Country navigation is now direct to /country/:iso (CountryDashboard)
   
   // Quick Access Filters
   const [continentFilter, setContinentFilter] = useState<string>("All");
@@ -650,20 +646,6 @@ export function Home() {
         )}
       </AnimatePresence>
 
-      {/* Pillar Selection Modal */}
-      <PillarSelectionModal
-        isOpen={!!viewSelectionCountry}
-        onClose={() => setViewSelectionCountry(null)}
-        country={viewSelectionCountry ? {
-          iso_code: viewSelectionCountry.iso_code,
-          name: viewSelectionCountry.name,
-          flag_url: viewSelectionCountry.flag_url,
-          governance_score: viewSelectionCountry.governance_score,
-          pillar1_score: viewSelectionCountry.pillar1_score,
-          pillar2_score: viewSelectionCountry.pillar2_score,
-          pillar3_score: viewSelectionCountry.pillar3_score,
-        } : null}
-      />
     </div>
   );
 }
@@ -755,7 +737,7 @@ function StatsModal({
                     .map(c => (
                       <button
                         key={c.iso_code}
-                        onClick={() => { setViewSelectionCountry(c); onClose(); }}
+                        onClick={() => { navigate(`/country/${c.iso_code}`); onClose(); }}
                         className="text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
                       >
                         <p className="text-sm text-white truncate">{c.name}</p>

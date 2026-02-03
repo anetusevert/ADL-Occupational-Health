@@ -58,7 +58,21 @@ import {
   ScaleReveal,
   DramaticTextReveal,
   ShimmerOverlay,
-  PulseRing
+  PulseRing,
+  // Consulting deck layouts
+  HeroSlideLayout,
+  DataImpactLayout,
+  FrameworkLayout,
+  ComponentLayout,
+  EvidenceLayout,
+  ConsultingSlideHeader,
+  StatGrid,
+  InsightBox,
+  KeyPointsList,
+  SlideBody,
+  LogoBar,
+  SectionDivider,
+  EvidenceCard,
 } from "./premium-visuals";
 
 interface InteractionGuideModalProps {
@@ -2264,6 +2278,577 @@ function getVisualForSlide(slideId: string, options: GetVisualOptions = {}) {
 }
 
 // ============================================================================
+// CONSULTING SLIDE RENDERER - Maps slides to McKinsey-style layouts
+// ============================================================================
+
+interface RenderOptions {
+  onInsightClick?: (id: string) => void;
+  onNavigate?: (blockId: string) => void;
+  onCloseAndExplore?: () => void;
+}
+
+function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
+  const { onInsightClick, onNavigate, onCloseAndExplore } = options;
+  
+  // Get icon component for the slide
+  const getIcon = () => {
+    switch (slide.icon) {
+      case "Crown": return <Crown className="w-5 h-5 text-purple-400" />;
+      case "Shield": return <Shield className="w-5 h-5 text-blue-400" />;
+      case "Eye": return <Eye className="w-5 h-5 text-emerald-400" />;
+      case "Heart": return <Heart className="w-5 h-5 text-amber-400" />;
+      default: return null;
+    }
+  };
+
+  // Map slide types to layout templates
+  switch (slide.type) {
+    // HERO LAYOUT - Intro and CTA slides
+    case "intro":
+      return (
+        <HeroSlideLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          description={slide.content}
+          highlights={slide.highlights}
+          color={(slide.color as "cyan" | "purple" | "blue" | "emerald" | "amber") || "cyan"}
+          showLogos={true}
+          visual={<CompactIntroVisual />}
+        />
+      );
+
+    case "cta":
+      return (
+        <HeroSlideLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          description={slide.content}
+          highlights={slide.highlights}
+          color={(slide.color as "cyan" | "purple" | "blue" | "emerald" | "amber") || "cyan"}
+          showLogos={true}
+          visual={<CompactConclusionVisual />}
+          ctaButton={{
+            label: "Start Exploring",
+            onClick: onCloseAndExplore || (() => {}),
+          }}
+        />
+      );
+
+    // DATA IMPACT LAYOUT - Challenge and opportunity slides
+    case "challenge":
+      return (
+        <DataImpactLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          stats={[
+            { value: 2.9, suffix: "M", label: "Annual Deaths", color: "amber" },
+            { value: 4, suffix: "%", label: "Global GDP Lost", color: "purple" },
+            { value: 395, suffix: "M", label: "Injuries/Year", color: "blue" },
+          ]}
+          highlights={slide.highlights}
+          insight="Occupational accidents and diseases claim more lives than road accidents, malaria, and HIV/AIDS combined."
+          insightSource="ILO Global Estimates, 2024"
+          color="amber"
+          icon={<Globe className="w-5 h-5 text-amber-400" />}
+          visual={<CompactGlobeVisual />}
+        />
+      );
+
+    case "opportunity":
+      return (
+        <DataImpactLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          stats={[
+            { value: 40, suffix: "%", label: "Cost Reduction Potential", color: "emerald" },
+            { value: "#1", label: "GCC Leadership Target", color: "cyan" },
+            { value: 2030, label: "Vision Alignment", color: "purple" },
+          ]}
+          highlights={slide.highlights}
+          insight="With GOSI's institutional strength and Vision 2030 alignment, Saudi Arabia can become the regional benchmark."
+          color="cyan"
+          icon={<TrendingUp className="w-5 h-5 text-cyan-400" />}
+          visual={<CompactSaudiVisual />}
+        />
+      );
+
+    // FRAMEWORK LAYOUT - Overview and integration slides  
+    case "overview":
+      return (
+        <FrameworkLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          visual={<CompactTempleVisual />}
+          highlights={slide.highlights}
+          insight="25 key performance indicators across 4 maturity levels provide comprehensive assessment."
+          color="purple"
+          icon={<Layers className="w-5 h-5 text-purple-400" />}
+        />
+      );
+
+    case "integration":
+      return (
+        <FrameworkLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          visual={<CompactIntegrationVisual />}
+          highlights={slide.highlights}
+          insight="Countries with integrated systems show 40% lower fatality rates than those with fragmented approaches."
+          color="cyan"
+          icon={<RefreshCcw className="w-5 h-5 text-cyan-400" />}
+        />
+      );
+
+    // COMPONENT LAYOUT - Governance and pillar slides
+    case "component":
+      const componentColors: Record<string, "purple" | "blue" | "emerald" | "amber" | "cyan"> = {
+        governance: "purple",
+        "pillar-1": "blue",
+        "pillar-2": "emerald",
+        "pillar-3": "amber",
+      };
+      
+      const componentInsights: Record<string, string> = {
+        governance: "Strong governance correlates directly with lower fatality rates and better health outcomes.",
+        "pillar-1": "Every dollar invested in prevention saves $4-6 in downstream healthcare costs and lost productivity.",
+        "pillar-2": "Early detection can reduce treatment costs by 60% and prevent permanent disability.",
+        "pillar-3": "No-fault systems process claims 70% faster and achieve 80% return-to-work rates.",
+      };
+      
+      const componentVisuals: Record<string, React.ReactNode> = {
+        governance: <CompactGovernanceVisual onInsightClick={onInsightClick} />,
+        "pillar-1": <CompactPillarVisual pillar="prevention" onInsightClick={onInsightClick} />,
+        "pillar-2": <CompactPillarVisual pillar="surveillance" onInsightClick={onInsightClick} />,
+        "pillar-3": <CompactPillarVisual pillar="restoration" onInsightClick={onInsightClick} />,
+      };
+
+      return (
+        <ComponentLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          description={slide.content}
+          visual={componentVisuals[slide.componentId || "governance"]}
+          highlights={slide.highlights}
+          insight={componentInsights[slide.componentId || "governance"]}
+          color={componentColors[slide.componentId || "governance"]}
+          icon={getIcon()}
+        />
+      );
+
+    // EVIDENCE LAYOUT - Success stories and solution slides
+    case "success":
+      return (
+        <EvidenceLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          description={slide.content}
+          evidence={[
+            { flag: "🇩🇪", title: "Germany", achievement: "75% fatality reduction", detail: "Berufsgenossenschaften model since 1990" },
+            { flag: "🇸🇬", title: "Singapore", achievement: "94% compliance rate", detail: "WSH Act with escalating penalties" },
+            { flag: "🇸🇪", title: "Sweden", achievement: "Vision Zero pioneer", detail: "Zero fatalities goal by 2030" },
+            { flag: "🇯🇵", title: "Japan", achievement: "OSHMS excellence", detail: "40% fewer incidents with certification" },
+          ]}
+          highlights={slide.highlights?.slice(0, 2)}
+          insight="These nations demonstrate that comprehensive frameworks deliver measurable results."
+          color="emerald"
+          icon={<Globe className="w-5 h-5 text-emerald-400" />}
+        />
+      );
+
+    case "solution":
+      return (
+        <EvidenceLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          description={slide.content}
+          evidence={[
+            { title: "100+ Years", achievement: "Consulting Excellence", detail: "Founded in 1886" },
+            { title: "40+ Countries", achievement: "Global Presence", detail: "Worldwide expertise" },
+            { title: "Healthcare", achievement: "Deep Expertise", detail: "Public sector specialists" },
+            { title: "Proprietary", achievement: "Data Methodology", detail: "Evidence-based insights" },
+          ]}
+          highlights={slide.highlights?.slice(0, 2)}
+          color="purple"
+          icon={<Briefcase className="w-5 h-5 text-purple-400" />}
+          gridColumns={4}
+        />
+      );
+
+    default:
+      return (
+        <FrameworkLayout
+          actionTitle={slide.actionTitle}
+          subtitle={slide.subtitle}
+          visual={<div className="text-white/50">Content loading...</div>}
+          highlights={slide.highlights}
+          color={(slide.color as "cyan" | "purple" | "blue" | "emerald" | "amber") || "cyan"}
+        />
+      );
+  }
+}
+
+// ============================================================================
+// COMPACT VISUALS - Simplified versions for consulting layouts
+// ============================================================================
+
+function CompactIntroVisual() {
+  return (
+    <div className="relative w-64 h-64 flex items-center justify-center">
+      {/* Central logo glow */}
+      <motion.div
+        className="absolute inset-0 flex items-center justify-center"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <GlowOrb color="cyan" size="xl" intensity="high">
+          <div className="flex items-center gap-3">
+            <img src="/adl-logo.png" alt="ADL" className="h-12 object-contain" />
+          </div>
+        </GlowOrb>
+      </motion.div>
+      
+      {/* Orbiting rings */}
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute border border-cyan-500/20 rounded-full"
+          style={{ 
+            width: `${180 + i * 40}px`, 
+            height: `${180 + i * 40}px`,
+          }}
+          animate={{ rotate: 360, opacity: [0.2, 0.5, 0.2] }}
+          transition={{ 
+            rotate: { duration: 20 + i * 5, repeat: Infinity, ease: "linear" },
+            opacity: { duration: 3, repeat: Infinity }
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CompactConclusionVisual() {
+  const pillars = [
+    { icon: Crown, color: "purple", label: "Governance" },
+    { icon: Shield, color: "blue", label: "Prevention" },
+    { icon: Eye, color: "emerald", label: "Surveillance" },
+    { icon: Heart, color: "amber", label: "Restoration" },
+  ];
+  
+  return (
+    <div className="relative w-80 h-40 flex items-center justify-center">
+      <div className="flex gap-6">
+        {pillars.map((p, i) => (
+          <motion.div
+            key={i}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: i * 0.15, type: "spring" }}
+            className="flex flex-col items-center gap-2"
+          >
+            <IconGlow color={p.color as "purple" | "cyan" | "blue" | "emerald" | "amber"}>
+              <p.icon className="w-6 h-6 text-white" />
+            </IconGlow>
+            <span className="text-xs text-white/60">{p.label}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompactGlobeVisual() {
+  return (
+    <div className="relative w-32 h-32 flex items-center justify-center">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+      >
+        <GlowOrb color="amber" size="lg" intensity="medium">
+          <Globe className="w-10 h-10 text-white" />
+        </GlowOrb>
+      </motion.div>
+      <PulseRing color="amber" delay={0} />
+      <PulseRing color="amber" delay={1} />
+    </div>
+  );
+}
+
+function CompactSaudiVisual() {
+  return (
+    <div className="relative w-32 h-32 flex items-center justify-center">
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <GlowOrb color="cyan" size="lg" intensity="high">
+          <span className="text-4xl">🇸🇦</span>
+        </GlowOrb>
+      </motion.div>
+      <motion.div
+        className="absolute -top-2 -right-2"
+        animate={{ y: [-2, 2, -2], rotate: [0, 5, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <TrendingUp className="w-6 h-6 text-cyan-400" />
+      </motion.div>
+    </div>
+  );
+}
+
+function CompactTempleVisual() {
+  return (
+    <div className="relative w-full max-w-md">
+      {/* Governance roof */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="relative mx-auto w-3/4 h-16 bg-gradient-to-b from-purple-500/30 to-purple-600/10 border border-purple-500/40 rounded-t-lg flex items-center justify-center"
+      >
+        <Crown className="w-8 h-8 text-purple-400" />
+        <span className="ml-2 text-purple-300 font-semibold">Governance</span>
+      </motion.div>
+      
+      {/* Pillars */}
+      <div className="flex justify-center gap-4 mt-2">
+        {[
+          { icon: Shield, color: "blue", label: "Prevention" },
+          { icon: Eye, color: "emerald", label: "Surveillance" },
+          { icon: Heart, color: "amber", label: "Restoration" },
+        ].map((p, i) => (
+          <motion.div
+            key={i}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 + i * 0.15, duration: 0.5 }}
+            className={cn(
+              "w-24 h-28 rounded-lg border flex flex-col items-center justify-center gap-2",
+              `bg-${p.color}-500/20 border-${p.color}-500/40`
+            )}
+            style={{
+              background: p.color === "blue" ? "rgba(37,99,235,0.2)" : 
+                          p.color === "emerald" ? "rgba(16,185,129,0.2)" : 
+                          "rgba(245,158,11,0.2)",
+              borderColor: p.color === "blue" ? "rgba(37,99,235,0.4)" : 
+                           p.color === "emerald" ? "rgba(16,185,129,0.4)" : 
+                           "rgba(245,158,11,0.4)"
+            }}
+          >
+            <p.icon className={cn("w-6 h-6", 
+              p.color === "blue" ? "text-blue-400" : 
+              p.color === "emerald" ? "text-emerald-400" : 
+              "text-amber-400"
+            )} />
+            <span className="text-xs text-white/70">{p.label}</span>
+          </motion.div>
+        ))}
+      </div>
+      
+      {/* Foundation */}
+      <motion.div
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
+        className="mt-2 h-6 bg-slate-700/50 rounded border border-white/10 flex items-center justify-center"
+      >
+        <Database className="w-4 h-4 text-slate-400" />
+        <span className="ml-2 text-xs text-slate-400">Data Foundation</span>
+      </motion.div>
+    </div>
+  );
+}
+
+function CompactIntegrationVisual() {
+  return (
+    <div className="relative w-full max-w-md h-48 flex items-center justify-center">
+      {/* Central hub */}
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className="absolute"
+      >
+        <GlowOrb color="cyan" size="md" intensity="medium">
+          <RefreshCcw className="w-6 h-6 text-white" />
+        </GlowOrb>
+      </motion.div>
+      
+      {/* Connected nodes */}
+      {[
+        { angle: 0, icon: Crown, color: "purple", label: "Governance" },
+        { angle: 90, icon: Shield, color: "blue", label: "Prevention" },
+        { angle: 180, icon: Eye, color: "emerald", label: "Surveillance" },
+        { angle: 270, icon: Heart, color: "amber", label: "Restoration" },
+      ].map((node, i) => {
+        const radius = 80;
+        const x = Math.cos((node.angle * Math.PI) / 180) * radius;
+        const y = Math.sin((node.angle * Math.PI) / 180) * radius;
+        return (
+          <motion.div
+            key={i}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.3 + i * 0.15 }}
+            className="absolute flex flex-col items-center"
+            style={{ transform: `translate(${x}px, ${y}px)` }}
+          >
+            <IconGlow color={node.color as "purple" | "cyan" | "blue" | "emerald" | "amber"}>
+              <node.icon className="w-5 h-5 text-white" />
+            </IconGlow>
+            <span className="text-[10px] text-white/50 mt-1">{node.label}</span>
+          </motion.div>
+        );
+      })}
+      
+      {/* Connection lines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: "translate(50%, 50%)" }}>
+        {[0, 1, 2, 3].map((i) => {
+          const angle1 = i * 90;
+          const angle2 = ((i + 1) % 4) * 90;
+          const radius = 80;
+          const x1 = Math.cos((angle1 * Math.PI) / 180) * radius;
+          const y1 = Math.sin((angle1 * Math.PI) / 180) * radius;
+          const x2 = Math.cos((angle2 * Math.PI) / 180) * radius;
+          const y2 = Math.sin((angle2 * Math.PI) / 180) * radius;
+          return (
+            <motion.line
+              key={i}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="rgba(6,182,212,0.3)"
+              strokeWidth="1"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+interface CompactGovernanceVisualProps {
+  onInsightClick?: (id: string) => void;
+}
+
+function CompactGovernanceVisual({ onInsightClick }: CompactGovernanceVisualProps) {
+  const elements = [
+    { id: "legislative-backbone", icon: FileCheck, label: "Legislative" },
+    { id: "enforcement", icon: Scale, label: "Enforcement" },
+    { id: "national-culture", icon: Users, label: "Culture" },
+    { id: "strategic-capacity", icon: Briefcase, label: "Capacity" },
+  ];
+  
+  return (
+    <div className="relative flex flex-col items-center">
+      {/* Central crown */}
+      <GlowOrb color="purple" size="lg" intensity="high">
+        <Crown className="w-8 h-8 text-white" />
+      </GlowOrb>
+      
+      {/* Elements grid */}
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        {elements.map((el, i) => (
+          <motion.button
+            key={el.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.1 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => onInsightClick?.(el.id)}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg text-left"
+          >
+            <el.icon className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <span className="text-xs text-white/80">{el.label}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface CompactPillarVisualProps {
+  pillar: "prevention" | "surveillance" | "restoration";
+  onInsightClick?: (id: string) => void;
+}
+
+function CompactPillarVisual({ pillar, onInsightClick }: CompactPillarVisualProps) {
+  const config = {
+    prevention: {
+      icon: Shield,
+      color: "blue" as const,
+      elements: [
+        { id: "hazard-registry", icon: Beaker, label: "Hazard Registry" },
+        { id: "control-maturity", icon: HardHat, label: "Control Maturity" },
+        { id: "risk-assessment", icon: Activity, label: "Risk Assessment" },
+        { id: "climate-defense", icon: Thermometer, label: "Climate Defense" },
+      ],
+    },
+    surveillance: {
+      icon: Eye,
+      color: "emerald" as const,
+      elements: [
+        { id: "active-surveillance", icon: Activity, label: "Active Monitoring" },
+        { id: "health-monitoring", icon: Stethoscope, label: "Health Exams" },
+        { id: "vulnerability-index", icon: Users, label: "Vulnerability" },
+        { id: "early-warning", icon: Bell, label: "Early Warning" },
+      ],
+    },
+    restoration: {
+      icon: Heart,
+      color: "amber" as const,
+      elements: [
+        { id: "payer-mechanism", icon: Wallet, label: "Payer System" },
+        { id: "rehabilitation", icon: Activity, label: "Rehabilitation" },
+        { id: "return-to-work", icon: UserCheck, label: "Return to Work" },
+        { id: "compensation", icon: Building2, label: "Compensation" },
+      ],
+    },
+  };
+  
+  const { icon: MainIcon, color, elements } = config[pillar];
+  
+  return (
+    <div className="relative flex flex-col items-center">
+      {/* Central icon */}
+      <GlowOrb color={color} size="lg" intensity="high">
+        <MainIcon className="w-8 h-8 text-white" />
+      </GlowOrb>
+      
+      {/* Elements grid */}
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        {elements.map((el, i) => (
+          <motion.button
+            key={el.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.1 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => onInsightClick?.(el.id)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-lg text-left border",
+              color === "blue" && "bg-blue-500/10 border-blue-500/30",
+              color === "emerald" && "bg-emerald-500/10 border-emerald-500/30",
+              color === "amber" && "bg-amber-500/10 border-amber-500/30"
+            )}
+          >
+            <el.icon className={cn(
+              "w-4 h-4 flex-shrink-0",
+              color === "blue" && "text-blue-400",
+              color === "emerald" && "text-emerald-400",
+              color === "amber" && "text-amber-400"
+            )} />
+            <span className="text-xs text-white/80">{el.label}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // CONTENT PANEL - Left Side
 // ============================================================================
 
@@ -2707,60 +3292,41 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
               />
             )}
 
-            {/* Main Content - Stacked on mobile, side-by-side on desktop */}
+            {/* Main Content - Full-width Consulting Deck Layout */}
             {!showLoader && slide && (
-              <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-                {/* Left - Content (full width mobile, 40% desktop) */}
-                <div className="w-full lg:w-2/5 flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-700/50 bg-slate-900 max-h-[50%] lg:max-h-none overflow-auto">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={slide.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex-1 min-h-0 overflow-hidden"
-                    >
-                      <ContentPanel slide={slide} />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
+              <div className="flex-1 min-h-0 overflow-hidden relative">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slide.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="absolute inset-0"
+                  >
+                    {renderConsultingSlide(slide, {
+                      onInsightClick: handleInsightClick,
+                      onNavigate: handleNavigateToBlock,
+                      onCloseAndExplore: handleCloseAndExplore
+                    })}
+                  </motion.div>
+                </AnimatePresence>
 
-                {/* Right - Dynamic Animated Visualization (60%) */}
-                <div className="w-3/5 relative bg-gradient-to-br from-slate-800/80 to-slate-900 overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={slide.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                      className="absolute inset-0"
-                    >
-                      {getVisualForSlide(slide.id, {
-                        onInsightClick: handleInsightClick,
-                        onNavigate: handleNavigateToBlock,
-                        onCloseAndExplore: handleCloseAndExplore
-                      })}
-                    </motion.div>
-                  </AnimatePresence>
+                {/* Insight Overlay - Shows when user clicks on visual elements */}
+                <InsightOverlay
+                  insight={activeInsight}
+                  onClose={handleCloseInsight}
+                  color={slide?.color || "cyan"}
+                />
 
-                  {/* Insight Overlay - Shows when user clicks on visual elements */}
-                  <InsightOverlay
-                    insight={activeInsight}
-                    onClose={handleCloseInsight}
-                    color={slide?.color || "cyan"}
-                  />
-
-                  {/* Slide number */}
-                  <div className="absolute bottom-4 right-4 flex items-baseline gap-1">
-                    <span className={cn("text-3xl font-bold", c.text)}>
-                      {String(currentSlide + 1).padStart(2, '0')}
-                    </span>
-                    <span className="text-slate-500 text-lg">
-                      /{String(guideSlides.length).padStart(2, '0')}
-                    </span>
-                  </div>
+                {/* Slide number - Bottom right */}
+                <div className="absolute bottom-4 right-4 z-10 flex items-baseline gap-1 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                  <span className={cn("text-2xl font-bold", c.text)}>
+                    {String(currentSlide + 1).padStart(2, '0')}
+                  </span>
+                  <span className="text-slate-500 text-base">
+                    /{String(guideSlides.length).padStart(2, '0')}
+                  </span>
                 </div>
               </div>
             )}

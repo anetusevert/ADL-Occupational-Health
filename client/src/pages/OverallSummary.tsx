@@ -780,7 +780,7 @@ export function OverallSummary() {
         <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
+              onClick={() => navigate(`/country/${iso}`)}
               className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-4 h-4 text-white/60" />
@@ -828,7 +828,7 @@ export function OverallSummary() {
               </button>
             ) : (
               <button
-                onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
+                onClick={() => navigate(`/country/${iso}`)}
                 className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors"
               >
                 Return to Country Options
@@ -848,7 +848,7 @@ export function OverallSummary() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/home", { state: { openPillarModal: iso } })}
+            onClick={() => navigate(`/country/${iso}`)}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
             title="Back to Country Options"
           >

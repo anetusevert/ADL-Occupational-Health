@@ -17,3 +17,24 @@ export {
   ShimmerOverlay,
   PulseRing 
 } from "./HeroReveal";
+
+// Consulting Deck Layout Components
+export {
+  ConsultingSlideHeader,
+  StatGrid,
+  InsightBox,
+  EvidenceCard,
+  KeyPointsList,
+  SlideBody,
+  LogoBar,
+  SectionDivider,
+} from "./ConsultingLayouts";
+
+// Slide Layout Templates
+export {
+  HeroSlideLayout,
+  DataImpactLayout,
+  FrameworkLayout,
+  ComponentLayout,
+  EvidenceLayout,
+} from "./SlideTemplates";
