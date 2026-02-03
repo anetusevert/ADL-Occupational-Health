@@ -8,6 +8,7 @@
  * - Bottom Row: Country Insights (full width - 6 tiles)
  * 
  * Central modal opens when clicking ANY tile on the page.
+ * ALL tiles (Economic, Pillars, Country Insights) open the CentralInsightModal.
  */
 
 import { useState, useMemo } from "react";
