@@ -98,7 +98,28 @@ const colorMap: Record<string, {
     text: "text-cyan-400",
     glow: "shadow-cyan-500/20",
   },
+  teal: {
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/30",
+    text: "text-teal-400",
+    glow: "shadow-teal-500/20",
+  },
+  rose: {
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+    text: "text-rose-400",
+    glow: "shadow-rose-500/20",
+  },
+  slate: {
+    bg: "bg-slate-500/10",
+    border: "border-slate-500/30",
+    text: "text-slate-400",
+    glow: "shadow-slate-500/20",
+  },
 };
+
+// Safe color getter with fallback
+const getColor = (color: string | undefined) => colorMap[color || "cyan"] || colorMap.cyan;
 
 // Modal header icon and color based on card type
 const cardTypeConfig: Record<StatCardType, {
@@ -133,7 +154,7 @@ const cardTypeConfig: Record<StatCardType, {
  */
 function ComponentCard({ item, index }: { item: StatCardContent["items"][0]; index: number }) {
   const Icon = item.icon ? iconMap[item.icon] : Layers;
-  const colors = item.color ? colorMap[item.color] : colorMap.cyan;
+  const colors = getColor(item.color);
 
   return (
     <motion.div
@@ -170,7 +191,7 @@ function ComponentCard({ item, index }: { item: StatCardContent["items"][0]; ind
  * Metric Card - For displaying assessment metrics
  */
 function MetricCard({ item, index }: { item: StatCardContent["items"][0]; index: number }) {
-  const colors = item.color ? colorMap[item.color] : colorMap.cyan;
+  const colors = getColor(item.color);
 
   return (
     <motion.div
@@ -212,7 +233,7 @@ function MetricCard({ item, index }: { item: StatCardContent["items"][0]; index:
  * Best Practice Card - For displaying country examples (legacy static content)
  */
 function BestPracticeCard({ item, index }: { item: StatCardContent["items"][0]; index: number }) {
-  const colors = item.color ? colorMap[item.color] : colorMap.cyan;
+  const colors = getColor(item.color);
   const [country, practice] = item.name.split(" - ");
 
   return (
@@ -406,7 +427,7 @@ function BestPracticesContent() {
  * Maturity Level Card - For displaying maturity stages
  */
 function MaturityCard({ item, index }: { item: StatCardContent["items"][0]; index: number }) {
-  const colors = item.color ? colorMap[item.color] : colorMap.cyan;
+  const colors = getColor(item.color);
 
   return (
     <motion.div
