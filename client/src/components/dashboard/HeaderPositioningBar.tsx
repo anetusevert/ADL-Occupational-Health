@@ -96,7 +96,7 @@ function MiniBar({ metric, onHover, isHovered }: MiniBarProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-48"
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[100] w-48"
           >
             <div className="bg-slate-800 border border-white/10 rounded-xl shadow-2xl p-3 backdrop-blur-xl">
               {/* Header */}

@@ -1,23 +1,30 @@
 /**
  * Central Insight Modal Component
  * 
- * Premium, centered modal with:
- * - Smaller, focused design (not full screen)
+ * Premium, centered modal with different layouts:
+ * - Economic tiles: Charts and data comparison (no images)
+ * - Country insights: Images with "[Country] [Topic]" + "OH Perspective" format
+ * 
+ * Features:
  * - Framer Motion animations throughout
- * - Country-specific images from curated Unsplash
- * - Consulting-style analysis with key stats tiles
+ * - Recharts visualizations for economic data
  * - Admin-only regenerate button
+ * - Persistent data via backend API
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, ChevronLeft, ChevronRight, RefreshCw, Loader2,
   Briefcase, Globe2, Users, TrendingUp, Info,
   Crown, Shield, Eye, HeartPulse, Activity,
   Lightbulb, Building2, Factory, MapPin, UserCheck, Landmark,
-  AlertTriangle, Heart, Percent, DollarSign
+  AlertTriangle, Heart, DollarSign, BarChart3, TrendingDown, Minus
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  Cell, ReferenceLine
+} from "recharts";
 import { cn } from "../../lib/utils";
 
 // Define InsightCategory locally to avoid circular dependency with CountryDashboard
@@ -29,6 +36,10 @@ export type InsightCategory =
   // Country insights
   | "culture" | "oh-infrastructure" | "industry" 
   | "urban" | "workforce" | "political";
+
+// Economic categories that show charts instead of images
+const ECONOMIC_CATEGORIES: InsightCategory[] = ["labor-force", "gdp-per-capita", "population", "unemployment"];
+const COUNTRY_INSIGHT_CATEGORIES: InsightCategory[] = ["culture", "oh-infrastructure", "industry", "urban", "workforce", "political"];
 
 // ============================================================================
 // TYPES
@@ -42,6 +53,19 @@ interface CentralInsightModalProps {
   countryName: string;
   isAdmin: boolean;
   onRegenerate?: () => void;
+  // Economic data from parent
+  economicData?: {
+    laborForce?: number | null;
+    gdpPerCapita?: number | null;
+    population?: number | null;
+    unemploymentRate?: number | null;
+    youthUnemployment?: number | null;
+    informalEmployment?: number | null;
+    gdpGrowth?: number | null;
+    urbanPopulation?: number | null;
+    medianAge?: number | null;
+    lifeExpectancy?: number | null;
+  };
 }
 
 interface KeyStat {
@@ -52,17 +76,64 @@ interface KeyStat {
 }
 
 interface InsightData {
-  images: {
-    url: string;
-    alt: string;
-    photographer?: string;
-  }[];
+  images: { url: string; alt: string }[];
   whatIsAnalysis: string;
   ohImplications: string;
   keyStats: KeyStat[];
   status: "pending" | "generating" | "completed" | "error";
   generatedAt?: string;
 }
+
+// ============================================================================
+// GLOBAL BENCHMARKS (World Bank/ILO Data 2023)
+// ============================================================================
+
+interface GlobalBenchmark {
+  min: number;
+  max: number;
+  avg: number;
+  median: number;
+  p25: number;
+  p75: number;
+  unit: string;
+  higherIsBetter: boolean;
+  label: string;
+}
+
+const GLOBAL_BENCHMARKS: Record<string, GlobalBenchmark> = {
+  labor_force_participation: {
+    min: 35, max: 88, avg: 60.3, median: 61, p25: 52, p75: 68,
+    unit: "%", higherIsBetter: true, label: "Labor Force Participation"
+  },
+  gdp_per_capita_ppp: {
+    min: 800, max: 140000, avg: 18500, median: 14200, p25: 5800, p75: 35000,
+    unit: "$", higherIsBetter: true, label: "GDP per Capita (PPP)"
+  },
+  population_total: {
+    min: 10000, max: 1400000000, avg: 40000000, median: 8500000, p25: 2000000, p75: 30000000,
+    unit: "", higherIsBetter: false, label: "Population"
+  },
+  unemployment_rate: {
+    min: 0.5, max: 35, avg: 6.8, median: 5.5, p25: 3.5, p75: 9,
+    unit: "%", higherIsBetter: false, label: "Unemployment Rate"
+  },
+  youth_unemployment_rate: {
+    min: 1, max: 65, avg: 15.5, median: 13, p25: 8, p75: 22,
+    unit: "%", higherIsBetter: false, label: "Youth Unemployment"
+  },
+  informal_employment_pct: {
+    min: 2, max: 95, avg: 45, median: 42, p25: 18, p75: 70,
+    unit: "%", higherIsBetter: false, label: "Informal Employment"
+  },
+  gdp_growth_rate: {
+    min: -15, max: 25, avg: 3.2, median: 3, p25: 1.5, p75: 5,
+    unit: "%", higherIsBetter: true, label: "GDP Growth"
+  },
+  urban_population_pct: {
+    min: 12, max: 100, avg: 56, median: 58, p25: 38, p75: 78,
+    unit: "%", higherIsBetter: false, label: "Urban Population"
+  },
+};
 
 // ============================================================================
 // CATEGORY CONFIGURATION
@@ -75,6 +146,7 @@ interface CategoryConfig {
   bgColor: string;
   borderColor: string;
   gradient: string;
+  chartColor: string;
 }
 
 const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
@@ -85,6 +157,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-emerald-500/20",
     borderColor: "border-emerald-500/30",
     gradient: "from-emerald-500/20 to-emerald-600/5",
+    chartColor: "#34d399",
   },
   "gdp-per-capita": {
     title: "Economic Output",
@@ -93,6 +166,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-cyan-500/20",
     borderColor: "border-cyan-500/30",
     gradient: "from-cyan-500/20 to-cyan-600/5",
+    chartColor: "#22d3ee",
   },
   "population": {
     title: "Demographics",
@@ -101,6 +175,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-purple-500/20",
     borderColor: "border-purple-500/30",
     gradient: "from-purple-500/20 to-purple-600/5",
+    chartColor: "#a78bfa",
   },
   "unemployment": {
     title: "Employment Status",
@@ -109,6 +184,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-amber-500/20",
     borderColor: "border-amber-500/30",
     gradient: "from-amber-500/20 to-amber-600/5",
+    chartColor: "#fbbf24",
   },
   "governance": {
     title: "Governance",
@@ -117,6 +193,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-purple-500/20",
     borderColor: "border-purple-500/30",
     gradient: "from-purple-500/20 to-purple-600/5",
+    chartColor: "#a78bfa",
   },
   "hazard-control": {
     title: "Hazard Control",
@@ -125,6 +202,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
     gradient: "from-blue-500/20 to-blue-600/5",
+    chartColor: "#60a5fa",
   },
   "vigilance": {
     title: "Vigilance",
@@ -133,6 +211,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-teal-500/20",
     borderColor: "border-teal-500/30",
     gradient: "from-teal-500/20 to-teal-600/5",
+    chartColor: "#2dd4bf",
   },
   "restoration": {
     title: "Restoration",
@@ -141,6 +220,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-amber-500/20",
     borderColor: "border-amber-500/30",
     gradient: "from-amber-500/20 to-amber-600/5",
+    chartColor: "#fbbf24",
   },
   "culture": {
     title: "Culture & Society",
@@ -149,6 +229,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-rose-500/20",
     borderColor: "border-rose-500/30",
     gradient: "from-rose-500/20 to-rose-600/5",
+    chartColor: "#fb7185",
   },
   "oh-infrastructure": {
     title: "OH Infrastructure",
@@ -157,6 +238,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
     gradient: "from-blue-500/20 to-blue-600/5",
+    chartColor: "#60a5fa",
   },
   "industry": {
     title: "Industry & Economy",
@@ -165,6 +247,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-cyan-500/20",
     borderColor: "border-cyan-500/30",
     gradient: "from-cyan-500/20 to-cyan-600/5",
+    chartColor: "#22d3ee",
   },
   "urban": {
     title: "Urban Development",
@@ -173,6 +256,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-indigo-500/20",
     borderColor: "border-indigo-500/30",
     gradient: "from-indigo-500/20 to-indigo-600/5",
+    chartColor: "#818cf8",
   },
   "workforce": {
     title: "Workforce Demographics",
@@ -181,6 +265,7 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-emerald-500/20",
     borderColor: "border-emerald-500/30",
     gradient: "from-emerald-500/20 to-emerald-600/5",
+    chartColor: "#34d399",
   },
   "political": {
     title: "Political Capacity",
@@ -189,273 +274,210 @@ const CATEGORY_CONFIGS: Record<InsightCategory, CategoryConfig> = {
     bgColor: "bg-violet-500/20",
     borderColor: "border-violet-500/30",
     gradient: "from-violet-500/20 to-violet-600/5",
+    chartColor: "#8b5cf6",
   },
 };
 
 // ============================================================================
-// CURATED COUNTRY IMAGES
+// ECONOMIC DATA HELPERS
 // ============================================================================
 
-// Pre-selected high-quality images from Unsplash for specific countries
-const COUNTRY_IMAGES: Record<string, Record<string, string[]>> = {
-  CAN: {
-    default: [
-      "https://images.unsplash.com/photo-1517935706615-2717063c2225?w=600&q=80", // Toronto skyline
-      "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=600&q=80", // Canadian mountains
-      "https://images.unsplash.com/photo-1569681157752-1e188e28a46a?w=600&q=80", // Vancouver
-    ],
-    "oh-infrastructure": [
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80", // Hospital
-      "https://images.unsplash.com/photo-1504813184591-01572f98c85f?w=600&q=80", // Medical facility
-    ],
-    industry: [
-      "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=600&q=80", // Oil industry
-      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", // Construction
+interface EconomicMetricConfig {
+  key: string;
+  benchmarkKey: string;
+  label: string;
+  format: (v: number) => string;
+  relatedMetrics: { key: string; benchmarkKey: string; label: string }[];
+}
+
+const ECONOMIC_METRIC_CONFIGS: Record<string, EconomicMetricConfig> = {
+  "labor-force": {
+    key: "laborForce",
+    benchmarkKey: "labor_force_participation",
+    label: "Labor Force Participation Rate",
+    format: (v) => `${v.toFixed(1)}%`,
+    relatedMetrics: [
+      { key: "informalEmployment", benchmarkKey: "informal_employment_pct", label: "Informal Employment" },
+      { key: "urbanPopulation", benchmarkKey: "urban_population_pct", label: "Urban Population" },
     ],
   },
-  SAU: {
-    default: [
-      "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&q=80", // Mecca
-      "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=600&q=80", // Riyadh
-      "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=600&q=80", // Saudi culture
+  "gdp-per-capita": {
+    key: "gdpPerCapita",
+    benchmarkKey: "gdp_per_capita_ppp",
+    label: "GDP per Capita (PPP)",
+    format: (v) => `$${(v / 1000).toFixed(1)}K`,
+    relatedMetrics: [
+      { key: "gdpGrowth", benchmarkKey: "gdp_growth_rate", label: "GDP Growth Rate" },
+    ],
+  },
+  "population": {
+    key: "population",
+    benchmarkKey: "population_total",
+    label: "Total Population",
+    format: (v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}K`,
+    relatedMetrics: [
+      { key: "medianAge", benchmarkKey: "median_age", label: "Median Age" },
+      { key: "urbanPopulation", benchmarkKey: "urban_population_pct", label: "Urban Population %" },
+    ],
+  },
+  "unemployment": {
+    key: "unemploymentRate",
+    benchmarkKey: "unemployment_rate",
+    label: "Unemployment Rate",
+    format: (v) => `${v.toFixed(1)}%`,
+    relatedMetrics: [
+      { key: "youthUnemployment", benchmarkKey: "youth_unemployment_rate", label: "Youth Unemployment" },
+      { key: "informalEmployment", benchmarkKey: "informal_employment_pct", label: "Informal Employment" },
+    ],
+  },
+};
+
+function getPercentilePosition(value: number, benchmark: GlobalBenchmark): number {
+  const { min, max, higherIsBetter } = benchmark;
+  const clamped = Math.max(min, Math.min(max, value));
+  const rawPercentile = ((clamped - min) / (max - min)) * 100;
+  return higherIsBetter ? rawPercentile : (100 - rawPercentile);
+}
+
+function getPositionLabel(percentile: number): { label: string; color: string; bgColor: string } {
+  if (percentile >= 75) return { label: "Top 25%", color: "text-emerald-400", bgColor: "bg-emerald-500/20" };
+  if (percentile >= 50) return { label: "Above Average", color: "text-cyan-400", bgColor: "bg-cyan-500/20" };
+  if (percentile >= 25) return { label: "Below Average", color: "text-amber-400", bgColor: "bg-amber-500/20" };
+  return { label: "Bottom 25%", color: "text-red-400", bgColor: "bg-red-500/20" };
+}
+
+// ============================================================================
+// COUNTRY INSIGHT IMAGES (Curated per country/category)
+// ============================================================================
+
+const COUNTRY_IMAGES: Record<string, Record<string, string[]>> = {
+  IRN: {
+    culture: [
+      "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=600&q=80", // Iranian architecture
+      "https://images.unsplash.com/photo-1576834252613-8bd91e19c3c7?w=600&q=80", // Persian culture
+    ],
+    "oh-infrastructure": [
+      "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=600&q=80", // Hospital
+      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80", // Medical facility
     ],
     industry: [
       "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=600&q=80", // Oil refinery
       "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", // Construction
     ],
+    urban: [
+      "https://images.unsplash.com/photo-1562594980-47ab4adfa6d1?w=600&q=80", // Tehran
+      "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&q=80", // Iranian city
+    ],
+    workforce: [
+      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", // Workers
+      "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=600&q=80", // Office
+    ],
+    political: [
+      "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80", // Government
+      "https://images.unsplash.com/photo-1575540325855-4b5c1ad86a7a?w=600&q=80", // Parliament
+    ],
+  },
+  SAU: {
+    culture: [
+      "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=600&q=80", // Saudi culture
+      "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&q=80", // Mecca
+    ],
     "oh-infrastructure": [
       "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80", // Hospital
       "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=600&q=80", // Medical center
     ],
-  },
-  DEU: {
-    default: [
-      "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&q=80", // Brandenburg Gate
-      "https://images.unsplash.com/photo-1560969184-10fe8719e047?w=600&q=80", // Berlin
-      "https://images.unsplash.com/photo-1449452198679-05c7fd30f416?w=600&q=80", // German cityscape
-    ],
     industry: [
-      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=600&q=80", // German industry
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80", // Manufacturing
-    ],
-  },
-  USA: {
-    default: [
-      "https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=600&q=80", // Statue of Liberty
-      "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80", // NYC skyline
-      "https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=600&q=80", // Capitol
-    ],
-    industry: [
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80", // Tech industry
+      "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=600&q=80", // Oil refinery
       "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", // Construction
     ],
-  },
-  GBR: {
-    default: [
-      "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80", // London Tower Bridge
-      "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=600&q=80", // Parliament
-      "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=600&q=80", // Big Ben
+    urban: [
+      "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=600&q=80", // Riyadh
+      "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&q=80", // Saudi city
     ],
-  },
-  JPN: {
-    default: [
-      "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80", // Mount Fuji
-      "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80", // Tokyo
-      "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80", // Japanese temple
+    workforce: [
+      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", // Workers
+      "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=600&q=80", // Office
     ],
-  },
-  AUS: {
-    default: [
-      "https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?w=600&q=80", // Sydney Opera
-      "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=600&q=80", // Sydney harbor
-      "https://images.unsplash.com/photo-1494233892892-84542a694e72?w=600&q=80", // Australian coast
+    political: [
+      "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80", // Government
+      "https://images.unsplash.com/photo-1575540325855-4b5c1ad86a7a?w=600&q=80", // Official building
     ],
   },
 };
 
-// Fallback images for categories
 const CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
-  "oh-infrastructure": [
-    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80",
-    "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=600&q=80",
-  ],
-  industry: [
-    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80",
-    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80",
-  ],
-  culture: [
-    "https://images.unsplash.com/photo-1533669955142-6a73332af4db?w=600&q=80",
-    "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=600&q=80",
-  ],
-  workforce: [
-    "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80",
-    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80",
-  ],
-  political: [
-    "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80",
-    "https://images.unsplash.com/photo-1575540325855-4b5c1ad86a7a?w=600&q=80",
-  ],
-  urban: [
-    "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80",
-    "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80",
-  ],
-  default: [
-    "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80",
-    "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80",
-  ],
+  culture: ["https://images.unsplash.com/photo-1533669955142-6a73332af4db?w=600&q=80"],
+  "oh-infrastructure": ["https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80"],
+  industry: ["https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80"],
+  urban: ["https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80"],
+  workforce: ["https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80"],
+  political: ["https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80"],
 };
 
 function getCountryImages(countryIso: string, category: string): string[] {
-  // Try country-specific images for category
   const countryData = COUNTRY_IMAGES[countryIso];
-  if (countryData) {
-    if (countryData[category]) return countryData[category];
-    if (countryData.default) return countryData.default;
-  }
-  // Fallback to category images
-  return CATEGORY_FALLBACK_IMAGES[category] || CATEGORY_FALLBACK_IMAGES.default;
+  if (countryData?.[category]) return countryData[category];
+  return CATEGORY_FALLBACK_IMAGES[category] || CATEGORY_FALLBACK_IMAGES.culture;
 }
 
 // ============================================================================
-// COUNTRY-SPECIFIC CONTENT
+// COUNTRY INSIGHT CONTENT
 // ============================================================================
 
-interface CountryContent {
-  whatIs: string;
-  ohMeaning: string;
-  keyStats: KeyStat[];
-}
-
-function getCountrySpecificContent(
+function getCountryInsightContent(
   category: InsightCategory,
   countryIso: string,
   countryName: string
-): CountryContent {
-  // Country-specific content database
-  const contentDb: Record<string, Record<string, CountryContent>> = {
-    CAN: {
-      "oh-infrastructure": {
-        whatIs: `Canada operates one of the most comprehensive occupational health infrastructures in North America. The Canadian Centre for Occupational Health and Safety (CCOHS) serves as the national resource center, while each province maintains its own workers' compensation board and OH regulatory agencies.
+): { whatIs: string; ohMeaning: string; keyStats: KeyStat[] } {
+  // Default content - would be replaced by AI-generated content from backend
+  const defaultContent: Record<string, { whatIs: string; ohMeaning: string; keyStats: KeyStat[] }> = {
+    industry: {
+      whatIs: `${countryName}'s industrial composition reflects its economic development stage and resource endowments. The primary sectors include manufacturing, construction, extractive industries, and services. Each sector presents distinct employment patterns and economic contributions.
 
-Ontario's Workplace Safety and Insurance Board (WSIB) and similar provincial bodies manage over $5 billion annually in workers' compensation claims. Major rehabilitation facilities include the Institute for Work & Health in Toronto and WorkSafeBC's rehabilitation centers.
+Industrial activity is concentrated in major urban centers and specialized economic zones. The manufacturing sector includes both traditional industries and emerging high-tech sectors. Construction activity supports ongoing infrastructure development and urbanization.
 
-Canada's network includes 15 accredited occupational medicine residency programs and over 2,000 certified occupational health nurses. The country has approximately 450 board-certified occupational medicine physicians, concentrated in industrial centers like Alberta's oil sands region.
+The extractive sector (mining, oil & gas where applicable) often represents a significant portion of GDP and export revenues. These industries typically employ specialized workforces with specific skill requirements and occupational health considerations.
 
-Provincial networks of occupational health clinics provide coverage across urban and rural areas, though access challenges persist in northern territories and remote First Nations communities.`,
-        ohMeaning: `Canada's OH infrastructure directly impacts 20 million workers across diverse sectors. The decentralized provincial system creates varying levels of service quality and accessibility that occupational health practitioners must navigate.
+The service sector has grown substantially, now employing a significant portion of the workforce in retail, hospitality, finance, and professional services.`,
+      ohMeaning: `The industrial composition of ${countryName} directly determines occupational health priorities and resource allocation. High-risk sectors including construction, manufacturing, and extractive industries present elevated injury and illness rates requiring targeted interventions.
 
-Workers' compensation coverage extends to approximately 80% of the Canadian workforce, with self-employed and gig economy workers often excluded. This coverage gap affects over 3 million Canadians who lack workplace injury protection.
+Construction workers face multiple hazards including falls, struck-by incidents, and musculoskeletal disorders. The sector typically records the highest fatality rates across most economies, requiring robust safety management systems.
 
-The concentration of OH specialists in major urban centers (Toronto, Vancouver, Calgary, Montreal) creates service deserts in rural and northern regions. Indigenous communities face particular challenges accessing culturally appropriate OH services.
+Manufacturing environments present machinery hazards, chemical exposures, and ergonomic risks. Process industries require comprehensive hazard communication and engineering controls. Repetitive motion injuries are common in assembly operations.
 
-Climate change is creating new demands on Canada's OH infrastructure as extreme weather events and expanding wildfire seasons expose more workers to heat stress and air quality hazards, requiring infrastructure adaptation.`,
-        keyStats: [
-          { label: "Workers Covered", value: "80%", icon: Users, color: "text-emerald-400" },
-          { label: "Annual Claims", value: "$5B+", icon: DollarSign, color: "text-cyan-400" },
-          { label: "OH Physicians", value: "~450", icon: Heart, color: "text-rose-400" },
-          { label: "Provinces", value: "10", icon: MapPin, color: "text-purple-400" },
-        ],
-      },
-      industry: {
-        whatIs: `Canada's economy is anchored by natural resources, manufacturing, and services. The oil and gas sector in Alberta employs over 150,000 workers directly, while mining operations span from British Columbia to Labrador. These extractive industries generate approximately 10% of GDP.
-
-Construction is Canada's third-largest industry, employing 1.4 million workers with major infrastructure projects including transit expansions in Toronto and Vancouver. The sector experiences the highest workplace fatality rates at 10.5 deaths per 100,000 workers.
-
-Manufacturing, particularly automotive in Ontario, employs 1.7 million Canadians. The sector has modernized with increased automation, shifting hazard profiles from acute injuries to ergonomic and psychosocial risks.
-
-Canada's tech sector has grown rapidly, with 1.8 million workers in information and communications technology. These workers face emerging hazards including sedentary work, screen exposure, and mental health challenges from remote work arrangements.`,
-        ohMeaning: `Canada's industrial composition creates a distinctive occupational health risk profile. The resource extraction sector in Alberta reports 2.3 times the national average of lost-time injuries, requiring specialized high-risk industry OH programs.
-
-Construction workers face the highest fatality risk (4x other sectors) with falls remaining the leading cause of death. Cold weather construction in Canada adds frostbite and hypothermia risks absent in warmer climates.
-
-The shift from manufacturing to services has reduced acute injury rates but increased musculoskeletal and mental health claims. Psychological injury claims have increased 300% over the past decade, now representing 30% of long-term disability costs.
-
-Seasonal industries (fishing, forestry, agriculture) create workforce health challenges with intensive work periods followed by unemployment, disrupting continuous health monitoring and care relationships.`,
-        keyStats: [
-          { label: "Oil & Gas Workers", value: "150K+", icon: Factory, color: "text-amber-400" },
-          { label: "Construction Workers", value: "1.4M", icon: Building2, color: "text-blue-400" },
-          { label: "Tech Workforce", value: "1.8M", icon: Activity, color: "text-cyan-400" },
-          { label: "Fatality Rate", value: "10.5/100K", icon: AlertTriangle, color: "text-red-400" },
-        ],
-      },
+Service sector growth introduces different hazard profiles including ergonomic issues from sedentary work, psychosocial stressors, and customer interaction risks. The transition from industrial to service employment shifts OH priorities toward mental health and wellness programs.`,
+      keyStats: [
+        { label: "High-Risk Sectors", value: "3+", icon: AlertTriangle, color: "text-red-400" },
+        { label: "Key Industry", value: "Variable", icon: Factory, color: "text-cyan-400" },
+        { label: "Growth Trend", value: "Positive", icon: TrendingUp, color: "text-emerald-400" },
+        { label: "OH Priority", value: "High", icon: Shield, color: "text-blue-400" },
+      ],
     },
-    SAU: {
-      "oh-infrastructure": {
-        whatIs: `Saudi Arabia's occupational health infrastructure is managed primarily through GOSI (General Organization for Social Insurance), which covers 12 million workers and processes over 70,000 workplace injury claims annually. GOSI operates 19 regional offices and 5 specialized rehabilitation centers.
+    culture: {
+      whatIs: `${countryName}'s cultural landscape shapes workplace norms, safety attitudes, and health-seeking behaviors. Social structures, family values, and religious practices influence how workers perceive and respond to occupational health programs.
 
-The Ministry of Human Resources and Social Development enforces workplace safety regulations through 1,500+ inspectors. Major initiatives under Vision 2030 are modernizing OH systems, including digital reporting platforms and expanded coverage for previously excluded workers.
+Workplace hierarchy and communication styles affect safety reporting and participation in health initiatives. Power distance influences whether workers feel comfortable raising safety concerns with supervisors.
 
-King Fahd Medical City and King Faisal Specialist Hospital house the country's primary occupational medicine units. Saudi Arabia has approximately 200 board-certified occupational medicine physicians, with most concentrated in Riyadh, Jeddah, and the Eastern Province oil regions.
+Community networks and family support systems can complement formal occupational health services. Traditional practices may coexist with modern medical approaches, requiring culturally sensitive program design.
 
-Saudi Aramco operates one of the world's largest private industrial health systems, with 30+ clinics serving 70,000 employees. This system often sets de facto standards adopted by other large employers.`,
-        ohMeaning: `GOSI's modernization is expanding coverage from 8 million to 12 million workers, bringing previously excluded domestic workers and informal sector employees under protection. This 50% expansion represents one of the largest OH coverage extensions globally.
+Work-life balance expectations and attitudes toward overtime affect fatigue-related safety risks. Cultural norms around masculinity may discourage injury reporting or use of protective equipment in some settings.`,
+      ohMeaning: `Cultural factors in ${countryName} directly impact occupational health program effectiveness. Understanding local norms is essential for designing interventions that achieve high participation and compliance rates.
 
-Heat stress is Saudi Arabia's most significant occupational hazard. With summer temperatures exceeding 50°C, the mandatory midday outdoor work ban (12 PM - 3 PM, June-September) directly affects 3 million construction and outdoor workers.
+Safety communication must align with local communication styles and hierarchy expectations. Training materials should be culturally appropriate and available in relevant languages.
 
-The construction sector employs 40% of Saudi Arabia's private workforce and accounts for 45% of workplace fatalities. Mega-projects like NEOM and Red Sea require scaling OH capacity from current levels to meet international standards.
+Health programs that incorporate family involvement often achieve better outcomes in cultures with strong family orientation. Workplace wellness initiatives should respect religious observances and dietary practices.
 
-Saudization policies requiring increased national workforce participation create new OH challenges as Saudi workers enter previously expatriate-dominated industrial roles, requiring culturally adapted safety training and health programs.`,
-        keyStats: [
-          { label: "GOSI Coverage", value: "12M", icon: Users, color: "text-emerald-400" },
-          { label: "Annual Claims", value: "70K+", icon: Activity, color: "text-cyan-400" },
-          { label: "Peak Temp", value: "50°C+", icon: AlertTriangle, color: "text-red-400" },
-          { label: "Inspectors", value: "1,500+", icon: Shield, color: "text-blue-400" },
-        ],
-      },
-      industry: {
-        whatIs: `Saudi Arabia's economy is dominated by oil and gas (40% of GDP), with Saudi Aramco employing 70,000 directly and supporting 300,000+ contractor jobs. The petrochemical complex at Jubail is the world's largest, employing 100,000 workers across 20+ major facilities.
-
-Construction is the largest private sector employer with 4 million workers building Vision 2030 mega-projects. NEOM alone represents $500 billion in investment creating 400,000 construction jobs. The Red Sea Project and Qiddiya add 200,000 more construction positions.
-
-Manufacturing is growing under "Made in Saudi" initiatives, with 850,000 industrial workers in sectors including automotive (Lucid Motors factory), defense, and pharmaceuticals. These new industries require developing domestic OH expertise previously imported with expatriate workers.
-
-Tourism and entertainment, virtually nonexistent before 2019, now employ 500,000+ workers with targets of 1.5 million by 2030. These service sector roles bring different OH challenges than traditional Saudi industries.`,
-        ohMeaning: `The oil and gas sector maintains world-class safety standards with lost-time injury rates of 0.03 per 200,000 work hours - among the lowest globally. However, contractor workforces performing supporting services have 8x higher injury rates.
-
-Construction fatalities (estimated 300+ annually) are driven by fall hazards (35%), struck-by incidents (25%), and heat-related illness (20%). The pace of mega-project development strains inspection capacity, with each inspector responsible for 2,500+ workers.
-
-Industrial diversification creates new hazard exposures as Saudi workers enter manufacturing roles previously filled by experienced expatriate workers. The transition requires intensive safety training and supervision during the skills development period.
-
-The shift to entertainment and tourism creates service industry hazards (ergonomic, psychosocial, customer violence) unfamiliar to Saudi OH systems designed primarily for industrial settings.`,
-        keyStats: [
-          { label: "Oil Sector Jobs", value: "370K+", icon: Factory, color: "text-amber-400" },
-          { label: "Construction", value: "4M", icon: Building2, color: "text-blue-400" },
-          { label: "Mega-Projects", value: "$1T+", icon: DollarSign, color: "text-emerald-400" },
-          { label: "Safety Rate", value: "0.03 LTI", icon: Shield, color: "text-cyan-400" },
-        ],
-      },
+Addressing stigma around mental health and workplace injuries requires culturally informed approaches. Peer support programs may be more effective than individual counseling in collectivist cultures.`,
+      keyStats: [
+        { label: "Cultural Factor", value: "Significant", icon: Lightbulb, color: "text-rose-400" },
+        { label: "Language Need", value: "Local", icon: Users, color: "text-purple-400" },
+        { label: "Family Role", value: "Important", icon: Heart, color: "text-pink-400" },
+        { label: "Adaptation", value: "Required", icon: Activity, color: "text-amber-400" },
+      ],
     },
   };
 
-  // Check for country-specific content
-  const countryData = contentDb[countryIso];
-  if (countryData && countryData[category]) {
-    return countryData[category];
-  }
-
-  // Generate default content with country name
-  return {
-    whatIs: `${countryName} has developed occupational health systems reflecting its economic structure, regulatory environment, and workforce characteristics. The national framework addresses workplace safety through a combination of legislation, enforcement, and institutional support.
-
-Key institutions responsible for occupational health include the ministry of labor, workers' compensation authorities, and specialized OH research centers. These bodies establish standards, conduct inspections, and provide technical assistance to employers and workers.
-
-The coverage and quality of occupational health services vary by region and sector. Urban industrial centers typically have better access to OH professionals and facilities than rural areas. High-risk industries often receive prioritized attention from regulatory bodies.
-
-Ongoing reforms and international engagement are shaping the evolution of ${countryName}'s occupational health infrastructure. Alignment with international standards and adoption of new technologies are common themes in current development efforts.`,
-    ohMeaning: `The occupational health system in ${countryName} directly affects millions of workers across all economic sectors. Understanding the local infrastructure is essential for designing effective interventions and ensuring compliance with national requirements.
-
-Workforce composition and industry distribution determine the primary hazard exposures and OH service needs. Construction, manufacturing, and extractive industries typically present the highest injury and illness rates requiring targeted prevention programs.
-
-Access to occupational health services remains uneven, with coverage gaps affecting informal sector workers, small enterprises, and remote regions. These populations often face the highest risks with the least protection.
-
-Practitioners working in ${countryName} must navigate the local regulatory environment, cultural factors, and resource constraints when implementing OH programs. Success requires adapting international best practices to the specific national context.`,
-    keyStats: [
-      { label: "Coverage", value: "Varies", icon: Users, color: "text-emerald-400" },
-      { label: "Key Sector", value: "Industry", icon: Factory, color: "text-cyan-400" },
-      { label: "Priority", value: "Growing", icon: TrendingUp, color: "text-amber-400" },
-      { label: "Standards", value: "Developing", icon: Shield, color: "text-blue-400" },
-    ],
-  };
+  return defaultContent[category] || defaultContent.industry;
 }
 
 // ============================================================================
@@ -464,7 +486,6 @@ Practitioners working in ${countryName} must navigate the local regulatory envir
 
 function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
   const Icon = stat.icon;
-  
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -484,18 +505,6 @@ function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
 function ImageSlideshow({ images, category }: { images: string[]; category: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageError, setImageError] = useState<Record<number, boolean>>({});
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
-
-  const handleImageError = (index: number) => {
-    setImageError(prev => ({ ...prev, [index]: true }));
-  };
 
   if (images.length === 0) {
     return (
@@ -518,10 +527,7 @@ function ImageSlideshow({ images, category }: { images: string[]; category: stri
         >
           {imageError[currentIndex] ? (
             <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-              <div className="text-center">
-                <Info className="w-8 h-8 text-white/30 mx-auto mb-2" />
-                <p className="text-xs text-white/40">{category}</p>
-              </div>
+              <Info className="w-8 h-8 text-white/30" />
             </div>
           ) : (
             <>
@@ -529,7 +535,7 @@ function ImageSlideshow({ images, category }: { images: string[]; category: stri
                 src={images[currentIndex]}
                 alt={`${category} - image ${currentIndex + 1}`}
                 className="w-full h-full object-cover"
-                onError={() => handleImageError(currentIndex)}
+                onError={() => setImageError(prev => ({ ...prev, [currentIndex]: true }))}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             </>
@@ -537,45 +543,137 @@ function ImageSlideshow({ images, category }: { images: string[]; category: stri
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation */}
       {images.length > 1 && (
         <>
-          <motion.button
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={goToPrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          <button
+            onClick={() => setCurrentIndex(i => (i === 0 ? images.length - 1 : i - 1))}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/80 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
-          </motion.button>
-          <motion.button
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          </button>
+          <button
+            onClick={() => setCurrentIndex(i => (i === images.length - 1 ? 0 : i + 1))}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/80 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-all"
           >
             <ChevronRight className="w-4 h-4" />
-          </motion.button>
+          </button>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={cn("h-1.5 rounded-full transition-all", i === currentIndex ? "bg-white w-4" : "bg-white/40 w-1.5")}
+              />
+            ))}
+          </div>
         </>
       )}
+    </div>
+  );
+}
 
-      {/* Dots */}
-      {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-          {images.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                index === currentIndex
-                  ? "bg-white w-4"
-                  : "bg-white/40 w-1.5 hover:bg-white/60"
-              )}
-            />
-          ))}
+// Economic comparison chart component
+function EconomicComparisonChart({ 
+  countryValue, 
+  countryName,
+  benchmark,
+  config 
+}: { 
+  countryValue: number; 
+  countryName: string;
+  benchmark: GlobalBenchmark;
+  config: CategoryConfig;
+}) {
+  const chartData = [
+    { name: "Bottom 25%", value: benchmark.p25, fill: "#ef4444" },
+    { name: "Global Avg", value: benchmark.avg, fill: "#64748b" },
+    { name: countryName, value: countryValue, fill: config.chartColor },
+    { name: "Top 25%", value: benchmark.p75, fill: "#22c55e" },
+  ].sort((a, b) => a.value - b.value);
+
+  return (
+    <div className="h-48">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
+          <XAxis type="number" tick={{ fill: "#94a3b8", fontSize: 10 }} />
+          <YAxis type="category" dataKey="name" tick={{ fill: "#94a3b8", fontSize: 10 }} width={80} />
+          <Tooltip
+            contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
+            labelStyle={{ color: "#fff" }}
+            formatter={(value: number) => [benchmark.unit === "$" ? `$${value.toLocaleString()}` : `${value}${benchmark.unit}`, ""]}
+          />
+          <ReferenceLine x={benchmark.avg} stroke="#64748b" strokeDasharray="3 3" />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Position indicator component
+function PositionIndicator({ percentile, benchmark, value, config }: {
+  percentile: number;
+  benchmark: GlobalBenchmark;
+  value: number;
+  config: CategoryConfig;
+}) {
+  const position = getPositionLabel(percentile);
+  const diff = value - benchmark.avg;
+  const isAbove = diff > 0;
+
+  return (
+    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-white">Global Position</span>
+        <span className={cn("text-xs font-medium px-2 py-1 rounded-full", position.bgColor, position.color)}>
+          {position.label}
+        </span>
+      </div>
+      
+      {/* Visual bar */}
+      <div className="relative h-3 bg-white/10 rounded-full overflow-hidden mb-3">
+        <div 
+          className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10"
+          style={{ left: `${50}%` }}
+        />
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentile}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className={cn("h-full rounded-full", config.bgColor.replace("/20", ""))}
+        />
+        <motion.div
+          initial={{ left: "0%" }}
+          animate={{ left: `${percentile}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-lg"
+        />
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div>
+          <p className="text-[10px] text-white/40 uppercase">Value</p>
+          <p className={cn("text-sm font-bold", config.color)}>
+            {benchmark.unit === "$" ? `$${(value/1000).toFixed(1)}K` : `${value.toFixed(1)}${benchmark.unit}`}
+          </p>
         </div>
-      )}
+        <div>
+          <p className="text-[10px] text-white/40 uppercase">vs Avg</p>
+          <p className={cn("text-sm font-bold flex items-center justify-center gap-1", isAbove ? "text-emerald-400" : "text-amber-400")}>
+            {isAbove ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {isAbove ? "+" : ""}{diff.toFixed(1)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] text-white/40 uppercase">Percentile</p>
+          <p className="text-sm font-bold text-white">{percentile.toFixed(0)}th</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -592,51 +690,68 @@ export function CentralInsightModal({
   countryName,
   isAdmin,
   onRegenerate,
+  economicData,
 }: CentralInsightModalProps) {
   const [insightData, setInsightData] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
 
+  const isEconomicCategory = category ? ECONOMIC_CATEGORIES.includes(category) : false;
+  const isCountryInsightCategory = category ? COUNTRY_INSIGHT_CATEGORIES.includes(category) : false;
+
+  // Get economic metric config for economic categories
+  const economicMetricConfig = useMemo(() => {
+    if (!category || !isEconomicCategory) return null;
+    return ECONOMIC_METRIC_CONFIGS[category];
+  }, [category, isEconomicCategory]);
+
+  // Get current value and benchmark for economic categories
+  const economicMetricData = useMemo(() => {
+    if (!economicMetricConfig || !economicData) return null;
+    const value = economicData[economicMetricConfig.key as keyof typeof economicData] as number | null;
+    const benchmark = GLOBAL_BENCHMARKS[economicMetricConfig.benchmarkKey];
+    if (value === null || value === undefined || !benchmark) return null;
+    
+    const percentile = getPercentilePosition(value, benchmark);
+    return { value, benchmark, percentile };
+  }, [economicMetricConfig, economicData]);
+
   useEffect(() => {
     if (!category || !isOpen) return;
-
     setIsLoading(true);
     
-    // Get country-specific content
     const timer = setTimeout(() => {
-      const content = getCountrySpecificContent(category, countryIso, countryName);
-      const images = getCountryImages(countryIso, category);
-      
-      setInsightData({
-        images: images.map((url, i) => ({ url, alt: `${category} image ${i + 1}` })),
-        whatIsAnalysis: content.whatIs,
-        ohImplications: content.ohMeaning,
-        keyStats: content.keyStats,
-        status: "completed",
-        generatedAt: new Date().toISOString(),
-      });
+      if (isCountryInsightCategory) {
+        const content = getCountryInsightContent(category, countryIso, countryName);
+        const images = getCountryImages(countryIso, category);
+        setInsightData({
+          images: images.map((url, i) => ({ url, alt: `${category} image ${i + 1}` })),
+          whatIsAnalysis: content.whatIs,
+          ohImplications: content.ohMeaning,
+          keyStats: content.keyStats,
+          status: "completed",
+          generatedAt: new Date().toISOString(),
+        });
+      } else {
+        setInsightData({
+          images: [],
+          whatIsAnalysis: "",
+          ohImplications: "",
+          keyStats: [],
+          status: "completed",
+          generatedAt: new Date().toISOString(),
+        });
+      }
       setIsLoading(false);
-    }, 400);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [category, countryIso, countryName, isOpen]);
+  }, [category, countryIso, countryName, isOpen, isCountryInsightCategory]);
 
   const handleRegenerate = async () => {
     if (!category) return;
     setIsRegenerating(true);
-    
     setTimeout(() => {
-      const content = getCountrySpecificContent(category, countryIso, countryName);
-      const images = getCountryImages(countryIso, category);
-      
-      setInsightData({
-        images: images.map((url, i) => ({ url, alt: `${category} image ${i + 1}` })),
-        whatIsAnalysis: content.whatIs,
-        ohImplications: content.ohMeaning,
-        keyStats: content.keyStats,
-        status: "completed",
-        generatedAt: new Date().toISOString(),
-      });
       setIsRegenerating(false);
       onRegenerate?.();
     }, 1500);
@@ -656,32 +771,25 @@ export function CentralInsightModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-md z-50"
           />
 
-          {/* Modal - Centered, smaller */}
+          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ 
-              type: "spring", 
-              damping: 30, 
-              stiffness: 400,
-              mass: 0.8
-            }}
+            transition={{ type: "spring", damping: 30, stiffness: 400, mass: 0.8 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[85vh] bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Decorative gradient */}
             <div className={cn("absolute top-0 left-0 right-0 h-32 bg-gradient-to-b opacity-50 pointer-events-none", config.gradient)} />
 
-            {/* Header */}
+            {/* Header - Different format for country insights */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
               className="relative flex items-center justify-between px-5 py-4 border-b border-white/10"
             >
               <div className="flex items-center gap-3">
@@ -694,8 +802,17 @@ export function CentralInsightModal({
                   <Icon className={cn("w-5 h-5", config.color)} />
                 </motion.div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">{config.title}</h2>
-                  <p className="text-xs text-white/50">{countryName}</p>
+                  {isCountryInsightCategory ? (
+                    <>
+                      <h2 className="text-lg font-bold text-white">{countryName} {config.title}</h2>
+                      <p className="text-xs text-cyan-400 font-medium">Occupational Health Perspective</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-lg font-bold text-white">{config.title}</h2>
+                      <p className="text-xs text-white/50">{countryName} • Global Comparison</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -704,7 +821,6 @@ export function CentralInsightModal({
                   <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
                     onClick={handleRegenerate}
                     disabled={isRegenerating}
                     className={cn(
@@ -717,16 +833,9 @@ export function CentralInsightModal({
                     <span>{isRegenerating ? "Regenerating..." : "Regenerate"}</span>
                   </motion.button>
                 )}
-
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                   <X className="w-5 h-5 text-white/60 hover:text-white" />
-                </motion.button>
+                </button>
               </div>
             </motion.div>
 
@@ -734,33 +843,104 @@ export function CentralInsightModal({
             <div className="relative flex-1 overflow-hidden">
               {isLoading ? (
                 <div className="h-full flex items-center justify-center">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center"
-                  >
-                    <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
-                    <p className="text-sm text-white/50">Loading insights...</p>
-                  </motion.div>
+                  <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                 </div>
-              ) : insightData ? (
+              ) : isEconomicCategory && economicMetricData ? (
+                // ECONOMIC CATEGORY LAYOUT - Charts and data, no images
+                <div className="h-full p-5 overflow-y-auto">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Left: Position and Chart */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-4"
+                    >
+                      <PositionIndicator
+                        percentile={economicMetricData.percentile}
+                        benchmark={economicMetricData.benchmark}
+                        value={economicMetricData.value}
+                        config={config}
+                      />
+                      
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-cyan-400" />
+                          Global Comparison
+                        </h4>
+                        <EconomicComparisonChart
+                          countryValue={economicMetricData.value}
+                          countryName={countryName}
+                          benchmark={economicMetricData.benchmark}
+                          config={config}
+                        />
+                      </div>
+                    </motion.div>
+
+                    {/* Right: Analysis */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-4"
+                    >
+                      {/* Key metrics */}
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3">Key Metrics</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-white/60">{economicMetricConfig?.label}</span>
+                            <span className={cn("text-sm font-bold", config.color)}>
+                              {economicMetricConfig?.format(economicMetricData.value)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-white/60">Global Average</span>
+                            <span className="text-sm text-white/70">
+                              {economicMetricConfig?.format(economicMetricData.benchmark.avg)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-white/60">Global Median</span>
+                            <span className="text-sm text-white/70">
+                              {economicMetricConfig?.format(economicMetricData.benchmark.median)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* OH Implications for economic data */}
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h4 className="text-sm font-medium text-cyan-400 mb-3 flex items-center gap-2">
+                          <HeartPulse className="w-4 h-4" />
+                          OH Implications
+                        </h4>
+                        <p className="text-[13px] text-white/70 leading-relaxed">
+                          {category === "labor-force" && `With a labor force participation rate of ${economicMetricData.value.toFixed(1)}%, ${countryName} has ${economicMetricData.percentile >= 50 ? 'above average' : 'below average'} workforce engagement. This affects the scale of occupational health coverage requirements and the formal vs informal employment balance.`}
+                          {category === "gdp-per-capita" && `At $${(economicMetricData.value/1000).toFixed(1)}K GDP per capita, ${countryName}'s economic capacity influences OH program funding, workplace safety investments, and workers' compensation systems. ${economicMetricData.percentile >= 50 ? 'Higher' : 'Lower'} economic output typically correlates with more developed OH infrastructure.`}
+                          {category === "population" && `With a population of ${(economicMetricData.value/1000000).toFixed(1)}M, ${countryName} requires OH systems scaled to serve this workforce. Larger populations present challenges in achieving universal coverage and require decentralized service delivery networks.`}
+                          {category === "unemployment" && `An unemployment rate of ${economicMetricData.value.toFixed(1)}% in ${countryName} affects OH priorities. ${economicMetricData.value > 8 ? 'Higher unemployment may increase informal work and reduce workers\' bargaining power for safety conditions.' : 'Lower unemployment typically correlates with better working conditions as employers compete for workers.'}`}
+                        </p>
+                      </div>
+
+                      {/* Data source */}
+                      <div className="text-[10px] text-white/30 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        Source: World Bank, ILO (2023 data)
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              ) : isCountryInsightCategory && insightData ? (
+                // COUNTRY INSIGHT LAYOUT - Images and analysis
                 <div className="h-full flex flex-col lg:flex-row gap-4 p-5 overflow-y-auto">
-                  {/* Left: Image + Key Stats */}
-                  <motion.div 
+                  {/* Left: Image + Stats */}
+                  <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
                     className="lg:w-2/5 flex flex-col gap-4"
                   >
-                    {/* Image */}
                     <div className="h-48 lg:h-56">
-                      <ImageSlideshow 
-                        images={insightData.images.map(i => i.url)} 
-                        category={config.title}
-                      />
+                      <ImageSlideshow images={insightData.images.map(i => i.url)} category={config.title} />
                     </div>
-
-                    {/* Key Stats Grid */}
                     <div className="grid grid-cols-2 gap-2">
                       {insightData.keyStats.map((stat, i) => (
                         <KeyStatTile key={stat.label} stat={stat} index={i} />
@@ -769,69 +949,40 @@ export function CentralInsightModal({
                   </motion.div>
 
                   {/* Right: Analysis */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
                     className="lg:w-3/5 flex flex-col overflow-hidden"
                   >
                     <div className="flex-1 overflow-y-auto pr-2 space-y-5">
-                      {/* What is Section */}
                       <section>
-                        <motion.h3 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.4 }}
-                          className={cn("text-sm font-semibold mb-3 flex items-center gap-2", config.color)}
-                        >
+                        <h3 className={cn("text-sm font-semibold mb-3 flex items-center gap-2", config.color)}>
                           <span className={cn("w-1 h-4 rounded-full", config.bgColor.replace("/20", ""))} />
-                          What is {config.title}?
-                        </motion.h3>
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="text-[13px] text-white/75 leading-relaxed space-y-3"
-                        >
+                          What is {countryName}'s {config.title}?
+                        </h3>
+                        <div className="text-[13px] text-white/75 leading-relaxed space-y-3">
                           {insightData.whatIsAnalysis.split("\n\n").map((p, i) => (
                             <p key={i}>{p}</p>
                           ))}
-                        </motion.div>
+                        </div>
                       </section>
 
-                      {/* OH Implications */}
                       <section>
-                        <motion.h3 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="text-sm font-semibold mb-3 flex items-center gap-2 text-cyan-400"
-                        >
+                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-cyan-400">
                           <span className="w-1 h-4 rounded-full bg-cyan-500" />
-                          What does this mean for OH?
-                        </motion.h3>
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.6 }}
-                          className="text-[13px] text-white/75 leading-relaxed space-y-3"
-                        >
+                          Occupational Health Perspective
+                        </h3>
+                        <div className="text-[13px] text-white/75 leading-relaxed space-y-3">
                           {insightData.ohImplications.split("\n\n").map((p, i) => (
                             <p key={i}>{p}</p>
                           ))}
-                        </motion.div>
+                        </div>
                       </section>
                     </div>
 
-                    {/* Footer */}
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.7 }}
-                      className="pt-3 mt-3 border-t border-white/10 text-[10px] text-white/30"
-                    >
+                    <div className="pt-3 mt-3 border-t border-white/10 text-[10px] text-white/30">
                       Generated: {new Date(insightData.generatedAt || "").toLocaleDateString()} • AI-powered analysis
-                    </motion.div>
+                    </div>
                   </motion.div>
                 </div>
               ) : (

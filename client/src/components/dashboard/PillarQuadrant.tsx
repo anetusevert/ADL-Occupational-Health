@@ -231,7 +231,6 @@ export function PillarQuadrant({ country, onPillarClick }: PillarQuadrantProps) 
           <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
           Framework Pillars
         </h3>
-        <p className="text-[9px] sm:text-xs text-white/40">Click any pillar for strategic analysis</p>
       </div>
       
       {/* Pillars Grid - Fixed 2x2 with no overflow */}

@@ -190,7 +190,7 @@ export function CountryDashboard() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header with Positioning Bars */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm relative">
+      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm relative z-40">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/home")}
@@ -304,6 +304,18 @@ export function CountryDashboard() {
           // TODO: Invalidate cache and refetch
           console.log("Regenerating insight for", selectedInsightCategory);
         }}
+        economicData={intelligence ? {
+          laborForce: intelligence.labor_force_participation,
+          gdpPerCapita: intelligence.gdp_per_capita_ppp,
+          population: intelligence.population_total,
+          unemploymentRate: intelligence.unemployment_rate,
+          youthUnemployment: intelligence.youth_unemployment_rate,
+          informalEmployment: intelligence.informal_employment_pct,
+          gdpGrowth: intelligence.gdp_growth_rate,
+          urbanPopulation: intelligence.urban_population_pct,
+          medianAge: intelligence.median_age,
+          lifeExpectancy: intelligence.life_expectancy_at_birth,
+        } : undefined}
       />
     </div>
   );
