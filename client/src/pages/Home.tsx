@@ -598,7 +598,7 @@ export function Home() {
                                   {hasActiveGeneration && (
                                     <span className="flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/20 rounded text-[9px] text-cyan-400 font-medium">
                                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                                      Generating
+                                      Processing
                                     </span>
                                   )}
                                 </div>

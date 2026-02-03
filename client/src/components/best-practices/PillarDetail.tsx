@@ -193,7 +193,7 @@ export function PillarDetail({
                   ) : question.status === "generating" ? (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-full">
                       <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span className="text-xs font-medium text-amber-400">Generating</span>
+                      <span className="text-xs font-medium text-amber-400">In Progress</span>
                     </div>
                   ) : question.status === "failed" ? (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full">
@@ -203,7 +203,7 @@ export function PillarDetail({
                   ) : (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 border border-slate-600/30 rounded-full">
                       <Sparkles className="w-4 h-4 text-slate-400" />
-                      <span className="text-xs font-medium text-slate-400">Generate</span>
+                      <span className="text-xs font-medium text-slate-400">Pending</span>
                     </div>
                   )}
                   

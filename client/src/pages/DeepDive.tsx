@@ -586,7 +586,7 @@ export function DeepDive() {
               Strategic Deep Dive
             </h1>
             <p className="text-white/40 text-sm">
-              Multi-Agent AI Analysis Engine
+              Advanced Analysis Engine
             </p>
           </div>
         </div>
@@ -761,7 +761,7 @@ export function DeepDive() {
 
       {/* Footer */}
       <div className="text-xs text-slate-500 text-center py-4 border-t border-slate-800">
-        Powered by Multi-Agent AI Orchestration | DataAgent + ResearchAgent + Orchestrator (GPT-4o)
+        Powered by Arthur D. Little Advanced Analytics | Data Analysis + Research + Strategic Insights
         <br />
         ADL Occupational Health Framework v2.0
       </div>

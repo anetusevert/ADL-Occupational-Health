@@ -201,10 +201,10 @@ export function FocusKSA() {
 
           {/* Right: Score and Stats */}
           <div className="flex items-center gap-3">
-            {/* AI Badge */}
+            {/* Analysis Badge */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-xs text-purple-400 font-medium">AI Deep Analysis</span>
+              <span className="text-xs text-purple-400 font-medium">Deep Analysis</span>
             </div>
 
             {/* OHI Score */}

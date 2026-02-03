@@ -241,7 +241,7 @@ export function GameOverSummary({
                   >
                     <Brain className="w-5 h-5 text-adl-accent" />
                   </motion.div>
-                  <span>AI is generating your comprehensive legacy report...</span>
+                  <span>Preparing your comprehensive legacy report...</span>
                 </div>
                 <div className="space-y-2">
                   <motion.div

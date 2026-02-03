@@ -527,11 +527,11 @@ function ExpandedCard({ cardId, country, onClose }: ExpandedCardProps) {
                   )}
                 >
                   {generateMutation.isPending ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" />Generating...</>
+                    <><Loader2 className="w-3 h-3 animate-spin" />Processing...</>
                   ) : explanations.length > 0 ? (
                     <><RefreshCw className="w-3 h-3" />Refresh Analysis</>
                   ) : (
-                    <><Sparkles className="w-3 h-3" />Generate Analysis</>
+                    <><Sparkles className="w-3 h-3" />Initialize Analysis</>
                   )}
                 </button>
               </div>
@@ -650,8 +650,8 @@ function ExpandedCard({ cardId, country, onClose }: ExpandedCardProps) {
                   <p className="text-white/60 font-medium mb-1">Analysis Not Available</p>
                   <p className="text-sm text-white/40">
                     {isAdmin
-                      ? 'Click "Generate Analysis" to create metric explanations'
-                      : "Analysis has not been generated for this pillar yet"}
+                      ? 'Click "Initialize Analysis" to create metric explanations'
+                      : "Analysis for this pillar is being prepared. Please check back later."}
                   </p>
                 </div>
               )}

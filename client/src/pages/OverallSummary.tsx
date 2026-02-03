@@ -393,7 +393,7 @@ function generatePDFReport(
       
       <div class="footer">
         <p>Arthur D. Little — Occupational Health Intelligence Platform</p>
-        <p>Generated: ${new Date(report.generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p>Report Date: ${new Date(report.generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
     </body>
     </html>

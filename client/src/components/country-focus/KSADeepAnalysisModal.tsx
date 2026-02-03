@@ -287,9 +287,9 @@ export function KSADeepAnalysisModal({
                             />
                             <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
                           </div>
-                          <h4 className="text-lg font-semibold text-white mb-2">Generating Deep Analysis</h4>
+                          <h4 className="text-lg font-semibold text-white mb-2">Preparing Deep Analysis</h4>
                           <p className="text-white/50 text-sm max-w-md">
-                            Our AI analyst is researching Saudi Arabia's position, global best practices, 
+                            Researching Saudi Arabia's position, global best practices, 
                             and strategic recommendations...
                           </p>
                         </div>

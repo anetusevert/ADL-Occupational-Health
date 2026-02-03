@@ -258,7 +258,7 @@ export function ReportDisplayStep({
             </div>
           </motion.div>
           <h3 className="text-xl font-semibold text-white mb-2">
-            {isGenerating ? "Generating Your Report" : "Loading Report"}
+            {isGenerating ? "Preparing Your Report" : "Loading Report"}
           </h3>
           <p className="text-slate-400 text-sm mb-4">
             {isGenerating 
@@ -291,7 +291,7 @@ export function ReportDisplayStep({
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Report Not Available</h3>
               <p className="text-sm text-slate-400 mb-6">
-                This strategic deep dive report has not been generated yet. 
+                This strategic deep dive report is not yet available. 
                 Please check back later or contact an administrator.
               </p>
             </>
@@ -300,7 +300,7 @@ export function ReportDisplayStep({
               <div className="w-24 h-24 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
                 <AlertCircle className="w-12 h-12 text-red-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Report Generation Failed</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Report Unavailable</h3>
               <p className="text-sm text-slate-400 mb-6">{error.message}</p>
             </>
           )}
@@ -353,10 +353,10 @@ export function ReportDisplayStep({
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl text-white text-sm font-medium shadow-lg shadow-amber-500/25 border border-amber-500/30" 
                 whileHover={{ scale: 1.02 }} 
                 whileTap={{ scale: 0.98 }}
-                title="Regenerate report with latest AI agent (Admin only)"
+                title="Refresh report (Admin only)"
               >
                 <RefreshCw className="w-4 h-4" />
-                Regenerate
+                Refresh
               </motion.button>
             )}
             

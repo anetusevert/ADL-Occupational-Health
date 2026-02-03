@@ -34,7 +34,6 @@ import {
   CheckCircle,
   Database,
   Info,
-  ArrowRight,
   Layers,
   FileCheck,
   Activity,
@@ -45,14 +44,12 @@ import {
   BookOpen,
   BarChart3,
   ArrowDown,
-  ExternalLink,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
 import { 
   CinematicLoader, 
   ParticleField, 
-  TextReveal,
   NumberCounter,
   GlowOrb,
   FloatingGlowOrb,
@@ -86,40 +83,6 @@ const colors: Record<string, {
   cyan: { bg: "bg-cyan-500/20", bgSolid: "bg-cyan-500", border: "border-cyan-500/30", text: "text-cyan-400", hex: "#06b6d4", glow: "shadow-cyan-500/40" },
   slate: { bg: "bg-slate-500/20", bgSolid: "bg-slate-600", border: "border-slate-500/30", text: "text-slate-400", hex: "#475569", glow: "shadow-slate-500/40" },
 };
-
-// ============================================================================
-// FLOATING PARTICLES BACKGROUND
-// ============================================================================
-
-function FloatingParticles({ color = "cyan", count = 20 }: { color?: string; count?: number }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(count)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: "100%", x: `${Math.random() * 100}%` }}
-          animate={{ 
-            opacity: [0, 0.4, 0],
-            y: "-10%",
-          }}
-          transition={{
-            duration: 8 + Math.random() * 4,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-          }}
-          className={cn(
-            "absolute w-1 h-1 rounded-full",
-            color === "purple" && "bg-purple-400",
-            color === "blue" && "bg-blue-400",
-            color === "emerald" && "bg-emerald-400",
-            color === "amber" && "bg-amber-400",
-            color === "cyan" && "bg-cyan-400",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
 
 // ============================================================================
 // INSIGHT OVERLAY - Glassmorphic panel for element insights
@@ -311,96 +274,6 @@ function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProp
 }
 
 // ============================================================================
-// ORBITING ELEMENT
-// ============================================================================
-
-interface OrbitingElementProps {
-  Icon: React.ElementType;
-  label: string;
-  color: string;
-  index: number;
-  total: number;
-  delay?: number;
-  radius?: number;
-  insightId?: string;
-  onInsightClick?: (insightId: string) => void;
-}
-
-function OrbitingElement({ Icon, label, color, index, total, delay = 0, radius = 130, insightId, onInsightClick }: OrbitingElementProps) {
-  const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-  const x = Math.cos(angle) * radius;
-  const y = Math.sin(angle) * radius;
-  const c = colors[color];
-  const isClickable = !!insightId && !!onInsightClick;
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (insightId && onInsightClick) {
-      onInsightClick(insightId);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: delay + index * 0.15, duration: 0.5, type: "spring" }}
-      className="absolute"
-      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
-    >
-      <motion.div
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.3 }}
-        className="flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
-      >
-        <motion.div 
-          onClick={handleClick}
-          className={cn(
-            "w-14 h-14 rounded-xl flex items-center justify-center shadow-lg relative",
-            c.bgSolid, c.glow,
-            isClickable && "cursor-pointer"
-          )}
-          whileHover={{ scale: 1.15 }}
-          whileTap={isClickable ? { scale: 0.95 } : undefined}
-        >
-          <Icon className="w-7 h-7 text-white" />
-          
-          {/* Clickable indicator - subtle pulse ring */}
-          {isClickable && (
-            <motion.div
-              className={cn("absolute inset-0 rounded-xl border-2", c.border)}
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0, 0.5]
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-          )}
-        </motion.div>
-        <span className={cn(
-          "mt-2 text-[11px] font-medium text-white/80 text-center max-w-20 leading-tight",
-          isClickable && "group-hover:text-white"
-        )}>
-          {label}
-        </span>
-        
-        {/* Click hint */}
-        {isClickable && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: delay + index * 0.15 + 1 }}
-            className="mt-1 text-[9px] text-white/40"
-          >
-            Click to explore
-          </motion.span>
-        )}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ============================================================================
 // INTRO VISUAL - Cinematic ADL Logo reveal with premium animations
 // ============================================================================
 
@@ -547,240 +420,303 @@ function IntroVisual() {
 }
 
 // ============================================================================
-// TEMPLE OVERVIEW VISUAL - Building the temple with measurement rulers
+// TEMPLE OVERVIEW VISUAL - Cinematic temple build with premium animations
 // ============================================================================
 
 function TempleOverviewVisual() {
   const pillars = [
-    { icon: Shield, label: "Prevention", sublabel: "Hazard Control", color: "blue", delay: 0.6, score: "0-100", metrics: 7 },
-    { icon: Eye, label: "Vigilance", sublabel: "Surveillance", color: "emerald", delay: 0.75, score: "0-100", metrics: 6 },
-    { icon: Heart, label: "Restoration", sublabel: "Compensation", color: "amber", delay: 0.9, score: "0-100", metrics: 6 },
+    { icon: Shield, label: "Prevention", sublabel: "Hazard Control", color: "blue", delay: 0.8, metrics: 7 },
+    { icon: Eye, label: "Vigilance", sublabel: "Surveillance", color: "emerald", delay: 1.0, metrics: 6 },
+    { icon: Heart, label: "Restoration", sublabel: "Compensation", color: "amber", delay: 1.2, metrics: 6 },
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="purple" count={15} />
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      {/* Premium particle field */}
+      <ParticleField count={40} color="mixed" speed="slow" />
+      
+      {/* Floating accent orbs */}
+      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
       
       <div className="relative w-full max-w-lg">
-        {/* Measurement ruler - Left side */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.5, duration: 0.5 }}
-          className="absolute -left-8 top-0 bottom-0 flex flex-col items-center justify-between py-4"
-        >
-          <div className="w-px h-full bg-gradient-to-b from-transparent via-white/20 to-transparent relative">
-            {/* Tick marks */}
-            {[0, 25, 50, 75, 100].map((tick, i) => (
-              <motion.div
-                key={tick}
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                transition={{ delay: 1.6 + i * 0.1 }}
-                className="absolute right-0 flex items-center gap-1"
-                style={{ top: `${100 - tick}%`, transform: 'translateY(-50%)' }}
-              >
-                <span className="text-[8px] text-white/40 w-4 text-right">{tick}</span>
-                <div className="w-2 h-px bg-white/30" />
-              </motion.div>
-            ))}
-          </div>
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
-            className="text-[8px] text-white/40 -rotate-90 origin-center whitespace-nowrap mt-4"
-          >
-            Maturity Score
-          </motion.span>
-        </motion.div>
-
-        {/* Total score badge */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 2.2, type: "spring" }}
-          className="absolute -right-4 top-4 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-xl p-3 shadow-lg shadow-cyan-500/30"
-        >
-          <p className="text-[8px] text-white/80 uppercase tracking-wider">Total</p>
-          <p className="text-xl font-bold text-white">0-100</p>
-          <p className="text-[8px] text-white/60">25 Metrics</p>
-        </motion.div>
-
-        {/* Governance Roof */}
-        <motion.div
-          initial={{ opacity: 0, y: -40, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.3, duration: 0.6, type: "spring" }}
-          className="relative mb-6"
-        >
-          <motion.div 
-            className="h-24 bg-gradient-to-b from-purple-500/50 to-purple-600/30 rounded-xl border-2 border-purple-400/50 flex items-center justify-between px-4 shadow-lg shadow-purple-500/20"
-            animate={{ boxShadow: ["0 0 20px rgba(147,51,234,0.2)", "0 0 40px rgba(147,51,234,0.4)", "0 0 20px rgba(147,51,234,0.2)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <div className="flex items-center gap-3">
-              <Crown className="w-10 h-10 text-purple-300" />
-              <div className="text-left">
-                <span className="text-white font-bold text-lg">GOVERNANCE</span>
-                <p className="text-purple-300 text-xs">The Overarching Driver</p>
-              </div>
-            </div>
-            {/* Score badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.4, type: "spring" }}
-              className="bg-purple-500/30 rounded-lg px-3 py-1.5 border border-purple-400/30"
+        {/* Animated measurement ruler - Left side */}
+        <HeroReveal delay={1.8} direction="left">
+          <div className="absolute -left-10 top-0 bottom-0 flex flex-col items-center justify-between py-4">
+            <motion.div 
+              className="w-px h-full bg-gradient-to-b from-transparent via-cyan-500/40 to-transparent relative"
+              initial={{ scaleY: 0 }}
+              animate={{ scaleY: 1 }}
+              transition={{ delay: 2, duration: 1 }}
             >
-              <p className="text-[8px] text-purple-300 uppercase">Score</p>
-              <p className="text-sm font-bold text-purple-200">0-100</p>
-              <p className="text-[8px] text-purple-300/60">6 metrics</p>
+              {[0, 25, 50, 75, 100].map((tick, i) => (
+                <motion.div
+                  key={tick}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 2.2 + i * 0.1, type: "spring" }}
+                  className="absolute right-0 flex items-center gap-1"
+                  style={{ top: `${100 - tick}%`, transform: 'translateY(-50%)' }}
+                >
+                  <span className="text-[9px] text-cyan-400/70 w-5 text-right font-mono">{tick}</span>
+                  <div className="w-3 h-px bg-cyan-500/50" />
+                </motion.div>
+              ))}
             </motion.div>
-          </motion.div>
-          
-          {/* Connecting arrows with data flow animation */}
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.5 }}
+              className="text-[9px] text-cyan-400/60 -rotate-90 origin-center whitespace-nowrap mt-4"
+            >
+              Maturity Score
+            </motion.span>
+          </div>
+        </HeroReveal>
+
+        {/* Premium score badge */}
+        <ScaleReveal delay={2.4} initialScale={0.5}>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex gap-8"
+            animate={{
+              boxShadow: [
+                "0 0 30px rgba(6,182,212,0.3), 0 0 60px rgba(147,51,234,0.2)",
+                "0 0 50px rgba(6,182,212,0.5), 0 0 100px rgba(147,51,234,0.3)",
+                "0 0 30px rgba(6,182,212,0.3), 0 0 60px rgba(147,51,234,0.2)",
+              ],
+            }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+            className="absolute -right-4 top-4 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl p-3 border border-white/20 overflow-hidden"
           >
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="relative">
+            <ShimmerOverlay delay={2.6} duration={3} />
+            <p className="text-[9px] text-white/90 uppercase tracking-wider font-medium">Total Score</p>
+            <p className="text-2xl font-bold text-white">0-100</p>
+            <p className="text-[9px] text-white/70">25 Metrics</p>
+          </motion.div>
+        </ScaleReveal>
+
+        {/* Governance Roof - Cinematic descent */}
+        <HeroReveal delay={0.2} direction="down" blur={25}>
+          <div className="relative mb-8">
+            <motion.div 
+              className="h-28 bg-gradient-to-b from-purple-500/60 to-purple-600/40 rounded-xl border-2 border-purple-400/60 flex items-center justify-between px-5 relative overflow-hidden"
+              animate={{ 
+                boxShadow: [
+                  "0 0 30px rgba(147,51,234,0.3), 0 4px 20px rgba(147,51,234,0.2)",
+                  "0 0 50px rgba(147,51,234,0.5), 0 4px 30px rgba(147,51,234,0.3)",
+                  "0 0 30px rgba(147,51,234,0.3), 0 4px 20px rgba(147,51,234,0.2)",
+                ]
+              }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+            >
+              <ShimmerOverlay delay={0.8} duration={3} />
+              
+              <div className="flex items-center gap-4 relative z-10">
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                >
+                  <Crown className="w-12 h-12 text-purple-200" />
+                </motion.div>
+                <div className="text-left">
+                  <DramaticTextReveal
+                    text="GOVERNANCE"
+                    className="text-white font-bold text-xl tracking-wide"
+                    delay={0.5}
+                    glow
+                    glowColor="rgba(147, 51, 234, 0.5)"
+                  />
+                  <p className="text-purple-300 text-sm mt-1">The Overarching Driver</p>
+                </div>
+              </div>
+              
+              {/* Score badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.6, type: "spring" }}
+                className="bg-purple-500/40 rounded-lg px-4 py-2 border border-purple-400/40 relative z-10"
+              >
+                <p className="text-[10px] text-purple-200 uppercase font-medium">Score</p>
+                <p className="text-lg font-bold text-white">0-100</p>
+                <p className="text-[9px] text-purple-300/70">6 metrics</p>
+              </motion.div>
+            </motion.div>
+            
+            {/* Animated energy flow connections */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex gap-12"
+            >
+              {[
+                { color: "blue", glow: "rgba(37,99,235,0.6)" },
+                { color: "emerald", glow: "rgba(5,150,105,0.6)" },
+                { color: "amber", glow: "rgba(245,158,11,0.6)" },
+              ].map((item, i) => (
+                <div key={i} className="relative">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: 24 }}
+                    transition={{ delay: 1.1 + i * 0.1, type: "spring" }}
+                    className={cn(
+                      "w-1 rounded-full",
+                      item.color === "blue" && "bg-gradient-to-b from-blue-400 to-blue-500/50",
+                      item.color === "emerald" && "bg-gradient-to-b from-emerald-400 to-emerald-500/50",
+                      item.color === "amber" && "bg-gradient-to-b from-amber-400 to-amber-500/50",
+                    )}
+                  />
+                  {/* Energy particle */}
+                  <motion.div
+                    animate={{ y: [0, 20, 0], opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }}
+                    style={{ boxShadow: `0 0 10px ${item.glow}` }}
+                    className={cn(
+                      "absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full",
+                      item.color === "blue" && "bg-blue-400",
+                      item.color === "emerald" && "bg-emerald-400",
+                      item.color === "amber" && "bg-amber-400",
+                    )}
+                  />
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </HeroReveal>
+
+        {/* Three Pillars - Rising from foundation */}
+        <div className="flex gap-4 mt-10">
+          {pillars.map((pillar, i) => (
+            <HeroReveal key={i} delay={pillar.delay} direction="up" blur={20}>
+              <motion.div
+                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className={cn(
+                  "flex-1 rounded-xl border-2 flex flex-col items-center justify-between py-4 relative overflow-hidden cursor-pointer",
+                  pillar.color === "blue" && "bg-gradient-to-b from-blue-500/30 to-blue-600/20 border-blue-400/60",
+                  pillar.color === "emerald" && "bg-gradient-to-b from-emerald-500/30 to-emerald-600/20 border-emerald-400/60",
+                  pillar.color === "amber" && "bg-gradient-to-b from-amber-500/30 to-amber-600/20 border-amber-400/60",
+                )}
+              >
+                {/* Glow effect */}
+                <motion.div
+                  animate={{
+                    boxShadow: pillar.color === "blue" 
+                      ? ["0 0 20px rgba(37,99,235,0.2)", "0 0 40px rgba(37,99,235,0.4)", "0 0 20px rgba(37,99,235,0.2)"]
+                      : pillar.color === "emerald"
+                      ? ["0 0 20px rgba(5,150,105,0.2)", "0 0 40px rgba(5,150,105,0.4)", "0 0 20px rgba(5,150,105,0.2)"]
+                      : ["0 0 20px rgba(245,158,11,0.2)", "0 0 40px rgba(245,158,11,0.4)", "0 0 20px rgba(245,158,11,0.2)"]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                  className="absolute inset-0 rounded-xl"
+                />
+                
+                <ShimmerOverlay delay={pillar.delay + 0.3} duration={3} />
+                
+                {/* Fill bar animation */}
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: 20 }}
-                  transition={{ delay: 0.9 + i * 0.1 }}
+                  animate={{ height: "100%" }}
+                  transition={{ delay: pillar.delay + 0.5, duration: 1.2, ease: "easeOut" }}
                   className={cn(
-                    "w-0.5 rounded-full",
-                    i === 0 && "bg-blue-400/60",
-                    i === 1 && "bg-emerald-400/60",
-                    i === 2 && "bg-amber-400/60",
+                    "absolute bottom-0 left-0 right-0 opacity-30",
+                    pillar.color === "blue" && "bg-gradient-to-t from-blue-500 to-transparent",
+                    pillar.color === "emerald" && "bg-gradient-to-t from-emerald-500 to-transparent",
+                    pillar.color === "amber" && "bg-gradient-to-t from-amber-500 to-transparent",
                   )}
                 />
-                {/* Data flow dot */}
+                
+                <div className="relative z-10 text-center">
+                  <motion.div
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                  >
+                    <pillar.icon className={cn(
+                      "w-10 h-10 mx-auto",
+                      pillar.color === "blue" && "text-blue-300",
+                      pillar.color === "emerald" && "text-emerald-300",
+                      pillar.color === "amber" && "text-amber-300",
+                    )} />
+                  </motion.div>
+                  <span className="text-sm font-bold text-white mt-2 block">{pillar.label}</span>
+                  <span className="text-[10px] text-white/60">{pillar.sublabel}</span>
+                </div>
+                
+                {/* Metrics badge */}
                 <motion.div
-                  animate={{ y: [0, 16, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: pillar.delay + 1, type: "spring" }}
                   className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full",
-                    i === 0 && "bg-blue-400",
-                    i === 1 && "bg-emerald-400",
-                    i === 2 && "bg-amber-400",
+                    "relative z-10 mt-3 px-3 py-1.5 rounded-lg text-center",
+                    pillar.color === "blue" && "bg-blue-500/40 border border-blue-400/40",
+                    pillar.color === "emerald" && "bg-emerald-500/40 border border-emerald-400/40",
+                    pillar.color === "amber" && "bg-amber-500/40 border border-amber-400/40",
                   )}
-                />
-              </div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* Three Pillars with metrics */}
-        <div className="flex gap-3 mt-8">
-          {pillars.map((pillar, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: pillar.delay, duration: 0.5, type: "spring" }}
-              className={cn(
-                "flex-1 rounded-xl border-2 flex flex-col items-center justify-between py-3 shadow-lg relative overflow-hidden",
-                pillar.color === "blue" && "bg-blue-500/20 border-blue-400/50 shadow-blue-500/20",
-                pillar.color === "emerald" && "bg-emerald-500/20 border-emerald-400/50 shadow-emerald-500/20",
-                pillar.color === "amber" && "bg-amber-500/20 border-amber-400/50 shadow-amber-500/20",
-              )}
-            >
-              {/* Fill bar animation */}
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: "100%" }}
-                transition={{ delay: pillar.delay + 0.5, duration: 1, ease: "easeOut" }}
-                className={cn(
-                  "absolute bottom-0 left-0 right-0 opacity-20",
-                  pillar.color === "blue" && "bg-blue-400",
-                  pillar.color === "emerald" && "bg-emerald-400",
-                  pillar.color === "amber" && "bg-amber-400",
-                )}
-              />
-              
-              <div className="relative z-10 text-center">
-                <pillar.icon className={cn(
-                  "w-8 h-8 mx-auto",
-                  pillar.color === "blue" && "text-blue-300",
-                  pillar.color === "emerald" && "text-emerald-300",
-                  pillar.color === "amber" && "text-amber-300",
-                )} />
-                <span className="text-xs font-bold text-white mt-1 block">{pillar.label}</span>
-                <span className="text-[9px] text-white/50">{pillar.sublabel}</span>
-              </div>
-              
-              {/* Metrics badge */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: pillar.delay + 0.8 }}
-                className={cn(
-                  "relative z-10 mt-2 px-2 py-1 rounded-md text-center",
-                  pillar.color === "blue" && "bg-blue-500/30",
-                  pillar.color === "emerald" && "bg-emerald-500/30",
-                  pillar.color === "amber" && "bg-amber-500/30",
-                )}
-              >
-                <p className={cn(
-                  "text-[10px] font-bold",
-                  pillar.color === "blue" && "text-blue-200",
-                  pillar.color === "emerald" && "text-emerald-200",
-                  pillar.color === "amber" && "text-amber-200",
-                )}>{pillar.score}</p>
-                <p className="text-[8px] text-white/50">{pillar.metrics} metrics</p>
+                >
+                  <p className={cn(
+                    "text-xs font-bold",
+                    pillar.color === "blue" && "text-blue-200",
+                    pillar.color === "emerald" && "text-emerald-200",
+                    pillar.color === "amber" && "text-amber-200",
+                  )}>0-100</p>
+                  <p className="text-[9px] text-white/60">{pillar.metrics} metrics</p>
+                </motion.div>
               </motion.div>
-            </motion.div>
+            </HeroReveal>
           ))}
         </div>
 
-        {/* Foundation with data indicator */}
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
-          className="mt-4 h-6 bg-gradient-to-r from-slate-600/30 via-slate-500/50 to-slate-600/30 rounded-lg flex items-center justify-center gap-2"
-        >
-          <Database className="w-3 h-3 text-slate-400" />
-          <span className="text-[9px] text-slate-400">180+ Data Sources</span>
-        </motion.div>
+        {/* Foundation with premium styling */}
+        <HeroReveal delay={1.6} direction="up">
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 1.7, duration: 0.6 }}
+            className="mt-5 h-8 bg-gradient-to-r from-slate-600/20 via-slate-500/40 to-slate-600/20 rounded-lg flex items-center justify-center gap-3 border border-white/10 relative overflow-hidden"
+          >
+            <ShimmerOverlay delay={2} duration={4} />
+            <Database className="w-4 h-4 text-slate-300" />
+            <span className="text-[10px] text-slate-300 font-medium">180+ Global Data Sources</span>
+          </motion.div>
+        </HeroReveal>
 
-        {/* Maturity levels indicator */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8 }}
-          className="mt-4 flex justify-center gap-2"
-        >
-          {[
-            { level: "Critical", range: "0-25", color: "bg-red-500/40 border-red-500/50" },
-            { level: "Developing", range: "26-50", color: "bg-amber-500/40 border-amber-500/50" },
-            { level: "Advancing", range: "51-75", color: "bg-blue-500/40 border-blue-500/50" },
-            { level: "Leading", range: "76-100", color: "bg-emerald-500/40 border-emerald-500/50" },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.9 + i * 0.1 }}
-              className={cn("px-2 py-1 rounded-md border text-center", item.color)}
-            >
-              <p className="text-[8px] text-white/80 font-medium">{item.level}</p>
-              <p className="text-[7px] text-white/50">{item.range}</p>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Maturity levels with premium animation */}
+        <HeroReveal delay={2} direction="up">
+          <div className="mt-5 flex justify-center gap-2">
+            {[
+              { level: "Critical", range: "0-25", color: "red" },
+              { level: "Developing", range: "26-50", color: "amber" },
+              { level: "Advancing", range: "51-75", color: "blue" },
+              { level: "Leading", range: "76-100", color: "emerald" },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 2.2 + i * 0.1, type: "spring" }}
+                whileHover={{ scale: 1.1, y: -3 }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg border text-center cursor-pointer transition-colors",
+                  item.color === "red" && "bg-red-500/30 border-red-500/50 hover:bg-red-500/40",
+                  item.color === "amber" && "bg-amber-500/30 border-amber-500/50 hover:bg-amber-500/40",
+                  item.color === "blue" && "bg-blue-500/30 border-blue-500/50 hover:bg-blue-500/40",
+                  item.color === "emerald" && "bg-emerald-500/30 border-emerald-500/50 hover:bg-emerald-500/40",
+                )}
+              >
+                <p className="text-[9px] text-white/90 font-medium">{item.level}</p>
+                <p className="text-[8px] text-white/60">{item.range}</p>
+              </motion.div>
+            ))}
+          </div>
+        </HeroReveal>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// GOVERNANCE VISUAL - Key governance elements orbiting
+// GOVERNANCE VISUAL - Cinematic crown with orbiting elements
 // ============================================================================
 
 interface VisualProps {
@@ -796,74 +732,105 @@ function GovernanceVisual({ onInsightClick }: VisualProps) {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="purple" count={20} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      {/* Premium particle field */}
+      <ParticleField count={45} color="purple" speed="slow" />
       
-      {/* Central crown - clickable */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        className="relative z-10"
-      >
+      {/* Floating glow accents */}
+      <FloatingGlowOrb color="purple" size="xl" position="top-right" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-left" delay={0.5} />
+      
+      {/* Cinematic orbiting rings */}
+      {[1, 2, 3].map((i) => (
         <motion.div
-          onClick={() => onInsightClick?.("governance-central")}
+          key={i}
+          initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
           animate={{ 
-            boxShadow: ["0 0 40px rgba(147,51,234,0.3)", "0 0 60px rgba(147,51,234,0.5)", "0 0 40px rgba(147,51,234,0.3)"]
+            opacity: 0.3, 
+            scale: 1, 
+            filter: "blur(0px)",
+            rotate: i % 2 === 0 ? 360 : -360 
           }}
-          transition={{ duration: 2, repeat: Infinity }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-xl cursor-pointer relative"
-        >
-          <Crown className="w-14 h-14 text-white" />
-          {/* Pulse ring for clickability */}
+          transition={{ 
+            opacity: { delay: i * 0.2, duration: 0.6 },
+            scale: { delay: i * 0.2, duration: 0.6 },
+            filter: { delay: i * 0.2, duration: 0.5 },
+            rotate: { duration: 30 + i * 10, repeat: Infinity, ease: "linear" }
+          }}
+          className={cn(
+            "absolute rounded-full border",
+            i === 1 && "w-52 h-52 border-purple-400/50",
+            i === 2 && "w-72 h-72 border-purple-500/30",
+            i === 3 && "w-96 h-96 border-purple-500/15",
+          )}
+        />
+      ))}
+      
+      {/* Central crown with premium glow */}
+      <ScaleReveal delay={0.2} initialScale={0.5}>
+        <div className="relative z-10">
           <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-purple-300/50"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          />
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-3 text-purple-300 font-semibold"
-        >
-          Governance
-        </motion.p>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="text-center text-[10px] text-purple-400/60"
-        >
-          Click to explore
-        </motion.p>
-      </motion.div>
+            onClick={() => onInsightClick?.("governance-central")}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="cursor-pointer"
+          >
+            <GlowOrb color="purple" size="lg" intensity="intense" pulse>
+              <Crown className="w-16 h-16 text-white" />
+            </GlowOrb>
+          </motion.div>
+          
+          <HeroReveal delay={0.6} direction="up">
+            <div className="text-center mt-4">
+              <DramaticTextReveal
+                text="Governance"
+                className="text-purple-300 font-bold text-lg"
+                delay={0.8}
+                glow
+                glowColor="rgba(147, 51, 234, 0.4)"
+              />
+              <p className="text-purple-400/70 text-xs mt-1">The Overarching Driver</p>
+              <motion.p
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-[10px] text-purple-400/50 mt-2"
+              >
+                Click to explore
+              </motion.p>
+            </div>
+          </HeroReveal>
+        </div>
+      </ScaleReveal>
 
-      {/* Orbiting elements */}
+      {/* Enhanced orbiting elements */}
       {elements.map((el, i) => (
-        <OrbitingElement
+        <CinematicOrbitingElement
           key={i}
           Icon={el.icon}
           label={el.label}
+          sublabel={el.sublabel}
           color="purple"
           index={i}
           total={elements.length}
-          delay={0.3}
-          radius={150}
+          delay={0.4}
+          radius={160}
           insightId={el.insightId}
           onInsightClick={onInsightClick}
         />
       ))}
 
-      {/* Connection lines */}
+      {/* Animated connection lines */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+        <defs>
+          <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(147,51,234,0.5)" />
+            <stop offset="100%" stopColor="rgba(147,51,234,0.1)" />
+          </linearGradient>
+        </defs>
         {elements.map((_, i) => {
           const angle = (i / elements.length) * Math.PI * 2 - Math.PI / 2;
-          const endX = 50 + Math.cos(angle) * 25;
-          const endY = 50 + Math.sin(angle) * 25;
+          const endX = 50 + Math.cos(angle) * 28;
+          const endY = 50 + Math.sin(angle) * 28;
           return (
             <motion.line
               key={i}
@@ -871,12 +838,12 @@ function GovernanceVisual({ onInsightClick }: VisualProps) {
               y1="50%"
               x2={`${endX}%`}
               y2={`${endY}%`}
-              stroke="rgba(147,51,234,0.3)"
+              stroke="url(#purpleGradient)"
               strokeWidth="2"
-              strokeDasharray="6 4"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
+              strokeDasharray="8 4"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ delay: 1.2 + i * 0.15, duration: 0.6 }}
             />
           );
         })}
@@ -885,8 +852,102 @@ function GovernanceVisual({ onInsightClick }: VisualProps) {
   );
 }
 
+// Cinematic orbiting element with enhanced animations
+function CinematicOrbitingElement({
+  Icon,
+  label,
+  sublabel,
+  color,
+  index,
+  total,
+  delay = 0,
+  radius = 150,
+  insightId,
+  onInsightClick,
+}: {
+  Icon: React.ElementType;
+  label: string;
+  sublabel?: string;
+  color: string;
+  index: number;
+  total: number;
+  delay?: number;
+  radius?: number;
+  insightId?: string;
+  onInsightClick?: (insightId: string) => void;
+}) {
+  const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  const c = colors[color];
+  const isClickable = !!insightId && !!onInsightClick;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0, filter: "blur(15px)" }}
+      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+      transition={{ delay: delay + index * 0.12, duration: 0.6, type: "spring" }}
+      className="absolute z-10"
+      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
+    >
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 3, repeat: Infinity, delay: index * 0.4 }}
+        className="flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
+      >
+        <motion.div 
+          onClick={() => isClickable && onInsightClick?.(insightId!)}
+          whileHover={{ scale: 1.15, rotate: 5 }}
+          whileTap={isClickable ? { scale: 0.95 } : undefined}
+          className={cn(
+            "w-16 h-16 rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden",
+            c.bgSolid,
+            isClickable && "cursor-pointer"
+          )}
+        >
+          <ShimmerOverlay delay={delay + index * 0.2} duration={3} />
+          <motion.div
+            animate={{
+              boxShadow: [
+                `0 0 20px ${c.hex}40`,
+                `0 0 40px ${c.hex}60`,
+                `0 0 20px ${c.hex}40`,
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
+            className="absolute inset-0 rounded-xl"
+          />
+          <Icon className="w-8 h-8 text-white relative z-10" />
+          
+          {isClickable && (
+            <motion.div
+              className={cn("absolute inset-0 rounded-xl border-2", c.border)}
+              animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + index * 0.15 + 0.3 }}
+          className="mt-2 text-center"
+        >
+          <span className="text-[11px] font-semibold text-white/90 block max-w-20 leading-tight">
+            {label}
+          </span>
+          {sublabel && (
+            <span className="text-[9px] text-white/50 block">{sublabel}</span>
+          )}
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ============================================================================
-// HAZARD PREVENTION VISUAL (Pillar 1)
+// HAZARD PREVENTION VISUAL (Pillar 1) - Cinematic shield
 // ============================================================================
 
 function HazardPreventionVisual({ onInsightClick }: VisualProps) {
@@ -898,57 +959,69 @@ function HazardPreventionVisual({ onInsightClick }: VisualProps) {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="blue" count={20} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={45} color="blue" speed="slow" />
       
-      {/* Central shield - clickable */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        className="relative z-10"
-      >
+      <FloatingGlowOrb color="blue" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
+      
+      {/* Protective shield waves */}
+      {[1, 2, 3].map((i) => (
         <motion.div
-          onClick={() => onInsightClick?.("prevention-central")}
-          animate={{ 
-            boxShadow: ["0 0 40px rgba(37,99,235,0.3)", "0 0 60px rgba(37,99,235,0.5)", "0 0 40px rgba(37,99,235,0.3)"]
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-xl cursor-pointer relative"
-        >
-          <Shield className="w-14 h-14 text-white" />
-          {/* Pulse ring for clickability */}
+          key={i}
+          initial={{ opacity: 0.6, scale: 0.4 }}
+          animate={{ opacity: 0, scale: 1.8 }}
+          transition={{ duration: 3, repeat: Infinity, delay: i * 0.8 }}
+          className="absolute w-36 h-36 rounded-full border-2 border-blue-400/40"
+        />
+      ))}
+      
+      <ScaleReveal delay={0.2} initialScale={0.5}>
+        <div className="relative z-10">
           <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-blue-300/50"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-3"
-        >
-          <p className="text-blue-300 font-semibold">Prevention</p>
-          <p className="text-blue-400/60 text-xs">$1 saves $4-6</p>
-          <p className="text-[10px] text-blue-400/50 mt-1">Click to explore</p>
-        </motion.div>
-      </motion.div>
+            onClick={() => onInsightClick?.("prevention-central")}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="cursor-pointer"
+          >
+            <GlowOrb color="blue" size="lg" intensity="intense" pulse>
+              <Shield className="w-16 h-16 text-white" />
+            </GlowOrb>
+          </motion.div>
+          
+          <HeroReveal delay={0.6} direction="up">
+            <div className="text-center mt-4">
+              <DramaticTextReveal
+                text="Prevention"
+                className="text-blue-300 font-bold text-lg"
+                delay={0.8}
+                glow
+                glowColor="rgba(37, 99, 235, 0.4)"
+              />
+              <p className="text-blue-400/70 text-xs mt-1">$1 invested saves $4-6</p>
+              <motion.p
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-[10px] text-blue-400/50 mt-2"
+              >
+                Click to explore
+              </motion.p>
+            </div>
+          </HeroReveal>
+        </div>
+      </ScaleReveal>
 
-      {/* Orbiting elements */}
       {elements.map((el, i) => (
-        <OrbitingElement
+        <CinematicOrbitingElement
           key={i}
           Icon={el.icon}
           label={el.label}
+          sublabel={el.sublabel}
           color="blue"
           index={i}
           total={elements.length}
-          delay={0.3}
-          radius={150}
+          delay={0.4}
+          radius={160}
           insightId={el.insightId}
           onInsightClick={onInsightClick}
         />
@@ -958,7 +1031,7 @@ function HazardPreventionVisual({ onInsightClick }: VisualProps) {
 }
 
 // ============================================================================
-// SURVEILLANCE VISUAL (Pillar 2)
+// SURVEILLANCE VISUAL (Pillar 2) - Cinematic watchful eye
 // ============================================================================
 
 function SurveillanceVisual({ onInsightClick }: VisualProps) {
@@ -970,68 +1043,73 @@ function SurveillanceVisual({ onInsightClick }: VisualProps) {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="emerald" count={20} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={45} color="emerald" speed="slow" />
       
-      {/* Pulse waves */}
-      {[1, 2, 3].map((i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0.5, scale: 0.3 }}
-          animate={{ opacity: 0, scale: 1.5 }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.8 }}
-          className="absolute w-40 h-40 rounded-full border-2 border-emerald-400/40"
-        />
-      ))}
+      <FloatingGlowOrb color="emerald" size="xl" position="top-right" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-left" delay={0.5} />
       
-      {/* Central eye - clickable */}
+      {/* Radar/scanning pulse waves */}
+      <PulseRing color="emerald" size="w-40 h-40" count={4} duration={2.5} />
+      
+      {/* Scanning line effect */}
       <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        className="relative z-10"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        className="absolute w-48 h-48"
       >
         <motion.div
-          onClick={() => onInsightClick?.("surveillance-central")}
-          animate={{ 
-            boxShadow: ["0 0 40px rgba(5,150,105,0.3)", "0 0 60px rgba(5,150,105,0.5)", "0 0 40px rgba(5,150,105,0.3)"]
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-xl cursor-pointer relative"
-        >
-          <Eye className="w-14 h-14 text-white" />
-          {/* Pulse ring for clickability */}
-          <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-emerald-300/50"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-3"
-        >
-          <p className="text-emerald-300 font-semibold">Vigilance</p>
-          <p className="text-emerald-400/60 text-xs">60% cost reduction</p>
-          <p className="text-[10px] text-emerald-400/50 mt-1">Click to explore</p>
-        </motion.div>
+          className="absolute top-1/2 left-1/2 w-24 h-0.5 bg-gradient-to-r from-emerald-400 to-transparent origin-left"
+          style={{ transform: 'translateY(-50%)' }}
+        />
       </motion.div>
+      
+      <ScaleReveal delay={0.2} initialScale={0.5}>
+        <div className="relative z-10">
+          <motion.div
+            onClick={() => onInsightClick?.("surveillance-central")}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="cursor-pointer"
+          >
+            <GlowOrb color="emerald" size="lg" intensity="intense" pulse>
+              <Eye className="w-16 h-16 text-white" />
+            </GlowOrb>
+          </motion.div>
+          
+          <HeroReveal delay={0.6} direction="up">
+            <div className="text-center mt-4">
+              <DramaticTextReveal
+                text="Vigilance"
+                className="text-emerald-300 font-bold text-lg"
+                delay={0.8}
+                glow
+                glowColor="rgba(5, 150, 105, 0.4)"
+              />
+              <p className="text-emerald-400/70 text-xs mt-1">60% early detection savings</p>
+              <motion.p
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-[10px] text-emerald-400/50 mt-2"
+              >
+                Click to explore
+              </motion.p>
+            </div>
+          </HeroReveal>
+        </div>
+      </ScaleReveal>
 
-      {/* Orbiting elements */}
       {elements.map((el, i) => (
-        <OrbitingElement
+        <CinematicOrbitingElement
           key={i}
           Icon={el.icon}
           label={el.label}
+          sublabel={el.sublabel}
           color="emerald"
           index={i}
           total={elements.length}
-          delay={0.3}
-          radius={150}
+          delay={0.4}
+          radius={160}
           insightId={el.insightId}
           onInsightClick={onInsightClick}
         />
@@ -1041,7 +1119,7 @@ function SurveillanceVisual({ onInsightClick }: VisualProps) {
 }
 
 // ============================================================================
-// RESTORATION VISUAL (Pillar 3)
+// RESTORATION VISUAL (Pillar 3) - Cinematic healing heart
 // ============================================================================
 
 function RestorationVisual({ onInsightClick }: VisualProps) {
@@ -1053,58 +1131,80 @@ function RestorationVisual({ onInsightClick }: VisualProps) {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="amber" count={20} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ParticleField count={45} color="amber" speed="slow" />
       
-      {/* Central heart - clickable */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        className="relative z-10"
-      >
+      <FloatingGlowOrb color="amber" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="purple" size="lg" position="bottom-right" delay={0.5} />
+      
+      {/* Heartbeat pulse waves */}
+      {[1, 2, 3].map((i) => (
         <motion.div
-          onClick={() => onInsightClick?.("restoration-central")}
-          animate={{ 
-            scale: [1, 1.05, 1],
-            boxShadow: ["0 0 40px rgba(245,158,11,0.3)", "0 0 60px rgba(245,158,11,0.5)", "0 0 40px rgba(245,158,11,0.3)"]
+          key={i}
+          initial={{ opacity: 0.6, scale: 0.5 }}
+          animate={{ opacity: 0, scale: 1.6 }}
+          transition={{ 
+            duration: 1.5, 
+            repeat: Infinity, 
+            delay: i * 0.5,
+            ease: "easeOut" 
           }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-28 h-28 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl cursor-pointer relative"
-        >
-          <Heart className="w-14 h-14 text-white" />
-          {/* Pulse ring for clickability */}
+          className="absolute w-32 h-32 rounded-full border-2 border-amber-400/50"
+        />
+      ))}
+      
+      <ScaleReveal delay={0.2} initialScale={0.5}>
+        <div className="relative z-10">
           <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-amber-300/50"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-3"
-        >
-          <p className="text-amber-300 font-semibold">Restoration</p>
-          <p className="text-amber-400/60 text-xs">Safety Net</p>
-          <p className="text-[10px] text-amber-400/50 mt-1">Click to explore</p>
-        </motion.div>
-      </motion.div>
+            onClick={() => onInsightClick?.("restoration-central")}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="cursor-pointer"
+          >
+            {/* Heartbeat animation on the orb */}
+            <motion.div
+              animate={{ scale: [1, 1.05, 1, 1.05, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <GlowOrb color="amber" size="lg" intensity="intense" pulse>
+                <Heart className="w-16 h-16 text-white" />
+              </GlowOrb>
+            </motion.div>
+          </motion.div>
+          
+          <HeroReveal delay={0.6} direction="up">
+            <div className="text-center mt-4">
+              <DramaticTextReveal
+                text="Restoration"
+                className="text-amber-300 font-bold text-lg"
+                delay={0.8}
+                glow
+                glowColor="rgba(245, 158, 11, 0.4)"
+              />
+              <p className="text-amber-400/70 text-xs mt-1">The Safety Net</p>
+              <motion.p
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-[10px] text-amber-400/50 mt-2"
+              >
+                Click to explore
+              </motion.p>
+            </div>
+          </HeroReveal>
+        </div>
+      </ScaleReveal>
 
-      {/* Orbiting elements */}
       {elements.map((el, i) => (
-        <OrbitingElement
+        <CinematicOrbitingElement
           key={i}
           Icon={el.icon}
           label={el.label}
+          sublabel={el.sublabel}
           color="amber"
           index={i}
           total={elements.length}
-          delay={0.3}
-          radius={150}
+          delay={0.4}
+          radius={160}
           insightId={el.insightId}
           onInsightClick={onInsightClick}
         />
@@ -1114,7 +1214,7 @@ function RestorationVisual({ onInsightClick }: VisualProps) {
 }
 
 // ============================================================================
-// INTEGRATION VISUAL - All components connected with animated feedback loop
+// INTEGRATION VISUAL - Cinematic data flow animation
 // ============================================================================
 
 function IntegrationVisual({ onInsightClick }: VisualProps) {
@@ -1128,211 +1228,276 @@ function IntegrationVisual({ onInsightClick }: VisualProps) {
   const arrowControls = useAnimationControls();
 
   const pillars = [
-    { icon: Shield, color: "blue", bgColor: "bg-blue-600", shadowColor: "shadow-blue-500/30", glowColor: "rgba(37,99,235,0.6)", controls: pillar1Controls },
-    { icon: Eye, color: "emerald", bgColor: "bg-emerald-600", shadowColor: "shadow-emerald-500/30", glowColor: "rgba(5,150,105,0.6)", controls: pillar2Controls },
-    { icon: Heart, color: "amber", bgColor: "bg-amber-500", shadowColor: "shadow-amber-500/30", glowColor: "rgba(245,158,11,0.6)", controls: pillar3Controls },
+    { icon: Shield, color: "blue", label: "Prevention", bgColor: "bg-blue-600", glowColor: "rgba(37,99,235,0.6)", controls: pillar1Controls },
+    { icon: Eye, color: "emerald", label: "Vigilance", bgColor: "bg-emerald-600", glowColor: "rgba(5,150,105,0.6)", controls: pillar2Controls },
+    { icon: Heart, color: "amber", label: "Restoration", bgColor: "bg-amber-500", glowColor: "rgba(245,158,11,0.6)", controls: pillar3Controls },
   ];
 
   const triggerFeedbackAnimation = async () => {
     if (isAnimating) return;
     setIsAnimating(true);
     
-    // Phase 1: Highlight Governance
     setAnimationPhase(1);
     await governanceControls.start({
-      scale: [1, 1.2, 1],
-      boxShadow: ["0 0 20px rgba(147,51,234,0.3)", "0 0 60px rgba(147,51,234,0.8)", "0 0 20px rgba(147,51,234,0.3)"],
-      transition: { duration: 0.6 }
+      scale: [1, 1.25, 1],
+      boxShadow: ["0 0 30px rgba(147,51,234,0.3)", "0 0 80px rgba(147,51,234,0.9)", "0 0 30px rgba(147,51,234,0.3)"],
+      transition: { duration: 0.7 }
     });
     
-    // Phase 2: Arrow pulses down
     setAnimationPhase(2);
     await arrowControls.start({
-      y: [0, 15, 0],
+      y: [0, 20, 0],
       opacity: [0.5, 1, 0.5],
-      transition: { duration: 0.4 }
+      transition: { duration: 0.5 }
     });
     
-    // Phase 3: Highlight pillars sequentially (Prevention → Surveillance → Restoration)
     setAnimationPhase(3);
     await pillar1Controls.start({
-      scale: [1, 1.25, 1],
-      boxShadow: ["0 0 20px rgba(37,99,235,0.3)", "0 0 50px rgba(37,99,235,0.8)", "0 0 20px rgba(37,99,235,0.3)"],
-      transition: { duration: 0.5 }
+      scale: [1, 1.3, 1],
+      boxShadow: ["0 0 25px rgba(37,99,235,0.3)", "0 0 70px rgba(37,99,235,0.9)", "0 0 25px rgba(37,99,235,0.3)"],
+      transition: { duration: 0.6 }
     });
     
     setAnimationPhase(4);
     await pillar2Controls.start({
-      scale: [1, 1.25, 1],
-      boxShadow: ["0 0 20px rgba(5,150,105,0.3)", "0 0 50px rgba(5,150,105,0.8)", "0 0 20px rgba(5,150,105,0.3)"],
-      transition: { duration: 0.5 }
+      scale: [1, 1.3, 1],
+      boxShadow: ["0 0 25px rgba(5,150,105,0.3)", "0 0 70px rgba(5,150,105,0.9)", "0 0 25px rgba(5,150,105,0.3)"],
+      transition: { duration: 0.6 }
     });
     
     setAnimationPhase(5);
     await pillar3Controls.start({
-      scale: [1, 1.25, 1],
-      boxShadow: ["0 0 20px rgba(245,158,11,0.3)", "0 0 50px rgba(245,158,11,0.8)", "0 0 20px rgba(245,158,11,0.3)"],
-      transition: { duration: 0.5 }
+      scale: [1, 1.3, 1],
+      boxShadow: ["0 0 25px rgba(245,158,11,0.3)", "0 0 70px rgba(245,158,11,0.9)", "0 0 25px rgba(245,158,11,0.3)"],
+      transition: { duration: 0.6 }
     });
     
-    // Phase 4: Back to Governance (completing the loop)
     setAnimationPhase(6);
     await governanceControls.start({
-      scale: [1, 1.15, 1],
-      boxShadow: ["0 0 20px rgba(147,51,234,0.3)", "0 0 50px rgba(147,51,234,0.8)", "0 0 30px rgba(147,51,234,0.4)"],
-      transition: { duration: 0.6 }
+      scale: [1, 1.2, 1],
+      boxShadow: ["0 0 30px rgba(147,51,234,0.3)", "0 0 60px rgba(147,51,234,0.7)", "0 0 40px rgba(147,51,234,0.5)"],
+      transition: { duration: 0.7 }
     });
     
     setAnimationPhase(0);
     setIsAnimating(false);
-    
-    // Show insight after animation
     onInsightClick?.("feedback-loop");
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="cyan" count={25} />
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      <ParticleField count={50} color="mixed" speed="slow" />
       
-      <div className="relative w-full max-w-sm">
-        {/* Governance at top */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, type: "spring" }}
-          className="mx-auto w-20 h-20 rounded-xl bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 relative"
-        >
-          <motion.div
-            animate={governanceControls}
-            className="absolute inset-0 rounded-xl bg-purple-600"
-          />
-          <Crown className="w-10 h-10 text-white relative z-10" />
-          
-          {/* Highlight ring during animation */}
-          {animationPhase === 1 && (
+      <FloatingGlowOrb color="cyan" size="xl" position="top-right" delay={0} />
+      <FloatingGlowOrb color="purple" size="lg" position="bottom-left" delay={0.5} />
+      
+      <div className="relative w-full max-w-md z-10">
+        {/* Governance at top with premium styling */}
+        <ScaleReveal delay={0.2} initialScale={0.5}>
+          <div className="mx-auto relative">
             <motion.div
-              initial={{ scale: 1, opacity: 0 }}
-              animate={{ scale: 1.5, opacity: [0, 0.8, 0] }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0 rounded-xl border-2 border-purple-300"
-            />
-          )}
-        </motion.div>
-
-        {/* Flow arrows */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex justify-center my-4"
-        >
-          <motion.div
-            animate={isAnimating ? arrowControls : { y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: isAnimating ? 0 : Infinity }}
-          >
-            <ArrowDown className={cn(
-              "w-8 h-8 transition-colors duration-300",
-              animationPhase === 2 ? "text-cyan-300" : "text-purple-400"
-            )} />
-          </motion.div>
-        </motion.div>
-
-        {/* Three pillars */}
-        <div className="flex justify-center gap-4">
-          {pillars.map((p, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + i * 0.15, type: "spring" }}
-              className="relative"
+              animate={governanceControls}
+              className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-2xl relative overflow-hidden"
             >
-              <motion.div
-                animate={p.controls}
-                className={cn("w-16 h-16 rounded-xl flex items-center justify-center shadow-lg", p.bgColor, p.shadowColor)}
-              >
-                <p.icon className="w-8 h-8 text-white" />
-              </motion.div>
+              <ShimmerOverlay delay={0.5} duration={3} />
+              <Crown className="w-12 h-12 text-white relative z-10" />
               
-              {/* Connecting arrows between pillars during animation */}
-              {animationPhase >= 3 && animationPhase <= 5 && i < 2 && (
+              {animationPhase === 1 && (
                 <motion.div
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: animationPhase >= 3 + i ? 1 : 0, x: 0 }}
-                  className="absolute top-1/2 -right-3 transform -translate-y-1/2"
-                >
-                  <ArrowRight className="w-4 h-4 text-cyan-400" />
-                </motion.div>
+                  initial={{ scale: 1, opacity: 0 }}
+                  animate={{ scale: 2, opacity: [0, 0.8, 0] }}
+                  transition={{ duration: 0.7 }}
+                  className="absolute inset-0 rounded-2xl border-3 border-purple-300"
+                />
               )}
             </motion.div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-center mt-2 text-purple-300 font-semibold text-sm"
+            >
+              Governance
+            </motion.p>
+          </div>
+        </ScaleReveal>
+
+        {/* Energy flow arrows with particle trail */}
+        <HeroReveal delay={0.5} direction="none">
+          <div className="flex justify-center my-6 relative">
+            {/* Energy particles flowing down */}
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ 
+                  y: [0, 40, 0],
+                  opacity: [0, 1, 0],
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  delay: i * 0.3,
+                  ease: "easeInOut"
+                }}
+                className="absolute w-2 h-2 rounded-full bg-gradient-to-b from-purple-400 to-cyan-400"
+                style={{ 
+                  left: `calc(50% + ${(i - 1) * 25}px)`,
+                  boxShadow: "0 0 10px rgba(147,51,234,0.6)"
+                }}
+              />
+            ))}
+            
+            <motion.div
+              animate={isAnimating ? arrowControls : { y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: isAnimating ? 0 : Infinity }}
+            >
+              <ArrowDown className={cn(
+                "w-10 h-10 transition-all duration-300",
+                animationPhase === 2 ? "text-cyan-300 scale-125" : "text-purple-400"
+              )} />
+            </motion.div>
+          </div>
+        </HeroReveal>
+
+        {/* Three pillars with premium styling */}
+        <div className="flex justify-center gap-6">
+          {pillars.map((p, i) => (
+            <HeroReveal key={i} delay={0.6 + i * 0.1} direction="up">
+              <div className="relative flex flex-col items-center">
+                <motion.div
+                  animate={p.controls}
+                  whileHover={{ scale: 1.1 }}
+                  className={cn(
+                    "w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl relative overflow-hidden",
+                    p.bgColor
+                  )}
+                >
+                  <ShimmerOverlay delay={0.8 + i * 0.15} duration={3} />
+                  <p.icon className="w-10 h-10 text-white relative z-10" />
+                  
+                  {/* Highlight during animation */}
+                  {animationPhase === 3 + i && (
+                    <motion.div
+                      initial={{ scale: 1, opacity: 0 }}
+                      animate={{ scale: 1.8, opacity: [0, 0.8, 0] }}
+                      transition={{ duration: 0.6 }}
+                      className={cn(
+                        "absolute inset-0 rounded-2xl border-3",
+                        p.color === "blue" && "border-blue-300",
+                        p.color === "emerald" && "border-emerald-300",
+                        p.color === "amber" && "border-amber-300",
+                      )}
+                    />
+                  )}
+                </motion.div>
+                
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.9 + i * 0.1 }}
+                  className={cn(
+                    "text-xs font-medium mt-2",
+                    p.color === "blue" && "text-blue-300",
+                    p.color === "emerald" && "text-emerald-300",
+                    p.color === "amber" && "text-amber-300",
+                  )}
+                >
+                  {p.label}
+                </motion.p>
+                
+                {/* Connecting energy trails between pillars */}
+                {i < 2 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: animationPhase >= 3 + i ? 1 : 0.3 }}
+                    className="absolute top-1/2 -right-4 w-4 h-0.5 bg-gradient-to-r from-current to-transparent"
+                    style={{ 
+                      color: animationPhase === 3 + i ? "#22d3ee" : "rgba(255,255,255,0.3)" 
+                    }}
+                  />
+                )}
+              </div>
+            </HeroReveal>
           ))}
         </div>
 
-        {/* Feedback loop - CLICKABLE */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          onClick={triggerFeedbackAnimation}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={cn(
-            "mt-8 p-4 rounded-xl border cursor-pointer transition-all",
-            isAnimating 
-              ? "bg-cyan-500/20 border-cyan-400/60 shadow-lg shadow-cyan-500/20" 
-              : "bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/15 hover:border-cyan-400/50"
-          )}
-        >
-          <div className="flex items-center justify-center gap-3">
-            <motion.div
-              animate={{ rotate: isAnimating ? 720 : 360 }}
-              transition={{ 
-                duration: isAnimating ? 1 : 4, 
-                repeat: Infinity, 
-                ease: isAnimating ? "easeInOut" : "linear" 
-              }}
-            >
-              <RefreshCcw className={cn(
-                "w-6 h-6 transition-colors",
-                isAnimating ? "text-cyan-300" : "text-cyan-400"
-              )} />
-            </motion.div>
-            <div className="text-center">
-              <p className="text-cyan-300 font-semibold text-sm">Continuous Feedback Loop</p>
-              <p className="text-cyan-400/60 text-xs">
-                {isAnimating ? "Watch the data flow..." : "Click to see the interaction"}
-              </p>
+        {/* Premium feedback loop button */}
+        <HeroReveal delay={1.2} direction="up">
+          <motion.div
+            onClick={triggerFeedbackAnimation}
+            whileHover={{ scale: 1.03, y: -3 }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              "mt-10 p-5 rounded-2xl border cursor-pointer transition-all relative overflow-hidden",
+              isAnimating 
+                ? "bg-gradient-to-r from-cyan-500/30 to-purple-500/30 border-cyan-400/70 shadow-xl shadow-cyan-500/30" 
+                : "bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-cyan-500/40 hover:border-cyan-400/60"
+            )}
+          >
+            <ShimmerOverlay delay={1.5} duration={4} />
+            
+            <div className="flex items-center justify-center gap-4 relative z-10">
+              <motion.div
+                animate={{ rotate: isAnimating ? 720 : 360 }}
+                transition={{ 
+                  duration: isAnimating ? 1.5 : 6, 
+                  repeat: Infinity, 
+                  ease: isAnimating ? "easeInOut" : "linear" 
+                }}
+                className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center",
+                  isAnimating ? "bg-cyan-500/40" : "bg-cyan-500/20"
+                )}
+              >
+                <RefreshCcw className={cn(
+                  "w-7 h-7 transition-colors",
+                  isAnimating ? "text-cyan-200" : "text-cyan-400"
+                )} />
+              </motion.div>
+              
+              <div className="text-left">
+                <DramaticTextReveal
+                  text="Continuous Feedback Loop"
+                  className="text-cyan-300 font-bold"
+                  delay={1.4}
+                  glow
+                  glowColor="rgba(6, 182, 212, 0.3)"
+                />
+                <p className="text-cyan-400/70 text-xs mt-1">
+                  {isAnimating ? "Energy flows through the system..." : "Click to visualize data flow"}
+                </p>
+              </div>
             </div>
-          </div>
-          
-          {/* Pulsing border hint */}
-          {!isAnimating && (
-            <motion.div
-              className="absolute inset-0 rounded-xl border-2 border-cyan-400/50"
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              style={{ pointerEvents: 'none' }}
-            />
-          )}
-        </motion.div>
+            
+            {!isAnimating && (
+              <motion.div
+                className="absolute inset-0 rounded-2xl border-2 border-cyan-400/40"
+                animate={{ opacity: [0.3, 0.7, 0.3] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                style={{ pointerEvents: 'none' }}
+              />
+            )}
+          </motion.div>
+        </HeroReveal>
 
-        {/* Database foundation */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="mt-6 flex items-center justify-center gap-2 text-slate-400 text-sm"
-        >
-          <Database className="w-4 h-4" />
-          <span>Global OH Database & Intelligence Engine</span>
-        </motion.div>
+        {/* Database foundation with premium styling */}
+        <HeroReveal delay={1.6} direction="up">
+          <motion.div
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="mt-6 flex items-center justify-center gap-3 px-4 py-2 bg-slate-800/50 rounded-full border border-white/10"
+          >
+            <Database className="w-4 h-4 text-cyan-400" />
+            <span className="text-slate-300 text-sm">Global OH Database & Intelligence Engine</span>
+          </motion.div>
+        </HeroReveal>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// CONCLUSION VISUAL - Ready to explore
+// CONCLUSION VISUAL - Grand Finale with orbiting pillars
 // ============================================================================
 
 interface ConclusionVisualProps {
@@ -1349,337 +1514,572 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <FloatingParticles color="cyan" count={30} />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      {/* Premium particle field with mixed colors for celebration */}
+      <ParticleField count={70} color="mixed" speed="normal" />
       
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        className="text-center"
-      >
-        {/* Animated framework icon - Clickable to explore full framework */}
+      {/* Multiple floating glow orbs for grand effect */}
+      <FloatingGlowOrb color="cyan" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="purple" size="xl" position="top-right" delay={0.3} />
+      <FloatingGlowOrb color="emerald" size="lg" position="bottom-left" delay={0.6} />
+      <FloatingGlowOrb color="amber" size="lg" position="bottom-right" delay={0.9} />
+      
+      {/* Orbiting rings */}
+      {[1, 2, 3, 4].map((i) => (
         <motion.div
-          onClick={onCloseAndExplore}
+          key={i}
+          initial={{ opacity: 0, scale: 0.5 }}
           animate={{ 
-            y: [0, -15, 0],
-            boxShadow: ["0 0 40px rgba(6,182,212,0.2)", "0 0 60px rgba(6,182,212,0.4)", "0 0 40px rgba(6,182,212,0.2)"]
+            opacity: 0.25, 
+            scale: 1, 
+            rotate: i % 2 === 0 ? 360 : -360 
           }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-36 h-36 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500 via-purple-500 to-cyan-600 flex items-center justify-center shadow-2xl cursor-pointer relative"
-        >
-          <Layers className="w-20 h-20 text-white" />
-          {/* Pulse ring for clickability */}
-          <motion.div
-            className="absolute inset-0 rounded-3xl border-2 border-cyan-300/50"
-            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-          />
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8"
-        >
-          <p className="text-2xl font-bold text-white">Ready to Explore</p>
-          <p className="text-cyan-400 mt-2">Click any component to dive deeper</p>
-        </motion.div>
-
-        {/* Pillar navigation buttons - Click to navigate directly to pillar details */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 flex justify-center gap-4"
-        >
-          {pillars.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 + i * 0.1 }}
-              onClick={() => onNavigate?.(item.blockId)}
-              whileHover={{ scale: 1.15, y: -5 }}
-              whileTap={{ scale: 0.95 }}
-              className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer relative group",
-                colors[item.color].bgSolid,
-                "shadow-lg hover:shadow-xl transition-shadow"
-              )}
-            >
-              <item.icon className="w-6 h-6 text-white" />
-              
-              {/* Tooltip */}
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="text-[10px] text-white/70 whitespace-nowrap bg-slate-800/80 px-2 py-1 rounded">
-                  {item.label}
-                </span>
-              </div>
-              
-              {/* Pulse indicator */}
-              <motion.div
-                className={cn("absolute inset-0 rounded-xl border-2", colors[item.color].border)}
-                animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-        
-        {/* Hint text */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="mt-6 text-xs text-white/40"
-        >
-          Click a pillar icon to jump directly to its details
-        </motion.p>
-      </motion.div>
-    </div>
-  );
-}
-
-// ============================================================================
-// GLOBAL CHALLENGE VISUAL - Statistics about the problem
-// ============================================================================
-
-function GlobalChallengeVisual() {
-  const stats = [
-    { value: "2.9M", label: "Deaths Annually", color: "amber", delay: 0.3 },
-    { value: "395M", label: "Workplace Injuries", color: "blue", delay: 0.5 },
-    { value: "4%", label: "GDP Lost", color: "purple", delay: 0.7 },
-  ];
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="amber" count={30} />
+          transition={{ 
+            opacity: { delay: i * 0.2, duration: 0.8 },
+            scale: { delay: i * 0.2, duration: 0.8 },
+            rotate: { duration: 20 + i * 5, repeat: Infinity, ease: "linear" }
+          }}
+          className={cn(
+            "absolute rounded-full border",
+            i === 1 && "w-56 h-56 border-cyan-400/40",
+            i === 2 && "w-72 h-72 border-purple-500/30",
+            i === 3 && "w-96 h-96 border-cyan-500/20",
+            i === 4 && "w-[28rem] h-[28rem] border-purple-500/10",
+          )}
+        />
+      ))}
       
       <div className="relative z-10 text-center">
-        {/* Pulsing world visualization */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="relative mb-8"
-        >
-          {/* Globe representation */}
+        {/* Central CTA with grand glow effect */}
+        <ScaleReveal delay={0.2} initialScale={0.4}>
           <motion.div
-            animate={{
-              boxShadow: [
-                "0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1)",
-                "0 0 60px rgba(245,158,11,0.4), 0 0 120px rgba(245,158,11,0.2)",
-                "0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1)",
-              ],
-            }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="w-40 h-40 mx-auto rounded-full bg-gradient-to-br from-amber-500/30 to-amber-700/20 border-2 border-amber-500/40 flex items-center justify-center"
+            onClick={onCloseAndExplore}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative cursor-pointer"
           >
-            <Globe className="w-20 h-20 text-amber-400/80" />
-          </motion.div>
-          
-          {/* Pulse rings */}
-          {[1, 2, 3].map((i) => (
             <motion.div
-              key={i}
-              initial={{ scale: 0.5, opacity: 0.5 }}
-              animate={{ scale: 2, opacity: 0 }}
-              transition={{ duration: 2, repeat: Infinity, delay: i * 0.6 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-amber-500/30"
-            />
-          ))}
-        </motion.div>
-
-        {/* Stats */}
-        <div className="flex justify-center gap-6">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: stat.delay, duration: 0.6 }}
-              className={cn(
-                "px-4 py-3 rounded-xl border backdrop-blur-sm",
-                colors[stat.color].bg,
-                colors[stat.color].border
-              )}
+              animate={{
+                boxShadow: [
+                  "0 0 60px rgba(6,182,212,0.4), 0 0 120px rgba(147,51,234,0.3)",
+                  "0 0 100px rgba(6,182,212,0.6), 0 0 200px rgba(147,51,234,0.4)",
+                  "0 0 60px rgba(6,182,212,0.4), 0 0 120px rgba(147,51,234,0.3)",
+                ],
+              }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+              className="w-40 h-40 mx-auto rounded-3xl bg-gradient-to-br from-cyan-500 via-purple-600 to-cyan-500 flex items-center justify-center relative overflow-hidden"
             >
-              <motion.p
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: stat.delay + 0.2, type: "spring" }}
-                className={cn("text-2xl font-bold", colors[stat.color].text)}
+              <ShimmerOverlay delay={0.5} duration={3} />
+              
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                {stat.value}
-              </motion.p>
-              <p className="text-white/60 text-xs mt-1">{stat.label}</p>
+                <Layers className="w-20 h-20 text-white" />
+              </motion.div>
+              
+              {/* Multiple pulse rings */}
+              <PulseRing color="cyan" size="w-40 h-40" count={3} duration={2.5} />
             </motion.div>
-          ))}
-        </div>
+          </motion.div>
+        </ScaleReveal>
+        
+        {/* Title with dramatic reveal */}
+        <HeroReveal delay={0.6} direction="up" blur={20}>
+          <div className="mt-10">
+            <DramaticTextReveal
+              text="Begin Your Journey"
+              className="text-3xl font-bold text-white"
+              delay={0.8}
+              glow
+              glowColor="rgba(6, 182, 212, 0.5)"
+            />
+          </div>
+        </HeroReveal>
+        
+        <HeroReveal delay={1} direction="up">
+          <p className="text-cyan-400/90 mt-3 text-lg">
+            Explore the complete framework
+          </p>
+        </HeroReveal>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="mt-6 text-amber-400/70 text-sm"
-        >
-          A preventable crisis requiring systematic action
-        </motion.p>
+        {/* Orbiting pillar icons */}
+        <div className="mt-12 relative h-24">
+          {pillars.map((item, i) => {
+            const angle = (i / pillars.length) * Math.PI * 2 - Math.PI / 2;
+            const radius = 100;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius * 0.4; // Flattened orbit
+            
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.2 + i * 0.15, type: "spring" }}
+                className="absolute left-1/2 top-1/2"
+                style={{ 
+                  transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` 
+                }}
+              >
+                <motion.div
+                  onClick={() => onNavigate?.(item.blockId)}
+                  whileHover={{ scale: 1.25, y: -10 }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ 
+                    y: { duration: 2, repeat: Infinity, delay: i * 0.3 }
+                  }}
+                  className={cn(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center cursor-pointer relative",
+                    colors[item.color].bgSolid,
+                    "shadow-xl"
+                  )}
+                >
+                  <ShimmerOverlay delay={1.5 + i * 0.2} duration={3} />
+                  
+                  <motion.div
+                    animate={{
+                      boxShadow: [
+                        `0 0 20px ${colors[item.color].hex}40`,
+                        `0 0 40px ${colors[item.color].hex}60`,
+                        `0 0 20px ${colors[item.color].hex}40`,
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                    className="absolute inset-0 rounded-2xl"
+                  />
+                  
+                  <item.icon className="w-8 h-8 text-white relative z-10" />
+                  
+                  {/* Label on hover */}
+                  <motion.div 
+                    className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none"
+                    whileHover={{ opacity: 1 }}
+                  >
+                    <span className={cn(
+                      "text-xs font-medium whitespace-nowrap px-2 py-1 rounded-lg",
+                      colors[item.color].bg,
+                      colors[item.color].text
+                    )}>
+                      {item.label}
+                    </span>
+                  </motion.div>
+                  
+                  {/* Pulse ring */}
+                  <motion.div
+                    className={cn("absolute inset-0 rounded-2xl border-2", colors[item.color].border)}
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.25 }}
+                  />
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </div>
+        
+        {/* CTA button */}
+        <HeroReveal delay={1.8} direction="up">
+          <motion.button
+            onClick={onCloseAndExplore}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            className="mt-10 px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl text-white font-bold text-lg shadow-xl shadow-cyan-500/30 relative overflow-hidden"
+          >
+            <ShimmerOverlay delay={2} duration={3} />
+            <span className="relative z-10 flex items-center gap-3">
+              <Play className="w-5 h-5" />
+              Start Exploring
+            </span>
+          </motion.button>
+        </HeroReveal>
+        
+        {/* Hint */}
+        <HeroReveal delay={2.2} direction="up">
+          <motion.p
+            animate={{ opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="mt-6 text-xs text-white/50"
+          >
+            Click any pillar to explore its detailed metrics
+          </motion.p>
+        </HeroReveal>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// ADL SOLUTION VISUAL - Company credentials
+// GLOBAL CHALLENGE VISUAL - Dramatic crisis statistics
+// ============================================================================
+
+function GlobalChallengeVisual() {
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      {/* Dramatic amber/red particle field */}
+      <ParticleField count={60} color="amber" speed="normal" />
+      
+      {/* Danger glow orbs */}
+      <FloatingGlowOrb color="amber" size="xl" position="top-right" delay={0.5} />
+      <FloatingGlowOrb color="amber" size="lg" position="bottom-left" delay={1} />
+      
+      <div className="relative z-10 text-center w-full max-w-lg">
+        {/* Dramatic globe with crisis aura */}
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <div className="relative mb-10">
+            {/* Danger pulse rings */}
+            <PulseRing color="amber" size="w-48 h-48" count={4} duration={2.5} />
+            
+            {/* Main globe with intense glow */}
+            <motion.div
+              animate={{
+                boxShadow: [
+                  "0 0 50px rgba(245,158,11,0.3), 0 0 100px rgba(239,68,68,0.2)",
+                  "0 0 80px rgba(245,158,11,0.5), 0 0 160px rgba(239,68,68,0.3)",
+                  "0 0 50px rgba(245,158,11,0.3), 0 0 100px rgba(239,68,68,0.2)",
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-amber-500/40 via-amber-600/30 to-red-600/20 border-2 border-amber-500/50 flex items-center justify-center relative overflow-hidden"
+            >
+              <ShimmerOverlay delay={0.5} duration={3} />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+              >
+                <Globe className="w-24 h-24 text-amber-400" />
+              </motion.div>
+              
+              {/* Crisis indicator */}
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute top-4 right-4 w-4 h-4 rounded-full bg-red-500 shadow-lg shadow-red-500/50"
+              />
+            </motion.div>
+          </div>
+        </ScaleReveal>
+
+        {/* Hero stat - Deaths */}
+        <HeroReveal delay={0.4} direction="scale" blur={25}>
+          <div className="mb-8">
+            <motion.div
+              animate={{ 
+                textShadow: [
+                  "0 0 20px rgba(245,158,11,0.3)",
+                  "0 0 40px rgba(245,158,11,0.5)",
+                  "0 0 20px rgba(245,158,11,0.3)",
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-5xl md:text-6xl font-bold text-amber-400 mb-2"
+            >
+              <NumberCounter value={2.9} suffix="M" decimals={1} duration={2.5} delay={0.6} />
+            </motion.div>
+            <p className="text-white/80 text-lg font-medium">Deaths Annually</p>
+            <p className="text-amber-400/60 text-sm mt-1">More than road accidents, malaria & HIV combined</p>
+          </div>
+        </HeroReveal>
+
+        {/* Secondary stats grid */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { value: 395, suffix: "M", label: "Injuries", color: "blue", delay: 0.8 },
+            { value: 4, suffix: "%", label: "GDP Lost", color: "purple", delay: 1 },
+            { value: 3.94, suffix: "T", label: "USD Cost", decimals: 2, color: "amber", delay: 1.2 },
+          ].map((stat, i) => (
+            <HeroReveal key={i} delay={stat.delay} direction="up">
+              <motion.div
+                whileHover={{ scale: 1.05, y: -5 }}
+                className={cn(
+                  "p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden",
+                  colors[stat.color].bg,
+                  colors[stat.color].border
+                )}
+              >
+                <ShimmerOverlay delay={stat.delay + 0.5} duration={2} />
+                <p className={cn("text-2xl font-bold mb-1", colors[stat.color].text)}>
+                  <NumberCounter 
+                    value={stat.value} 
+                    suffix={stat.suffix} 
+                    decimals={stat.decimals || 0}
+                    duration={2} 
+                    delay={stat.delay + 0.3} 
+                  />
+                </p>
+                <p className="text-white/60 text-xs">{stat.label}</p>
+              </motion.div>
+            </HeroReveal>
+          ))}
+        </div>
+
+        {/* Call to action */}
+        <HeroReveal delay={1.6} direction="up">
+          <motion.p
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="mt-8 text-amber-400/80 text-sm font-medium"
+          >
+            A preventable crisis demanding systematic action
+          </motion.p>
+        </HeroReveal>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ADL SOLUTION VISUAL - Premium company credentials showcase
 // ============================================================================
 
 function ADLSolutionVisual() {
   const credentials = [
-    { icon: TrendingUp, label: "100+ Years", sublabel: "Consulting Excellence" },
-    { icon: Globe, label: "40+ Countries", sublabel: "Global Presence" },
-    { icon: Database, label: "180+ Nations", sublabel: "Data Coverage" },
-    { icon: Zap, label: "Real-Time", sublabel: "Analytics Platform" },
+    { icon: TrendingUp, value: 100, suffix: "+", label: "Years", sublabel: "Consulting Excellence", color: "purple" },
+    { icon: Globe, value: 40, suffix: "+", label: "Countries", sublabel: "Global Presence", color: "cyan" },
+    { icon: Database, value: 180, suffix: "+", label: "Nations", sublabel: "Data Coverage", color: "blue" },
+    { icon: Zap, value: 24, suffix: "/7", label: "Real-Time", sublabel: "Analytics Platform", color: "emerald" },
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="purple" count={25} />
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      {/* Premium purple/cyan particle field */}
+      <ParticleField count={50} color="mixed" speed="slow" />
       
-      <div className="relative z-10">
-        {/* Central ADL logo with glow */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, type: "spring" }}
-          className="text-center mb-8"
-        >
-          <motion.div
-            animate={{
-              filter: [
-                "drop-shadow(0 0 30px rgba(147,51,234,0.3))",
-                "drop-shadow(0 0 50px rgba(147,51,234,0.5))",
-                "drop-shadow(0 0 30px rgba(147,51,234,0.3))",
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-32 h-32 mx-auto rounded-2xl bg-gradient-to-br from-purple-500/30 to-purple-700/20 border-2 border-purple-500/40 flex items-center justify-center"
-          >
-            <img src="/adl-logo.png" alt="ADL" className="h-16 object-contain brightness-0 invert" />
-          </motion.div>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-4 text-white font-bold text-lg"
-          >
-            Arthur D. Little
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="text-purple-400 text-sm"
-          >
-            The World's First Management Consultancy
-          </motion.p>
-        </motion.div>
+      {/* Floating glow accents */}
+      <FloatingGlowOrb color="purple" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
+      
+      <div className="relative z-10 w-full max-w-md">
+        {/* Central ADL logo with premium glow */}
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <div className="text-center mb-10">
+            <GlowOrb color="purple" size="lg" intensity="intense" pulse>
+              <img 
+                src="/adl-logo.png" 
+                alt="ADL" 
+                className="h-16 object-contain brightness-0 invert relative z-10" 
+              />
+            </GlowOrb>
+            
+            {/* Company name with dramatic reveal */}
+            <HeroReveal delay={0.4} direction="up" blur={15}>
+              <DramaticTextReveal
+                text="Arthur D. Little"
+                className="mt-6 text-xl font-bold text-white"
+                delay={0.6}
+                glow
+                glowColor="rgba(147, 51, 234, 0.4)"
+              />
+            </HeroReveal>
+            
+            <HeroReveal delay={0.8} direction="up">
+              <p className="text-purple-400 text-sm mt-2 font-medium">
+                The World's First Management Consultancy
+              </p>
+            </HeroReveal>
+            
+            {/* Year badge */}
+            <HeroReveal delay={1} direction="up">
+              <motion.div
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="inline-flex items-center gap-2 mt-3 px-3 py-1 bg-purple-500/10 rounded-full border border-purple-500/20"
+              >
+                <span className="text-purple-400 text-xs">Est. 1886</span>
+                <div className="w-1 h-1 rounded-full bg-purple-400" />
+                <span className="text-purple-400 text-xs">Boston, USA</span>
+              </motion.div>
+            </HeroReveal>
+          </div>
+        </ScaleReveal>
 
-        {/* Credentials grid */}
-        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+        {/* Credentials grid with 3D flip cards */}
+        <div className="grid grid-cols-2 gap-4">
           {credentials.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 + i * 0.15 }}
-              className="flex items-center gap-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20"
+            <HeroReveal 
+              key={i} 
+              delay={1.2 + i * 0.15} 
+              direction={i % 2 === 0 ? "left" : "right"}
             >
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <item.icon className="w-5 h-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-white font-semibold text-sm">{item.label}</p>
-                <p className="text-purple-400/70 text-xs">{item.sublabel}</p>
-              </div>
-            </motion.div>
+              <motion.div
+                whileHover={{ 
+                  scale: 1.05, 
+                  rotateY: 5,
+                  z: 50,
+                }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className={cn(
+                  "p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden cursor-pointer",
+                  "bg-gradient-to-br",
+                  colors[item.color].bg,
+                  colors[item.color].border,
+                  "hover:shadow-lg transition-shadow"
+                )}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <ShimmerOverlay delay={1.4 + i * 0.2} duration={2.5} />
+                
+                <div className="flex items-start gap-3">
+                  <IconGlow color={item.color as "purple" | "cyan" | "blue" | "emerald" | "amber"}>
+                    <item.icon className="w-6 h-6 text-white" />
+                  </IconGlow>
+                  
+                  <div className="flex-1">
+                    <div className={cn("text-2xl font-bold", colors[item.color].text)}>
+                      <NumberCounter 
+                        value={item.value} 
+                        suffix={item.suffix} 
+                        duration={2} 
+                        delay={1.4 + i * 0.15} 
+                      />
+                    </div>
+                    <p className="text-white font-semibold text-sm">{item.label}</p>
+                    <p className="text-white/50 text-xs mt-0.5">{item.sublabel}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </HeroReveal>
           ))}
         </div>
+
+        {/* Bottom tagline */}
+        <HeroReveal delay={2} direction="up">
+          <motion.p
+            animate={{ opacity: [0.5, 0.8, 0.5] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="text-center text-purple-400/70 text-sm mt-8"
+          >
+            Transforming insights into impact since 1886
+          </motion.p>
+        </HeroReveal>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// SUCCESS STORIES VISUAL - Country cards with achievements
+// SUCCESS STORIES VISUAL - Premium country achievement cards
 // ============================================================================
 
 function SuccessStoriesVisual() {
   const countries = [
-    { code: "DEU", name: "Germany", achievement: "75% fatality reduction", color: "blue", flag: "🇩🇪" },
-    { code: "SGP", name: "Singapore", achievement: "94% compliance rate", color: "emerald", flag: "🇸🇬" },
-    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer", color: "cyan", flag: "🇸🇪" },
-    { code: "JPN", name: "Japan", achievement: "OSHMS excellence", color: "purple", flag: "🇯🇵" },
+    { code: "DEU", name: "Germany", achievement: "75% fatality reduction", stat: 75, color: "blue", flag: "🇩🇪" },
+    { code: "SGP", name: "Singapore", achievement: "94% compliance rate", stat: 94, color: "emerald", flag: "🇸🇬" },
+    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer", stat: 0, isText: true, color: "cyan", flag: "🇸🇪" },
+    { code: "JPN", name: "Japan", achievement: "OSHMS excellence", stat: 40, suffix: "%", color: "purple", flag: "🇯🇵" },
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="emerald" count={20} />
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      <ParticleField count={45} color="emerald" speed="slow" />
       
-      <div className="relative z-10 w-full max-w-md">
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center text-white/60 text-sm mb-6"
-        >
-          Leaders in Occupational Health Excellence
-        </motion.p>
+      <FloatingGlowOrb color="emerald" size="xl" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
+      
+      <div className="relative z-10 w-full max-w-lg">
+        {/* Header */}
+        <HeroReveal delay={0} direction="down">
+          <div className="text-center mb-8">
+            <DramaticTextReveal
+              text="Global Success Stories"
+              className="text-xl font-bold text-white"
+              delay={0.2}
+              glow
+              glowColor="rgba(5, 150, 105, 0.4)"
+            />
+            <p className="text-emerald-400/70 text-sm mt-2">
+              Leaders in Occupational Health Excellence
+            </p>
+          </div>
+        </HeroReveal>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Country cards with 3D effect */}
+        <div className="grid grid-cols-2 gap-5">
           {countries.map((country, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 30, rotateY: 90 }}
-              animate={{ opacity: 1, y: 0, rotateY: 0 }}
-              transition={{ delay: 0.3 + i * 0.15, duration: 0.6, type: "spring" }}
-              whileHover={{ scale: 1.05, y: -5 }}
-              className={cn(
-                "p-4 rounded-xl border backdrop-blur-sm cursor-pointer",
-                colors[country.color].bg,
-                colors[country.color].border,
-                "hover:shadow-lg transition-shadow"
-              )}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl">{country.flag}</span>
-                <span className="text-white font-semibold text-sm">{country.name}</span>
-              </div>
-              <p className={cn("text-xs", colors[country.color].text)}>
-                {country.achievement}
-              </p>
-            </motion.div>
+            <HeroReveal key={i} delay={0.4 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+              <motion.div
+                whileHover={{ 
+                  scale: 1.05, 
+                  y: -8,
+                  rotateY: 5,
+                  rotateX: -5,
+                }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className={cn(
+                  "p-5 rounded-2xl border backdrop-blur-sm cursor-pointer relative overflow-hidden",
+                  colors[country.color].bg,
+                  colors[country.color].border,
+                  "hover:shadow-xl transition-all"
+                )}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <ShimmerOverlay delay={0.6 + i * 0.2} duration={3} />
+                
+                {/* Glow effect */}
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      `0 0 20px ${colors[country.color].hex}30`,
+                      `0 0 40px ${colors[country.color].hex}50`,
+                      `0 0 20px ${colors[country.color].hex}30`,
+                    ]
+                  }}
+                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
+                  className="absolute inset-0 rounded-2xl"
+                />
+                
+                <div className="relative z-10">
+                  {/* Flag and name */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <motion.span 
+                      className="text-3xl"
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                    >
+                      {country.flag}
+                    </motion.span>
+                    <span className="text-white font-bold">{country.name}</span>
+                  </div>
+                  
+                  {/* Stat */}
+                  {!country.isText && (
+                    <div className={cn("text-3xl font-bold mb-1", colors[country.color].text)}>
+                      <NumberCounter 
+                        value={country.stat} 
+                        suffix={country.suffix || "%"} 
+                        duration={2} 
+                        delay={0.8 + i * 0.15} 
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Achievement */}
+                  <p className="text-white/70 text-sm">
+                    {country.achievement}
+                  </p>
+                </div>
+              </motion.div>
+            </HeroReveal>
           ))}
         </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="text-center text-emerald-400/70 text-xs mt-6"
-        >
-          Click cards to explore detailed success factors
-        </motion.p>
+        {/* Bottom CTA */}
+        <HeroReveal delay={1.4} direction="up">
+          <motion.p
+            animate={{ opacity: [0.5, 0.9, 0.5] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="text-center text-emerald-400/80 text-sm mt-8"
+          >
+            Learn from the world's leading OH systems
+          </motion.p>
+        </HeroReveal>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// GOSI OPPORTUNITY VISUAL - Saudi Arabia rising
+// GOSI OPPORTUNITY VISUAL - Saudi Arabia's rise with premium animations
 // ============================================================================
 
 function GOSIOpportunityVisual() {
@@ -1691,87 +2091,143 @@ function GOSIOpportunityVisual() {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8">
-      <FloatingParticles color="cyan" count={30} />
+    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+      <ParticleField count={50} color="cyan" speed="slow" />
       
-      <div className="relative z-10 w-full max-w-sm">
+      <FloatingGlowOrb color="cyan" size="xl" position="top-right" delay={0} />
+      <FloatingGlowOrb color="purple" size="lg" position="bottom-left" delay={0.5} />
+      
+      <div className="relative z-10 w-full max-w-md">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6"
-        >
-          <p className="text-cyan-400 font-semibold text-sm">Regional Leadership Opportunity</p>
-        </motion.div>
+        <HeroReveal delay={0} direction="down">
+          <div className="text-center mb-8">
+            <DramaticTextReveal
+              text="GOSI's Path Forward"
+              className="text-xl font-bold text-white"
+              delay={0.2}
+              glow
+              glowColor="rgba(6, 182, 212, 0.4)"
+            />
+            <p className="text-cyan-400/70 text-sm mt-2">
+              Regional Leadership Opportunity
+            </p>
+          </div>
+        </HeroReveal>
 
-        {/* Ranking visualization */}
-        <div className="space-y-3">
+        {/* Ranking visualization with premium styling */}
+        <div className="space-y-4">
           {rankings.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + i * 0.15 }}
-              className={cn(
-                "flex items-center gap-4 p-3 rounded-xl border",
-                item.highlight
-                  ? "bg-cyan-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20"
-                  : "bg-white/5 border-white/10"
-              )}
-            >
-              {/* Position */}
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg",
-                item.highlight ? "bg-cyan-500 text-white" : "bg-slate-700 text-white/60"
-              )}>
-                {item.position}
-              </div>
-
-              {/* Country */}
-              <div className="flex items-center gap-2 flex-1">
-                <span className="text-xl">{item.flag}</span>
-                <span className={cn(
-                  "font-medium",
-                  item.highlight ? "text-cyan-300" : "text-white/80"
-                )}>
-                  {item.country}
-                </span>
-              </div>
-
-              {/* Score or arrow */}
-              {item.score ? (
-                <div className="text-white/60 font-mono text-sm">
-                  {item.score}
-                </div>
-              ) : (
-                <motion.div
-                  animate={{ y: [-5, 5, -5] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+            <HeroReveal key={i} delay={0.4 + i * 0.12} direction="left">
+              <motion.div
+                whileHover={{ scale: 1.02, x: 5 }}
+                className={cn(
+                  "flex items-center gap-4 p-4 rounded-2xl border relative overflow-hidden",
+                  item.highlight
+                    ? "bg-gradient-to-r from-cyan-500/30 to-purple-500/20 border-cyan-400/60"
+                    : "bg-white/5 border-white/10"
+                )}
+              >
+                {item.highlight && <ShimmerOverlay delay={1} duration={3} />}
+                
+                {/* Position badge */}
+                <motion.div 
+                  className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl relative",
+                    item.highlight 
+                      ? "bg-gradient-to-br from-cyan-500 to-purple-500 text-white shadow-lg shadow-cyan-500/30" 
+                      : "bg-slate-700/80 text-white/60"
+                  )}
+                  animate={item.highlight ? {
+                    boxShadow: [
+                      "0 0 20px rgba(6,182,212,0.3)",
+                      "0 0 40px rgba(6,182,212,0.5)",
+                      "0 0 20px rgba(6,182,212,0.3)",
+                    ]
+                  } : undefined}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  {item.highlight ? (
+                    <motion.span
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      ?
+                    </motion.span>
+                  ) : item.position}
                 </motion.div>
-              )}
-            </motion.div>
+
+                {/* Country info */}
+                <div className="flex items-center gap-3 flex-1">
+                  <motion.span 
+                    className="text-2xl"
+                    animate={item.highlight ? { scale: [1, 1.15, 1] } : undefined}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {item.flag}
+                  </motion.span>
+                  <span className={cn(
+                    "font-semibold text-lg",
+                    item.highlight ? "text-cyan-300" : "text-white/80"
+                  )}>
+                    {item.country}
+                  </span>
+                </div>
+
+                {/* Score or rising indicator */}
+                {item.score ? (
+                  <div className="text-white/60 font-mono text-lg">
+                    <NumberCounter value={item.score} duration={1.5} delay={0.6 + i * 0.1} />
+                  </div>
+                ) : (
+                  <motion.div
+                    animate={{ y: [-8, 8, -8], rotate: [0, 10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="flex items-center gap-2"
+                  >
+                    <TrendingUp className="w-6 h-6 text-cyan-400" />
+                    <span className="text-cyan-400 text-sm font-medium">Rising</span>
+                  </motion.div>
+                )}
+              </motion.div>
+            </HeroReveal>
           ))}
         </div>
 
-        {/* Vision 2030 alignment */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="mt-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">2030</span>
+        {/* Vision 2030 card with premium styling */}
+        <HeroReveal delay={1.2} direction="up">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="mt-8 p-5 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-cyan-500/20 border border-cyan-500/40 relative overflow-hidden"
+          >
+            <ShimmerOverlay delay={1.5} duration={4} />
+            
+            <div className="flex items-center gap-4 relative z-10">
+              <motion.div 
+                animate={{
+                  boxShadow: [
+                    "0 0 20px rgba(6,182,212,0.3), 0 0 40px rgba(147,51,234,0.2)",
+                    "0 0 40px rgba(6,182,212,0.5), 0 0 80px rgba(147,51,234,0.3)",
+                    "0 0 20px rgba(6,182,212,0.3), 0 0 40px rgba(147,51,234,0.2)",
+                  ]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center"
+              >
+                <span className="text-white font-bold text-lg">2030</span>
+              </motion.div>
+              <div>
+                <DramaticTextReveal
+                  text="Vision 2030 Aligned"
+                  className="text-white font-bold text-lg"
+                  delay={1.4}
+                  glow
+                  glowColor="rgba(6, 182, 212, 0.3)"
+                />
+                <p className="text-cyan-400/80 text-sm mt-1">Quality of Life Program</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Vision 2030 Aligned</p>
-              <p className="text-cyan-400/70 text-xs">Quality of Life Program</p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </HeroReveal>
       </div>
     </div>
   );

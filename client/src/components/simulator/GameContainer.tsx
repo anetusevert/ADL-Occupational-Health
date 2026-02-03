@@ -184,7 +184,7 @@ function GameInner() {
           status: 'error',
           message: isTimeout 
             ? 'Request timed out - loading from database'
-            : 'AI service unavailable - loading from database',
+            : 'Service temporarily unavailable - loading from database',
           emoji: '⏱️',
         },
         {
@@ -766,7 +766,7 @@ function SetupScreen({
         </motion.button>
 
         <p className="text-center text-[10px] text-white/20">
-          AI-powered briefing • Monthly decisions • Real consequences
+          Strategic briefing • Monthly decisions • Real consequences
         </p>
       </motion.div>
     </div>

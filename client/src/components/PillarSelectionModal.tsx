@@ -437,7 +437,7 @@ export function PillarSelectionModal({
                       <Loader2 className="w-5 h-5 text-cyan-400 animate-spin flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-cyan-400">
-                          Generating Reports for {country.name}
+                          Preparing Reports for {country.name}
                         </p>
                         <p className="text-xs text-white/50">
                           {generationStatus.inProgress 
@@ -477,7 +477,7 @@ export function PillarSelectionModal({
                       {isGenerating ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Generating...</span>
+                          <span>Processing...</span>
                         </>
                       ) : generationStatus?.completed === generationStatus?.total && generationStatus?.total === 5 ? (
                         <>
@@ -487,7 +487,7 @@ export function PillarSelectionModal({
                       ) : (
                         <>
                           <PlayCircle className="w-4 h-4" />
-                          <span>Generate All Reports</span>
+                          <span>Initialize All Reports</span>
                         </>
                       )}
                     </button>

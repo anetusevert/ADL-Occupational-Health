@@ -160,7 +160,7 @@ export function AgentActivityIndicator({
             <CheckCircle className="w-5 h-5 text-emerald-400" />
           )}
           <span className="text-sm font-medium text-white">
-            {isLoading ? 'AI Processing' : 'Complete'}
+            {isLoading ? 'Processing' : 'Complete'}
           </span>
         </div>
         
@@ -240,7 +240,7 @@ export function AgentActivityIndicator({
             >
               <Loader2 className="w-4 h-4" />
             </motion.div>
-            <span>Initializing AI agents...</span>
+            <span>Initializing analysis...</span>
           </div>
         )}
       </div>

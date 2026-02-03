@@ -129,7 +129,7 @@ export function SaudiAnalysisPanel({
             <Brain className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="text-left">
-            <h3 className="text-white font-semibold">AI Strategic Analysis</h3>
+            <h3 className="text-white font-semibold">Strategic Analysis</h3>
             <p className="text-xs text-slate-400">
               Saudi Arabia vs {comparisonName} • Powered by Arthur D. Little
             </p>
@@ -159,7 +159,7 @@ export function SaudiAnalysisPanel({
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
                   <span className="ml-3 text-slate-300">
-                    Generating AI analysis...
+                    Preparing analysis...
                   </span>
                 </div>
               )}
@@ -168,7 +168,7 @@ export function SaudiAnalysisPanel({
               {error && !isLoading && (
                 <div className="flex items-center justify-center py-8 text-red-400">
                   <AlertTriangle className="w-5 h-5 mr-2" />
-                  <span>Failed to generate analysis. Please try again.</span>
+                  <span>Failed to load analysis. Please try again.</span>
                 </div>
               )}
 
