@@ -1718,119 +1718,188 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
 }
 
 // ============================================================================
-// GLOBAL CHALLENGE VISUAL - Dramatic crisis statistics
+// GLOBAL CHALLENGE VISUAL - Premium animated crisis model with research data
 // ============================================================================
 
 function GlobalChallengeVisual() {
+  // Research-backed comparison data (ILO Global Estimates 2024)
+  const comparisons = [
+    { label: "Road Accidents", deaths: "1.35M", icon: "🚗", comparison: "2.1x more" },
+    { label: "Malaria", deaths: "0.62M", icon: "🦟", comparison: "4.7x more" },
+    { label: "HIV/AIDS", deaths: "0.65M", icon: "🎗️", comparison: "4.5x more" },
+  ];
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
+    <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Dramatic amber/red particle field */}
-      <ParticleField count={60} color="amber" speed="normal" />
+      <ParticleField count={50} color="amber" speed="normal" />
       
       {/* Danger glow orbs */}
-      <FloatingGlowOrb color="amber" size="xl" position="top-right" delay={0.5} />
-      <FloatingGlowOrb color="amber" size="lg" position="bottom-left" delay={1} />
+      <FloatingGlowOrb color="amber" size="lg" position="top-right" delay={0.5} />
+      <FloatingGlowOrb color="amber" size="md" position="bottom-left" delay={1} />
       
-      <div className="relative z-10 text-center w-full max-w-lg">
-        {/* Dramatic globe with crisis aura */}
-        <ScaleReveal delay={0} initialScale={0.5}>
-          <div className="relative mb-10">
-            {/* Danger pulse rings */}
-            <PulseRing color="amber" size="w-48 h-48" count={4} duration={2.5} />
-            
-            {/* Main globe with intense glow */}
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 50px rgba(245,158,11,0.3), 0 0 100px rgba(239,68,68,0.2)",
-                  "0 0 80px rgba(245,158,11,0.5), 0 0 160px rgba(239,68,68,0.3)",
-                  "0 0 50px rgba(245,158,11,0.3), 0 0 100px rgba(239,68,68,0.2)",
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-amber-500/40 via-amber-600/30 to-red-600/20 border-2 border-amber-500/50 flex items-center justify-center relative overflow-hidden"
-            >
-              <ShimmerOverlay delay={0.5} duration={3} />
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-              >
-                <Globe className="w-24 h-24 text-amber-400" />
-              </motion.div>
-              
-              {/* Crisis indicator */}
-              <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="absolute top-4 right-4 w-4 h-4 rounded-full bg-red-500 shadow-lg shadow-red-500/50"
-              />
-            </motion.div>
+      <div className="relative z-10 w-full max-w-3xl">
+        <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
+          
+          {/* Left: Animated Crisis Globe Model */}
+          <div className="flex-shrink-0">
+            <ScaleReveal delay={0} initialScale={0.5}>
+              <div className="relative">
+                {/* Outer danger rings */}
+                <PulseRing color="amber" size="w-44 h-44 sm:w-52 sm:h-52" count={3} duration={3} />
+                
+                {/* 3D-style globe with rotating layers */}
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 40px rgba(245,158,11,0.3), 0 0 80px rgba(239,68,68,0.2)",
+                      "0 0 60px rgba(245,158,11,0.5), 0 0 120px rgba(239,68,68,0.3)",
+                      "0 0 40px rgba(245,158,11,0.3), 0 0 80px rgba(239,68,68,0.2)",
+                    ],
+                  }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                  className="w-44 h-44 sm:w-52 sm:h-52 mx-auto rounded-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-2 border-amber-500/50 flex items-center justify-center relative overflow-hidden"
+                >
+                  {/* Grid lines overlay */}
+                  <div className="absolute inset-0 rounded-full opacity-20">
+                    {[...Array(6)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute border border-amber-500/30 rounded-full"
+                        style={{
+                          inset: `${i * 15}%`,
+                        }}
+                        animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
+                        transition={{ duration: 30 + i * 5, repeat: Infinity, ease: "linear" }}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Rotating globe icon */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Globe className="w-20 h-20 sm:w-24 sm:h-24 text-amber-400/80" />
+                  </motion.div>
+                  
+                  {/* Crisis indicator dots */}
+                  {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-2 h-2 rounded-full bg-red-500"
+                      style={{
+                        left: `calc(50% + ${Math.cos(angle * Math.PI / 180) * 55}px)`,
+                        top: `calc(50% + ${Math.sin(angle * Math.PI / 180) * 55}px)`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                      animate={{ 
+                        scale: [1, 1.5, 1], 
+                        opacity: [0.4, 1, 0.4],
+                        boxShadow: [
+                          "0 0 5px rgba(239,68,68,0.5)",
+                          "0 0 15px rgba(239,68,68,0.8)",
+                          "0 0 5px rgba(239,68,68,0.5)"
+                        ]
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                    />
+                  ))}
+                </motion.div>
+                
+                {/* Central death counter */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring" }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                >
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ 
+                        textShadow: [
+                          "0 0 20px rgba(245,158,11,0.3)",
+                          "0 0 30px rgba(245,158,11,0.5)",
+                          "0 0 20px rgba(245,158,11,0.3)",
+                        ]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-3xl sm:text-4xl font-bold text-amber-400"
+                    >
+                      <NumberCounter value={2.9} suffix="M" decimals={1} duration={2} delay={0.8} />
+                    </motion.div>
+                    <p className="text-white/60 text-xs mt-1">Deaths/Year</p>
+                  </div>
+                </motion.div>
+              </div>
+            </ScaleReveal>
           </div>
-        </ScaleReveal>
-
-        {/* Hero stat - Deaths */}
-        <HeroReveal delay={0.4} direction="scale" blur={25}>
-          <div className="mb-8">
-            <motion.div
-              animate={{ 
-                textShadow: [
-                  "0 0 20px rgba(245,158,11,0.3)",
-                  "0 0 40px rgba(245,158,11,0.5)",
-                  "0 0 20px rgba(245,158,11,0.3)",
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-5xl md:text-6xl font-bold text-amber-400 mb-2"
-            >
-              <NumberCounter value={2.9} suffix="M" decimals={1} duration={2.5} delay={0.6} />
-            </motion.div>
-            <p className="text-white/80 text-lg font-medium">Deaths Annually</p>
-            <p className="text-amber-400/60 text-sm mt-1">More than road accidents, malaria & HIV combined</p>
-          </div>
-        </HeroReveal>
-
-        {/* Secondary stats grid */}
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { value: 395, suffix: "M", label: "Injuries", color: "blue", delay: 0.8 },
-            { value: 4, suffix: "%", label: "GDP Lost", color: "purple", delay: 1 },
-            { value: 3.94, suffix: "T", label: "USD Cost", decimals: 2, color: "amber", delay: 1.2 },
-          ].map((stat, i) => (
-            <HeroReveal key={i} delay={stat.delay} direction="up">
-              <motion.div
-                whileHover={{ scale: 1.05, y: -5 }}
-                className={cn(
-                  "p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden",
-                  colors[stat.color].bg,
-                  colors[stat.color].border
-                )}
-              >
-                <ShimmerOverlay delay={stat.delay + 0.5} duration={2} />
-                <p className={cn("text-2xl font-bold mb-1", colors[stat.color].text)}>
-                  <NumberCounter 
-                    value={stat.value} 
-                    suffix={stat.suffix} 
-                    decimals={stat.decimals || 0}
-                    duration={2} 
-                    delay={stat.delay + 0.3} 
-                  />
-                </p>
-                <p className="text-white/60 text-xs">{stat.label}</p>
-              </motion.div>
+          
+          {/* Right: Research perspective & comparisons */}
+          <div className="flex-1 min-w-0">
+            {/* Main headline */}
+            <HeroReveal delay={0.4} direction="left" blur={15}>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                The <span className="text-amber-400">Silent Pandemic</span>
+              </h3>
+              <p className="text-white/60 text-sm mb-4">
+                Occupational accidents and diseases represent a global health crisis that exceeds many widely recognized causes of death.
+              </p>
             </HeroReveal>
-          ))}
+            
+            {/* Comparison cards */}
+            <div className="space-y-2 mb-4">
+              {comparisons.map((item, i) => (
+                <HeroReveal key={i} delay={0.7 + i * 0.15} direction="left">
+                  <motion.div
+                    whileHover={{ x: 5 }}
+                    className="flex items-center gap-3 p-2 sm:p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                  >
+                    <span className="text-lg sm:text-xl">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs sm:text-sm font-medium">{item.label}</p>
+                      <p className="text-white/50 text-[10px] sm:text-xs">{item.deaths} deaths/year</p>
+                    </div>
+                    <span className="text-amber-400 text-xs sm:text-sm font-bold whitespace-nowrap">{item.comparison}</span>
+                  </motion.div>
+                </HeroReveal>
+              ))}
+            </div>
+            
+            {/* Key stats row */}
+            <HeroReveal delay={1.2} direction="up">
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 395, suffix: "M", label: "Injuries/Year", color: "blue" },
+                  { value: 4, suffix: "%", label: "GDP Lost", color: "purple" },
+                  { value: 33, suffix: "%", label: "C187 Ratified", color: "cyan" },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={i}
+                    whileHover={{ scale: 1.03 }}
+                    className={cn(
+                      "p-2 sm:p-3 rounded-lg border backdrop-blur-sm text-center",
+                      colors[stat.color].bg,
+                      colors[stat.color].border
+                    )}
+                  >
+                    <p className={cn("text-lg sm:text-xl font-bold", colors[stat.color].text)}>
+                      <NumberCounter value={stat.value} suffix={stat.suffix} duration={1.5} delay={1.3 + i * 0.1} />
+                    </p>
+                    <p className="text-white/50 text-[10px] sm:text-xs">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </HeroReveal>
+            
+            {/* Source citation */}
+            <HeroReveal delay={1.6} direction="up">
+              <p className="mt-3 text-white/30 text-[10px] text-center lg:text-left">
+                Source: ILO Global Estimates on Occupational Safety and Health, 2024
+              </p>
+            </HeroReveal>
+          </div>
         </div>
-
-        {/* Call to action */}
-        <HeroReveal delay={1.6} direction="up">
-          <motion.p
-            animate={{ opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="mt-8 text-amber-400/80 text-sm font-medium"
-          >
-            A preventable crisis demanding systematic action
-          </motion.p>
-        </HeroReveal>
       </div>
     </div>
   );
