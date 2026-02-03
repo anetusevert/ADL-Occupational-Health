@@ -2615,21 +2615,13 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       );
 
     case "opportunity":
+      // Full-bleed Saudi Arabia / GOSI Opportunity visual with Vision 2030
       return (
-        <DataImpactLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          stats={[
-            { value: 40, suffix: "%", label: "Cost Reduction Potential", color: "emerald" },
-            { value: "#1", label: "GCC Leadership Target", color: "cyan" },
-            { value: 2030, label: "Vision Alignment", color: "purple" },
-          ]}
-          highlights={slide.highlights}
-          insight="With GOSI's institutional strength and Vision 2030 alignment, Saudi Arabia can become the regional benchmark."
-          color="cyan"
-          icon={<TrendingUp className="w-5 h-5 text-cyan-400" />}
-          visual={<CompactSaudiVisual />}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <GOSIOpportunityVisual />
+          </div>
+        </div>
       );
 
     // FRAMEWORK LAYOUT - Overview and integration slides  
@@ -2647,19 +2639,44 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       );
 
     case "integration":
+      // Full-bleed integration visual showing connected framework
       return (
-        <FrameworkLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          visual={<CompactIntegrationVisual />}
-          highlights={slide.highlights}
-          insight="Countries with integrated systems show 40% lower fatality rates than those with fragmented approaches."
-          color="cyan"
-          icon={<RefreshCcw className="w-5 h-5 text-cyan-400" />}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<RefreshCcw className="w-5 h-5 text-cyan-400" />}
+            color="cyan"
+          />
+          <SlideBody particleColor="rgba(6,182,212,0.15)">
+            <div className="h-full flex flex-col items-center justify-center">
+              <CompactIntegrationVisual />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.5 }}
+                className="mt-6 max-w-2xl"
+              >
+                <KeyPointsList points={slide.highlights?.slice(0, 4) || []} color="cyan" columns={2} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2 }}
+                className="mt-4"
+              >
+                <InsightBox
+                  insight="Countries with integrated systems show 40% lower fatality rates than those with fragmented approaches."
+                  color="cyan"
+                  variant="callout"
+                />
+              </motion.div>
+            </div>
+          </SlideBody>
+        </div>
       );
 
-    // COMPONENT LAYOUT - Governance and pillar slides with framework navigator
+    // DEEP STORYTELLING - Governance and pillar slides with framework navigator
     case "component":
       const componentColors: Record<string, "purple" | "blue" | "emerald" | "amber" | "cyan"> = {
         governance: "purple",
@@ -2668,60 +2685,52 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         "pillar-3": "amber",
       };
       
-      const componentInsights: Record<string, string> = {
-        governance: "Countries with strong governance show 47% lower workplace fatality rates.",
-        "pillar-1": "Every $1 invested in prevention saves $4-6 in downstream costs.",
-        "pillar-2": "Early detection reduces treatment costs by 60% and prevents disability.",
-        "pillar-3": "No-fault systems achieve 80% return-to-work rates.",
-      };
-      
-      const componentVisuals: Record<string, React.ReactNode> = {
-        governance: <CompactGovernanceVisual onInsightClick={onInsightClick} />,
-        "pillar-1": <CompactPillarVisual pillar="prevention" onInsightClick={onInsightClick} />,
-        "pillar-2": <CompactPillarVisual pillar="surveillance" onInsightClick={onInsightClick} />,
-        "pillar-3": <CompactPillarVisual pillar="restoration" onInsightClick={onInsightClick} />,
+      // Map to deep storytelling visuals
+      const deepStoryVisuals: Record<string, React.ReactNode> = {
+        governance: <GovernanceStoryVisual onInsightClick={onInsightClick} />,
+        "pillar-1": <PreventionStoryVisual onInsightClick={onInsightClick} />,
+        "pillar-2": <SurveillanceStoryVisual onInsightClick={onInsightClick} />,
+        "pillar-3": <RestorationStoryVisual onInsightClick={onInsightClick} />,
       };
 
-      // Framework element with navigator overlay
+      const componentId = slide.componentId || "governance";
+      const colorKey = componentColors[componentId];
+
+      // Full-bleed deep storytelling with framework navigator
       return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className={cn(
+          "h-full flex flex-col overflow-hidden",
+          colorKey === "purple" && "bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900",
+          colorKey === "blue" && "bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900",
+          colorKey === "emerald" && "bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900",
+          colorKey === "amber" && "bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900",
+        )}>
           {/* Framework Navigator - Top left */}
-          <FrameworkNavigator activeComponent={slide.componentId || "governance"} />
+          <FrameworkNavigator activeComponent={componentId} />
           
-          {/* Main content */}
-          <div className="flex-1 min-h-0">
-            <ComponentLayout
-              actionTitle={slide.actionTitle}
-              subtitle={slide.subtitle}
-              description={slide.content}
-              visual={componentVisuals[slide.componentId || "governance"]}
-              highlights={slide.highlights}
-              insight={componentInsights[slide.componentId || "governance"]}
-              color={componentColors[slide.componentId || "governance"]}
-              icon={getIcon()}
-            />
+          {/* Consulting header */}
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={getIcon()}
+            color={colorKey}
+          />
+          
+          {/* Deep storytelling visual */}
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            {deepStoryVisuals[componentId]}
           </div>
         </div>
       );
 
-    // EVIDENCE LAYOUT - Success stories and solution slides
+    // Full-bleed Success Stories visual with country case studies
     case "success":
       return (
-        <EvidenceLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          description={slide.content}
-          evidence={[
-            { flag: "🇩🇪", title: "Germany", achievement: "75% fatality reduction", detail: "Berufsgenossenschaften model since 1990" },
-            { flag: "🇸🇬", title: "Singapore", achievement: "94% compliance rate", detail: "WSH Act with escalating penalties" },
-            { flag: "🇸🇪", title: "Sweden", achievement: "Vision Zero pioneer", detail: "Zero fatalities goal by 2030" },
-            { flag: "🇯🇵", title: "Japan", achievement: "OSHMS excellence", detail: "40% fewer incidents with certification" },
-          ]}
-          highlights={slide.highlights?.slice(0, 2)}
-          insight="These nations demonstrate that comprehensive frameworks deliver measurable results."
-          color="emerald"
-          icon={<Globe className="w-5 h-5 text-emerald-400" />}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <SuccessStoriesVisual />
+          </div>
+        </div>
       );
 
     case "solution":
@@ -2802,6 +2811,414 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
         );
       })}
     </motion.div>
+  );
+}
+
+// ============================================================================
+// DEEP STORYTELLING VISUALS - McKinsey-style framework element presentations
+// ============================================================================
+
+interface DeepStoryVisualProps {
+  onInsightClick?: (id: string) => void;
+}
+
+// Governance Deep Storytelling Visual (Slide 5)
+function GovernanceStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
+  const keyQuestions = [
+    { id: "c187", question: "ILO C187 Ratified?", good: "Yes - Framework established", bad: "No - Voluntary only", metric: "62/187 countries" },
+    { id: "inspectors", question: "Inspector Ratio", good: ">1:10,000 workers", bad: "<1:50,000 workers", metric: "Global avg: 1:53,000" },
+    { id: "whistleblower", question: "Whistleblower Protection", good: "Legal protection + anonymous reporting", bad: "No protection - fear of retaliation", metric: "Reduces under-reporting 60%" },
+    { id: "tripartite", question: "Tripartite Governance", good: "Gov + Employers + Workers collaborate", bad: "Top-down regulation only", metric: "Better compliance rates" },
+  ];
+
+  const bestPractice = {
+    country: "Germany",
+    flag: "🇩🇪",
+    practice: "Berufsgenossenschaften (BGs)",
+    detail: "Sector-specific insurance associations combining prevention, insurance, and rehabilitation under one roof",
+    result: "47% lower fatality rates"
+  };
+
+  return (
+    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={30} color="purple" speed="slow" />
+      
+      {/* Header with animated crown */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <GlowOrb color="purple" size="lg" intensity="intense">
+            <Crown className="w-10 h-10 text-white" />
+          </GlowOrb>
+        </ScaleReveal>
+        <HeroReveal delay={0.3} direction="left">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Governance Ecosystem</h2>
+            <p className="text-purple-400 text-xs sm:text-sm">The Overarching Driver</p>
+          </div>
+        </HeroReveal>
+      </div>
+
+      {/* Key Questions Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
+        {keyQuestions.map((q, i) => (
+          <HeroReveal key={q.id} delay={0.5 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onInsightClick?.(q.id)}
+              className="h-full p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-left flex flex-col"
+            >
+              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
+                </div>
+              </div>
+              <p className="text-purple-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
+            </motion.button>
+          </HeroReveal>
+        ))}
+      </div>
+
+      {/* Best Practice Example */}
+      <HeroReveal delay={1.2} direction="up">
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          className="p-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/10 border border-purple-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{bestPractice.flag}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
+                <span className="text-purple-400 text-xs">{bestPractice.practice}</span>
+              </div>
+              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
+            </div>
+          </div>
+        </motion.div>
+      </HeroReveal>
+    </div>
+  );
+}
+
+// Hazard Prevention Deep Storytelling Visual (Slide 6)
+function PreventionStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
+  const keyQuestions = [
+    { id: "oels", question: "Exposure Limits (OELs)", good: "Comprehensive limits for 500+ substances", bad: "No or outdated limits", metric: "Aligned with ACGIH TLVs" },
+    { id: "training", question: "Safety Training", good: ">90% annual coverage", bad: "<50% coverage", metric: "Avg: 8-16 hrs/worker/year" },
+    { id: "risk-assess", question: "Risk Assessments", good: "Mandatory + audited", bad: "Voluntary or paper-only", metric: "35-40% injury reduction" },
+    { id: "registry", question: "Hazard Registry", good: "National database + tracking", bad: "No systematic tracking", metric: "REACH: 23,000+ substances" },
+  ];
+
+  const bestPractice = {
+    country: "Netherlands",
+    flag: "🇳🇱",
+    practice: "Arbocatalogus",
+    detail: "Sector-specific hazard control catalogs developed jointly by employers and unions",
+    result: "Engineering > PPE focus"
+  };
+
+  return (
+    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={30} color="blue" speed="slow" />
+      
+      {/* Header with animated shield */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <GlowOrb color="blue" size="lg" intensity="intense">
+            <Shield className="w-10 h-10 text-white" />
+          </GlowOrb>
+        </ScaleReveal>
+        <HeroReveal delay={0.3} direction="left">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Hazard Prevention</h2>
+            <p className="text-blue-400 text-xs sm:text-sm">Pillar I — The Proactive Shield</p>
+          </div>
+        </HeroReveal>
+      </div>
+
+      {/* Hierarchy of Controls mini-visual */}
+      <HeroReveal delay={0.4} direction="down">
+        <div className="flex justify-center gap-1 mb-3">
+          {["Eliminate", "Substitute", "Engineer", "Admin", "PPE"].map((step, i) => (
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.1 }}
+              className={cn(
+                "px-2 py-1 rounded text-[9px] font-medium",
+                i === 0 ? "bg-emerald-500/30 text-emerald-400" :
+                i === 4 ? "bg-red-500/20 text-red-400" :
+                "bg-blue-500/20 text-blue-400"
+              )}
+            >
+              {step}
+            </motion.div>
+          ))}
+        </div>
+      </HeroReveal>
+
+      {/* Key Questions Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
+        {keyQuestions.map((q, i) => (
+          <HeroReveal key={q.id} delay={0.6 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onInsightClick?.(q.id)}
+              className="h-full p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left flex flex-col"
+            >
+              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
+                </div>
+              </div>
+              <p className="text-blue-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
+            </motion.button>
+          </HeroReveal>
+        ))}
+      </div>
+
+      {/* Best Practice Example */}
+      <HeroReveal delay={1.3} direction="up">
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/10 border border-blue-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{bestPractice.flag}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
+                <span className="text-blue-400 text-xs">{bestPractice.practice}</span>
+              </div>
+              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-emerald-400 font-bold text-xs">{bestPractice.result}</p>
+            </div>
+          </div>
+        </motion.div>
+      </HeroReveal>
+    </div>
+  );
+}
+
+// Surveillance Deep Storytelling Visual (Slide 7)
+function SurveillanceStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
+  const keyQuestions = [
+    { id: "exams", question: "Health Examinations", good: ">90% in hazardous jobs", bad: "<50% coverage", metric: "179 job categories (Korea)" },
+    { id: "registry", question: "Disease Registry", good: "Mandatory + comprehensive", bad: "Voluntary or fragmented", metric: "Links exposure to outcomes" },
+    { id: "latency", question: "Reporting Latency", good: "<7 days to report", bad: ">30 days delay", metric: "RIDDOR standard (UK)" },
+    { id: "biomarker", question: "Biomarker Monitoring", good: "Active programs for key hazards", bad: "No systematic monitoring", metric: "Detects disease 3-5 yrs earlier" },
+  ];
+
+  const bestPractice = {
+    country: "Finland",
+    flag: "🇫🇮",
+    practice: "FIOH Registry",
+    detail: "Comprehensive exposure and health registries enabling long-term epidemiological studies",
+    result: "60% earlier detection"
+  };
+
+  return (
+    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={30} color="emerald" speed="slow" />
+      
+      {/* Header with animated eye */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <motion.div
+            animate={{ 
+              boxShadow: [
+                "0 0 20px rgba(16,185,129,0.3)",
+                "0 0 40px rgba(16,185,129,0.5)",
+                "0 0 20px rgba(16,185,129,0.3)",
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <GlowOrb color="emerald" size="lg" intensity="intense">
+              <Eye className="w-10 h-10 text-white" />
+            </GlowOrb>
+          </motion.div>
+        </ScaleReveal>
+        <HeroReveal delay={0.3} direction="left">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Surveillance & Detection</h2>
+            <p className="text-emerald-400 text-xs sm:text-sm">Pillar II — The Watchful Eye</p>
+          </div>
+        </HeroReveal>
+      </div>
+
+      {/* Key Questions Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
+        {keyQuestions.map((q, i) => (
+          <HeroReveal key={q.id} delay={0.5 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onInsightClick?.(q.id)}
+              className="h-full p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-left flex flex-col"
+            >
+              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
+                </div>
+              </div>
+              <p className="text-emerald-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
+            </motion.button>
+          </HeroReveal>
+        ))}
+      </div>
+
+      {/* Best Practice Example */}
+      <HeroReveal delay={1.2} direction="up">
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/10 border border-emerald-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{bestPractice.flag}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
+                <span className="text-emerald-400 text-xs">{bestPractice.practice}</span>
+              </div>
+              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
+            </div>
+          </div>
+        </motion.div>
+      </HeroReveal>
+    </div>
+  );
+}
+
+// Restoration Deep Storytelling Visual (Slide 8)
+function RestorationStoryVisual({ onInsightClick }: DeepStoryVisualProps) {
+  const keyQuestions = [
+    { id: "coverage", question: "Workforce Coverage", good: ">95% covered", bad: "<50% coverage", metric: "Incl. informal sector" },
+    { id: "nofault", question: "No-Fault System", good: "No need to prove negligence", bad: "Litigation required", metric: "70% faster claims" },
+    { id: "processing", question: "Claim Processing", good: "<30 days to payment", bad: ">90 days delay", metric: "Avg: 45 days (leaders)" },
+    { id: "rtw", question: "Return to Work", good: ">80% RTW success", bad: "<50% return", metric: "With employer obligations" },
+  ];
+
+  const bestPractice = {
+    country: "New Zealand",
+    flag: "🇳🇿",
+    practice: "ACC No-Fault",
+    detail: "Universal no-fault coverage for ALL injuries (work and non-work), eliminating litigation entirely",
+    result: "Zero litigation"
+  };
+
+  return (
+    <div className="relative w-full h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={30} color="amber" speed="slow" />
+      
+      {/* Header with animated heart */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <ScaleReveal delay={0} initialScale={0.5}>
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <GlowOrb color="amber" size="lg" intensity="intense">
+              <Heart className="w-10 h-10 text-white" />
+            </GlowOrb>
+          </motion.div>
+        </ScaleReveal>
+        <HeroReveal delay={0.3} direction="left">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Restoration & Compensation</h2>
+            <p className="text-amber-400 text-xs sm:text-sm">Pillar III — The Safety Net</p>
+          </div>
+        </HeroReveal>
+      </div>
+
+      {/* No-Fault vs Litigation comparison */}
+      <HeroReveal delay={0.4} direction="down">
+        <div className="flex justify-center gap-4 mb-3">
+          <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+            <p className="text-emerald-400 text-[10px] font-semibold">No-Fault System</p>
+            <p className="text-white/60 text-[9px]">45 days avg processing</p>
+          </div>
+          <div className="px-3 py-1 rounded-lg bg-red-500/20 border border-red-500/30">
+            <p className="text-red-400 text-[10px] font-semibold">Litigation System</p>
+            <p className="text-white/60 text-[9px]">2+ years avg resolution</p>
+          </div>
+        </div>
+      </HeroReveal>
+
+      {/* Key Questions Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 mb-4">
+        {keyQuestions.map((q, i) => (
+          <HeroReveal key={q.id} delay={0.6 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => onInsightClick?.(q.id)}
+              className="h-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left flex flex-col"
+            >
+              <p className="text-white text-xs sm:text-sm font-semibold mb-2 line-clamp-2">{q.question}</p>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-400/80 text-[10px] sm:text-xs line-clamp-1">{q.good}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <X className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400/80 text-[10px] sm:text-xs line-clamp-1">{q.bad}</span>
+                </div>
+              </div>
+              <p className="text-amber-400/60 text-[9px] sm:text-[10px] mt-2">{q.metric}</p>
+            </motion.button>
+          </HeroReveal>
+        ))}
+      </div>
+
+      {/* Best Practice Example */}
+      <HeroReveal delay={1.3} direction="up">
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          className="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-cyan-500/10 border border-amber-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{bestPractice.flag}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold text-sm">{bestPractice.country}</span>
+                <span className="text-amber-400 text-xs">{bestPractice.practice}</span>
+              </div>
+              <p className="text-white/60 text-[10px] sm:text-xs line-clamp-1">{bestPractice.detail}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-emerald-400 font-bold text-sm">{bestPractice.result}</p>
+            </div>
+          </div>
+        </motion.div>
+      </HeroReveal>
+    </div>
   );
 }
 
