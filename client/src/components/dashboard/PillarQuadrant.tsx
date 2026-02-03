@@ -95,7 +95,7 @@ function ProgressRing({ score, size = 80, strokeWidth = 6, color }: ProgressRing
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
       {/* Background ring */}
       <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
         <circle
@@ -128,7 +128,7 @@ function ProgressRing({ score, size = 80, strokeWidth = 6, color }: ProgressRing
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-lg font-bold text-white"
+          className="text-sm sm:text-base md:text-lg font-bold text-white"
         >
           {score.toFixed(0)}
         </motion.span>
@@ -161,15 +161,16 @@ function PillarTile({ pillar, score, onClick, delay }: PillarTileProps) {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, type: "spring", stiffness: 200 }}
-      whileHover={{ scale: 1.03, y: -4 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "relative p-4 rounded-xl border transition-all overflow-hidden group",
+        "relative p-2 sm:p-3 rounded-xl border transition-all overflow-hidden group h-full",
         "bg-gradient-to-br from-slate-800/80 to-slate-900/80",
         pillar.borderColor,
         "hover:shadow-lg",
-        pillar.glowColor
+        pillar.glowColor,
+        "flex flex-col"
       )}
     >
       {/* Animated background gradient on hover */}
@@ -180,36 +181,41 @@ function PillarTile({ pillar, score, onClick, delay }: PillarTileProps) {
         )}
       />
       
-      <div className="relative z-10 flex flex-col items-center text-center">
-        {/* Icon */}
+      <div className="relative z-10 flex flex-col items-center text-center flex-1 justify-center">
+        {/* Icon - responsive */}
         <motion.div
           whileHover={{ rotate: [0, -10, 10, -10, 0] }}
           transition={{ duration: 0.5 }}
-          className={cn("p-2 rounded-xl mb-2", pillar.bgColor)}
+          className={cn("p-1.5 sm:p-2 rounded-lg sm:rounded-xl mb-1 sm:mb-2", pillar.bgColor)}
         >
-          <Icon className={cn("w-6 h-6", pillar.color)} />
+          <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6", pillar.color)} />
         </motion.div>
         
-        {/* Pillar name */}
-        <h4 className="text-sm font-medium text-white mb-2">{pillar.name}</h4>
+        {/* Pillar name - responsive */}
+        <h4 className="text-[10px] sm:text-xs md:text-sm font-medium text-white mb-1 sm:mb-2">{pillar.name}</h4>
         
-        {/* Progress Ring with Score */}
+        {/* Progress Ring with Score - responsive sizes */}
         {score !== null ? (
-          <ProgressRing score={score} size={70} color={pillar.color} />
+          <ProgressRing 
+            score={score} 
+            size={50} 
+            strokeWidth={4}
+            color={pillar.color} 
+          />
         ) : (
-          <div className="w-[70px] h-[70px] rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-            <span className="text-xs text-white/40">N/A</span>
+          <div className="w-[50px] h-[50px] rounded-full border-2 border-dashed border-white/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-[10px] text-white/40">N/A</span>
           </div>
         )}
         
-        {/* Status label */}
-        <p className={cn("text-xs mt-2 font-medium", status.color)}>
+        {/* Status label - compact */}
+        <p className={cn("text-[9px] sm:text-[10px] md:text-xs mt-1 font-medium", status.color)}>
           {status.label}
         </p>
       </div>
       
-      {/* Explore indicator */}
-      <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Explore indicator - hidden on small screens */}
+      <div className="absolute bottom-1 left-0 right-0 text-center text-[8px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
         Click to explore
       </div>
     </motion.button>
@@ -218,25 +224,25 @@ function PillarTile({ pillar, score, onClick, delay }: PillarTileProps) {
 
 export function PillarQuadrant({ country, onPillarClick }: PillarQuadrantProps) {
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Crown className="w-4 h-4 text-purple-400" />
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header - Compact */}
+      <div className="flex-shrink-0 px-3 py-2 border-b border-white/10">
+        <h3 className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
+          <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
           Framework Pillars
         </h3>
-        <p className="text-xs text-white/40 mt-0.5">Click any pillar for strategic analysis</p>
+        <p className="text-[9px] sm:text-xs text-white/40">Click any pillar for strategic analysis</p>
       </div>
       
-      {/* Pillars Grid */}
-      <div className="flex-1 p-3 grid grid-cols-2 gap-3">
+      {/* Pillars Grid - Fixed 2x2 with no overflow */}
+      <div className="flex-1 p-2 grid grid-cols-2 grid-rows-2 gap-2 min-h-0">
         {PILLARS.map((pillar, index) => (
           <PillarTile
             key={pillar.id}
             pillar={pillar}
             score={country[pillar.scoreField] ?? null}
             onClick={() => onPillarClick(pillar.id)}
-            delay={0.1 + index * 0.1}
+            delay={0.1 + index * 0.05}
           />
         ))}
       </div>

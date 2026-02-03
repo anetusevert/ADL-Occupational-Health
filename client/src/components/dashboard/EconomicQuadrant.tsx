@@ -263,7 +263,7 @@ interface EconomicDetailModalProps {
   intelligence: CountryIntelligence | null;
 }
 
-// Relative position bar component
+// Relative position bar component - Compact version
 function RelativePositionBar({ 
   value, 
   benchmarkKey, 
@@ -290,15 +290,15 @@ function RelativePositionBar({
   const avgPosition = ((benchmark.avg - benchmark.min) / (benchmark.max - benchmark.min)) * 100;
   
   return (
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-white/60">{label}</span>
-        <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", position.bgColor, position.color)}>
+    <div className="mb-2 sm:mb-3">
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="text-[9px] sm:text-[10px] text-white/60 truncate pr-2">{label}</span>
+        <span className={cn("text-[8px] sm:text-[9px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap", position.bgColor, position.color)}>
           {position.label}
         </span>
       </div>
       
-      <div className="relative h-3 bg-white/10 rounded-full overflow-hidden">
+      <div className="relative h-2 sm:h-2.5 bg-white/10 rounded-full overflow-hidden">
         {/* Gradient background showing the range */}
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30" />
         
@@ -306,11 +306,7 @@ function RelativePositionBar({
         <div 
           className="absolute top-0 bottom-0 w-0.5 bg-white/40"
           style={{ left: `${avgPosition}%` }}
-        >
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] text-white/40 whitespace-nowrap">
-            Avg
-          </div>
-        </div>
+        />
         
         {/* Country position marker */}
         <motion.div
@@ -319,12 +315,6 @@ function RelativePositionBar({
           transition={{ duration: 0.8, delay: 0.3 }}
           className={cn("absolute top-0 bottom-0 w-1 -ml-0.5 rounded-full shadow-lg", color.replace("text-", "bg-"))}
         />
-      </div>
-      
-      <div className="flex justify-between text-[9px] text-white/30 mt-1">
-        <span>{benchmark.unit === "$" ? `$${benchmark.min.toLocaleString()}` : `${benchmark.min}${benchmark.unit}`}</span>
-        <span className="text-white/50">Global Avg: {benchmark.unit === "$" ? `$${benchmark.avg.toLocaleString()}` : `${benchmark.avg}${benchmark.unit}`}</span>
-        <span>{benchmark.unit === "$" ? `$${benchmark.max.toLocaleString()}` : `${benchmark.max}${benchmark.unit}`}</span>
       </div>
     </div>
   );
@@ -440,91 +430,111 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           
-          {/* Modal */}
+          {/* Modal - Responsive sizing */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[560px] md:max-h-[85vh] bg-slate-800 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed inset-2 sm:inset-4 md:inset-6 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[600px] lg:max-h-[90vh] bg-slate-800 rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
-            {/* Header */}
-            <div className={cn("flex items-center justify-between px-6 py-4 border-b border-white/10", config.bgColor)}>
-              <div className="flex items-center gap-3">
-                <Icon className={cn("w-6 h-6", config.color)} />
+            {/* Header - Compact */}
+            <div className={cn("flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-white/10", config.bgColor)}>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Icon className={cn("w-5 h-5 sm:w-6 sm:h-6", config.color)} />
                 <div>
-                  <h3 className="text-lg font-bold text-white">{config.title}</h3>
-                  <p className="text-xs text-white/60">{country.name}</p>
+                  <h3 className="text-sm sm:text-base font-bold text-white">{config.title}</h3>
+                  <p className="text-[10px] sm:text-xs text-white/60">{country.name}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-white/60" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
               </button>
             </div>
             
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Global Positioning Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-white/5"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-4 h-4 text-cyan-400" />
-                  <h4 className="text-sm font-semibold text-white">Global Positioning</h4>
-                  <span className="text-[10px] text-white/40 ml-auto">vs 195 countries</span>
-                </div>
+            {/* Content - Two column layout on larger screens */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                {/* Left: Global Positioning */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-white/5"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
+                    <h4 className="text-xs sm:text-sm font-semibold text-white">Global Position</h4>
+                    <span className="text-[9px] text-white/40 ml-auto">vs 195</span>
+                  </div>
+                  
+                  {positioningMetrics.map((metric) => (
+                    <RelativePositionBar
+                      key={metric.key}
+                      value={intelligence?.[metric.key] as number | null}
+                      benchmarkKey={metric.benchmarkKey}
+                      label={metric.label}
+                      color={metric.color}
+                    />
+                  ))}
+                </motion.div>
                 
-                {positioningMetrics.map((metric) => (
-                  <RelativePositionBar
-                    key={metric.key}
-                    value={intelligence?.[metric.key] as number | null}
-                    benchmarkKey={metric.benchmarkKey}
-                    label={metric.label}
-                    color={metric.color}
-                  />
-                ))}
-              </motion.div>
-              
-              {/* Detailed Metrics */}
-              <h4 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">All Metrics</h4>
-              <div className="space-y-3">
-                {config.metrics.map((metric, i) => (
-                  <motion.div
-                    key={metric.label}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5"
-                  >
-                    <span className="text-sm text-white/70">{metric.label}</span>
-                    <span className={cn("text-lg font-semibold", metric.value !== null ? config.color : "text-white/30")}>
-                      {formatValue(metric.value, metric.format, metric.prefix, metric.suffix)}
-                    </span>
-                  </motion.div>
-                ))}
+                {/* Right: Key Metrics Grid */}
+                <div>
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Key Metrics</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {config.metrics.slice(0, 4).map((metric, i) => (
+                      <motion.div
+                        key={metric.label}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="p-2 rounded-lg bg-white/5 border border-white/5"
+                      >
+                        <span className="text-[9px] sm:text-[10px] text-white/50 block truncate">{metric.label}</span>
+                        <span className={cn("text-sm sm:text-base font-semibold block", metric.value !== null ? config.color : "text-white/30")}>
+                          {formatValue(metric.value, metric.format, metric.prefix, metric.suffix)}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* Additional metrics if more than 4 */}
+                  {config.metrics.length > 4 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {config.metrics.slice(4).map((metric, i) => (
+                        <motion.div
+                          key={metric.label}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: (i + 4) * 0.05 }}
+                          className="p-2 rounded-lg bg-white/5 border border-white/5"
+                        >
+                          <span className="text-[9px] sm:text-[10px] text-white/50 block truncate">{metric.label}</span>
+                          <span className={cn("text-sm sm:text-base font-semibold block", metric.value !== null ? config.color : "text-white/30")}>
+                            {formatValue(metric.value, metric.format, metric.prefix, metric.suffix)}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               
-              {/* Industry breakdown visual for GDP */}
+              {/* Industry breakdown visual for GDP - Compact horizontal */}
               {type === "gdp" && intelligence && (
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <h4 className="text-sm font-semibold text-white mb-4">GDP Composition</h4>
-                  <div className="space-y-3">
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <h4 className="text-xs font-semibold text-white mb-2">GDP Composition</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { label: "Services", value: intelligence.services_pct_gdp, color: "bg-cyan-500" },
                       { label: "Industry", value: intelligence.industry_pct_gdp, color: "bg-blue-500" },
                       { label: "Manufacturing", value: intelligence.manufacturing_pct_gdp, color: "bg-purple-500" },
                       { label: "Agriculture", value: intelligence.agriculture_pct_gdp, color: "bg-emerald-500" },
                     ].map((item) => (
-                      <div key={item.label}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-white/60">{item.label}</span>
-                          <span className="text-white/80">{item.value?.toFixed(1) || "N/A"}%</span>
-                        </div>
-                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div key={item.label} className="text-center">
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${item.value || 0}%` }}
@@ -532,6 +542,8 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
                             className={cn("h-full rounded-full", item.color)}
                           />
                         </div>
+                        <span className="text-[9px] text-white/50 block">{item.label}</span>
+                        <span className="text-xs text-white/80 font-medium">{item.value?.toFixed(0) || "N/A"}%</span>
                       </div>
                     ))}
                   </div>
