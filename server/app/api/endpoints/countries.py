@@ -806,7 +806,7 @@ async def get_country_intelligence(
     
     # Query intelligence data
     intel = db.query(CountryIntelligence).filter(
-        CountryIntelligence.iso_code == iso_code
+        CountryIntelligence.country_iso_code == iso_code
     ).first()
     
     if not intel:
@@ -814,7 +814,7 @@ async def get_country_intelligence(
         return CountryIntelligenceSimple(iso_code=iso_code)
     
     return CountryIntelligenceSimple(
-        iso_code=intel.iso_code,
+        iso_code=intel.country_iso_code,
         gdp_per_capita_ppp=intel.gdp_per_capita_ppp,
         gdp_growth_rate=intel.gdp_growth_rate,
         population_total=intel.population_total,

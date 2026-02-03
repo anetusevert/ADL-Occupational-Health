@@ -3,13 +3,20 @@
  * 
  * Full-screen overlay showing 4 strategic questions for a pillar.
  * Includes best practice insights and navigation to full analysis.
+ * 
+ * Features:
+ * - Dynamic global leaders per selected question
+ * - Real country flags using CountryFlag component
+ * - Click-through navigation to best practices page
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ExternalLink, Award, Lightbulb, Target, ArrowRight } from "lucide-react";
+import { X, ChevronRight, Award, Lightbulb, Target, ArrowRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { PILLAR_DEFINITIONS, type PillarId, type StrategicQuestion } from "../../lib/strategicQuestions";
+import { CountryFlag } from "../CountryFlag";
 import type { PillarType } from "../../pages/CountryDashboard";
 
 interface PillarDetailOverlayProps {
@@ -27,31 +34,123 @@ interface PillarDetailOverlayProps {
   onNavigateToFullPage: (pillar: PillarType) => void;
 }
 
-// Best practice leaders for each pillar (static data)
-const BEST_PRACTICE_LEADERS: Record<PillarId, Array<{
-  country: string;
-  flag: string;
+// Global leaders with ISO codes for each strategic question
+interface GlobalLeader {
+  isoCode: string;
+  countryName: string;
+  score: number;
   insight: string;
-}>> = {
+}
+
+// Leaders data by question with proper ISO codes
+const GLOBAL_LEADERS_BY_QUESTION: Record<string, GlobalLeader[]> = {
+  // GOVERNANCE QUESTIONS
+  "legal-foundation": [
+    { isoCode: "DEU", countryName: "Germany", score: 95, insight: "Comprehensive dual system with employer liability insurance and strong legal framework" },
+    { isoCode: "SWE", countryName: "Sweden", score: 92, insight: "Work Environment Authority with broad mandate and ILO convention leadership" },
+    { isoCode: "NLD", countryName: "Netherlands", score: 89, insight: "Strong tripartite governance model with systematic risk assessment requirements" },
+  ],
+  "institutional-architecture": [
+    { isoCode: "FIN", countryName: "Finland", score: 94, insight: "FIOH serves as the global benchmark for occupational health research institutions" },
+    { isoCode: "JPN", countryName: "Japan", score: 91, insight: "JISHA drives comprehensive industry safety standards and certification" },
+    { isoCode: "AUS", countryName: "Australia", score: 88, insight: "Safe Work Australia provides national policy coordination excellence" },
+  ],
+  "enforcement-capacity": [
+    { isoCode: "SGP", countryName: "Singapore", score: 96, insight: "Highest inspector density globally with technology-enabled enforcement" },
+    { isoCode: "GBR", countryName: "United Kingdom", score: 90, insight: "HSE provides comprehensive coverage with sector-specific expertise" },
+    { isoCode: "CAN", countryName: "Canada", score: 87, insight: "Provincial enforcement excellence with federal coordination" },
+  ],
+  "strategic-planning": [
+    { isoCode: "KOR", countryName: "South Korea", score: 93, insight: "KOSHA leads strategic OH planning with measurable 5-year targets" },
+    { isoCode: "DEU", countryName: "Germany", score: 91, insight: "Joint Declaration on OH with clear targets and monitoring" },
+    { isoCode: "NOR", countryName: "Norway", score: 88, insight: "Tripartite IA Agreement with specific outcome targets" },
+  ],
+  // HAZARD CONTROL QUESTIONS
+  "exposure-standards": [
+    { isoCode: "DEU", countryName: "Germany", score: 95, insight: "MAK Commission sets science-based OELs with regular updates" },
+    { isoCode: "USA", countryName: "United States", score: 92, insight: "OSHA PELs with ACGIH TLV recommendations for comprehensive coverage" },
+    { isoCode: "JPN", countryName: "Japan", score: 89, insight: "Strict carcinogen controls with mandatory substitution requirements" },
+  ],
+  "risk-assessment": [
+    { isoCode: "NLD", countryName: "Netherlands", score: 94, insight: "RI&E system with mandatory certified assessments for all employers" },
+    { isoCode: "GBR", countryName: "United Kingdom", score: 91, insight: "Proportionate risk assessment framework with sector guidance" },
+    { isoCode: "DNK", countryName: "Denmark", score: 88, insight: "APV system integrated with workplace assessment tools" },
+  ],
+  "prevention-infrastructure": [
+    { isoCode: "FIN", countryName: "Finland", score: 96, insight: "Universal OH service access including SMEs through shared services" },
+    { isoCode: "FRA", countryName: "France", score: 92, insight: "Mandatory médecine du travail coverage for all workers" },
+    { isoCode: "BEL", countryName: "Belgium", score: 89, insight: "External prevention services ensure universal access" },
+  ],
+  "safety-outcomes": [
+    { isoCode: "GBR", countryName: "United Kingdom", score: 95, insight: "Among lowest fatality rates globally with sustained improvement" },
+    { isoCode: "NLD", countryName: "Netherlands", score: 93, insight: "Consistent injury rate reduction over two decades" },
+    { isoCode: "SWE", countryName: "Sweden", score: 91, insight: "Vision Zero approach with excellent outcome tracking" },
+  ],
+  // VIGILANCE QUESTIONS
+  "surveillance-architecture": [
+    { isoCode: "FIN", countryName: "Finland", score: 96, insight: "FIOH surveillance system serves as global benchmark for disease detection" },
+    { isoCode: "KOR", countryName: "South Korea", score: 93, insight: "KOSHA digital surveillance platform with real-time analytics" },
+    { isoCode: "DEU", countryName: "Germany", score: 90, insight: "BK notification system with comprehensive disease registry" },
+  ],
+  "detection-capacity": [
+    { isoCode: "FIN", countryName: "Finland", score: 95, insight: "Highest occupational disease recognition rates globally" },
+    { isoCode: "DNK", countryName: "Denmark", score: 92, insight: "Strong physician training in occupational medicine attribution" },
+    { isoCode: "SWE", countryName: "Sweden", score: 89, insight: "Integrated health and work data enabling attribution" },
+  ],
+  "data-quality": [
+    { isoCode: "FIN", countryName: "Finland", score: 96, insight: "Comprehensive data quality with policy integration excellence" },
+    { isoCode: "NOR", countryName: "Norway", score: 93, insight: "NOA registry with high completeness and regular publication" },
+    { isoCode: "DNK", countryName: "Denmark", score: 91, insight: "Danish Working Environment Authority data excellence" },
+  ],
+  "vulnerable-populations": [
+    { isoCode: "ESP", countryName: "Spain", score: 88, insight: "Progressive migrant worker inclusion and informal economy programs" },
+    { isoCode: "PRT", countryName: "Portugal", score: 85, insight: "ACT coverage extension to vulnerable worker populations" },
+    { isoCode: "ITA", countryName: "Italy", score: 83, insight: "INAIL programs for agricultural and informal workers" },
+  ],
+  // RESTORATION QUESTIONS
+  "payer-architecture": [
+    { isoCode: "DEU", countryName: "Germany", score: 96, insight: "Berufsgenossenschaften model with universal coverage and prevention incentives" },
+    { isoCode: "AUT", countryName: "Austria", score: 93, insight: "AUVA combines insurance with prevention excellence" },
+    { isoCode: "CHE", countryName: "Switzerland", score: 91, insight: "Suva model with comprehensive coverage and rehabilitation" },
+  ],
+  "benefit-adequacy": [
+    { isoCode: "DEU", countryName: "Germany", score: 95, insight: "Full wage replacement with comprehensive medical coverage" },
+    { isoCode: "NOR", countryName: "Norway", score: 93, insight: "100% income replacement during rehabilitation period" },
+    { isoCode: "SWE", countryName: "Sweden", score: 91, insight: "Strong benefit adequacy with vocational rehabilitation support" },
+  ],
+  "rehabilitation-chain": [
+    { isoCode: "DEU", countryName: "Germany", score: 96, insight: "BG clinics provide integrated medical and vocational rehabilitation" },
+    { isoCode: "CAN", countryName: "Canada", score: 93, insight: "Provincial WCB return-to-work programs with case management" },
+    { isoCode: "AUS", countryName: "Australia", score: 90, insight: "Early intervention RTW schemes with employer engagement" },
+  ],
+  "recovery-outcomes": [
+    { isoCode: "DEU", countryName: "Germany", score: 94, insight: "85%+ return-to-work rates with sustained employment outcomes" },
+    { isoCode: "DNK", countryName: "Denmark", score: 92, insight: "Flexicurity model enables job transitions during recovery" },
+    { isoCode: "NLD", countryName: "Netherlands", score: 90, insight: "Wet Poortwachter ensures systematic RTW support" },
+  ],
+};
+
+// Default leaders per pillar (used when no question is selected)
+const DEFAULT_LEADERS_BY_PILLAR: Record<PillarId, GlobalLeader[]> = {
   governance: [
-    { country: "Germany", flag: "🇩🇪", insight: "Comprehensive dual system with employer liability and strong tripartite governance" },
-    { country: "Sweden", flag: "🇸🇪", insight: "Work Environment Authority with broad mandate and high inspector density" },
-    { country: "Australia", flag: "🇦🇺", insight: "Safe Work Australia as national policy body with state enforcement" },
+    { isoCode: "DEU", countryName: "Germany", score: 95, insight: "Comprehensive dual system with employer liability and strong tripartite governance" },
+    { isoCode: "SWE", countryName: "Sweden", score: 92, insight: "Work Environment Authority with broad mandate and high inspector density" },
+    { isoCode: "AUS", countryName: "Australia", score: 88, insight: "Safe Work Australia as national policy body with state enforcement" },
   ],
   "hazard-control": [
-    { country: "Netherlands", flag: "🇳🇱", insight: "Risk-based certification system for hazardous industries" },
-    { country: "Singapore", flag: "🇸🇬", insight: "WSH Council driving industry-led safety innovation" },
-    { country: "Japan", flag: "🇯🇵", insight: "Mandatory OSHMS with sector-specific guidelines" },
+    { isoCode: "NLD", countryName: "Netherlands", score: 94, insight: "Risk-based certification system for hazardous industries" },
+    { isoCode: "SGP", countryName: "Singapore", score: 92, insight: "WSH Council driving industry-led safety innovation" },
+    { isoCode: "JPN", countryName: "Japan", score: 89, insight: "Mandatory OSHMS with sector-specific guidelines" },
   ],
   vigilance: [
-    { country: "Finland", flag: "🇫🇮", insight: "FIOH as global model for occupational disease surveillance" },
-    { country: "South Korea", flag: "🇰🇷", insight: "KOSHA's integrated digital surveillance platform" },
-    { country: "France", flag: "🇫🇷", insight: "Mandatory periodic examinations with exposure tracking" },
+    { isoCode: "FIN", countryName: "Finland", score: 96, insight: "FIOH as global model for occupational disease surveillance" },
+    { isoCode: "KOR", countryName: "South Korea", score: 93, insight: "KOSHA's integrated digital surveillance platform" },
+    { isoCode: "FRA", countryName: "France", score: 90, insight: "Mandatory periodic examinations with exposure tracking" },
   ],
   restoration: [
-    { country: "Germany", flag: "🇩🇪", insight: "Berufsgenossenschaften combining prevention with rehabilitation" },
-    { country: "Canada", flag: "🇨🇦", insight: "Provincial WCBs with strong return-to-work mandates" },
-    { country: "Denmark", flag: "🇩🇰", insight: "Flexicurity model supporting job transitions during recovery" },
+    { isoCode: "DEU", countryName: "Germany", score: 96, insight: "Berufsgenossenschaften combining prevention with rehabilitation" },
+    { isoCode: "CAN", countryName: "Canada", score: 93, insight: "Provincial WCBs with strong return-to-work mandates" },
+    { isoCode: "DNK", countryName: "Denmark", score: 91, insight: "Flexicurity model supporting job transitions during recovery" },
   ],
 };
 
@@ -62,9 +161,10 @@ interface QuestionCardProps {
   pillarBgColor: string;
   onClick: () => void;
   isExpanded: boolean;
+  isSelected: boolean;
 }
 
-function QuestionCard({ question, index, pillarColor, pillarBgColor, onClick, isExpanded }: QuestionCardProps) {
+function QuestionCard({ question, index, pillarColor, pillarBgColor, onClick, isExpanded, isSelected }: QuestionCardProps) {
   return (
     <motion.button
       layout
@@ -76,7 +176,8 @@ function QuestionCard({ question, index, pillarColor, pillarBgColor, onClick, is
         "w-full text-left p-4 rounded-xl border transition-all",
         "bg-slate-800/50 border-white/10",
         "hover:border-white/20 hover:bg-slate-800/80",
-        isExpanded && "ring-2 ring-cyan-500/50"
+        isExpanded && "ring-2 ring-cyan-500/50",
+        isSelected && "ring-2 ring-amber-500/50 bg-slate-800/80"
       )}
     >
       <div className="flex items-start gap-3">
@@ -146,13 +247,19 @@ export function PillarDetailOverlay({
   onClose,
   onNavigateToFullPage,
 }: PillarDetailOverlayProps) {
+  const navigate = useNavigate();
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   
   if (!pillar) return null;
   
   const pillarDef = PILLAR_DEFINITIONS[pillar];
   const Icon = pillarDef.icon;
-  const leaders = BEST_PRACTICE_LEADERS[pillar];
+  
+  // Get leaders based on selected question or default to pillar leaders
+  const leaders = selectedQuestion 
+    ? GLOBAL_LEADERS_BY_QUESTION[selectedQuestion] || DEFAULT_LEADERS_BY_PILLAR[pillar]
+    : DEFAULT_LEADERS_BY_PILLAR[pillar];
   
   const scoreField = {
     governance: "governance_score",
@@ -162,6 +269,22 @@ export function PillarDetailOverlay({
   }[pillar] as keyof typeof country;
   
   const score = country[scoreField] as number | null;
+
+  // Handle question click - expands and selects for dynamic leaders
+  const handleQuestionClick = (questionId: string) => {
+    if (expandedQuestion === questionId) {
+      setExpandedQuestion(null);
+    } else {
+      setExpandedQuestion(questionId);
+    }
+    setSelectedQuestion(questionId);
+  };
+
+  // Handle leader click - navigate to best practices page
+  const handleLeaderClick = (isoCode: string) => {
+    onClose();
+    navigate("/deep-dive");
+  };
 
   return (
     <AnimatePresence>
@@ -231,6 +354,7 @@ export function PillarDetailOverlay({
                   <div className="flex items-center gap-2 mb-4">
                     <Target className="w-5 h-5 text-cyan-400" />
                     <h3 className="text-lg font-semibold text-white">Key Strategic Questions</h3>
+                    <span className="text-xs text-white/40 ml-2">(Click to see leaders)</span>
                   </div>
                   
                   <div className="space-y-3">
@@ -241,10 +365,9 @@ export function PillarDetailOverlay({
                         index={index}
                         pillarColor={pillarDef.color}
                         pillarBgColor={pillarDef.bgColor}
-                        onClick={() => setExpandedQuestion(
-                          expandedQuestion === question.id ? null : question.id
-                        )}
+                        onClick={() => handleQuestionClick(question.id)}
                         isExpanded={expandedQuestion === question.id}
+                        isSelected={selectedQuestion === question.id}
                       />
                     ))}
                   </div>
@@ -257,23 +380,49 @@ export function PillarDetailOverlay({
                     <h3 className="text-lg font-semibold text-white">Best Practice Leaders</h3>
                   </div>
                   
+                  {selectedQuestion && (
+                    <p className="text-xs text-amber-400/80 -mt-2 mb-3">
+                      Leaders for: {pillarDef.questions.find(q => q.id === selectedQuestion)?.title}
+                    </p>
+                  )}
+                  
                   <div className="space-y-3">
                     {leaders.map((leader, index) => (
-                      <motion.div
-                        key={leader.country}
+                      <motion.button
+                        key={`${leader.isoCode}-${selectedQuestion || 'default'}`}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 + index * 0.1 }}
-                        className="p-4 rounded-xl bg-slate-800/50 border border-white/10"
+                        onClick={() => handleLeaderClick(leader.isoCode)}
+                        className="w-full text-left p-4 rounded-xl bg-slate-800/50 border border-white/10 hover:bg-slate-800/80 hover:border-white/20 transition-all cursor-pointer group"
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">{leader.flag}</span>
-                          <span className="font-medium text-white">{leader.country}</span>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center text-sm font-bold",
+                            index === 0 ? "bg-amber-500/20 text-amber-400" :
+                            index === 1 ? "bg-slate-400/20 text-slate-300" :
+                            "bg-orange-700/20 text-orange-400"
+                          )}>
+                            {index + 1}
+                          </span>
+                          <CountryFlag
+                            isoCode={leader.isoCode}
+                            size="sm"
+                            className="rounded shadow-sm"
+                          />
+                          <span className="font-medium text-white">{leader.countryName}</span>
+                          <span className={cn("ml-auto text-sm font-bold", pillarDef.color)}>
+                            {leader.score}%
+                          </span>
                         </div>
                         <p className="text-xs text-white/60 leading-relaxed">
                           {leader.insight}
                         </p>
-                      </motion.div>
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-cyan-400/70 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span>View Best Practices</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </div>
+                      </motion.button>
                     ))}
                   </div>
                   

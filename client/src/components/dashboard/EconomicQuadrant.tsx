@@ -6,13 +6,98 @@
  * - GDP per Capita
  * - Population
  * - Unemployment Rate
+ * 
+ * Enhanced with global/regional relative positioning.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Globe2, TrendingUp, Briefcase, X, Building2, Factory, Wheat, ShoppingBag } from "lucide-react";
+import { Users, Globe2, TrendingUp, Briefcase, X, Building2, Factory, Wheat, ShoppingBag, BarChart3 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { CountryIntelligence } from "../../pages/CountryDashboard";
+
+// ============================================================================
+// GLOBAL BENCHMARKS (World Bank/ILO Data 2023)
+// ============================================================================
+
+interface GlobalBenchmark {
+  min: number;
+  max: number;
+  avg: number;
+  median: number;
+  p25: number;  // 25th percentile
+  p75: number;  // 75th percentile
+  unit: string;
+  higherIsBetter: boolean;
+}
+
+const GLOBAL_BENCHMARKS: Record<string, GlobalBenchmark> = {
+  labor_force_participation: {
+    min: 35, max: 88, avg: 60.3, median: 61, p25: 52, p75: 68,
+    unit: "%", higherIsBetter: true
+  },
+  gdp_per_capita_ppp: {
+    min: 800, max: 140000, avg: 18500, median: 14200, p25: 5800, p75: 35000,
+    unit: "$", higherIsBetter: true
+  },
+  population_total: {
+    min: 10000, max: 1400000000, avg: 40000000, median: 8500000, p25: 2000000, p75: 30000000,
+    unit: "", higherIsBetter: false // neutral
+  },
+  unemployment_rate: {
+    min: 0.5, max: 35, avg: 6.8, median: 5.5, p25: 3.5, p75: 9,
+    unit: "%", higherIsBetter: false
+  },
+  youth_unemployment_rate: {
+    min: 1, max: 65, avg: 15.5, median: 13, p25: 8, p75: 22,
+    unit: "%", higherIsBetter: false
+  },
+  informal_employment_pct: {
+    min: 2, max: 95, avg: 45, median: 42, p25: 18, p75: 70,
+    unit: "%", higherIsBetter: false
+  },
+  gdp_growth_rate: {
+    min: -15, max: 25, avg: 3.2, median: 3, p25: 1.5, p75: 5,
+    unit: "%", higherIsBetter: true
+  },
+  urban_population_pct: {
+    min: 12, max: 100, avg: 56, median: 58, p25: 38, p75: 78,
+    unit: "%", higherIsBetter: false // neutral
+  },
+  median_age: {
+    min: 15, max: 48, avg: 31, median: 30, p25: 22, p75: 40,
+    unit: " years", higherIsBetter: false // neutral
+  },
+  life_expectancy_at_birth: {
+    min: 52, max: 85, avg: 72.5, median: 74, p25: 66, p75: 80,
+    unit: " years", higherIsBetter: true
+  },
+  healthy_life_expectancy: {
+    min: 45, max: 75, avg: 63.5, median: 65, p25: 57, p75: 70,
+    unit: " years", higherIsBetter: true
+  }
+};
+
+// Calculate percentile position (0-100, where 100 = best)
+function calculatePercentile(value: number | null, benchmark: GlobalBenchmark): number | null {
+  if (value === null) return null;
+  
+  const { min, max, higherIsBetter } = benchmark;
+  const clamped = Math.max(min, Math.min(max, value));
+  const rawPercentile = ((clamped - min) / (max - min)) * 100;
+  
+  // If lower is better, invert the percentile
+  return higherIsBetter ? rawPercentile : (100 - rawPercentile);
+}
+
+// Get position label based on percentile
+function getPositionLabel(percentile: number | null): { label: string; color: string; bgColor: string } {
+  if (percentile === null) return { label: "No Data", color: "text-slate-400", bgColor: "bg-slate-500/20" };
+  if (percentile >= 75) return { label: "Top 25%", color: "text-emerald-400", bgColor: "bg-emerald-500/20" };
+  if (percentile >= 50) return { label: "Above Avg", color: "text-cyan-400", bgColor: "bg-cyan-500/20" };
+  if (percentile >= 25) return { label: "Below Avg", color: "text-amber-400", bgColor: "bg-amber-500/20" };
+  return { label: "Bottom 25%", color: "text-red-400", bgColor: "bg-red-500/20" };
+}
 
 interface EconomicQuadrantProps {
   country: {
@@ -88,6 +173,16 @@ interface EconomicTileProps {
 }
 
 function EconomicTile({ title, value, icon: Icon, color, bgColor, prefix, suffix, decimals = 0, onClick, delay }: EconomicTileProps) {
+  // Calculate percentile for quick badge display
+  const benchmarkKey = title === "Labor Force" ? "labor_force_participation" 
+    : title === "GDP per Capita" ? "gdp_per_capita_ppp"
+    : title === "Unemployment" ? "unemployment_rate"
+    : "population_total";
+  
+  const benchmark = GLOBAL_BENCHMARKS[benchmarkKey];
+  const percentile = benchmark ? calculatePercentile(value, benchmark) : null;
+  const position = getPositionLabel(percentile);
+
   return (
     <motion.button
       initial={{ opacity: 0, scale: 0.9 }}
@@ -97,10 +192,10 @@ function EconomicTile({ title, value, icon: Icon, color, bgColor, prefix, suffix
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "relative p-4 rounded-xl border transition-all overflow-hidden group",
+        "relative p-3 rounded-xl border transition-all overflow-hidden group h-full",
         "bg-gradient-to-br from-slate-800/80 to-slate-900/80",
         "border-white/10 hover:border-white/20",
-        "text-left"
+        "text-left flex flex-col"
       )}
     >
       {/* Background glow on hover */}
@@ -109,24 +204,23 @@ function EconomicTile({ title, value, icon: Icon, color, bgColor, prefix, suffix
         bgColor
       )} />
       
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-3">
-          <div className={cn("p-2 rounded-lg", bgColor)}>
-            <Icon className={cn("w-5 h-5", color)} />
+      <div className="relative z-10 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-2">
+          <div className={cn("p-1.5 rounded-lg", bgColor)}>
+            <Icon className={cn("w-4 h-4", color)} />
           </div>
-          <motion.div
-            initial={{ rotate: 0 }}
-            whileHover={{ rotate: 15 }}
-            className="text-white/20"
-          >
-            <TrendingUp className="w-4 h-4" />
-          </motion.div>
+          {/* Position badge */}
+          {percentile !== null && (
+            <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full", position.bgColor, position.color)}>
+              {position.label}
+            </span>
+          )}
         </div>
         
-        <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">{title}</p>
+        <p className="text-[10px] text-white/50 mb-0.5 uppercase tracking-wider">{title}</p>
         
         {value !== null ? (
-          <p className={cn("text-2xl font-bold", color)}>
+          <p className={cn("text-xl font-bold", color)}>
             <AnimatedCounter
               value={value}
               prefix={prefix}
@@ -135,13 +229,27 @@ function EconomicTile({ title, value, icon: Icon, color, bgColor, prefix, suffix
             />
           </p>
         ) : (
-          <p className="text-lg text-white/30">No data</p>
+          <p className="text-base text-white/30">No data</p>
+        )}
+        
+        {/* Mini position bar */}
+        {benchmark && value !== null && (
+          <div className="mt-auto pt-2">
+            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.max(0, Math.min(100, ((value - benchmark.min) / (benchmark.max - benchmark.min)) * 100))}%` }}
+                transition={{ duration: 0.8, delay: delay + 0.3 }}
+                className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
+              />
+            </div>
+          </div>
         )}
       </div>
       
       {/* Click indicator */}
-      <div className="absolute bottom-2 right-2 text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">
-        Click for details
+      <div className="absolute bottom-1.5 right-1.5 text-[8px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">
+        Details →
       </div>
     </motion.button>
   );
@@ -155,7 +263,100 @@ interface EconomicDetailModalProps {
   intelligence: CountryIntelligence | null;
 }
 
+// Relative position bar component
+function RelativePositionBar({ 
+  value, 
+  benchmarkKey, 
+  label,
+  color 
+}: { 
+  value: number | null; 
+  benchmarkKey: string; 
+  label: string;
+  color: string;
+}) {
+  const benchmark = GLOBAL_BENCHMARKS[benchmarkKey];
+  if (!benchmark || value === null) return null;
+  
+  const percentile = calculatePercentile(value, benchmark);
+  const position = getPositionLabel(percentile);
+  
+  // Calculate where the value falls on the visual bar (0-100 scale)
+  const visualPosition = Math.max(0, Math.min(100, 
+    ((value - benchmark.min) / (benchmark.max - benchmark.min)) * 100
+  ));
+  
+  // Calculate where the global average falls
+  const avgPosition = ((benchmark.avg - benchmark.min) / (benchmark.max - benchmark.min)) * 100;
+  
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-white/60">{label}</span>
+        <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", position.bgColor, position.color)}>
+          {position.label}
+        </span>
+      </div>
+      
+      <div className="relative h-3 bg-white/10 rounded-full overflow-hidden">
+        {/* Gradient background showing the range */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30" />
+        
+        {/* Global average marker */}
+        <div 
+          className="absolute top-0 bottom-0 w-0.5 bg-white/40"
+          style={{ left: `${avgPosition}%` }}
+        >
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] text-white/40 whitespace-nowrap">
+            Avg
+          </div>
+        </div>
+        
+        {/* Country position marker */}
+        <motion.div
+          initial={{ left: 0 }}
+          animate={{ left: `${visualPosition}%` }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className={cn("absolute top-0 bottom-0 w-1 -ml-0.5 rounded-full shadow-lg", color.replace("text-", "bg-"))}
+        />
+      </div>
+      
+      <div className="flex justify-between text-[9px] text-white/30 mt-1">
+        <span>{benchmark.unit === "$" ? `$${benchmark.min.toLocaleString()}` : `${benchmark.min}${benchmark.unit}`}</span>
+        <span className="text-white/50">Global Avg: {benchmark.unit === "$" ? `$${benchmark.avg.toLocaleString()}` : `${benchmark.avg}${benchmark.unit}`}</span>
+        <span>{benchmark.unit === "$" ? `$${benchmark.max.toLocaleString()}` : `${benchmark.max}${benchmark.unit}`}</span>
+      </div>
+    </div>
+  );
+}
+
 function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: EconomicDetailModalProps) {
+  // Primary metrics with global positioning
+  const positioningMetrics = useMemo(() => {
+    const configs: Record<string, { key: keyof CountryIntelligence; benchmarkKey: string; label: string; color: string }[]> = {
+      labor: [
+        { key: "labor_force_participation", benchmarkKey: "labor_force_participation", label: "Labor Force Participation", color: "text-emerald-400" },
+        { key: "unemployment_rate", benchmarkKey: "unemployment_rate", label: "Unemployment Rate", color: "text-amber-400" },
+        { key: "youth_unemployment_rate", benchmarkKey: "youth_unemployment_rate", label: "Youth Unemployment", color: "text-orange-400" },
+      ],
+      gdp: [
+        { key: "gdp_per_capita_ppp", benchmarkKey: "gdp_per_capita_ppp", label: "GDP per Capita (PPP)", color: "text-cyan-400" },
+        { key: "gdp_growth_rate", benchmarkKey: "gdp_growth_rate", label: "GDP Growth Rate", color: "text-blue-400" },
+      ],
+      population: [
+        { key: "life_expectancy_at_birth", benchmarkKey: "life_expectancy_at_birth", label: "Life Expectancy", color: "text-purple-400" },
+        { key: "healthy_life_expectancy", benchmarkKey: "healthy_life_expectancy", label: "Healthy Life Expectancy", color: "text-violet-400" },
+        { key: "urban_population_pct", benchmarkKey: "urban_population_pct", label: "Urban Population", color: "text-indigo-400" },
+      ],
+      unemployment: [
+        { key: "unemployment_rate", benchmarkKey: "unemployment_rate", label: "Unemployment Rate", color: "text-amber-400" },
+        { key: "youth_unemployment_rate", benchmarkKey: "youth_unemployment_rate", label: "Youth Unemployment", color: "text-orange-400" },
+        { key: "informal_employment_pct", benchmarkKey: "informal_employment_pct", label: "Informal Employment", color: "text-red-400" },
+      ],
+    };
+    return configs[type] || [];
+  }, [type]);
+
   const configs = {
     labor: {
       title: "Labor Force",
@@ -226,13 +427,6 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
     return `${prefix || ""}${value.toFixed(1)}${suffix || ""}`;
   };
 
-  const industryIcons = {
-    Industry: Factory,
-    Manufacturing: Building2,
-    Services: ShoppingBag,
-    Agriculture: Wheat,
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -251,7 +445,7 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[500px] md:max-h-[80vh] bg-slate-800 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[560px] md:max-h-[85vh] bg-slate-800 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className={cn("flex items-center justify-between px-6 py-4 border-b border-white/10", config.bgColor)}>
@@ -272,13 +466,38 @@ function EconomicDetailModal({ isOpen, onClose, type, country, intelligence }: E
             
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
+              {/* Global Positioning Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-white/5"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-sm font-semibold text-white">Global Positioning</h4>
+                  <span className="text-[10px] text-white/40 ml-auto">vs 195 countries</span>
+                </div>
+                
+                {positioningMetrics.map((metric) => (
+                  <RelativePositionBar
+                    key={metric.key}
+                    value={intelligence?.[metric.key] as number | null}
+                    benchmarkKey={metric.benchmarkKey}
+                    label={metric.label}
+                    color={metric.color}
+                  />
+                ))}
+              </motion.div>
+              
+              {/* Detailed Metrics */}
+              <h4 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">All Metrics</h4>
+              <div className="space-y-3">
                 {config.metrics.map((metric, i) => (
                   <motion.div
                     key={metric.label}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
+                    transition={{ delay: i * 0.05 }}
                     className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5"
                   >
                     <span className="text-sm text-white/70">{metric.label}</span>
@@ -330,18 +549,20 @@ export function EconomicQuadrant({ country, intelligence }: EconomicQuadrantProp
   const [selectedTile, setSelectedTile] = useState<"labor" | "gdp" | "population" | "unemployment" | null>(null);
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/10">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-cyan-400" />
-          Economic Overview
-        </h3>
-        <p className="text-xs text-white/40 mt-0.5">Click any tile for details</p>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header - Compact */}
+      <div className="flex-shrink-0 px-3 py-2 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-cyan-400" />
+            Economic Overview
+          </h3>
+          <span className="text-[9px] text-white/30">vs Global</span>
+        </div>
       </div>
       
-      {/* Tiles Grid */}
-      <div className="flex-1 p-3 grid grid-cols-2 gap-3">
+      {/* Tiles Grid - Fixed height with no overflow */}
+      <div className="flex-1 p-2 grid grid-cols-2 grid-rows-2 gap-2 min-h-0">
         <EconomicTile
           title="Labor Force"
           value={intelligence?.labor_force_participation ?? null}
