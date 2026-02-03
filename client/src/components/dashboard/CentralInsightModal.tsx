@@ -6,26 +6,27 @@
  * - Country insights: Images with "[Country] [Topic]" + "OH Perspective" format
  * 
  * Features:
- * - Framer Motion animations throughout
+ * - Fetches AI-generated content from backend API
+ * - Admin can regenerate content via AI
  * - Recharts visualizations for economic data
- * - Admin-only regenerate button
- * - Persistent data via backend API
+ * - Persistent data storage
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, ChevronLeft, ChevronRight, RefreshCw, Loader2,
   Briefcase, Globe2, Users, TrendingUp, Info,
   Crown, Shield, Eye, HeartPulse, Activity,
   Lightbulb, Building2, Factory, MapPin, UserCheck, Landmark,
-  AlertTriangle, Heart, DollarSign, BarChart3, TrendingDown, Minus
+  AlertTriangle, Heart, DollarSign, BarChart3, TrendingDown, Sparkles
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   Cell, ReferenceLine
 } from "recharts";
 import { cn } from "../../lib/utils";
+import { apiClient } from "../../services/api";
 
 // Define InsightCategory locally to avoid circular dependency with CountryDashboard
 export type InsightCategory = 
@@ -53,7 +54,6 @@ interface CentralInsightModalProps {
   countryName: string;
   isAdmin: boolean;
   onRegenerate?: () => void;
-  // Economic data from parent
   economicData?: {
     laborForce?: number | null;
     gdpPerCapita?: number | null;
@@ -75,6 +75,18 @@ interface KeyStat {
   color: string;
 }
 
+interface ApiInsightData {
+  id: number;
+  country_iso: string;
+  category: string;
+  images: { url: string; thumbnail_url?: string; alt: string; photographer?: string }[];
+  what_is_analysis: string | null;
+  oh_implications: string | null;
+  status: string;
+  error_message?: string | null;
+  generated_at?: string | null;
+}
+
 interface InsightData {
   images: { url: string; alt: string }[];
   whatIsAnalysis: string;
@@ -82,6 +94,7 @@ interface InsightData {
   keyStats: KeyStat[];
   status: "pending" | "generating" | "completed" | "error";
   generatedAt?: string;
+  isFromApi: boolean;
 }
 
 // ============================================================================
@@ -116,22 +129,6 @@ const GLOBAL_BENCHMARKS: Record<string, GlobalBenchmark> = {
   unemployment_rate: {
     min: 0.5, max: 35, avg: 6.8, median: 5.5, p25: 3.5, p75: 9,
     unit: "%", higherIsBetter: false, label: "Unemployment Rate"
-  },
-  youth_unemployment_rate: {
-    min: 1, max: 65, avg: 15.5, median: 13, p25: 8, p75: 22,
-    unit: "%", higherIsBetter: false, label: "Youth Unemployment"
-  },
-  informal_employment_pct: {
-    min: 2, max: 95, avg: 45, median: 42, p25: 18, p75: 70,
-    unit: "%", higherIsBetter: false, label: "Informal Employment"
-  },
-  gdp_growth_rate: {
-    min: -15, max: 25, avg: 3.2, median: 3, p25: 1.5, p75: 5,
-    unit: "%", higherIsBetter: true, label: "GDP Growth"
-  },
-  urban_population_pct: {
-    min: 12, max: 100, avg: 56, median: 58, p25: 38, p75: 78,
-    unit: "%", higherIsBetter: false, label: "Urban Population"
   },
 };
 
@@ -287,7 +284,6 @@ interface EconomicMetricConfig {
   benchmarkKey: string;
   label: string;
   format: (v: number) => string;
-  relatedMetrics: { key: string; benchmarkKey: string; label: string }[];
 }
 
 const ECONOMIC_METRIC_CONFIGS: Record<string, EconomicMetricConfig> = {
@@ -296,39 +292,24 @@ const ECONOMIC_METRIC_CONFIGS: Record<string, EconomicMetricConfig> = {
     benchmarkKey: "labor_force_participation",
     label: "Labor Force Participation Rate",
     format: (v) => `${v.toFixed(1)}%`,
-    relatedMetrics: [
-      { key: "informalEmployment", benchmarkKey: "informal_employment_pct", label: "Informal Employment" },
-      { key: "urbanPopulation", benchmarkKey: "urban_population_pct", label: "Urban Population" },
-    ],
   },
   "gdp-per-capita": {
     key: "gdpPerCapita",
     benchmarkKey: "gdp_per_capita_ppp",
     label: "GDP per Capita (PPP)",
     format: (v) => `$${(v / 1000).toFixed(1)}K`,
-    relatedMetrics: [
-      { key: "gdpGrowth", benchmarkKey: "gdp_growth_rate", label: "GDP Growth Rate" },
-    ],
   },
   "population": {
     key: "population",
     benchmarkKey: "population_total",
     label: "Total Population",
     format: (v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}K`,
-    relatedMetrics: [
-      { key: "medianAge", benchmarkKey: "median_age", label: "Median Age" },
-      { key: "urbanPopulation", benchmarkKey: "urban_population_pct", label: "Urban Population %" },
-    ],
   },
   "unemployment": {
     key: "unemploymentRate",
     benchmarkKey: "unemployment_rate",
     label: "Unemployment Rate",
     format: (v) => `${v.toFixed(1)}%`,
-    relatedMetrics: [
-      { key: "youthUnemployment", benchmarkKey: "youth_unemployment_rate", label: "Youth Unemployment" },
-      { key: "informalEmployment", benchmarkKey: "informal_employment_pct", label: "Informal Employment" },
-    ],
   },
 };
 
@@ -344,140 +325,6 @@ function getPositionLabel(percentile: number): { label: string; color: string; b
   if (percentile >= 50) return { label: "Above Average", color: "text-cyan-400", bgColor: "bg-cyan-500/20" };
   if (percentile >= 25) return { label: "Below Average", color: "text-amber-400", bgColor: "bg-amber-500/20" };
   return { label: "Bottom 25%", color: "text-red-400", bgColor: "bg-red-500/20" };
-}
-
-// ============================================================================
-// COUNTRY INSIGHT IMAGES (Curated per country/category)
-// ============================================================================
-
-const COUNTRY_IMAGES: Record<string, Record<string, string[]>> = {
-  IRN: {
-    culture: [
-      "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=600&q=80", // Iranian architecture
-      "https://images.unsplash.com/photo-1576834252613-8bd91e19c3c7?w=600&q=80", // Persian culture
-    ],
-    "oh-infrastructure": [
-      "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=600&q=80", // Hospital
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80", // Medical facility
-    ],
-    industry: [
-      "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=600&q=80", // Oil refinery
-      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", // Construction
-    ],
-    urban: [
-      "https://images.unsplash.com/photo-1562594980-47ab4adfa6d1?w=600&q=80", // Tehran
-      "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&q=80", // Iranian city
-    ],
-    workforce: [
-      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", // Workers
-      "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=600&q=80", // Office
-    ],
-    political: [
-      "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80", // Government
-      "https://images.unsplash.com/photo-1575540325855-4b5c1ad86a7a?w=600&q=80", // Parliament
-    ],
-  },
-  SAU: {
-    culture: [
-      "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=600&q=80", // Saudi culture
-      "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&q=80", // Mecca
-    ],
-    "oh-infrastructure": [
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80", // Hospital
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=600&q=80", // Medical center
-    ],
-    industry: [
-      "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=600&q=80", // Oil refinery
-      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", // Construction
-    ],
-    urban: [
-      "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=600&q=80", // Riyadh
-      "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=600&q=80", // Saudi city
-    ],
-    workforce: [
-      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80", // Workers
-      "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=600&q=80", // Office
-    ],
-    political: [
-      "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80", // Government
-      "https://images.unsplash.com/photo-1575540325855-4b5c1ad86a7a?w=600&q=80", // Official building
-    ],
-  },
-};
-
-const CATEGORY_FALLBACK_IMAGES: Record<string, string[]> = {
-  culture: ["https://images.unsplash.com/photo-1533669955142-6a73332af4db?w=600&q=80"],
-  "oh-infrastructure": ["https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80"],
-  industry: ["https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80"],
-  urban: ["https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80"],
-  workforce: ["https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&q=80"],
-  political: ["https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=600&q=80"],
-};
-
-function getCountryImages(countryIso: string, category: string): string[] {
-  const countryData = COUNTRY_IMAGES[countryIso];
-  if (countryData?.[category]) return countryData[category];
-  return CATEGORY_FALLBACK_IMAGES[category] || CATEGORY_FALLBACK_IMAGES.culture;
-}
-
-// ============================================================================
-// COUNTRY INSIGHT CONTENT
-// ============================================================================
-
-function getCountryInsightContent(
-  category: InsightCategory,
-  countryIso: string,
-  countryName: string
-): { whatIs: string; ohMeaning: string; keyStats: KeyStat[] } {
-  // Default content - would be replaced by AI-generated content from backend
-  const defaultContent: Record<string, { whatIs: string; ohMeaning: string; keyStats: KeyStat[] }> = {
-    industry: {
-      whatIs: `${countryName}'s industrial composition reflects its economic development stage and resource endowments. The primary sectors include manufacturing, construction, extractive industries, and services. Each sector presents distinct employment patterns and economic contributions.
-
-Industrial activity is concentrated in major urban centers and specialized economic zones. The manufacturing sector includes both traditional industries and emerging high-tech sectors. Construction activity supports ongoing infrastructure development and urbanization.
-
-The extractive sector (mining, oil & gas where applicable) often represents a significant portion of GDP and export revenues. These industries typically employ specialized workforces with specific skill requirements and occupational health considerations.
-
-The service sector has grown substantially, now employing a significant portion of the workforce in retail, hospitality, finance, and professional services.`,
-      ohMeaning: `The industrial composition of ${countryName} directly determines occupational health priorities and resource allocation. High-risk sectors including construction, manufacturing, and extractive industries present elevated injury and illness rates requiring targeted interventions.
-
-Construction workers face multiple hazards including falls, struck-by incidents, and musculoskeletal disorders. The sector typically records the highest fatality rates across most economies, requiring robust safety management systems.
-
-Manufacturing environments present machinery hazards, chemical exposures, and ergonomic risks. Process industries require comprehensive hazard communication and engineering controls. Repetitive motion injuries are common in assembly operations.
-
-Service sector growth introduces different hazard profiles including ergonomic issues from sedentary work, psychosocial stressors, and customer interaction risks. The transition from industrial to service employment shifts OH priorities toward mental health and wellness programs.`,
-      keyStats: [
-        { label: "High-Risk Sectors", value: "3+", icon: AlertTriangle, color: "text-red-400" },
-        { label: "Key Industry", value: "Variable", icon: Factory, color: "text-cyan-400" },
-        { label: "Growth Trend", value: "Positive", icon: TrendingUp, color: "text-emerald-400" },
-        { label: "OH Priority", value: "High", icon: Shield, color: "text-blue-400" },
-      ],
-    },
-    culture: {
-      whatIs: `${countryName}'s cultural landscape shapes workplace norms, safety attitudes, and health-seeking behaviors. Social structures, family values, and religious practices influence how workers perceive and respond to occupational health programs.
-
-Workplace hierarchy and communication styles affect safety reporting and participation in health initiatives. Power distance influences whether workers feel comfortable raising safety concerns with supervisors.
-
-Community networks and family support systems can complement formal occupational health services. Traditional practices may coexist with modern medical approaches, requiring culturally sensitive program design.
-
-Work-life balance expectations and attitudes toward overtime affect fatigue-related safety risks. Cultural norms around masculinity may discourage injury reporting or use of protective equipment in some settings.`,
-      ohMeaning: `Cultural factors in ${countryName} directly impact occupational health program effectiveness. Understanding local norms is essential for designing interventions that achieve high participation and compliance rates.
-
-Safety communication must align with local communication styles and hierarchy expectations. Training materials should be culturally appropriate and available in relevant languages.
-
-Health programs that incorporate family involvement often achieve better outcomes in cultures with strong family orientation. Workplace wellness initiatives should respect religious observances and dietary practices.
-
-Addressing stigma around mental health and workplace injuries requires culturally informed approaches. Peer support programs may be more effective than individual counseling in collectivist cultures.`,
-      keyStats: [
-        { label: "Cultural Factor", value: "Significant", icon: Lightbulb, color: "text-rose-400" },
-        { label: "Language Need", value: "Local", icon: Users, color: "text-purple-400" },
-        { label: "Family Role", value: "Important", icon: Heart, color: "text-pink-400" },
-        { label: "Adaptation", value: "Required", icon: Activity, color: "text-amber-400" },
-      ],
-    },
-  };
-
-  return defaultContent[category] || defaultContent.industry;
 }
 
 // ============================================================================
@@ -502,7 +349,7 @@ function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
   );
 }
 
-function ImageSlideshow({ images, category }: { images: string[]; category: string }) {
+function ImageSlideshow({ images, category }: { images: { url: string; alt: string }[]; category: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageError, setImageError] = useState<Record<number, boolean>>({});
 
@@ -532,8 +379,8 @@ function ImageSlideshow({ images, category }: { images: string[]; category: stri
           ) : (
             <>
               <img
-                src={images[currentIndex]}
-                alt={`${category} - image ${currentIndex + 1}`}
+                src={images[currentIndex].url}
+                alt={images[currentIndex].alt}
                 className="w-full h-full object-cover"
                 onError={() => setImageError(prev => ({ ...prev, [currentIndex]: true }))}
               />
@@ -572,7 +419,6 @@ function ImageSlideshow({ images, category }: { images: string[]; category: stri
   );
 }
 
-// Economic comparison chart component
 function EconomicComparisonChart({ 
   countryValue, 
   countryName,
@@ -614,7 +460,6 @@ function EconomicComparisonChart({
   );
 }
 
-// Position indicator component
 function PositionIndicator({ percentile, benchmark, value, config }: {
   percentile: number;
   benchmark: GlobalBenchmark;
@@ -634,12 +479,8 @@ function PositionIndicator({ percentile, benchmark, value, config }: {
         </span>
       </div>
       
-      {/* Visual bar */}
       <div className="relative h-3 bg-white/10 rounded-full overflow-hidden mb-3">
-        <div 
-          className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10"
-          style={{ left: `${50}%` }}
-        />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10" style={{ left: `${50}%` }} />
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentile}%` }}
@@ -654,7 +495,6 @@ function PositionIndicator({ percentile, benchmark, value, config }: {
         />
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-[10px] text-white/40 uppercase">Value</p>
@@ -695,66 +535,147 @@ export function CentralInsightModal({
   const [insightData, setInsightData] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   const isEconomicCategory = category ? ECONOMIC_CATEGORIES.includes(category) : false;
   const isCountryInsightCategory = category ? COUNTRY_INSIGHT_CATEGORIES.includes(category) : false;
 
-  // Get economic metric config for economic categories
   const economicMetricConfig = useMemo(() => {
     if (!category || !isEconomicCategory) return null;
     return ECONOMIC_METRIC_CONFIGS[category];
   }, [category, isEconomicCategory]);
 
-  // Get current value and benchmark for economic categories
   const economicMetricData = useMemo(() => {
     if (!economicMetricConfig || !economicData) return null;
     const value = economicData[economicMetricConfig.key as keyof typeof economicData] as number | null;
     const benchmark = GLOBAL_BENCHMARKS[economicMetricConfig.benchmarkKey];
     if (value === null || value === undefined || !benchmark) return null;
-    
     const percentile = getPercentilePosition(value, benchmark);
     return { value, benchmark, percentile };
   }, [economicMetricConfig, economicData]);
 
+  // Fetch insight data from API
+  const fetchInsightFromApi = useCallback(async () => {
+    if (!category || !countryIso) return null;
+    
+    try {
+      const response = await apiClient.get<ApiInsightData | null>(
+        `/api/v1/insights/${countryIso}/${category}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch insight from API:", error);
+      return null;
+    }
+  }, [category, countryIso]);
+
+  // Convert API response to InsightData
+  const convertApiToInsightData = (apiData: ApiInsightData): InsightData => {
+    const config = category ? CATEGORY_CONFIGS[category] : null;
+    
+    return {
+      images: apiData.images?.map(img => ({
+        url: img.url,
+        alt: img.alt || `${category} image`,
+      })) || [],
+      whatIsAnalysis: apiData.what_is_analysis || "",
+      ohImplications: apiData.oh_implications || "",
+      keyStats: extractKeyStats(apiData.what_is_analysis || "", config),
+      status: apiData.status as InsightData["status"],
+      generatedAt: apiData.generated_at || undefined,
+      isFromApi: true,
+    };
+  };
+
+  // Extract key stats from analysis text (simple extraction)
+  const extractKeyStats = (text: string, config: CategoryConfig | null): KeyStat[] => {
+    const stats: KeyStat[] = [];
+    const color = config?.color || "text-cyan-400";
+    
+    // Try to extract numbers and percentages
+    const percentMatches = text.match(/(\d+(?:\.\d+)?)\s*%/g);
+    const moneyMatches = text.match(/\$[\d,]+(?:\.\d+)?\s*(?:billion|million|B|M|K)?/gi);
+    const numberMatches = text.match(/(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:million|billion|workers|employees|people)/gi);
+    
+    if (percentMatches && percentMatches.length > 0) {
+      stats.push({ label: "Key Rate", value: percentMatches[0], icon: Activity, color });
+    }
+    if (moneyMatches && moneyMatches.length > 0) {
+      stats.push({ label: "Economic Value", value: moneyMatches[0], icon: DollarSign, color: "text-emerald-400" });
+    }
+    if (numberMatches && numberMatches.length > 0) {
+      const num = numberMatches[0].replace(/[^\d.,]/g, "");
+      stats.push({ label: "Workforce", value: num, icon: Users, color: "text-purple-400" });
+    }
+    
+    // Always add some default stats if we don't have enough
+    if (stats.length < 2) {
+      stats.push({ label: "Analysis", value: "AI-Generated", icon: Sparkles, color: "text-cyan-400" });
+    }
+    
+    return stats.slice(0, 4);
+  };
+
+  // Load data when modal opens
   useEffect(() => {
     if (!category || !isOpen) return;
-    setIsLoading(true);
     
-    const timer = setTimeout(() => {
-      if (isCountryInsightCategory) {
-        const content = getCountryInsightContent(category, countryIso, countryName);
-        const images = getCountryImages(countryIso, category);
-        setInsightData({
-          images: images.map((url, i) => ({ url, alt: `${category} image ${i + 1}` })),
-          whatIsAnalysis: content.whatIs,
-          ohImplications: content.ohMeaning,
-          keyStats: content.keyStats,
-          status: "completed",
-          generatedAt: new Date().toISOString(),
-        });
+    setIsLoading(true);
+    setRegenerateError(null);
+    
+    const loadData = async () => {
+      // Try to fetch from API first
+      const apiData = await fetchInsightFromApi();
+      
+      if (apiData && apiData.what_is_analysis) {
+        // Use API data
+        setInsightData(convertApiToInsightData(apiData));
       } else {
+        // No API data available - show placeholder prompting to generate
         setInsightData({
           images: [],
-          whatIsAnalysis: "",
-          ohImplications: "",
+          whatIsAnalysis: `No AI-generated content available yet for ${countryName}'s ${CATEGORY_CONFIGS[category]?.title || category}.\n\n${isAdmin ? 'Click "Regenerate" to generate detailed, AI-powered analysis specific to this country.' : 'Contact an administrator to generate this content.'}`,
+          ohImplications: isAdmin ? "Use the Regenerate button above to create comprehensive occupational health analysis." : "This content will be generated by an administrator.",
           keyStats: [],
-          status: "completed",
-          generatedAt: new Date().toISOString(),
+          status: "pending",
+          isFromApi: false,
         });
       }
+      
       setIsLoading(false);
-    }, 300);
+    };
+    
+    loadData();
+  }, [category, countryIso, countryName, isOpen, isAdmin, fetchInsightFromApi]);
 
-    return () => clearTimeout(timer);
-  }, [category, countryIso, countryName, isOpen, isCountryInsightCategory]);
-
+  // Handle regenerate via API
   const handleRegenerate = async () => {
-    if (!category) return;
+    if (!category || !countryIso) return;
+    
     setIsRegenerating(true);
-    setTimeout(() => {
-      setIsRegenerating(false);
+    setRegenerateError(null);
+    
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        insight?: ApiInsightData;
+      }>(`/api/v1/insights/${countryIso}/${category}/regenerate`);
+      
+      if (response.data.success && response.data.insight) {
+        setInsightData(convertApiToInsightData(response.data.insight));
+      } else {
+        setRegenerateError(response.data.message || "Failed to regenerate");
+      }
+      
       onRegenerate?.();
-    }, 1500);
+    } catch (error: unknown) {
+      console.error("Regenerate failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to regenerate. Check AI configuration.";
+      setRegenerateError(errorMessage);
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   if (!category) return null;
@@ -786,7 +707,7 @@ export function CentralInsightModal({
             {/* Decorative gradient */}
             <div className={cn("absolute top-0 left-0 right-0 h-32 bg-gradient-to-b opacity-50 pointer-events-none", config.gradient)} />
 
-            {/* Header - Different format for country insights */}
+            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -829,8 +750,17 @@ export function CentralInsightModal({
                       "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
-                    <RefreshCw className={cn("w-3.5 h-3.5", isRegenerating && "animate-spin")} />
-                    <span>{isRegenerating ? "Regenerating..." : "Regenerate"}</span>
+                    {isRegenerating ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating with AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Regenerate with AI</span>
+                      </>
+                    )}
                   </motion.button>
                 )}
                 <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -839,29 +769,38 @@ export function CentralInsightModal({
               </div>
             </motion.div>
 
+            {/* Error message */}
+            {regenerateError && (
+              <div className="mx-5 mt-3 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                {regenerateError}
+              </div>
+            )}
+
             {/* Content */}
             <div className="relative flex-1 overflow-hidden">
-              {isLoading ? (
+              {isLoading || isRegenerating ? (
                 <div className="h-full flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+                    <p className="text-sm text-white/50">
+                      {isRegenerating ? "AI is generating detailed analysis..." : "Loading..."}
+                    </p>
+                    {isRegenerating && (
+                      <p className="text-xs text-white/30 mt-1">This may take 15-30 seconds</p>
+                    )}
+                  </div>
                 </div>
               ) : isEconomicCategory && economicMetricData ? (
-                // ECONOMIC CATEGORY LAYOUT - Charts and data, no images
+                // ECONOMIC CATEGORY LAYOUT
                 <div className="h-full p-5 overflow-y-auto">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    {/* Left: Position and Chart */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="space-y-4"
-                    >
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                       <PositionIndicator
                         percentile={economicMetricData.percentile}
                         benchmark={economicMetricData.benchmark}
                         value={economicMetricData.value}
                         config={config}
                       />
-                      
                       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                         <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                           <BarChart3 className="w-4 h-4 text-cyan-400" />
@@ -876,13 +815,7 @@ export function CentralInsightModal({
                       </div>
                     </motion.div>
 
-                    {/* Right: Analysis */}
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="space-y-4"
-                    >
-                      {/* Key metrics */}
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                         <h4 className="text-sm font-medium text-white mb-3">Key Metrics</h4>
                         <div className="space-y-3">
@@ -907,7 +840,6 @@ export function CentralInsightModal({
                         </div>
                       </div>
 
-                      {/* OH Implications for economic data */}
                       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                         <h4 className="text-sm font-medium text-cyan-400 mb-3 flex items-center gap-2">
                           <HeartPulse className="w-4 h-4" />
@@ -921,7 +853,6 @@ export function CentralInsightModal({
                         </p>
                       </div>
 
-                      {/* Data source */}
                       <div className="text-[10px] text-white/30 flex items-center gap-1">
                         <Info className="w-3 h-3" />
                         Source: World Bank, ILO (2023 data)
@@ -930,25 +861,34 @@ export function CentralInsightModal({
                   </div>
                 </div>
               ) : isCountryInsightCategory && insightData ? (
-                // COUNTRY INSIGHT LAYOUT - Images and analysis
+                // COUNTRY INSIGHT LAYOUT
                 <div className="h-full flex flex-col lg:flex-row gap-4 p-5 overflow-y-auto">
-                  {/* Left: Image + Stats */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="lg:w-2/5 flex flex-col gap-4"
                   >
-                    <div className="h-48 lg:h-56">
-                      <ImageSlideshow images={insightData.images.map(i => i.url)} category={config.title} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {insightData.keyStats.map((stat, i) => (
-                        <KeyStatTile key={stat.label} stat={stat} index={i} />
-                      ))}
-                    </div>
+                    {insightData.images.length > 0 ? (
+                      <div className="h-48 lg:h-56">
+                        <ImageSlideshow images={insightData.images} category={config.title} />
+                      </div>
+                    ) : (
+                      <div className="h-48 lg:h-56 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
+                        <div className="text-center">
+                          <Icon className={cn("w-12 h-12 mx-auto mb-2", config.color)} />
+                          <p className="text-sm text-white/40">{config.title}</p>
+                        </div>
+                      </div>
+                    )}
+                    {insightData.keyStats.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {insightData.keyStats.map((stat, i) => (
+                          <KeyStatTile key={stat.label} stat={stat} index={i} />
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
 
-                  {/* Right: Analysis */}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -980,9 +920,12 @@ export function CentralInsightModal({
                       </section>
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-white/10 text-[10px] text-white/30">
-                      Generated: {new Date(insightData.generatedAt || "").toLocaleDateString()} • AI-powered analysis
-                    </div>
+                    {insightData.generatedAt && insightData.isFromApi && (
+                      <div className="pt-3 mt-3 border-t border-white/10 text-[10px] text-white/30 flex items-center gap-2">
+                        <Sparkles className="w-3 h-3" />
+                        AI-generated: {new Date(insightData.generatedAt).toLocaleDateString()}
+                      </div>
+                    )}
                   </motion.div>
                 </div>
               ) : (
