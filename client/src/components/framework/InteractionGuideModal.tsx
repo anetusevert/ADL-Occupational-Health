@@ -892,7 +892,7 @@ function CinematicOrbitingElement({
   const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
-  const c = colors[color];
+  const c = colors[color] || colors.cyan;
   const isClickable = !!insightId && !!onInsightClick;
 
   return (
