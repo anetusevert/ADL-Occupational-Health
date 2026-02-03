@@ -65,25 +65,25 @@ export function HeroSlideLayout({
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
       {/* Background particles */}
-      <div className="absolute inset-0 pointer-events-none opacity-25">
-        <ParticleField count={35} color="rgba(6,182,212,0.35)" speed={0.25} />
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <ParticleField count={25} color="rgba(6,182,212,0.3)" speed={0.2} />
       </div>
 
       {/* Floating glow orbs - hidden on small screens */}
-      <FloatingGlowOrb color="purple" size="lg" className="absolute top-16 left-8 opacity-20 hidden sm:block" />
-      <FloatingGlowOrb color="cyan" size="md" className="absolute bottom-24 right-16 opacity-20 hidden sm:block" />
+      <FloatingGlowOrb color="purple" size="md" className="absolute top-12 left-6 opacity-15 hidden md:block" />
+      <FloatingGlowOrb color="cyan" size="sm" className="absolute bottom-20 right-12 opacity-15 hidden md:block" />
 
       {/* Logo bar at top */}
       {showLogos && (
-        <div className="relative z-10 pt-4 sm:pt-6">
-          <LogoBar variant="full" />
+        <div className="relative z-10 pt-2 sm:pt-3 flex-shrink-0">
+          <LogoBar variant="compact" />
         </div>
       )}
 
-      {/* Main content area */}
-      <div className="flex-1 relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-4 sm:py-6 overflow-auto">
-        {/* Visual area - takes up significant space */}
-        <div className="w-full max-w-lg lg:max-w-2xl mb-4 sm:mb-6 lg:mb-8 flex items-center justify-center">
+      {/* Main content area - No scroll, flex-fit */}
+      <div className="flex-1 min-h-0 relative z-10 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 py-2 sm:py-3 overflow-hidden">
+        {/* Visual area - scales to fit */}
+        <div className="w-full max-w-[200px] sm:max-w-[280px] md:max-w-[360px] lg:max-w-md mb-2 sm:mb-3 flex items-center justify-center flex-shrink-0">
           <ScaleReveal delay={0.15}>
             {visual}
           </ScaleReveal>
@@ -94,12 +94,12 @@ export function HeroSlideLayout({
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="w-48 sm:w-64 h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mb-4 sm:mb-6"
+          className="w-32 sm:w-48 h-0.5 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mb-2 sm:mb-3 flex-shrink-0"
         />
 
-        {/* Action Title - Centered, Bold */}
+        {/* Action Title - Viewport-scaled */}
         <HeroReveal delay={0.25} direction="up">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center tracking-tight leading-tight max-w-4xl px-2">
+          <h1 className="text-[clamp(1.25rem,4vw,2.5rem)] font-bold text-white text-center tracking-tight leading-tight max-w-4xl px-2">
             {actionTitle}
           </h1>
         </HeroReveal>
@@ -107,7 +107,7 @@ export function HeroSlideLayout({
         {/* Subtitle */}
         {subtitle && (
           <HeroReveal delay={0.35} direction="up">
-            <p className="mt-2 sm:mt-3 text-base sm:text-lg md:text-xl text-cyan-400 font-medium text-center">
+            <p className="mt-1 sm:mt-2 text-[clamp(0.75rem,1.8vw,1.125rem)] text-cyan-400 font-medium text-center">
               {subtitle}
             </p>
           </HeroReveal>
@@ -116,7 +116,7 @@ export function HeroSlideLayout({
         {/* Description */}
         {description && (
           <HeroReveal delay={0.45} direction="up">
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/70 text-center max-w-2xl leading-relaxed px-2">
+            <p className="mt-1 sm:mt-2 text-[clamp(0.65rem,1.3vw,0.875rem)] text-white/70 text-center max-w-2xl leading-snug px-2 line-clamp-2">
               {description}
             </p>
           </HeroReveal>
@@ -125,21 +125,21 @@ export function HeroSlideLayout({
         {/* Highlights as horizontal badges */}
         {highlights && highlights.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-2"
+            className="mt-2 sm:mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-2 flex-shrink-0"
           >
-            {highlights.map((highlight, i) => (
+            {highlights.slice(0, 3).map((highlight, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 + i * 0.08, ease: "easeOut" }}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-colors duration-200"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 border border-white/10 rounded-full"
               >
-                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" />
-                <span className="text-xs sm:text-sm text-white/80">{highlight}</span>
+                <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400" />
+                <span className="text-[clamp(0.55rem,1vw,0.75rem)] text-white/80">{highlight}</span>
               </motion.div>
             ))}
           </motion.div>
@@ -150,14 +150,14 @@ export function HeroSlideLayout({
           <HeroReveal delay={0.75} direction="up">
             <motion.button
               onClick={ctaButton.onClick}
-              whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(6,182,212,0.4)" }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(6,182,212,0.4)" }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="mt-6 sm:mt-8 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl sm:rounded-2xl text-white font-bold text-base sm:text-lg shadow-xl shadow-cyan-500/30 relative overflow-hidden group"
+              className="mt-3 sm:mt-4 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg sm:rounded-xl text-white font-bold text-[clamp(0.75rem,1.5vw,1rem)] shadow-lg shadow-cyan-500/30 relative overflow-hidden group flex-shrink-0"
             >
               <ShimmerOverlay delay={0.9} duration={3} />
-              <span className="relative z-10 flex items-center gap-2 sm:gap-3">
-                <Play className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {ctaButton.label}
               </span>
             </motion.button>
@@ -214,12 +214,12 @@ export function DataImpactLayout({
         color={color}
       />
 
-      {/* Body */}
-      <SlideBody particleColor={color === "amber" ? "rgba(245,158,11,0.25)" : "rgba(6,182,212,0.25)"}>
-        <div className="h-full flex flex-col max-w-5xl mx-auto">
-          {/* Optional visual at top - compact on mobile */}
+      {/* Body - No scroll */}
+      <SlideBody particleColor={color === "amber" ? "rgba(245,158,11,0.2)" : "rgba(6,182,212,0.2)"}>
+        <div className="h-full flex flex-col max-w-5xl mx-auto min-h-0">
+          {/* Optional visual at top - compact */}
           {visual && (
-            <div className="mb-4 sm:mb-6 flex justify-center">
+            <div className="mb-2 sm:mb-3 flex justify-center flex-shrink-0">
               <ScaleReveal delay={0.15}>
                 {visual}
               </ScaleReveal>
@@ -227,31 +227,31 @@ export function DataImpactLayout({
           )}
 
           {/* Stats Grid - Main focus */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-2 sm:mb-3 flex-shrink-0">
             <StatGrid 
               stats={stats} 
               columns={stats.length > 3 ? 4 : 3} 
-              size="lg" 
+              size="md" 
             />
           </div>
 
           {/* Divider */}
           <SectionDivider label="Key Insights" color={color} />
 
-          {/* Key Points */}
+          {/* Key Points - Flex to fill */}
           {highlights && highlights.length > 0 && (
-            <div className="mb-4 sm:mb-6">
+            <div className="flex-1 min-h-0 mb-2">
               <KeyPointsList 
-                points={highlights} 
+                points={highlights.slice(0, 4)} 
                 color={color} 
-                columns={highlights.length > 3 ? 2 : 1} 
+                columns={2} 
               />
             </div>
           )}
 
           {/* Insight Box */}
           {insight && (
-            <div className="mt-auto pt-2">
+            <div className="flex-shrink-0">
               <InsightBox
                 insight={insight}
                 source={insightSource}
@@ -300,13 +300,13 @@ export function FrameworkLayout({
         color={color}
       />
 
-      {/* Body */}
-      <SlideBody particleColor="rgba(147,51,234,0.25)">
-        <div className="h-full flex flex-col items-center max-w-4xl mx-auto">
-          {/* Framework Visual - Center stage */}
-          <div className="flex-1 flex items-center justify-center w-full py-2 sm:py-4">
+      {/* Body - No scroll */}
+      <SlideBody particleColor="rgba(147,51,234,0.2)">
+        <div className="h-full flex flex-col items-center max-w-4xl mx-auto min-h-0">
+          {/* Framework Visual - Center stage, flex to fit */}
+          <div className="flex-1 min-h-0 flex items-center justify-center w-full py-1 sm:py-2">
             <ScaleReveal delay={0.15}>
-              <div className="w-full flex justify-center">
+              <div className="w-full max-w-[400px] sm:max-w-[500px] md:max-w-[600px] flex justify-center">
                 {visual}
               </div>
             </ScaleReveal>
@@ -314,10 +314,10 @@ export function FrameworkLayout({
 
           {/* Key Points below visual */}
           {highlights && highlights.length > 0 && (
-            <div className="w-full mt-2 sm:mt-4">
+            <div className="w-full flex-shrink-0">
               <SectionDivider label="Key Elements" color={color} />
               <KeyPointsList 
-                points={highlights} 
+                points={highlights.slice(0, 4)} 
                 color={color} 
                 columns={2} 
               />
@@ -326,7 +326,7 @@ export function FrameworkLayout({
 
           {/* Insight at bottom */}
           {insight && (
-            <div className="w-full mt-3 sm:mt-4">
+            <div className="w-full mt-2 flex-shrink-0">
               <InsightBox
                 insight={insight}
                 color={color}
@@ -378,42 +378,42 @@ export function ComponentLayout({
         color={color}
       />
 
-      {/* Body - Two column layout on desktop, stacked on mobile */}
+      {/* Body - Two column layout, no scroll */}
       <SlideBody>
-        <div className="h-full flex flex-col lg:flex-row gap-4 sm:gap-6 max-w-6xl mx-auto">
-          {/* Left: Visual - Centered on mobile, left on desktop */}
-          <div className="lg:w-2/5 flex items-center justify-center py-2 lg:py-0">
+        <div className="h-full flex flex-row gap-3 sm:gap-4 max-w-6xl mx-auto min-h-0">
+          {/* Left: Visual - Always side by side */}
+          <div className="w-2/5 flex items-center justify-center flex-shrink-0">
             <ScaleReveal delay={0.15}>
-              <div className="relative w-full max-w-[280px] sm:max-w-xs lg:max-w-md flex items-center justify-center">
+              <div className="relative w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] flex items-center justify-center">
                 {visual}
               </div>
             </ScaleReveal>
           </div>
 
-          {/* Right: Content */}
-          <div className="lg:w-3/5 flex flex-col justify-center">
-            {/* Description */}
+          {/* Right: Content - Flex column, no scroll */}
+          <div className="w-3/5 flex flex-col min-h-0 justify-center">
+            {/* Description - Truncated */}
             {description && (
               <HeroReveal delay={0.25} direction="left">
-                <p className="text-sm sm:text-base text-white/80 leading-relaxed mb-4 sm:mb-6">
+                <p className="text-[clamp(0.65rem,1.2vw,0.875rem)] text-white/80 leading-snug mb-2 sm:mb-3 line-clamp-3 flex-shrink-0">
                   {description}
                 </p>
               </HeroReveal>
             )}
 
-            {/* Key Elements */}
+            {/* Key Elements - Flex to fill */}
             {highlights && highlights.length > 0 && (
-              <div className="mb-4 sm:mb-6">
+              <div className="flex-1 min-h-0 flex flex-col">
                 <motion.h3
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.35 }}
-                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white/50 mb-2 sm:mb-3"
+                  className="text-[clamp(0.5rem,0.9vw,0.7rem)] font-semibold uppercase tracking-wider text-white/50 mb-1 sm:mb-2 flex-shrink-0"
                 >
                   Key Elements
                 </motion.h3>
                 <KeyPointsList 
-                  points={highlights} 
+                  points={highlights.slice(0, 4)} 
                   color={color} 
                   startDelay={0.4}
                 />
@@ -422,7 +422,7 @@ export function ComponentLayout({
 
             {/* Insight Box */}
             {insight && (
-              <div className="mt-auto">
+              <div className="flex-shrink-0 mt-2">
                 <InsightBox
                   insight={insight}
                   source={insightSource}
@@ -475,8 +475,8 @@ export function EvidenceLayout({
   gridColumns = 2,
 }: EvidenceLayoutProps) {
   const gridCols = {
-    2: "grid-cols-1 sm:grid-cols-2",
-    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+    2: "grid-cols-2",
+    3: "grid-cols-2 lg:grid-cols-3",
     4: "grid-cols-2 lg:grid-cols-4",
   };
 
@@ -490,21 +490,21 @@ export function EvidenceLayout({
         color={color}
       />
 
-      {/* Body */}
-      <SlideBody particleColor="rgba(16,185,129,0.25)">
-        <div className="h-full flex flex-col max-w-5xl mx-auto">
-          {/* Description */}
+      {/* Body - No scroll */}
+      <SlideBody particleColor="rgba(16,185,129,0.2)">
+        <div className="h-full flex flex-col max-w-5xl mx-auto min-h-0">
+          {/* Description - Compact */}
           {description && (
             <HeroReveal delay={0.15} direction="up">
-              <p className="text-sm sm:text-base text-white/80 leading-relaxed mb-4 sm:mb-6 text-center max-w-3xl mx-auto">
+              <p className="text-[clamp(0.65rem,1.2vw,0.875rem)] text-white/80 leading-snug mb-2 sm:mb-3 text-center max-w-3xl mx-auto line-clamp-2 flex-shrink-0">
                 {description}
               </p>
             </HeroReveal>
           )}
 
-          {/* Evidence Grid */}
-          <div className={cn("grid gap-3 sm:gap-4 mb-4 sm:mb-6", gridCols[gridColumns])}>
-            {evidence.map((item, i) => (
+          {/* Evidence Grid - Flex to fill */}
+          <div className={cn("grid gap-2 sm:gap-3 flex-1 min-h-0", gridCols[gridColumns])}>
+            {evidence.slice(0, 4).map((item, i) => (
               <EvidenceCard
                 key={i}
                 flag={item.flag}
@@ -513,17 +513,17 @@ export function EvidenceLayout({
                 detail={item.detail}
                 highlighted={item.highlighted}
                 color={color}
-                delay={0.2 + i * 0.08}
+                delay={0.2 + i * 0.06}
               />
             ))}
           </div>
 
-          {/* Key points */}
+          {/* Key points - Limited */}
           {highlights && highlights.length > 0 && (
-            <div className="mb-4 sm:mb-6">
+            <div className="mt-2 flex-shrink-0">
               <SectionDivider label="Key Takeaways" color={color} />
               <KeyPointsList 
-                points={highlights} 
+                points={highlights.slice(0, 2)} 
                 color={color} 
                 columns={2}
               />
@@ -532,7 +532,7 @@ export function EvidenceLayout({
 
           {/* Insight */}
           {insight && (
-            <div className="mt-auto pt-2">
+            <div className="flex-shrink-0 mt-2">
               <InsightBox
                 insight={insight}
                 color={color}

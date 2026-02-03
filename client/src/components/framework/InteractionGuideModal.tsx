@@ -136,60 +136,60 @@ function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProp
             onClick={onClose}
           />
 
-          {/* Panel */}
+          {/* Panel - No scroll, fits viewport */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute inset-4 sm:inset-8 md:inset-12 z-40 overflow-hidden"
+            className="absolute inset-3 sm:inset-6 md:inset-10 lg:inset-16 z-40 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className={cn(
-              "h-full w-full rounded-2xl border backdrop-blur-xl",
+              "h-full w-full rounded-xl sm:rounded-2xl border backdrop-blur-xl",
               "bg-slate-900/90 border-white/10",
               "flex flex-col overflow-hidden"
             )}>
-              {/* Header */}
-              <div className={cn("flex items-center justify-between p-4 border-b border-white/10", c.bg)}>
-                <div className="flex items-center gap-3">
+              {/* Header - Compact */}
+              <div className={cn("flex items-center justify-between p-2 sm:p-3 border-b border-white/10 flex-shrink-0", c.bg)}>
+                <div className="flex items-center gap-2 sm:gap-3">
                   <motion.div
                     initial={{ rotate: -10, scale: 0.8 }}
                     animate={{ rotate: 0, scale: 1 }}
                     transition={{ type: "spring", delay: 0.1 }}
-                    className={cn("w-10 h-10 rounded-xl flex items-center justify-center", c.bgSolid)}
+                    className={cn("w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center", c.bgSolid)}
                   >
-                    <Lightbulb className="w-5 h-5 text-white" />
+                    <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                   </motion.div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">{insight.label}</h3>
-                    <p className={cn("text-xs", c.text)}>Interactive Insight</p>
+                    <h3 className="text-[clamp(0.875rem,2vw,1.125rem)] font-bold text-white leading-tight">{insight.label}</h3>
+                    <p className={cn("text-[clamp(0.6rem,1vw,0.7rem)]", c.text)}>Interactive Insight</p>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-auto p-5 space-y-5">
+              {/* Content - Grid layout, no scroll */}
+              <div className="flex-1 min-h-0 p-2 sm:p-3 md:p-4 grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 overflow-hidden">
                 {/* Data Point - Hero stat */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.15 }}
-                  className={cn("p-4 rounded-xl border", c.bg, c.border)}
+                  className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col", c.bg, c.border)}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", c.bgSolid)}>
-                      <BarChart3 className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2">
+                    <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center flex-shrink-0", c.bgSolid)}>
+                      <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                     </div>
-                    <div>
-                      <p className={cn("text-xs font-semibold uppercase tracking-wider mb-1", c.text)}>Key Data Point</p>
-                      <p className="text-white font-medium leading-relaxed">{insight.dataPoint}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-[clamp(0.5rem,0.9vw,0.65rem)] font-semibold uppercase tracking-wider mb-0.5", c.text)}>Key Data Point</p>
+                      <p className="text-[clamp(0.7rem,1.2vw,0.875rem)] text-white font-medium leading-snug line-clamp-3">{insight.dataPoint}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -199,15 +199,15 @@ function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProp
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.25 }}
-                  className="p-4 rounded-xl bg-white/5 border border-white/10"
+                  className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 flex flex-col"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <Lightbulb className="w-4 h-4 text-white/80" />
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <Lightbulb className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/80" />
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1 text-white/50">Perspective</p>
-                      <p className="text-white/90 leading-relaxed">{insight.perspective}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[clamp(0.5rem,0.9vw,0.65rem)] font-semibold uppercase tracking-wider mb-0.5 text-white/50">Perspective</p>
+                      <p className="text-[clamp(0.7rem,1.2vw,0.875rem)] text-white/90 leading-snug line-clamp-3">{insight.perspective}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -218,11 +218,11 @@ function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProp
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.35 }}
-                    className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border-l-2 border-white/30"
+                    className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-white/5 to-transparent border-l-2 border-white/30 flex flex-col"
                   >
-                    <div className="flex items-start gap-3">
-                      <Quote className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
-                      <p className="text-white/80 italic leading-relaxed">"{insight.quote}"</p>
+                    <div className="flex items-start gap-2">
+                      <Quote className="w-4 h-4 text-white/40 flex-shrink-0" />
+                      <p className="text-[clamp(0.7rem,1.2vw,0.875rem)] text-white/80 italic leading-snug line-clamp-3">"{insight.quote}"</p>
                     </div>
                   </motion.div>
                 )}
@@ -233,48 +233,42 @@ function InsightOverlay({ insight, onClose, color = "cyan" }: InsightOverlayProp
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.45 }}
-                    className={cn("p-4 rounded-xl border", c.bg, c.border)}
+                    className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col", c.bg, c.border)}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", c.bgSolid)}>
-                        <Globe className="w-4 h-4 text-white" />
+                    <div className="flex items-start gap-2">
+                      <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center flex-shrink-0", c.bgSolid)}>
+                        <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                       </div>
-                      <div>
-                        <p className={cn("text-xs font-semibold uppercase tracking-wider mb-1", c.text)}>Best Practice Example</p>
-                        <p className="text-white/90 leading-relaxed">{insight.example}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-[clamp(0.5rem,0.9vw,0.65rem)] font-semibold uppercase tracking-wider mb-0.5", c.text)}>Best Practice</p>
+                        <p className="text-[clamp(0.7rem,1.2vw,0.875rem)] text-white/90 leading-snug line-clamp-3">{insight.example}</p>
                       </div>
                     </div>
                   </motion.div>
                 )}
-
-                {/* Source */}
-                {insight.source && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.55 }}
-                    className="flex items-center gap-2 text-xs text-white/40"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Source: {insight.source}</span>
-                  </motion.div>
-                )}
               </div>
 
-              {/* Footer */}
-              <div className="flex-shrink-0 p-4 border-t border-white/10 bg-slate-800/50">
+              {/* Footer - Compact */}
+              <div className="flex-shrink-0 p-2 sm:p-3 border-t border-white/10 bg-slate-800/50 flex items-center justify-between gap-2">
+                {/* Source */}
+                {insight.source && (
+                  <div className="flex items-center gap-1.5 text-[clamp(0.5rem,0.9vw,0.65rem)] text-white/40 min-w-0">
+                    <BookOpen className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{insight.source}</span>
+                  </div>
+                )}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onClose}
                   className={cn(
-                    "w-full py-2.5 rounded-xl font-medium text-white flex items-center justify-center gap-2",
+                    "px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-medium text-white flex items-center justify-center gap-1.5 text-[clamp(0.7rem,1.2vw,0.875rem)] flex-shrink-0",
                     c.bgSolid,
                     "hover:brightness-110 transition-all"
                   )}
                 >
                   <span>Got it</span>
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-3.5 h-3.5" />
                 </motion.button>
               </div>
             </div>
