@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { cn } from "../../../lib/utils";
 
 interface GlowOrbProps {
-  color?: "purple" | "cyan" | "blue" | "emerald" | "amber" | "gradient";
+  color?: string;
   size?: "sm" | "md" | "lg" | "xl";
   intensity?: "subtle" | "medium" | "intense";
   pulse?: boolean;
@@ -18,7 +18,7 @@ interface GlowOrbProps {
   children?: React.ReactNode;
 }
 
-const colorConfig = {
+const colorConfig: Record<string, { gradient: string; glow: string; glowLight: string; ring: string }> = {
   purple: {
     gradient: "from-purple-500 to-purple-700",
     glow: "rgba(147, 51, 234, 0.6)",
@@ -49,6 +49,12 @@ const colorConfig = {
     glowLight: "rgba(245, 158, 11, 0.3)",
     ring: "border-amber-400/50",
   },
+  red: {
+    gradient: "from-red-500 to-red-700",
+    glow: "rgba(239, 68, 68, 0.6)",
+    glowLight: "rgba(239, 68, 68, 0.3)",
+    ring: "border-red-400/50",
+  },
   gradient: {
     gradient: "from-purple-500 via-cyan-500 to-purple-600",
     glow: "rgba(139, 92, 246, 0.5)",
@@ -56,6 +62,9 @@ const colorConfig = {
     ring: "border-cyan-400/50",
   },
 };
+
+// Safe color getter with fallback
+const getColorConfig = (color: string | undefined) => colorConfig[color || "cyan"] || colorConfig.cyan;
 
 const sizeConfig = {
   sm: "w-16 h-16",
@@ -78,7 +87,7 @@ export function GlowOrb({
   className,
   children,
 }: GlowOrbProps) {
-  const c = colorConfig[color];
+  const c = getColorConfig(color);
   const s = sizeConfig[size];
   const i = intensityConfig[intensity];
 
@@ -148,12 +157,12 @@ export function FloatingGlowOrb({
   position = "top-right",
   delay = 0,
 }: {
-  color?: "purple" | "cyan" | "blue" | "emerald" | "amber";
+  color?: string;
   size?: "sm" | "md" | "lg" | "xl";
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
   delay?: number;
 }) {
-  const c = colorConfig[color];
+  const c = getColorConfig(color);
   const s = sizeConfig[size];
   
   const positionClasses = {
@@ -196,11 +205,12 @@ export function IconGlow({
   children,
   className,
 }: {
-  color?: "purple" | "cyan" | "blue" | "emerald" | "amber";
+  color?: string;
   children: React.ReactNode;
   className?: string;
+  size?: "sm" | "md";
 }) {
-  const c = colorConfig[color];
+  const c = getColorConfig(color);
 
   return (
     <motion.div

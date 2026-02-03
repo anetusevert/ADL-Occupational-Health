@@ -306,7 +306,7 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
       />
 
-      {/* Modal - Master-Detail Layout */}
+      {/* Modal - Master-Detail Layout - Compact & Dynamic */}
       <motion.div
         variants={modalVariants}
         initial="initial"
@@ -315,36 +315,36 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
         role="dialog"
         aria-modal="true"
         aria-labelledby="persona-modal-title"
-        className="fixed inset-3 sm:inset-6 md:inset-10 lg:inset-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 z-50 overflow-hidden shadow-2xl flex"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[1100px] h-auto max-h-[85vh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 z-50 overflow-hidden shadow-2xl flex"
       >
-        {/* ===== LEFT SIDEBAR ===== */}
+        {/* ===== LEFT SIDEBAR - Compact ===== */}
         <div className={cn(
-          "w-[260px] flex-shrink-0 flex flex-col border-r border-white/10",
+          "w-[220px] flex-shrink-0 flex flex-col border-r border-white/10",
           "bg-gradient-to-b",
           colors.gradient
         )}>
           {/* Avatar Section */}
-          <div className="p-5 flex flex-col items-center border-b border-white/10">
-            <PersonaAvatar persona={persona} size="xl" showGlow />
+          <div className="p-4 flex flex-col items-center border-b border-white/10">
+            <PersonaAvatar persona={persona} size="lg" showGlow />
             
-            <h2 id="persona-modal-title" className="text-lg font-bold text-white mt-4 text-center">
+            <h2 id="persona-modal-title" className="text-base font-bold text-white mt-3 text-center">
               {persona.name}
             </h2>
-            <p className={cn("text-xs font-medium mt-1 text-center", colors.accent)}>
+            <p className={cn("text-[11px] font-medium mt-0.5 text-center", colors.accent)}>
               {persona.tagline}
             </p>
-            <p className="text-[10px] text-white/30 mt-1 font-arabic" dir="rtl">
+            <p className="text-[9px] text-white/30 mt-0.5 font-arabic" dir="rtl">
               {persona.arabicName}
             </p>
             
             {/* Coverage Badge */}
-            <div className="mt-3">
+            <div className="mt-2">
               <CoverageBadge status={coverageStatus} size="sm" />
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1">
+          {/* Navigation - Compact */}
+          <nav className="flex-1 p-2 space-y-0.5">
             {navItems.map((item) => (
               <NavButton
                 key={item.id}
@@ -357,8 +357,8 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
             ))}
           </nav>
 
-          {/* Quick Stats */}
-          <div className="p-3 border-t border-white/10 space-y-2">
+          {/* Quick Stats - Compact */}
+          <div className="p-2 border-t border-white/10 space-y-1.5">
             <QuickStat 
               label="Participation" 
               value={`${persona.demographics.participationRate}%`}
