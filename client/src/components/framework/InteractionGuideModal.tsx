@@ -2047,120 +2047,182 @@ function ADLSolutionVisual() {
 }
 
 // ============================================================================
-// SUCCESS STORIES VISUAL - Premium country achievement cards
+// SUCCESS STORIES VISUAL - Premium detailed country case studies
 // ============================================================================
 
 function SuccessStoriesVisual() {
+  // Detailed country case studies aligned with best practices database
   const countries = [
-    { code: "DEU", name: "Germany", achievement: "75% fatality reduction", stat: 75, color: "blue", flag: "🇩🇪" },
-    { code: "SGP", name: "Singapore", achievement: "94% compliance rate", stat: 94, color: "emerald", flag: "🇸🇬" },
-    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer", stat: 0, isText: true, color: "cyan", flag: "🇸🇪" },
-    { code: "JPN", name: "Japan", achievement: "OSHMS excellence", stat: 40, suffix: "%", color: "purple", flag: "🇯🇵" },
+    { 
+      code: "DEU", 
+      name: "Germany", 
+      flag: "🇩🇪",
+      headline: "75% Fatality Reduction",
+      stat: 75,
+      suffix: "%",
+      color: "blue",
+      keyPractice: "Berufsgenossenschaften (BGs)",
+      description: "Sector-specific insurance associations combining prevention, insurance & rehabilitation",
+      keyMetric: "1:8,500 inspector ratio",
+      since: "Since 1990"
+    },
+    { 
+      code: "SGP", 
+      name: "Singapore", 
+      flag: "🇸🇬",
+      headline: "94% Compliance Rate",
+      stat: 94,
+      suffix: "%",
+      color: "emerald",
+      keyPractice: "WSH Act & Name-and-Shame",
+      description: "Escalating penalties with public registry for repeat offenders",
+      keyMetric: "Zero fatality goal",
+      since: "Since 2006"
+    },
+    { 
+      code: "SWE", 
+      name: "Sweden", 
+      flag: "🇸🇪",
+      headline: "Vision Zero Pioneer",
+      stat: 0,
+      isText: true,
+      color: "cyan",
+      keyPractice: "Tripartite Cooperation",
+      description: "Legally mandated worker safety representatives in every workplace",
+      keyMetric: "Zero fatalities by 2030",
+      since: "Since 1977"
+    },
+    { 
+      code: "JPN", 
+      name: "Japan", 
+      flag: "🇯🇵",
+      headline: "40% Incident Reduction",
+      stat: 40,
+      suffix: "%",
+      color: "purple",
+      keyPractice: "OSHMS Certification",
+      description: "Government incentives for certified safety management systems",
+      keyMetric: "Zero Accident Campaigns",
+      since: "Since 1999"
+    },
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
-      <ParticleField count={45} color="emerald" speed="slow" />
+    <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={35} color="emerald" speed="slow" />
       
-      <FloatingGlowOrb color="emerald" size="xl" position="top-left" delay={0} />
-      <FloatingGlowOrb color="cyan" size="lg" position="bottom-right" delay={0.5} />
+      <FloatingGlowOrb color="emerald" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="md" position="bottom-right" delay={0.5} />
       
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-10 w-full max-w-3xl">
         {/* Header */}
         <HeroReveal delay={0} direction="down">
-          <div className="text-center mb-8">
+          <div className="text-center mb-4 sm:mb-6">
             <DramaticTextReveal
-              text="Global Success Stories"
-              className="text-xl font-bold text-white"
+              text="Global Best Practices"
+              className="text-xl sm:text-2xl font-bold text-white"
               delay={0.2}
               glow
               glowColor="rgba(5, 150, 105, 0.4)"
             />
-            <p className="text-emerald-400/70 text-sm mt-2">
-              Leaders in Occupational Health Excellence
+            <p className="text-emerald-400/70 text-xs sm:text-sm mt-1">
+              Proven approaches from world leaders in occupational health
             </p>
           </div>
         </HeroReveal>
 
-        {/* Country cards with 3D effect */}
-        <div className="grid grid-cols-2 gap-5">
+        {/* Country case study cards - 2x2 grid */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {countries.map((country, i) => (
-            <HeroReveal key={i} delay={0.4 + i * 0.15} direction={i % 2 === 0 ? "left" : "right"}>
+            <HeroReveal key={i} delay={0.3 + i * 0.12} direction={i % 2 === 0 ? "left" : "right"}>
               <motion.div
-                whileHover={{ 
-                  scale: 1.05, 
-                  y: -8,
-                  rotateY: 5,
-                  rotateX: -5,
-                }}
+                whileHover={{ scale: 1.02, y: -3 }}
                 transition={{ type: "spring", stiffness: 300 }}
                 className={cn(
-                  "p-5 rounded-2xl border backdrop-blur-sm cursor-pointer relative overflow-hidden",
+                  "p-3 sm:p-4 rounded-xl border backdrop-blur-sm relative overflow-hidden h-full",
                   colors[country.color].bg,
                   colors[country.color].border,
-                  "hover:shadow-xl transition-all"
                 )}
-                style={{ transformStyle: "preserve-3d" }}
               >
-                <ShimmerOverlay delay={0.6 + i * 0.2} duration={3} />
+                <ShimmerOverlay delay={0.5 + i * 0.15} duration={3.5} />
                 
-                {/* Glow effect */}
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      `0 0 20px ${colors[country.color].hex}30`,
-                      `0 0 40px ${colors[country.color].hex}50`,
-                      `0 0 20px ${colors[country.color].hex}30`,
-                    ]
-                  }}
-                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
-                  className="absolute inset-0 rounded-2xl"
-                />
-                
-                <div className="relative z-10">
-                  {/* Flag and name */}
-                  <div className="flex items-center gap-3 mb-3">
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* Flag and country name */}
+                  <div className="flex items-center gap-2 mb-2">
                     <motion.span 
-                      className="text-3xl"
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                      className="text-2xl sm:text-3xl"
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.2 }}
                     >
                       {country.flag}
                     </motion.span>
-                    <span className="text-white font-bold">{country.name}</span>
+                    <div>
+                      <span className="text-white font-bold text-sm sm:text-base">{country.name}</span>
+                      <p className="text-white/40 text-[9px] sm:text-[10px]">{country.since}</p>
+                    </div>
                   </div>
                   
-                  {/* Stat */}
-                  {!country.isText && (
-                    <div className={cn("text-3xl font-bold mb-1", colors[country.color].text)}>
-                      <NumberCounter 
-                        value={country.stat} 
-                        suffix={country.suffix || "%"} 
-                        duration={2} 
-                        delay={0.8 + i * 0.15} 
-                      />
-                    </div>
-                  )}
+                  {/* Headline stat */}
+                  <div className="mb-2">
+                    {!country.isText ? (
+                      <div className={cn("text-xl sm:text-2xl font-bold", colors[country.color].text)}>
+                        <NumberCounter 
+                          value={country.stat} 
+                          suffix={country.suffix || "%"} 
+                          duration={1.5} 
+                          delay={0.6 + i * 0.1} 
+                        />
+                      </div>
+                    ) : (
+                      <div className={cn("text-lg sm:text-xl font-bold", colors[country.color].text)}>
+                        Vision Zero
+                      </div>
+                    )}
+                    <p className="text-white/70 text-[10px] sm:text-xs">{country.headline}</p>
+                  </div>
                   
-                  {/* Achievement */}
-                  <p className="text-white/70 text-sm">
-                    {country.achievement}
-                  </p>
+                  {/* Key practice */}
+                  <div className="flex-1 min-h-0">
+                    <p className={cn("text-[10px] sm:text-xs font-semibold mb-0.5", colors[country.color].text)}>
+                      {country.keyPractice}
+                    </p>
+                    <p className="text-white/50 text-[9px] sm:text-[10px] leading-snug line-clamp-2">
+                      {country.description}
+                    </p>
+                  </div>
+                  
+                  {/* Key metric badge */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 + i * 0.1 }}
+                    className="mt-2 pt-2 border-t border-white/10"
+                  >
+                    <span className="text-[9px] sm:text-[10px] text-white/60 bg-white/5 px-2 py-0.5 rounded-full">
+                      {country.keyMetric}
+                    </span>
+                  </motion.div>
                 </div>
               </motion.div>
             </HeroReveal>
           ))}
         </div>
 
-        {/* Bottom CTA */}
-        <HeroReveal delay={1.4} direction="up">
-          <motion.p
-            animate={{ opacity: [0.5, 0.9, 0.5] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="text-center text-emerald-400/80 text-sm mt-8"
+        {/* Key insight callout */}
+        <HeroReveal delay={1.1} direction="up">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center"
           >
-            Learn from the world's leading OH systems
-          </motion.p>
+            <p className="text-emerald-400/90 text-xs sm:text-sm font-medium">
+              These nations prove that comprehensive frameworks deliver measurable results
+            </p>
+            <p className="text-white/40 text-[10px] mt-1">
+              Source: ADL Global OH Excellence Database, aligned with platform best practices
+            </p>
+          </motion.div>
         </HeroReveal>
       </div>
     </div>
