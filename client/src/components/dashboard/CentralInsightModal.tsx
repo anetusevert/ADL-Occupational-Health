@@ -19,7 +19,16 @@ import {
   AlertTriangle, Heart, Percent, DollarSign
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import type { InsightCategory } from "../../pages/CountryDashboard";
+
+// Define InsightCategory locally to avoid circular dependency with CountryDashboard
+export type InsightCategory = 
+  // Economic tiles
+  | "labor-force" | "gdp-per-capita" | "population" | "unemployment"
+  // Framework pillars
+  | "governance" | "hazard-control" | "vigilance" | "restoration"
+  // Country insights
+  | "culture" | "oh-infrastructure" | "industry" 
+  | "urban" | "workforce" | "political";
 
 // ============================================================================
 // TYPES

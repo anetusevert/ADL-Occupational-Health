@@ -24,7 +24,7 @@ import { PillarQuadrant } from "../components/dashboard/PillarQuadrant";
 import { SlideshowQuadrant } from "../components/dashboard/SlideshowQuadrant";
 import { HeaderPositioningBar } from "../components/dashboard/HeaderPositioningBar";
 import { PillarDetailOverlay } from "../components/dashboard/PillarDetailOverlay";
-import { CentralInsightModal } from "../components/dashboard/CentralInsightModal";
+import { CentralInsightModal, type InsightCategory } from "../components/dashboard/CentralInsightModal";
 import type { GeoJSONMetadataResponse } from "../types/country";
 
 // ============================================================================
@@ -60,15 +60,8 @@ export interface CountryIntelligence {
 
 export type PillarType = "governance" | "hazard-control" | "vigilance" | "restoration";
 
-// Category types for central modal (all clickable tiles)
-export type InsightCategory = 
-  // Economic tiles
-  | "labor-force" | "gdp-per-capita" | "population" | "unemployment"
-  // Framework pillars
-  | "governance" | "hazard-control" | "vigilance" | "restoration"
-  // Country insights
-  | "culture" | "oh-infrastructure" | "industry" 
-  | "urban" | "workforce" | "political";
+// Re-export InsightCategory for backwards compatibility
+export type { InsightCategory } from "../components/dashboard/CentralInsightModal";
 
 // ============================================================================
 // MAIN COMPONENT
