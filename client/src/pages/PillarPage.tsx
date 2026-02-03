@@ -36,7 +36,6 @@ import {
 import { 
   StrategicQuestionCard, 
   QuestionDetailModal,
-  LeaderDetailModal,
   type QuestionAnswer,
   type BestPracticeLeader,
 } from "../components/strategic";
@@ -635,7 +634,7 @@ export function PillarPage() {
         </div>
       </main>
       
-      {/* Question Detail Modal */}
+      {/* Question Detail Modal - Uses built-in stacked sub-modal for leader details */}
       {selectedQuestion && pillarDef && (
         <QuestionDetailModal
           isOpen={!!selectedQuestion}
@@ -649,27 +648,8 @@ export function PillarPage() {
           pillarBgColor={pillarDef.bgColor}
           pillarBorderColor={pillarDef.borderColor}
           countryName={currentCountry.name}
-          onLeaderClick={(leader) => {
-            const rank = selectedQuestion.bestPractices.findIndex(
-              l => l.country_iso === leader.country_iso
-            ) + 1;
-            setSelectedLeader({ leader, rank });
-          }}
-        />
-      )}
-      
-      {/* Leader Detail Modal */}
-      {selectedLeader && pillarDef && selectedQuestion && (
-        <LeaderDetailModal
-          isOpen={!!selectedLeader}
-          onClose={() => setSelectedLeader(null)}
-          leader={selectedLeader.leader}
-          questionTitle={selectedQuestion.question.title}
-          pillarName={pillarDef.name}
-          pillarColor={pillarDef.color}
-          pillarBgColor={pillarDef.bgColor}
-          pillarBorderColor={pillarDef.borderColor}
-          rank={selectedLeader.rank}
+          countryIso={iso}
+          questionId={selectedQuestion.question.id}
         />
       )}
     </div>
