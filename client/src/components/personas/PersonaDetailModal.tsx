@@ -189,13 +189,13 @@ function NavButton({
       animate={isActive ? "active" : "inactive"}
       whileHover={{ backgroundColor: "rgba(255,255,255,0.08)" }}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+        "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors",
         isActive 
           ? "text-white border-l-2 border-cyan-400" 
           : "text-white/50 hover:text-white/80 border-l-2 border-transparent"
       )}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="w-3.5 h-3.5" />
       {label}
     </motion.button>
   );
@@ -376,37 +376,37 @@ export function PersonaDetailModal({ persona, onClose }: PersonaDetailModalProps
 
         {/* ===== RIGHT CONTENT PANEL ===== */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", colors.bg, colors.border, "border")}>
-                {activeTab === 'overview' && <Users className={cn("w-5 h-5", colors.accent)} />}
-                {activeTab === 'journey' && <Route className={cn("w-5 h-5", colors.accent)} />}
-                {activeTab === 'coverage' && <Shield className={cn("w-5 h-5", colors.accent)} />}
-                {activeTab === 'research' && <FileText className={cn("w-5 h-5", colors.accent)} />}
+          {/* Header - Compact */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className={cn("p-1.5 rounded-lg", colors.bg, colors.border, "border")}>
+                {activeTab === 'overview' && <Users className={cn("w-4 h-4", colors.accent)} />}
+                {activeTab === 'journey' && <Route className={cn("w-4 h-4", colors.accent)} />}
+                {activeTab === 'coverage' && <Shield className={cn("w-4 h-4", colors.accent)} />}
+                {activeTab === 'research' && <FileText className={cn("w-4 h-4", colors.accent)} />}
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-base font-semibold text-white">
                   {activeTab === 'overview' && 'Demographic Overview'}
                   {activeTab === 'journey' && 'Occupational Health Journey'}
                   {activeTab === 'coverage' && 'GOSI Coverage Details'}
                   {activeTab === 'research' && 'Research & Sources'}
                 </h3>
-                <p className="text-xs text-white/40">{persona.name}</p>
+                <p className="text-[10px] text-white/40">{persona.name}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
               aria-label="Close modal"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Content Panel - No Scrolling */}
-          <div className="flex-1 p-5 overflow-hidden">
+          {/* Content Panel - Compact with dynamic fill */}
+          <div className="flex-1 p-4 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

@@ -196,7 +196,6 @@ async def generate_insight_content(
     context_parts = [
         f"Country: {country.name}",
         f"ISO Code: {country.iso_code}",
-        f"Region: {country.region or 'N/A'}",
         "",
         "## Socioeconomic Data:",
     ]
