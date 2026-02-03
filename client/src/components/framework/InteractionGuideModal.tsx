@@ -2168,10 +2168,213 @@ function SuccessStoriesVisual() {
 }
 
 // ============================================================================
-// GOSI OPPORTUNITY VISUAL - Saudi Arabia's rise with premium animations
+// GOSI OPPORTUNITY VISUAL - Extended Saudi Arabia Story with Vision 2030
 // ============================================================================
 
 function GOSIOpportunityVisual() {
+  // Vision 2030 strategic pillars related to OH
+  const vision2030Pillars = [
+    { name: "Thriving Economy", description: "Diversifying beyond oil, attracting global talent", icon: TrendingUp, color: "cyan" },
+    { name: "Vibrant Society", description: "Quality of life, health & wellbeing for all", icon: Heart, color: "emerald" },
+    { name: "Ambitious Nation", description: "World-class governance & institutional excellence", icon: Crown, color: "purple" },
+  ];
+
+  // GOSI's strategic advantages
+  const gosiAdvantages = [
+    { stat: "13M+", label: "Workers Covered", detail: "Largest GCC social insurance" },
+    { stat: "1M+", label: "Employers Served", detail: "Comprehensive coverage" },
+    { stat: "SAR 1T+", label: "Assets Under Management", detail: "Financial strength" },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      <ParticleField count={40} color="cyan" speed="slow" />
+      
+      <FloatingGlowOrb color="cyan" size="lg" position="top-right" delay={0} />
+      <FloatingGlowOrb color="emerald" size="md" position="bottom-left" delay={0.5} />
+      
+      <div className="relative z-10 w-full max-w-3xl">
+        <div className="flex flex-col lg:flex-row items-start gap-6">
+          
+          {/* Left: Saudi Arabia Focus with Flag */}
+          <div className="lg:w-2/5 flex flex-col items-center">
+            <ScaleReveal delay={0} initialScale={0.5}>
+              <div className="relative">
+                {/* Animated Saudi flag with glow */}
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 30px rgba(6,182,212,0.2), 0 0 60px rgba(16,185,129,0.1)",
+                      "0 0 50px rgba(6,182,212,0.4), 0 0 100px rgba(16,185,129,0.2)",
+                      "0 0 30px rgba(6,182,212,0.2), 0 0 60px rgba(16,185,129,0.1)",
+                    ]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl bg-gradient-to-br from-emerald-900/50 to-emerald-950/50 border-2 border-emerald-500/40 flex items-center justify-center relative overflow-hidden"
+                >
+                  <ShimmerOverlay delay={0.5} duration={4} />
+                  <motion.span 
+                    className="text-6xl sm:text-7xl"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    🇸🇦
+                  </motion.span>
+                </motion.div>
+                
+                {/* Rising indicator */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/40 rounded-full px-3 py-1"
+                >
+                  <motion.div
+                    animate={{ y: [-2, 2, -2] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                  </motion.div>
+                  <span className="text-cyan-400 text-xs font-semibold">Rising</span>
+                </motion.div>
+              </div>
+            </ScaleReveal>
+
+            {/* Kingdom headline */}
+            <HeroReveal delay={0.3} direction="up">
+              <div className="text-center mt-6">
+                <h3 className="text-lg sm:text-xl font-bold text-white">Kingdom of Saudi Arabia</h3>
+                <p className="text-emerald-400 text-xs sm:text-sm mt-1">
+                  GCC's Largest Economy • Vision 2030 Leader
+                </p>
+              </div>
+            </HeroReveal>
+
+            {/* GOSI stats */}
+            <HeroReveal delay={0.6} direction="up">
+              <div className="mt-4 space-y-2 w-full">
+                {gosiAdvantages.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 + i * 0.1 }}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/10"
+                  >
+                    <span className="text-cyan-400 font-bold text-sm">{item.stat}</span>
+                    <div className="min-w-0">
+                      <p className="text-white text-xs font-medium">{item.label}</p>
+                      <p className="text-white/40 text-[10px]">{item.detail}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </HeroReveal>
+          </div>
+          
+          {/* Right: Vision 2030 & Path Forward */}
+          <div className="lg:w-3/5 flex flex-col">
+            {/* Vision 2030 header */}
+            <HeroReveal delay={0.2} direction="right" blur={15}>
+              <div className="flex items-center gap-3 mb-4">
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 15px rgba(6,182,212,0.3)",
+                      "0 0 30px rgba(6,182,212,0.5)",
+                      "0 0 15px rgba(6,182,212,0.3)",
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center"
+                >
+                  <span className="text-white font-bold text-sm">2030</span>
+                </motion.div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Vision 2030</h3>
+                  <p className="text-cyan-400/70 text-xs">Saudi Arabia's Blueprint for Transformation</p>
+                </div>
+              </div>
+            </HeroReveal>
+
+            {/* Vision pillars */}
+            <div className="space-y-2 mb-4">
+              {vision2030Pillars.map((pillar, i) => {
+                const PillarIcon = pillar.icon;
+                return (
+                  <HeroReveal key={i} delay={0.5 + i * 0.12} direction="right">
+                    <motion.div
+                      whileHover={{ x: 3 }}
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-xl border",
+                        colors[pillar.color].bg,
+                        colors[pillar.color].border
+                      )}
+                    >
+                      <PillarIcon className={cn("w-5 h-5 mt-0.5 flex-shrink-0", colors[pillar.color].text)} />
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-semibold">{pillar.name}</p>
+                        <p className="text-white/50 text-xs leading-snug">{pillar.description}</p>
+                      </div>
+                    </motion.div>
+                  </HeroReveal>
+                );
+              })}
+            </div>
+
+            {/* GOSI's unique position */}
+            <HeroReveal delay={1} direction="up">
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className="p-3 rounded-xl bg-gradient-to-r from-cyan-500/15 to-purple-500/15 border border-cyan-500/30 relative overflow-hidden"
+              >
+                <ShimmerOverlay delay={1.2} duration={4} />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <img src="/gosi-logo.png" alt="GOSI" className="h-6 object-contain opacity-80" />
+                    <span className="text-cyan-400 text-xs font-semibold">GOSI's Strategic Position</span>
+                  </div>
+                  <p className="text-white/70 text-xs leading-relaxed">
+                    As the Kingdom's social insurance authority, GOSI is uniquely positioned to drive occupational health transformation—protecting workers while supporting economic diversification.
+                  </p>
+                </div>
+              </motion.div>
+            </HeroReveal>
+
+            {/* Key opportunity metrics */}
+            <HeroReveal delay={1.3} direction="up">
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {[
+                  { value: "40%", label: "Cost Reduction", color: "emerald" },
+                  { value: "#1", label: "GCC Target", color: "cyan" },
+                  { value: "2030", label: "Vision Aligned", color: "purple" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.4 + i * 0.1 }}
+                    className={cn(
+                      "p-2 rounded-lg border text-center",
+                      colors[item.color].bg,
+                      colors[item.color].border
+                    )}
+                  >
+                    <p className={cn("text-lg font-bold", colors[item.color].text)}>{item.value}</p>
+                    <p className="text-white/50 text-[10px]">{item.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </HeroReveal>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Legacy Rankings display for alternate use
+function GOSIRankingsDisplay() {
   const rankings = [
     { position: 1, country: "Germany", flag: "🇩🇪", score: 92 },
     { position: 2, country: "Sweden", flag: "🇸🇪", score: 89 },
@@ -2180,141 +2383,67 @@ function GOSIOpportunityVisual() {
   ];
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center p-8 overflow-hidden">
-      <ParticleField count={50} color="cyan" speed="slow" />
-      
-      <FloatingGlowOrb color="cyan" size="xl" position="top-right" delay={0} />
-      <FloatingGlowOrb color="purple" size="lg" position="bottom-left" delay={0.5} />
-      
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <HeroReveal delay={0} direction="down">
-          <div className="text-center mb-8">
-            <DramaticTextReveal
-              text="GOSI's Path Forward"
-              className="text-xl font-bold text-white"
-              delay={0.2}
-              glow
-              glowColor="rgba(6, 182, 212, 0.4)"
-            />
-            <p className="text-cyan-400/70 text-sm mt-2">
-              Regional Leadership Opportunity
-            </p>
-          </div>
-        </HeroReveal>
-
-        {/* Ranking visualization with premium styling */}
-        <div className="space-y-4">
-          {rankings.map((item, i) => (
-            <HeroReveal key={i} delay={0.4 + i * 0.12} direction="left">
-              <motion.div
-                whileHover={{ scale: 1.02, x: 5 }}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-2xl border relative overflow-hidden",
-                  item.highlight
-                    ? "bg-gradient-to-r from-cyan-500/30 to-purple-500/20 border-cyan-400/60"
-                    : "bg-white/5 border-white/10"
-                )}
-              >
-                {item.highlight && <ShimmerOverlay delay={1} duration={3} />}
-                
-                {/* Position badge */}
-                <motion.div 
-                  className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl relative",
-                    item.highlight 
-                      ? "bg-gradient-to-br from-cyan-500 to-purple-500 text-white shadow-lg shadow-cyan-500/30" 
-                      : "bg-slate-700/80 text-white/60"
-                  )}
-                  animate={item.highlight ? {
-                    boxShadow: [
-                      "0 0 20px rgba(6,182,212,0.3)",
-                      "0 0 40px rgba(6,182,212,0.5)",
-                      "0 0 20px rgba(6,182,212,0.3)",
-                    ]
-                  } : undefined}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  {item.highlight ? (
-                    <motion.span
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      ?
-                    </motion.span>
-                  ) : item.position}
-                </motion.div>
-
-                {/* Country info */}
-                <div className="flex items-center gap-3 flex-1">
-                  <motion.span 
-                    className="text-2xl"
-                    animate={item.highlight ? { scale: [1, 1.15, 1] } : undefined}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {item.flag}
-                  </motion.span>
-                  <span className={cn(
-                    "font-semibold text-lg",
-                    item.highlight ? "text-cyan-300" : "text-white/80"
-                  )}>
-                    {item.country}
-                  </span>
-                </div>
-
-                {/* Score or rising indicator */}
-                {item.score ? (
-                  <div className="text-white/60 font-mono text-lg">
-                    <NumberCounter value={item.score} duration={1.5} delay={0.6 + i * 0.1} />
-                  </div>
-                ) : (
-                  <motion.div
-                    animate={{ y: [-8, 8, -8], rotate: [0, 10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="flex items-center gap-2"
-                  >
-                    <TrendingUp className="w-6 h-6 text-cyan-400" />
-                    <span className="text-cyan-400 text-sm font-medium">Rising</span>
-                  </motion.div>
-                )}
-              </motion.div>
-            </HeroReveal>
-          ))}
-        </div>
-
-        {/* Vision 2030 card with premium styling */}
-        <HeroReveal delay={1.2} direction="up">
+    <div className="space-y-3">
+      {rankings.map((item, i) => (
+        <HeroReveal key={i} delay={0.4 + i * 0.12} direction="left">
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="mt-8 p-5 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-cyan-500/20 border border-cyan-500/40 relative overflow-hidden"
+            whileHover={{ scale: 1.02, x: 5 }}
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-xl border relative overflow-hidden",
+              item.highlight
+                ? "bg-gradient-to-r from-cyan-500/30 to-purple-500/20 border-cyan-400/60"
+                : "bg-white/5 border-white/10"
+            )}
           >
-            <ShimmerOverlay delay={1.5} duration={4} />
+            {item.highlight && <ShimmerOverlay delay={1} duration={3} />}
             
-            <div className="flex items-center gap-4 relative z-10">
-              <motion.div 
-                animate={{
-                  boxShadow: [
-                    "0 0 20px rgba(6,182,212,0.3), 0 0 40px rgba(147,51,234,0.2)",
-                    "0 0 40px rgba(6,182,212,0.5), 0 0 80px rgba(147,51,234,0.3)",
-                    "0 0 20px rgba(6,182,212,0.3), 0 0 40px rgba(147,51,234,0.2)",
-                  ]
-                }}
-                transition={{ duration: 2.5, repeat: Infinity }}
-                className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center"
-              >
-                <span className="text-white font-bold text-lg">2030</span>
-              </motion.div>
-              <div>
-                <DramaticTextReveal
-                  text="Vision 2030 Aligned"
-                  className="text-white font-bold text-lg"
-                  delay={1.4}
-                  glow
-                  glowColor="rgba(6, 182, 212, 0.3)"
-                />
-                <p className="text-cyan-400/80 text-sm mt-1">Quality of Life Program</p>
-              </div>
+            <motion.div 
+              className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg",
+                item.highlight 
+                  ? "bg-gradient-to-br from-cyan-500 to-purple-500 text-white shadow-lg shadow-cyan-500/30" 
+                  : "bg-slate-700/80 text-white/60"
+              )}
+            >
+              {item.highlight ? (
+                <motion.span
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  ?
+                </motion.span>
+              ) : item.position}
+            </motion.div>
+
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-xl">{item.flag}</span>
+              <span className={cn(
+                "font-semibold text-sm",
+                item.highlight ? "text-cyan-300" : "text-white/80"
+              )}>
+                {item.country}
+              </span>
             </div>
+
+            {item.score ? (
+              <div className="text-white/60 font-mono text-sm">
+                <NumberCounter value={item.score} duration={1.5} delay={0.6 + i * 0.1} />
+              </div>
+            ) : (
+              <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="flex items-center gap-1"
+              >
+                <TrendingUp className="w-4 h-4 text-cyan-400" />
+              </motion.div>
+            )}
+          </motion.div>
+        </HeroReveal>
+      ))}
+    </div>
+  );
+}
           </motion.div>
         </HeroReveal>
       </div>
@@ -2474,7 +2603,7 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         />
       );
 
-    // COMPONENT LAYOUT - Governance and pillar slides
+    // COMPONENT LAYOUT - Governance and pillar slides with framework navigator
     case "component":
       const componentColors: Record<string, "purple" | "blue" | "emerald" | "amber" | "cyan"> = {
         governance: "purple",
@@ -2484,10 +2613,10 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       };
       
       const componentInsights: Record<string, string> = {
-        governance: "Strong governance correlates directly with lower fatality rates and better health outcomes.",
-        "pillar-1": "Every dollar invested in prevention saves $4-6 in downstream healthcare costs and lost productivity.",
-        "pillar-2": "Early detection can reduce treatment costs by 60% and prevent permanent disability.",
-        "pillar-3": "No-fault systems process claims 70% faster and achieve 80% return-to-work rates.",
+        governance: "Countries with strong governance show 47% lower workplace fatality rates.",
+        "pillar-1": "Every $1 invested in prevention saves $4-6 in downstream costs.",
+        "pillar-2": "Early detection reduces treatment costs by 60% and prevents disability.",
+        "pillar-3": "No-fault systems achieve 80% return-to-work rates.",
       };
       
       const componentVisuals: Record<string, React.ReactNode> = {
@@ -2497,17 +2626,26 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         "pillar-3": <CompactPillarVisual pillar="restoration" onInsightClick={onInsightClick} />,
       };
 
+      // Framework element with navigator overlay
       return (
-        <ComponentLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          description={slide.content}
-          visual={componentVisuals[slide.componentId || "governance"]}
-          highlights={slide.highlights}
-          insight={componentInsights[slide.componentId || "governance"]}
-          color={componentColors[slide.componentId || "governance"]}
-          icon={getIcon()}
-        />
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+          {/* Framework Navigator - Top left */}
+          <FrameworkNavigator activeComponent={slide.componentId || "governance"} />
+          
+          {/* Main content */}
+          <div className="flex-1 min-h-0">
+            <ComponentLayout
+              actionTitle={slide.actionTitle}
+              subtitle={slide.subtitle}
+              description={slide.content}
+              visual={componentVisuals[slide.componentId || "governance"]}
+              highlights={slide.highlights}
+              insight={componentInsights[slide.componentId || "governance"]}
+              color={componentColors[slide.componentId || "governance"]}
+              icon={getIcon()}
+            />
+          </div>
+        </div>
       );
 
     // EVIDENCE LAYOUT - Success stories and solution slides
@@ -2552,6 +2690,63 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         />
       );
   }
+}
+
+// ============================================================================
+// FRAMEWORK NAVIGATOR - Visual guide showing current position in framework
+// ============================================================================
+
+interface FrameworkNavigatorProps {
+  activeComponent: string;
+}
+
+function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
+  const elements = [
+    { id: "governance", icon: Crown, label: "Governance", color: "purple" as const },
+    { id: "pillar-1", icon: Shield, label: "Prevention", color: "blue" as const },
+    { id: "pillar-2", icon: Eye, label: "Surveillance", color: "emerald" as const },
+    { id: "pillar-3", icon: Heart, label: "Restoration", color: "amber" as const },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.2 }}
+      className="absolute top-4 left-4 z-30 flex flex-col gap-1 bg-black/40 backdrop-blur-sm rounded-xl p-2 border border-white/10"
+    >
+      <span className="text-[9px] text-white/40 uppercase tracking-wider px-2 mb-1">Framework</span>
+      {elements.map((el, i) => {
+        const isActive = el.id === activeComponent;
+        const ElIcon = el.icon;
+        return (
+          <motion.div
+            key={el.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 + i * 0.1 }}
+            className={cn(
+              "flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all",
+              isActive 
+                ? cn(colors[el.color].bg, colors[el.color].border, "border")
+                : "opacity-40 hover:opacity-60"
+            )}
+          >
+            <ElIcon className={cn("w-3.5 h-3.5", isActive ? colors[el.color].text : "text-white/50")} />
+            <span className={cn("text-[10px] font-medium", isActive ? "text-white" : "text-white/50")}>
+              {el.label}
+            </span>
+            {isActive && (
+              <motion.div
+                layoutId="navigator-indicator"
+                className={cn("w-1.5 h-1.5 rounded-full ml-auto", colors[el.color].bgSolid)}
+              />
+            )}
+          </motion.div>
+        );
+      })}
+    </motion.div>
+  );
 }
 
 // ============================================================================
