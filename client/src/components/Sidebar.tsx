@@ -31,6 +31,7 @@ import {
   HardDrive,
   Play,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -56,6 +57,7 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 // Analytics Suite - Data exploration and analysis
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global Overview", icon: Map },
+  { path: "/country-focus", label: "Country Focus", icon: Target },
   { path: "/country-data", label: "Country Data", icon: Table2 },
   { path: "/deep-dive", label: "Best Practices", icon: Brain },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
@@ -216,7 +218,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBrie
                 </p>
                 <div className="flex items-center justify-center gap-1.5 text-cyan-400 group-hover:text-cyan-300 transition-colors">
                   <Play className="w-3 h-3 fill-current" />
-                  <span className="text-[10px] font-medium">Launch Experience</span>
+                  <span className="text-[10px] font-medium">Start</span>
                   <Sparkles className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>

@@ -47,7 +47,7 @@ export function ExecutiveSummary({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Executive Summary</h3>
-            <p className="text-xs text-slate-400">AI-Generated Strategic Overview</p>
+            <p className="text-xs text-slate-400">Strategic Overview</p>
           </div>
         </div>
         

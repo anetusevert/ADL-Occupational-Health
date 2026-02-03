@@ -146,7 +146,7 @@ export function ComparisonReport({
                   <div className="flex items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      Generated {formatDate(report.created_at)}
+                      Updated {formatDate(report.created_at)}
                     </span>
                     <span>•</span>
                     <span>{report.framework_analysis?.length || 4} pillars analyzed</span>

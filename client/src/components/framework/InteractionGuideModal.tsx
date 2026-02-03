@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
+import { CinematicLoader } from "./premium-visuals";
 
 interface InteractionGuideModalProps {
   isOpen: boolean;
@@ -456,15 +457,66 @@ function IntroVisual() {
 }
 
 // ============================================================================
-// TEMPLE OVERVIEW VISUAL - Building the temple step by step
+// TEMPLE OVERVIEW VISUAL - Building the temple with measurement rulers
 // ============================================================================
 
 function TempleOverviewVisual() {
+  const pillars = [
+    { icon: Shield, label: "Prevention", sublabel: "Hazard Control", color: "blue", delay: 0.6, score: "0-100", metrics: 7 },
+    { icon: Eye, label: "Vigilance", sublabel: "Surveillance", color: "emerald", delay: 0.75, score: "0-100", metrics: 6 },
+    { icon: Heart, label: "Restoration", sublabel: "Compensation", color: "amber", delay: 0.9, score: "0-100", metrics: 6 },
+  ];
+
   return (
     <div className="relative w-full h-full flex items-center justify-center p-8">
       <FloatingParticles color="purple" count={15} />
       
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-lg">
+        {/* Measurement ruler - Left side */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.5, duration: 0.5 }}
+          className="absolute -left-8 top-0 bottom-0 flex flex-col items-center justify-between py-4"
+        >
+          <div className="w-px h-full bg-gradient-to-b from-transparent via-white/20 to-transparent relative">
+            {/* Tick marks */}
+            {[0, 25, 50, 75, 100].map((tick, i) => (
+              <motion.div
+                key={tick}
+                initial={{ opacity: 0, scaleX: 0 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                transition={{ delay: 1.6 + i * 0.1 }}
+                className="absolute right-0 flex items-center gap-1"
+                style={{ top: `${100 - tick}%`, transform: 'translateY(-50%)' }}
+              >
+                <span className="text-[8px] text-white/40 w-4 text-right">{tick}</span>
+                <div className="w-2 h-px bg-white/30" />
+              </motion.div>
+            ))}
+          </div>
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2 }}
+            className="text-[8px] text-white/40 -rotate-90 origin-center whitespace-nowrap mt-4"
+          >
+            Maturity Score
+          </motion.span>
+        </motion.div>
+
+        {/* Total score badge */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 2.2, type: "spring" }}
+          className="absolute -right-4 top-4 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-xl p-3 shadow-lg shadow-cyan-500/30"
+        >
+          <p className="text-[8px] text-white/80 uppercase tracking-wider">Total</p>
+          <p className="text-xl font-bold text-white">0-100</p>
+          <p className="text-[8px] text-white/60">25 Metrics</p>
+        </motion.div>
+
         {/* Governance Roof */}
         <motion.div
           initial={{ opacity: 0, y: -40, scale: 0.8 }}
@@ -473,18 +525,31 @@ function TempleOverviewVisual() {
           className="relative mb-6"
         >
           <motion.div 
-            className="h-24 bg-gradient-to-b from-purple-500/50 to-purple-600/30 rounded-xl border-2 border-purple-400/50 flex items-center justify-center gap-4 shadow-lg shadow-purple-500/20"
+            className="h-24 bg-gradient-to-b from-purple-500/50 to-purple-600/30 rounded-xl border-2 border-purple-400/50 flex items-center justify-between px-4 shadow-lg shadow-purple-500/20"
             animate={{ boxShadow: ["0 0 20px rgba(147,51,234,0.2)", "0 0 40px rgba(147,51,234,0.4)", "0 0 20px rgba(147,51,234,0.2)"] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <Crown className="w-10 h-10 text-purple-300" />
-            <div className="text-left">
-              <span className="text-white font-bold text-lg">GOVERNANCE</span>
-              <p className="text-purple-300 text-xs">The Overarching Driver</p>
+            <div className="flex items-center gap-3">
+              <Crown className="w-10 h-10 text-purple-300" />
+              <div className="text-left">
+                <span className="text-white font-bold text-lg">GOVERNANCE</span>
+                <p className="text-purple-300 text-xs">The Overarching Driver</p>
+              </div>
             </div>
+            {/* Score badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.4, type: "spring" }}
+              className="bg-purple-500/30 rounded-lg px-3 py-1.5 border border-purple-400/30"
+            >
+              <p className="text-[8px] text-purple-300 uppercase">Score</p>
+              <p className="text-sm font-bold text-purple-200">0-100</p>
+              <p className="text-[8px] text-purple-300/60">6 metrics</p>
+            </motion.div>
           </motion.div>
           
-          {/* Connecting arrows */}
+          {/* Connecting arrows with data flow animation */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -492,61 +557,132 @@ function TempleOverviewVisual() {
             className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex gap-8"
           >
             {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ height: 0 }}
-                animate={{ height: 20 }}
-                transition={{ delay: 0.9 + i * 0.1 }}
-                className={cn(
-                  "w-0.5 rounded-full",
-                  i === 0 && "bg-blue-400/60",
-                  i === 1 && "bg-emerald-400/60",
-                  i === 2 && "bg-amber-400/60",
-                )}
-              />
+              <div key={i} className="relative">
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: 20 }}
+                  transition={{ delay: 0.9 + i * 0.1 }}
+                  className={cn(
+                    "w-0.5 rounded-full",
+                    i === 0 && "bg-blue-400/60",
+                    i === 1 && "bg-emerald-400/60",
+                    i === 2 && "bg-amber-400/60",
+                  )}
+                />
+                {/* Data flow dot */}
+                <motion.div
+                  animate={{ y: [0, 16, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+                  className={cn(
+                    "absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full",
+                    i === 0 && "bg-blue-400",
+                    i === 1 && "bg-emerald-400",
+                    i === 2 && "bg-amber-400",
+                  )}
+                />
+              </div>
             ))}
           </motion.div>
         </motion.div>
 
-        {/* Three Pillars */}
-        <div className="flex gap-4 mt-8">
-          {[
-            { icon: Shield, label: "Prevention", sublabel: "Hazard Control", color: "blue", delay: 0.6 },
-            { icon: Eye, label: "Vigilance", sublabel: "Surveillance", color: "emerald", delay: 0.75 },
-            { icon: Heart, label: "Restoration", sublabel: "Compensation", color: "amber", delay: 0.9 },
-          ].map((pillar, i) => (
+        {/* Three Pillars with metrics */}
+        <div className="flex gap-3 mt-8">
+          {pillars.map((pillar, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: pillar.delay, duration: 0.5, type: "spring" }}
               className={cn(
-                "flex-1 h-36 rounded-xl border-2 flex flex-col items-center justify-center gap-2 shadow-lg",
+                "flex-1 rounded-xl border-2 flex flex-col items-center justify-between py-3 shadow-lg relative overflow-hidden",
                 pillar.color === "blue" && "bg-blue-500/20 border-blue-400/50 shadow-blue-500/20",
                 pillar.color === "emerald" && "bg-emerald-500/20 border-emerald-400/50 shadow-emerald-500/20",
                 pillar.color === "amber" && "bg-amber-500/20 border-amber-400/50 shadow-amber-500/20",
               )}
             >
-              <pillar.icon className={cn(
-                "w-10 h-10",
-                pillar.color === "blue" && "text-blue-300",
-                pillar.color === "emerald" && "text-emerald-300",
-                pillar.color === "amber" && "text-amber-300",
-              )} />
-              <span className="text-sm font-bold text-white">{pillar.label}</span>
-              <span className="text-[10px] text-white/50">{pillar.sublabel}</span>
+              {/* Fill bar animation */}
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "100%" }}
+                transition={{ delay: pillar.delay + 0.5, duration: 1, ease: "easeOut" }}
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 opacity-20",
+                  pillar.color === "blue" && "bg-blue-400",
+                  pillar.color === "emerald" && "bg-emerald-400",
+                  pillar.color === "amber" && "bg-amber-400",
+                )}
+              />
+              
+              <div className="relative z-10 text-center">
+                <pillar.icon className={cn(
+                  "w-8 h-8 mx-auto",
+                  pillar.color === "blue" && "text-blue-300",
+                  pillar.color === "emerald" && "text-emerald-300",
+                  pillar.color === "amber" && "text-amber-300",
+                )} />
+                <span className="text-xs font-bold text-white mt-1 block">{pillar.label}</span>
+                <span className="text-[9px] text-white/50">{pillar.sublabel}</span>
+              </div>
+              
+              {/* Metrics badge */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: pillar.delay + 0.8 }}
+                className={cn(
+                  "relative z-10 mt-2 px-2 py-1 rounded-md text-center",
+                  pillar.color === "blue" && "bg-blue-500/30",
+                  pillar.color === "emerald" && "bg-emerald-500/30",
+                  pillar.color === "amber" && "bg-amber-500/30",
+                )}
+              >
+                <p className={cn(
+                  "text-[10px] font-bold",
+                  pillar.color === "blue" && "text-blue-200",
+                  pillar.color === "emerald" && "text-emerald-200",
+                  pillar.color === "amber" && "text-amber-200",
+                )}>{pillar.score}</p>
+                <p className="text-[8px] text-white/50">{pillar.metrics} metrics</p>
+              </motion.div>
             </motion.div>
           ))}
         </div>
 
-        {/* Foundation */}
+        {/* Foundation with data indicator */}
         <motion.div
           initial={{ opacity: 0, scaleX: 0 }}
           animate={{ opacity: 1, scaleX: 1 }}
           transition={{ delay: 1.2, duration: 0.5 }}
-          className="mt-6 h-4 bg-gradient-to-r from-slate-600/30 via-slate-500/50 to-slate-600/30 rounded-full flex items-center justify-center"
+          className="mt-4 h-6 bg-gradient-to-r from-slate-600/30 via-slate-500/50 to-slate-600/30 rounded-lg flex items-center justify-center gap-2"
         >
           <Database className="w-3 h-3 text-slate-400" />
+          <span className="text-[9px] text-slate-400">180+ Data Sources</span>
+        </motion.div>
+
+        {/* Maturity levels indicator */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.8 }}
+          className="mt-4 flex justify-center gap-2"
+        >
+          {[
+            { level: "Critical", range: "0-25", color: "bg-red-500/40 border-red-500/50" },
+            { level: "Developing", range: "26-50", color: "bg-amber-500/40 border-amber-500/50" },
+            { level: "Advancing", range: "51-75", color: "bg-blue-500/40 border-blue-500/50" },
+            { level: "Leading", range: "76-100", color: "bg-emerald-500/40 border-emerald-500/50" },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.9 + i * 0.1 }}
+              className={cn("px-2 py-1 rounded-md border text-center", item.color)}
+            >
+              <p className="text-[8px] text-white/80 font-medium">{item.level}</p>
+              <p className="text-[7px] text-white/50">{item.range}</p>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </div>
@@ -1219,6 +1355,339 @@ function ConclusionVisual({ onNavigate, onCloseAndExplore }: ConclusionVisualPro
 }
 
 // ============================================================================
+// GLOBAL CHALLENGE VISUAL - Statistics about the problem
+// ============================================================================
+
+function GlobalChallengeVisual() {
+  const stats = [
+    { value: "2.9M", label: "Deaths Annually", color: "amber", delay: 0.3 },
+    { value: "395M", label: "Workplace Injuries", color: "blue", delay: 0.5 },
+    { value: "4%", label: "GDP Lost", color: "purple", delay: 0.7 },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-8">
+      <FloatingParticles color="amber" count={30} />
+      
+      <div className="relative z-10 text-center">
+        {/* Pulsing world visualization */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="relative mb-8"
+        >
+          {/* Globe representation */}
+          <motion.div
+            animate={{
+              boxShadow: [
+                "0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1)",
+                "0 0 60px rgba(245,158,11,0.4), 0 0 120px rgba(245,158,11,0.2)",
+                "0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1)",
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="w-40 h-40 mx-auto rounded-full bg-gradient-to-br from-amber-500/30 to-amber-700/20 border-2 border-amber-500/40 flex items-center justify-center"
+          >
+            <Globe className="w-20 h-20 text-amber-400/80" />
+          </motion.div>
+          
+          {/* Pulse rings */}
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0.5, opacity: 0.5 }}
+              animate={{ scale: 2, opacity: 0 }}
+              transition={{ duration: 2, repeat: Infinity, delay: i * 0.6 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-amber-500/30"
+            />
+          ))}
+        </motion.div>
+
+        {/* Stats */}
+        <div className="flex justify-center gap-6">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: stat.delay, duration: 0.6 }}
+              className={cn(
+                "px-4 py-3 rounded-xl border backdrop-blur-sm",
+                colors[stat.color].bg,
+                colors[stat.color].border
+              )}
+            >
+              <motion.p
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: stat.delay + 0.2, type: "spring" }}
+                className={cn("text-2xl font-bold", colors[stat.color].text)}
+              >
+                {stat.value}
+              </motion.p>
+              <p className="text-white/60 text-xs mt-1">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="mt-6 text-amber-400/70 text-sm"
+        >
+          A preventable crisis requiring systematic action
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ADL SOLUTION VISUAL - Company credentials
+// ============================================================================
+
+function ADLSolutionVisual() {
+  const credentials = [
+    { icon: TrendingUp, label: "100+ Years", sublabel: "Consulting Excellence" },
+    { icon: Globe, label: "40+ Countries", sublabel: "Global Presence" },
+    { icon: Database, label: "180+ Nations", sublabel: "Data Coverage" },
+    { icon: Zap, label: "Real-Time", sublabel: "Analytics Platform" },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-8">
+      <FloatingParticles color="purple" count={25} />
+      
+      <div className="relative z-10">
+        {/* Central ADL logo with glow */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
+          className="text-center mb-8"
+        >
+          <motion.div
+            animate={{
+              filter: [
+                "drop-shadow(0 0 30px rgba(147,51,234,0.3))",
+                "drop-shadow(0 0 50px rgba(147,51,234,0.5))",
+                "drop-shadow(0 0 30px rgba(147,51,234,0.3))",
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-32 h-32 mx-auto rounded-2xl bg-gradient-to-br from-purple-500/30 to-purple-700/20 border-2 border-purple-500/40 flex items-center justify-center"
+          >
+            <img src="/adl-logo.png" alt="ADL" className="h-16 object-contain brightness-0 invert" />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-4 text-white font-bold text-lg"
+          >
+            Arthur D. Little
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-purple-400 text-sm"
+          >
+            The World's First Management Consultancy
+          </motion.p>
+        </motion.div>
+
+        {/* Credentials grid */}
+        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+          {credentials.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8 + i * 0.15 }}
+              className="flex items-center gap-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20"
+            >
+              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                <item.icon className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-sm">{item.label}</p>
+                <p className="text-purple-400/70 text-xs">{item.sublabel}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SUCCESS STORIES VISUAL - Country cards with achievements
+// ============================================================================
+
+function SuccessStoriesVisual() {
+  const countries = [
+    { code: "DEU", name: "Germany", achievement: "75% fatality reduction", color: "blue", flag: "🇩🇪" },
+    { code: "SGP", name: "Singapore", achievement: "94% compliance rate", color: "emerald", flag: "🇸🇬" },
+    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer", color: "cyan", flag: "🇸🇪" },
+    { code: "JPN", name: "Japan", achievement: "OSHMS excellence", color: "purple", flag: "🇯🇵" },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-8">
+      <FloatingParticles color="emerald" count={20} />
+      
+      <div className="relative z-10 w-full max-w-md">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-white/60 text-sm mb-6"
+        >
+          Leaders in Occupational Health Excellence
+        </motion.p>
+
+        <div className="grid grid-cols-2 gap-4">
+          {countries.map((country, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30, rotateY: 90 }}
+              animate={{ opacity: 1, y: 0, rotateY: 0 }}
+              transition={{ delay: 0.3 + i * 0.15, duration: 0.6, type: "spring" }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className={cn(
+                "p-4 rounded-xl border backdrop-blur-sm cursor-pointer",
+                colors[country.color].bg,
+                colors[country.color].border,
+                "hover:shadow-lg transition-shadow"
+              )}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">{country.flag}</span>
+                <span className="text-white font-semibold text-sm">{country.name}</span>
+              </div>
+              <p className={cn("text-xs", colors[country.color].text)}>
+                {country.achievement}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="text-center text-emerald-400/70 text-xs mt-6"
+        >
+          Click cards to explore detailed success factors
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// GOSI OPPORTUNITY VISUAL - Saudi Arabia rising
+// ============================================================================
+
+function GOSIOpportunityVisual() {
+  const rankings = [
+    { position: 1, country: "Germany", flag: "🇩🇪", score: 92 },
+    { position: 2, country: "Sweden", flag: "🇸🇪", score: 89 },
+    { position: 3, country: "Singapore", flag: "🇸🇬", score: 87 },
+    { position: "?", country: "Saudi Arabia", flag: "🇸🇦", score: null, highlight: true },
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center p-8">
+      <FloatingParticles color="cyan" count={30} />
+      
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-6"
+        >
+          <p className="text-cyan-400 font-semibold text-sm">Regional Leadership Opportunity</p>
+        </motion.div>
+
+        {/* Ranking visualization */}
+        <div className="space-y-3">
+          {rankings.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 + i * 0.15 }}
+              className={cn(
+                "flex items-center gap-4 p-3 rounded-xl border",
+                item.highlight
+                  ? "bg-cyan-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20"
+                  : "bg-white/5 border-white/10"
+              )}
+            >
+              {/* Position */}
+              <div className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg",
+                item.highlight ? "bg-cyan-500 text-white" : "bg-slate-700 text-white/60"
+              )}>
+                {item.position}
+              </div>
+
+              {/* Country */}
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-xl">{item.flag}</span>
+                <span className={cn(
+                  "font-medium",
+                  item.highlight ? "text-cyan-300" : "text-white/80"
+                )}>
+                  {item.country}
+                </span>
+              </div>
+
+              {/* Score or arrow */}
+              {item.score ? (
+                <div className="text-white/60 font-mono text-sm">
+                  {item.score}
+                </div>
+              ) : (
+                <motion.div
+                  animate={{ y: [-5, 5, -5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Vision 2030 alignment */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="mt-6 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">2030</span>
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">Vision 2030 Aligned</p>
+              <p className="text-cyan-400/70 text-xs">Quality of Life Program</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // GET VISUAL FOR SLIDE
 // ============================================================================
 
@@ -1233,12 +1702,16 @@ function getVisualForSlide(slideId: string, options: GetVisualOptions = {}) {
   
   switch (slideId) {
     case "intro": return <IntroVisual />;
+    case "global-challenge": return <GlobalChallengeVisual />;
+    case "adl-solution": return <ADLSolutionVisual />;
     case "overview": return <TempleOverviewVisual />;
     case "governance": return <GovernanceVisual onInsightClick={onInsightClick} />;
     case "pillar-1": return <HazardPreventionVisual onInsightClick={onInsightClick} />;
     case "pillar-2": return <SurveillanceVisual onInsightClick={onInsightClick} />;
     case "pillar-3": return <RestorationVisual onInsightClick={onInsightClick} />;
     case "integration": return <IntegrationVisual onInsightClick={onInsightClick} />;
+    case "success-stories": return <SuccessStoriesVisual />;
+    case "gosi-opportunity": return <GOSIOpportunityVisual />;
     case "conclusion": return <ConclusionVisual onNavigate={onNavigate} onCloseAndExplore={onCloseAndExplore} />;
     default: return <IntroVisual />;
   }
@@ -1328,6 +1801,37 @@ function ContentPanel({ slide }: { slide: GuideSlide }) {
         </motion.div>
       )}
 
+      {/* Stats display for challenge/opportunity slides */}
+      {slide.stats && slide.stats.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-4 flex-shrink-0"
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {slide.stats.map((stat, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.7 + idx * 0.1 }}
+                className={cn(
+                  "p-3 rounded-lg text-center border",
+                  colors[stat.color || slide.color || "cyan"].bg,
+                  colors[stat.color || slide.color || "cyan"].border
+                )}
+              >
+                <p className={cn("text-xl font-bold", colors[stat.color || slide.color || "cyan"].text)}>
+                  {stat.value}
+                </p>
+                <p className="text-[10px] text-white/60 mt-1">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Relevance quote for component slides */}
       {slide.type === "component" && (
         <motion.div
@@ -1364,85 +1868,7 @@ function ContentPanel({ slide }: { slide: GuideSlide }) {
   );
 }
 
-// ============================================================================
-// CINEMATIC LOADER
-// ============================================================================
-
-function CinematicLoader({ onComplete, onSkip }: { onComplete: () => void; onSkip: () => void }) {
-  const [phase, setPhase] = useState<'fade' | 'logo' | 'done'>('fade');
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase('logo'), 300);
-    const t2 = setTimeout(() => { setPhase('done'); onComplete(); }, 2500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [onComplete]);
-
-  return (
-    <div className="absolute inset-0 bg-black flex items-center justify-center z-30">
-      {/* Particles */}
-      {phase === 'logo' && (
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(30)].map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0, x: "50%", y: "50%" }}
-              animate={{ 
-                opacity: [0, 0.6, 0],
-                scale: [0.5, 1, 0.5],
-                x: `${50 + (Math.random() - 0.5) * 80}%`,
-                y: `${50 + (Math.random() - 0.5) * 80}%`,
-              }}
-              transition={{ duration: 2, delay: 0.5 + Math.random() * 0.5 }}
-              className="absolute w-1 h-1 rounded-full bg-cyan-400"
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: phase !== 'fade' ? 1 : 0, scale: phase !== 'fade' ? 1 : 0.5 }}
-        transition={{ duration: 0.5, type: "spring" }}
-        className="relative z-10 text-center"
-      >
-        <motion.div
-          animate={{ filter: ["drop-shadow(0 0 20px rgba(6,182,212,0.3))", "drop-shadow(0 0 40px rgba(6,182,212,0.5))", "drop-shadow(0 0 20px rgba(6,182,212,0.3))"] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
-          <img src="/adl-logo.png" alt="ADL" className="h-20 mx-auto" />
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-6 text-white font-semibold text-lg"
-        >
-          ADL Occupational Health Framework
-        </motion.p>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-2 text-cyan-400 text-sm"
-        >
-          Version 2.0 — Interactive Guide
-        </motion.p>
-      </motion.div>
-
-      {/* Skip */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        onClick={onSkip}
-        className="absolute bottom-6 right-6 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm transition-all"
-      >
-        Skip Intro
-      </motion.button>
-    </div>
-  );
-}
+// CinematicLoader is now imported from premium-visuals
 
 // ============================================================================
 // MAIN MODAL
@@ -1452,12 +1878,41 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
   const [showLoader, setShowLoader] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeInsight, setActiveInsight] = useState<ElementInsight | null>(null);
+  
+  // Enhanced navigation features
+  const [isAutoAdvance, setIsAutoAdvance] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const modalRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      // Store ref for fullscreen operations
+      (window as unknown as { __guideModalRef?: HTMLDivElement }).__guideModalRef = node;
+    }
+  }, []);
+
+  // Auto-advance timing per slide (in seconds)
+  const slideTimings: Record<string, number> = {
+    "intro": 8,
+    "global-challenge": 10,
+    "adl-solution": 10,
+    "overview": 12,
+    "governance": 12,
+    "pillar-1": 10,
+    "pillar-2": 10,
+    "pillar-3": 10,
+    "integration": 12,
+    "success-stories": 10,
+    "gosi-opportunity": 12,
+    "conclusion": 15,
+  };
 
   useEffect(() => {
     if (isOpen) {
       setShowLoader(true);
       setCurrentSlide(0);
       setActiveInsight(null);
+      setIsAutoAdvance(false);
     }
   }, [isOpen]);
 
@@ -1466,12 +1921,86 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
     setActiveInsight(null);
   }, [currentSlide]);
 
+  // Auto-advance timer
+  useEffect(() => {
+    if (!isAutoAdvance || showLoader || activeInsight) return;
+    
+    const slide = guideSlides[currentSlide];
+    const duration = (slideTimings[slide?.id] || 8) * 1000;
+    
+    const timer = setTimeout(() => {
+      if (currentSlide < guideSlides.length - 1) {
+        setCurrentSlide(currentSlide + 1);
+      } else {
+        setIsAutoAdvance(false);
+      }
+    }, duration);
+
+    return () => clearTimeout(timer);
+  }, [isAutoAdvance, showLoader, currentSlide, activeInsight]);
+
+  // Fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    const modalElement = (window as unknown as { __guideModalRef?: HTMLDivElement }).__guideModalRef;
+    
+    if (!isFullscreen) {
+      if (modalElement?.requestFullscreen) {
+        modalElement.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  }, [isFullscreen]);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Touch gesture handling
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      nextSlide();
+    } else if (isRightSwipe) {
+      prevSlide();
+    }
+  };
+
   const handleLoaderComplete = useCallback(() => setShowLoader(false), []);
 
   const handleInsightClick = useCallback((insightId: string) => {
     const insight = elementInsights[insightId];
-    if (insight) setActiveInsight(insight);
-  }, []);
+    if (insight) {
+      setActiveInsight(insight);
+      // Pause auto-advance when viewing insights
+      if (isAutoAdvance) setIsAutoAdvance(false);
+    }
+  }, [isAutoAdvance]);
 
   const handleCloseInsight = useCallback(() => {
     setActiveInsight(null);
@@ -1500,17 +2029,27 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
     if (currentSlide > 0) setCurrentSlide(currentSlide - 1);
   }, [currentSlide]);
 
-  // Keyboard
+  // Keyboard navigation with enhanced controls
   useEffect(() => {
     if (!isOpen || showLoader) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nextSlide(); }
+      else if (e.key === ' ') { 
+        e.preventDefault(); 
+        // Space toggles auto-advance
+        setIsAutoAdvance(prev => !prev);
+      }
       else if (e.key === 'ArrowLeft') prevSlide();
       else if (e.key === 'Escape') onClose();
+      else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+      else if (e.key >= '1' && e.key <= '9') {
+        const slideNum = parseInt(e.key) - 1;
+        if (slideNum < guideSlides.length) goToSlide(slideNum);
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, showLoader, nextSlide, prevSlide, onClose]);
+  }, [isOpen, showLoader, nextSlide, prevSlide, onClose, toggleFullscreen, goToSlide]);
 
   const slide = guideSlides[currentSlide];
   const c = colors[slide?.color || "cyan"];
@@ -1529,27 +2068,97 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
 
           {/* Modal - Full screen on mobile, centered on desktop */}
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-2 sm:inset-4 md:inset-6 lg:inset-10 xl:inset-12 bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={cn(
+              "fixed bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-700/50 z-50 overflow-hidden flex flex-col",
+              isFullscreen ? "inset-0 rounded-none" : "inset-2 sm:inset-4 md:inset-6 lg:inset-10 xl:inset-12"
+            )}
           >
-            {/* Loader */}
+            {/* Loader - Premium 3-phase cinematic opening */}
             <AnimatePresence>
               {showLoader && (
-                <CinematicLoader onComplete={handleLoaderComplete} onSkip={onClose} />
+                <CinematicLoader onComplete={handleLoaderComplete} skipEnabled />
               )}
             </AnimatePresence>
 
-            {/* Close */}
+            {/* Top controls bar */}
             {!showLoader && (
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                {/* Auto-advance toggle */}
+                <motion.button
+                  onClick={() => setIsAutoAdvance(!isAutoAdvance)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm",
+                    isAutoAdvance 
+                      ? "bg-cyan-500/30 border border-cyan-500/50 text-cyan-300"
+                      : "bg-white/10 hover:bg-white/20 text-white/70 hover:text-white"
+                  )}
+                >
+                  {isAutoAdvance ? (
+                    <>
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full bg-cyan-400"
+                      />
+                      <span className="hidden sm:inline">Auto</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span className="hidden sm:inline">Auto</span>
+                    </>
+                  )}
+                </motion.button>
+
+                {/* Fullscreen toggle */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+                >
+                  {isFullscreen ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Close */}
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Auto-advance progress bar */}
+            {!showLoader && isAutoAdvance && (
+              <motion.div
+                key={currentSlide}
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ 
+                  duration: slideTimings[slide?.id] || 8, 
+                  ease: "linear" 
+                }}
+                className="absolute top-0 left-0 h-1 bg-gradient-to-r from-cyan-500 to-purple-500 z-30"
+              />
             )}
 
             {/* Main Content - Stacked on mobile, side-by-side on desktop */}
@@ -1670,16 +2279,29 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
               </div>
             )}
 
-            {/* Skip Tour Link - Hidden on mobile for space */}
+            {/* Skip Tour Link and Keyboard Shortcuts */}
             {!showLoader && (
               <div className="flex-shrink-0 px-3 sm:px-6 py-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
                 <button onClick={onClose} className="hover:text-white transition-colors">
-                  Skip Tour
+                  Skip Briefing
                 </button>
-                <div className="hidden sm:flex gap-4">
+                <div className="hidden sm:flex items-center gap-4">
                   <span>← → Navigate</span>
-                  <span>Space = Next</span>
-                  <span>Esc = Close</span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Space</kbd>
+                    <span>Auto</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">F</kbd>
+                    <span>Fullscreen</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">Esc</kbd>
+                    <span>Close</span>
+                  </span>
+                </div>
+                <div className="sm:hidden flex items-center gap-2 text-[10px]">
+                  <span>Swipe to navigate</span>
                 </div>
               </div>
             )}

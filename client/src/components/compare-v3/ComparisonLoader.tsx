@@ -143,7 +143,7 @@ export function ComparisonLoader({
           transition={{ delay: 0.2 }}
           className="text-2xl font-bold text-white mt-8 mb-4 text-center"
         >
-          Generating Comparison Report
+          Preparing Comparison Report
         </motion.h2>
 
         {/* Subtitle */}

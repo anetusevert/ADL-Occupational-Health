@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
-from app.models.country import Country, Pillar1Hazard, Pillar2Vigilance, Pillar3Restoration, GovernanceLayer
+from app.models.country import Country, Pillar1Hazard, Pillar2Vigilance, Pillar3Restoration, GovernanceLayer, CountryIntelligence
 from app.schemas.country import (
     CountryResponse,
     CountryListResponse,
@@ -749,3 +749,89 @@ async def get_country(
     }
     
     return CountryResponse.model_validate(response_data)
+
+
+# =============================================================================
+# COUNTRY INTELLIGENCE ENDPOINT
+# =============================================================================
+
+class CountryIntelligenceSimple(BaseModel):
+    """Simplified country intelligence for dashboard."""
+    iso_code: str
+    # Economic data
+    gdp_per_capita_ppp: Optional[float] = None
+    gdp_growth_rate: Optional[float] = None
+    population_total: Optional[float] = None
+    population_working_age: Optional[float] = None
+    labor_force_participation: Optional[float] = None
+    unemployment_rate: Optional[float] = None
+    youth_unemployment_rate: Optional[float] = None
+    informal_employment_pct: Optional[float] = None
+    urban_population_pct: Optional[float] = None
+    median_age: Optional[float] = None
+    # Industry breakdown
+    industry_pct_gdp: Optional[float] = None
+    manufacturing_pct_gdp: Optional[float] = None
+    agriculture_pct_gdp: Optional[float] = None
+    services_pct_gdp: Optional[float] = None
+    # Health & safety
+    life_expectancy_at_birth: Optional[float] = None
+    healthy_life_expectancy: Optional[float] = None
+    health_expenditure_gdp_pct: Optional[float] = None
+    # HDI
+    hdi_score: Optional[float] = None
+    hdi_rank: Optional[float] = None
+
+
+@router.get(
+    "/{iso_code}/intelligence",
+    response_model=CountryIntelligenceSimple,
+    summary="Get Country Intelligence Data",
+    description="Get economic and demographic intelligence data for a country."
+)
+async def get_country_intelligence(
+    iso_code: str,
+    db: Session = Depends(get_db)
+) -> CountryIntelligenceSimple:
+    """
+    Get country intelligence data for dashboard visualization.
+    
+    Args:
+        iso_code: ISO 3166-1 alpha-3 country code
+        
+    Returns:
+        Economic and demographic intelligence data
+    """
+    iso_code = iso_code.upper()
+    
+    # Query intelligence data
+    intel = db.query(CountryIntelligence).filter(
+        CountryIntelligence.iso_code == iso_code
+    ).first()
+    
+    if not intel:
+        # Return empty response with just iso_code
+        return CountryIntelligenceSimple(iso_code=iso_code)
+    
+    return CountryIntelligenceSimple(
+        iso_code=intel.iso_code,
+        gdp_per_capita_ppp=intel.gdp_per_capita_ppp,
+        gdp_growth_rate=intel.gdp_growth_rate,
+        population_total=intel.population_total,
+        population_working_age=intel.population_working_age,
+        labor_force_participation=intel.labor_force_participation,
+        unemployment_rate=intel.unemployment_rate,
+        youth_unemployment_rate=intel.youth_unemployment_rate,
+        informal_employment_pct=intel.informal_employment_pct,
+        urban_population_pct=intel.urban_population_pct,
+        median_age=intel.median_age,
+        industry_pct_gdp=intel.industry_pct_gdp,
+        manufacturing_pct_gdp=intel.manufacturing_pct_gdp,
+        agriculture_pct_gdp=intel.agriculture_pct_gdp,
+        services_pct_gdp=intel.services_pct_gdp,
+        life_expectancy_at_birth=intel.life_expectancy_at_birth,
+        healthy_life_expectancy=intel.healthy_life_expectancy,
+        health_expenditure_gdp_pct=intel.health_expenditure_gdp_pct,
+        hdi_score=intel.hdi_score,
+        hdi_rank=intel.hdi_rank,
+    )

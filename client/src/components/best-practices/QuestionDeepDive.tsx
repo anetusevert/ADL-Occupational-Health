@@ -2,8 +2,8 @@
  * Arthur D. Little - Global Health Platform
  * Question Deep Dive Component - Best Practice Content & Top Countries
  * 
- * Shows the AI-generated best practice content for a question
- * and the top 5 countries implementing it.
+ * Shows best practice content for a question and the top 5 countries implementing it.
+ * Order: Global Leaders → Saudi Positioning → Best Practice Report
  */
 
 import { useState } from "react";
@@ -192,7 +192,7 @@ export function QuestionDeepDive({
               />
             )}
             
-            {/* Admin Regenerate Button */}
+            {/* Admin Regenerate Button - ONLY visible to admin */}
             {isAdmin && (
               <motion.button
                 onClick={onGenerate}
@@ -211,7 +211,7 @@ export function QuestionDeepDive({
                 ) : (
                   <RefreshCw className="w-4 h-4" />
                 )}
-                <span>{isGenerating ? "Generating..." : hasContent ? "Regenerate" : "Generate"}</span>
+                <span>{isGenerating ? "Processing..." : hasContent ? "Refresh" : "Initialize"}</span>
               </motion.button>
             )}
           </div>
@@ -244,8 +244,8 @@ export function QuestionDeepDive({
         </div>
       )}
 
-      {/* Error State */}
-      {error && !isGenerating && (
+      {/* Error State - Only show to admin */}
+      {error && !isGenerating && isAdmin && (
         <motion.div
           className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30"
           initial={{ opacity: 0, y: -10 }}
@@ -254,7 +254,7 @@ export function QuestionDeepDive({
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-red-400 font-medium mb-1">Generation Failed</h4>
+              <h4 className="text-red-400 font-medium mb-1">Error</h4>
               <p className="text-red-300/80 text-sm">{error}</p>
             </div>
           </div>
@@ -271,11 +271,9 @@ export function QuestionDeepDive({
           <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Lightbulb className="w-8 h-8 text-purple-400" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-3">Best Practices Not Yet Generated</h3>
+          <h3 className="text-xl font-semibold text-white mb-3">Content Coming Soon</h3>
           <p className="text-slate-400 max-w-md mx-auto mb-6">
-            {isAdmin 
-              ? "Click the Generate button above to create AI-powered best practice content for this question."
-              : "Best practice content for this question is not yet available. Please check back later."}
+            Best practice content for this question is being prepared. Please check back later.
           </p>
           {isAdmin && (
             <motion.button
@@ -284,14 +282,14 @@ export function QuestionDeepDive({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              Generate Best Practices
+              Initialize Content
             </motion.button>
           )}
         </motion.div>
       )}
 
-      {/* Generating State */}
-      {isGenerating && (
+      {/* Processing State - Only show to admin */}
+      {isGenerating && isAdmin && (
         <motion.div
           className="text-center py-16 px-8 rounded-2xl bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border border-purple-500/30"
           initial={{ opacity: 0, y: 20 }}
@@ -307,14 +305,24 @@ export function QuestionDeepDive({
               <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-white mb-3">Generating Best Practices</h3>
+          <h3 className="text-xl font-semibold text-white mb-3">Processing Content</h3>
           <p className="text-slate-400 max-w-md mx-auto">
-            Our AI is analyzing global data and crafting McKinsey-grade best practice guidance...
+            Analyzing global data and preparing comprehensive best practice guidance...
           </p>
         </motion.div>
       )}
 
-      {/* Content - Best Practice Overview */}
+      {/* Non-admin sees loading during generation */}
+      {isGenerating && !isAdmin && (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-4" />
+            <p className="text-slate-400">Loading content...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Content - Reordered: Global Leaders → Saudi Positioning → Report */}
       {hasContent && (
         <motion.div
           className="space-y-8"
@@ -322,159 +330,11 @@ export function QuestionDeepDive({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {/* Overview Section */}
-          <motion.div
-            className="p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Lightbulb className={cn("w-5 h-5", colors.text)} />
-              Best Practice Overview
-            </h2>
-            <div className="prose prose-invert prose-slate max-w-none">
-              <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {data.best_practice_overview}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Key Principles */}
-          {data.key_principles && data.key_principles.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <Target className={cn("w-5 h-5", colors.text)} />
-                Key Principles
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.key_principles.map((principle, index) => (
-                  <motion.div
-                    key={index}
-                    className={cn(
-                      "p-4 rounded-xl border cursor-pointer transition-all",
-                      expandedPrinciple === index
-                        ? "bg-slate-800/60 border-slate-600/50"
-                        : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/50"
-                    )}
-                    onClick={() => setExpandedPrinciple(expandedPrinciple === index ? null : index)}
-                    whileHover={{ scale: 1.01 }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={cn(
-                        "w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0",
-                        colors.bg, colors.text
-                      )}>
-                        {index + 1}
-                      </span>
-                      <div>
-                        <h4 className="font-medium text-white mb-1">{principle.title}</h4>
-                        <AnimatePresence>
-                          {expandedPrinciple === index && (
-                            <motion.p
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="text-sm text-slate-400"
-                            >
-                              {principle.description}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Implementation Elements */}
-          {data.implementation_elements && data.implementation_elements.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <CheckCircle2 className={cn("w-5 h-5", colors.text)} />
-                Implementation Guide
-              </h2>
-              <div className="space-y-3">
-                {data.implementation_elements.map((elem, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/30"
-                  >
-                    <h4 className="font-medium text-white mb-2">{elem.element}</h4>
-                    <p className="text-sm text-slate-400 mb-2">{elem.description}</p>
-                    {elem.examples && (
-                      <p className="text-xs text-slate-500 italic">
-                        <span className="font-medium">Examples:</span> {elem.examples}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Success Factors & Pitfalls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {data.success_factors && data.success_factors.length > 0 && (
-              <motion.div
-                className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h3 className="text-lg font-semibold text-emerald-400 mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  Success Factors
-                </h3>
-                <ul className="space-y-2">
-                  {data.success_factors.map((factor, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-emerald-400 mt-1">•</span>
-                      {factor}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-
-            {data.common_pitfalls && data.common_pitfalls.length > 0 && (
-              <motion.div
-                className="p-5 rounded-xl bg-red-500/10 border border-red-500/20"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h3 className="text-lg font-semibold text-red-400 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Common Pitfalls
-                </h3>
-                <ul className="space-y-2">
-                  {data.common_pitfalls.map((pitfall, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-red-400 mt-1">•</span>
-                      {pitfall}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Top 5 Countries */}
+          {/* SECTION 1: Top 5 Countries / Global Leaders - NOW FIRST */}
           {data.top_countries && data.top_countries.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
             >
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-amber-400" />
@@ -551,7 +411,7 @@ export function QuestionDeepDive({
             </motion.div>
           )}
 
-          {/* Saudi Arabia Positioning - GOSI Focus Section */}
+          {/* SECTION 2: Saudi Arabia Positioning - NOW SECOND */}
           {data.top_countries && data.top_countries.length > 0 && (
             <SaudiPositioning
               topCountries={data.top_countries}
@@ -559,12 +419,153 @@ export function QuestionDeepDive({
             />
           )}
 
-          {/* Generated timestamp */}
-          {data.generated_at && (
-            <p className="text-center text-xs text-slate-500 mt-8">
-              Generated: {new Date(data.generated_at).toLocaleString()}
-            </p>
+          {/* SECTION 3: Overview Section - NOW AFTER POSITIONING */}
+          <motion.div
+            className="p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Lightbulb className={cn("w-5 h-5", colors.text)} />
+              Best Practice Overview
+            </h2>
+            <div className="prose prose-invert prose-slate max-w-none">
+              <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
+                {data.best_practice_overview}
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Key Principles */}
+          {data.key_principles && data.key_principles.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <Target className={cn("w-5 h-5", colors.text)} />
+                Key Principles
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.key_principles.map((principle, index) => (
+                  <motion.div
+                    key={index}
+                    className={cn(
+                      "p-4 rounded-xl border cursor-pointer transition-all",
+                      expandedPrinciple === index
+                        ? "bg-slate-800/60 border-slate-600/50"
+                        : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/50"
+                    )}
+                    onClick={() => setExpandedPrinciple(expandedPrinciple === index ? null : index)}
+                    whileHover={{ scale: 1.01 }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0",
+                        colors.bg, colors.text
+                      )}>
+                        {index + 1}
+                      </span>
+                      <div>
+                        <h4 className="font-medium text-white mb-1">{principle.title}</h4>
+                        <AnimatePresence>
+                          {expandedPrinciple === index && (
+                            <motion.p
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="text-sm text-slate-400"
+                            >
+                              {principle.description}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           )}
+
+          {/* Implementation Elements */}
+          {data.implementation_elements && data.implementation_elements.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <CheckCircle2 className={cn("w-5 h-5", colors.text)} />
+                Implementation Guide
+              </h2>
+              <div className="space-y-3">
+                {data.implementation_elements.map((elem, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/30"
+                  >
+                    <h4 className="font-medium text-white mb-2">{elem.element}</h4>
+                    <p className="text-sm text-slate-400 mb-2">{elem.description}</p>
+                    {elem.examples && (
+                      <p className="text-xs text-slate-500 italic">
+                        <span className="font-medium">Examples:</span> {elem.examples}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Success Factors & Pitfalls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {data.success_factors && data.success_factors.length > 0 && (
+              <motion.div
+                className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h3 className="text-lg font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Success Factors
+                </h3>
+                <ul className="space-y-2">
+                  {data.success_factors.map((factor, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-slate-300">
+                      <span className="text-emerald-400 mt-1">•</span>
+                      {factor}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+
+            {data.common_pitfalls && data.common_pitfalls.length > 0 && (
+              <motion.div
+                className="p-5 rounded-xl bg-red-500/10 border border-red-500/20"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h3 className="text-lg font-semibold text-red-400 mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Common Pitfalls
+                </h3>
+                <ul className="space-y-2">
+                  {data.common_pitfalls.map((pitfall, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-slate-300">
+                      <span className="text-red-400 mt-1">•</span>
+                      {pitfall}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
       )}
     </div>

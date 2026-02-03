@@ -167,8 +167,8 @@ export function Home() {
     [data]
   );
   
-  // Check for navigation state to open pillar selection modal
-  // Combined effect: tries to open immediately if data available, otherwise sets pending
+  // Check for navigation state requesting country dashboard
+  // Now redirects to country dashboard instead of opening modal
   useEffect(() => {
     const state = location.state as { openPillarModal?: string } | null;
     if (state?.openPillarModal) {
@@ -177,31 +177,10 @@ export function Home() {
       // Clear the navigation state immediately to prevent re-processing
       window.history.replaceState({}, document.title);
       
-      // If data is already loaded, open modal immediately
-      if (mapCountries.length > 0) {
-        const country = mapCountries.find(c => c.iso_code === isoToOpen);
-        if (country) {
-          setViewSelectionCountry(country);
-          return; // Done - modal opened
-        }
-      }
-      
-      // Data not loaded yet - set pending and let the fallback effect handle it
-      setPendingPillarModalIso(isoToOpen);
+      // Navigate directly to country dashboard
+      navigate(`/country/${isoToOpen}`);
     }
-  }, [location.state, mapCountries]);
-  
-  // Fallback: Open modal when data loads and we have a pending ISO
-  useEffect(() => {
-    if (pendingPillarModalIso && mapCountries.length > 0) {
-      const country = mapCountries.find(c => c.iso_code === pendingPillarModalIso);
-      if (country) {
-        setViewSelectionCountry(country);
-      }
-      // Always clear pending, even if country not found (prevents infinite loops)
-      setPendingPillarModalIso(null);
-    }
-  }, [pendingPillarModalIso, mapCountries]);
+  }, [location.state, navigate]);
 
   // Stats calculations
   const totalCountries = mapCountries.length;
@@ -328,10 +307,8 @@ export function Home() {
               <GlobalMap
                 countries={mapCountries}
                 onCountryClick={(iso) => {
-                  const country = mapCountries.find(c => c.iso_code === iso);
-                  if (country) {
-                    setViewSelectionCountry(country);
-                  }
+                  // Navigate directly to country dashboard
+                  navigate(`/country/${iso}`);
                 }}
                 onHoverCountry={setHoveredCountry}
                 showLabels={false}
@@ -507,7 +484,7 @@ export function Home() {
                     
                     {/* View Full Profile Link */}
                     <button
-                      onClick={() => setViewSelectionCountry(hoveredCountry)}
+                      onClick={() => navigate(`/country/${hoveredCountry.iso_code}`)}
                       className="w-full mt-4 py-2.5 px-4 bg-adl-accent/20 hover:bg-adl-accent/30 text-adl-accent text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
                       View Full Profile
@@ -604,7 +581,7 @@ export function Home() {
                         return (
                           <button
                             key={country.iso_code}
-                            onClick={() => setViewSelectionCountry(country)}
+                            onClick={() => navigate(`/country/${country.iso_code}`)}
                             className={cn(
                               "p-3 rounded-lg transition-all duration-200 text-left",
                               "bg-white/5 hover:bg-white/10 border border-transparent hover:border-adl-accent/30",

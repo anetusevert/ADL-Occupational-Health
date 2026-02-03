@@ -434,13 +434,13 @@ export function PillarPage() {
             </div>
             
             <h2 className="text-xl font-bold text-white mb-2">
-              {isAdmin ? "Report Not Yet Generated" : "Report Pending Generation"}
+              {isAdmin ? "Report Not Yet Available" : "Report Coming Soon"}
             </h2>
             
             <p className="text-sm text-white/60 mb-6">
               {isAdmin 
-                ? `The ${pillarDef.name} analysis for ${currentCountry.name} has not been generated yet. Click below to generate a comprehensive strategic assessment.`
-                : `The ${pillarDef.name} analysis for ${currentCountry.name} is not yet available. Please contact an administrator to generate this report.`
+                ? `The ${pillarDef.name} analysis for ${currentCountry.name} has not been prepared yet. Click below to initialize a comprehensive strategic assessment.`
+                : `The ${pillarDef.name} analysis for ${currentCountry.name} is being prepared. Please check back later.`
               }
             </p>
             
@@ -461,12 +461,12 @@ export function PillarPage() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Generating Analysis...</span>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    <span>Generate Report</span>
+                    <span>Initialize Report</span>
                   </>
                 )}
               </button>
@@ -537,16 +537,16 @@ export function PillarPage() {
             </span>
           )}
           
-          {/* Admin Regenerate Button */}
+          {/* Admin Refresh Button */}
           {isAdmin && (
             <button
               onClick={() => handleGenerate(true)}
               disabled={isGenerating || analysisLoading}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
-              title="Regenerate Analysis (Admin Only)"
+              title="Refresh Analysis (Admin Only)"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", (isGenerating || analysisLoading) && "animate-spin")} />
-              <span>Regenerate</span>
+              <span>Refresh</span>
             </button>
           )}
           
@@ -588,7 +588,7 @@ export function PillarPage() {
                 <div className="text-center">
                   <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
                   <p className="text-sm text-white/50">
-                    {isGenerating ? "Generating deep analysis..." : "Loading analysis..."}
+                    {isGenerating ? "Preparing deep analysis..." : "Loading analysis..."}
                   </p>
                   <p className="text-xs text-white/30 mt-1">This may take up to 5 minutes</p>
                 </div>

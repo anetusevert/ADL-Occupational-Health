@@ -756,7 +756,7 @@ export const statCardContent: Record<string, StatCardContent> = {
 
 export interface GuideSlide {
   id: string;
-  type: 'intro' | 'overview' | 'component' | 'integration';
+  type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta';
   title: string;
   subtitle?: string;
   content: string;
@@ -764,17 +764,61 @@ export interface GuideSlide {
   componentId?: string;
   color?: string;
   icon?: string;
+  stats?: { value: string; label: string; color?: string }[];
+  countries?: { code: string; name: string; achievement: string }[];
 }
 
 export const guideSlides: GuideSlide[] = [
+  // Slide 1: Opening Impact
   {
     id: "intro",
     type: "intro",
-    title: "ADL Occupational Health Framework",
-    subtitle: "Welcome to the Interactive Guide",
-    content: "This guide will walk you through the comprehensive framework developed by Arthur D. Little for assessing and improving national occupational health systems worldwide.",
+    title: "Transforming Occupational Health",
+    subtitle: "A Strategic Partnership for Saudi Arabia",
+    content: "GOSI stands at a pivotal moment to lead the region in worker protection. This framework represents Arthur D. Little's comprehensive approach to building world-class occupational health systems.",
+    highlights: [
+      "Aligned with Saudi Vision 2030",
+      "Evidence-based assessment methodology",
+      "Benchmarked against global leaders"
+    ],
     color: "cyan"
   },
+  // Slide 2: The Global Challenge (NEW)
+  {
+    id: "global-challenge",
+    type: "challenge",
+    title: "The Global Challenge",
+    subtitle: "2.9 Million Deaths Annually",
+    content: "Occupational accidents and diseases claim 2.9 million lives every year—more than road accidents, malaria, and HIV/AIDS combined. The economic burden exceeds 4% of global GDP.",
+    highlights: [
+      "395 million non-fatal workplace injuries annually",
+      "160 million cases of work-related disease",
+      "$3.94 trillion in annual economic losses",
+      "Only 33% of countries have ratified ILO Convention C187"
+    ],
+    stats: [
+      { value: "2.9M", label: "Annual Deaths", color: "amber" },
+      { value: "4%", label: "Global GDP Lost", color: "purple" },
+      { value: "395M", label: "Injuries/Year", color: "blue" }
+    ],
+    color: "amber"
+  },
+  // Slide 3: The ADL Solution (NEW)
+  {
+    id: "adl-solution",
+    type: "solution",
+    title: "The ADL Advantage",
+    subtitle: "A Framework Built on Evidence",
+    content: "With over 100 years of management consulting expertise, Arthur D. Little brings a unique evidence-based approach to occupational health assessment. Our framework transforms complex data into actionable insights.",
+    highlights: [
+      "100+ years of consulting excellence",
+      "Global presence across 40+ countries",
+      "Deep expertise in healthcare and public sector",
+      "Proprietary data integration methodology"
+    ],
+    color: "purple"
+  },
+  // Slide 4: Temple Structure Overview
   {
     id: "overview",
     type: "overview",
@@ -784,10 +828,12 @@ export const guideSlides: GuideSlide[] = [
     highlights: [
       "Governance acts as the overarching enabler",
       "Three pillars work in concert for comprehensive protection",
-      "Each component has measurable metrics and scoring criteria"
+      "Each component has measurable metrics and scoring criteria",
+      "25 key performance indicators across 4 maturity levels"
     ],
     color: "purple"
   },
+  // Slide 5: Governance
   {
     id: "governance",
     type: "component",
@@ -804,6 +850,7 @@ export const guideSlides: GuideSlide[] = [
     color: "purple",
     icon: "Crown"
   },
+  // Slide 6: Hazard Prevention
   {
     id: "pillar-1",
     type: "component",
@@ -820,6 +867,7 @@ export const guideSlides: GuideSlide[] = [
     color: "blue",
     icon: "Shield"
   },
+  // Slide 7: Surveillance & Detection
   {
     id: "pillar-2",
     type: "component",
@@ -836,6 +884,7 @@ export const guideSlides: GuideSlide[] = [
     color: "emerald",
     icon: "Eye"
   },
+  // Slide 8: Restoration & Compensation
   {
     id: "pillar-3",
     type: "component",
@@ -852,11 +901,12 @@ export const guideSlides: GuideSlide[] = [
     color: "amber",
     icon: "Heart"
   },
+  // Slide 9: Integration & Data Flow
   {
     id: "integration",
     type: "integration",
     title: "Framework Integration",
-    subtitle: "How Components Work Together",
+    subtitle: "The Power of Connected Systems",
     content: "The true power of the framework lies in how components interact. Governance enables all pillars. Prevention reduces burden on Surveillance and Restoration. Surveillance data informs Prevention priorities. Restoration claims feed back into hazard identification.",
     highlights: [
       "Governance creates the accountability loop",
@@ -866,17 +916,59 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "cyan"
   },
+  // Slide 10: Success Stories (NEW)
+  {
+    id: "success-stories",
+    type: "success",
+    title: "Global Success Stories",
+    subtitle: "Learning from the Leaders",
+    content: "Countries that have implemented comprehensive occupational health frameworks have seen dramatic improvements in worker safety and significant economic returns on investment.",
+    highlights: [
+      "Germany: 75% reduction in fatalities since 1990",
+      "Singapore: 94% compliance rate in construction",
+      "Sweden: Zero workplace fatalities goal by 2030",
+      "Japan: OSHMS certification linked to 40% fewer incidents"
+    ],
+    countries: [
+      { code: "DEU", name: "Germany", achievement: "75% fatality reduction" },
+      { code: "SGP", name: "Singapore", achievement: "94% compliance rate" },
+      { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" },
+      { code: "JPN", name: "Japan", achievement: "OSHMS excellence" }
+    ],
+    color: "emerald"
+  },
+  // Slide 11: GOSI Opportunity (NEW)
+  {
+    id: "gosi-opportunity",
+    type: "opportunity",
+    title: "GOSI's Path Forward",
+    subtitle: "Regional Leadership Opportunity",
+    content: "Saudi Arabia has the opportunity to become the regional benchmark for occupational health. With GOSI's institutional strength and Vision 2030 alignment, the Kingdom can lead the GCC in worker protection.",
+    highlights: [
+      "Position Saudi Arabia as GCC OH leader",
+      "Align with Vision 2030 workforce goals",
+      "Reduce occupational injury costs by 40%",
+      "Attract global talent through safety excellence"
+    ],
+    stats: [
+      { value: "40%", label: "Cost Reduction Potential", color: "emerald" },
+      { value: "#1", label: "GCC Leadership Target", color: "cyan" },
+      { value: "2030", label: "Vision Alignment", color: "purple" }
+    ],
+    color: "cyan"
+  },
+  // Slide 12: Call to Action
   {
     id: "conclusion",
-    type: "overview",
-    title: "Start Exploring",
-    subtitle: "Your Journey Begins",
-    content: "Click on any component in the framework visualization to explore detailed information, data sources, metrics, and best practices. Use the data sources tab to understand what information feeds each assessment.",
+    type: "cta",
+    title: "Begin the Journey",
+    subtitle: "Your Platform Awaits",
+    content: "Explore the full power of the ADL Occupational Health Intelligence Platform. Dive into country data, compare benchmarks, analyze metrics, and build your roadmap to excellence.",
     highlights: [
-      "Click components to see details",
-      "Explore data sources for each pillar",
-      "Review best practices from leading countries",
-      "Understand scoring criteria and benchmarks"
+      "Explore 180+ country profiles",
+      "Compare against global benchmarks",
+      "Access detailed metric breakdowns",
+      "Generate custom reports"
     ],
     color: "cyan"
   }

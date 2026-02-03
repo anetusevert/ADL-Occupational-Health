@@ -238,7 +238,7 @@ export function CountryBestPracticeModal({
                         ) : (
                           <RefreshCw className="w-4 h-4" />
                         )}
-                        <span>{hasContent ? "Regenerate" : "Generate"}</span>
+                        <span>{hasContent ? "Refresh" : "Initialize"}</span>
                       </motion.button>
                     )}
                     
@@ -267,8 +267,8 @@ export function CountryBestPracticeModal({
                   </div>
                 )}
 
-                {/* Generating */}
-                {isGenerating && (
+                {/* Processing - Only admin sees detailed state */}
+                {isGenerating && isAdmin && (
                   <div className="text-center py-16">
                     <motion.div
                       className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center"
@@ -277,10 +277,20 @@ export function CountryBestPracticeModal({
                     >
                       <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
                     </motion.div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Generating Case Study</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">Processing Case Study</h3>
                     <p className="text-slate-400 max-w-md mx-auto">
                       Analyzing {data?.country_name}'s approach to best practices...
                     </p>
+                  </div>
+                )}
+                
+                {/* Non-admin sees simple loading during processing */}
+                {isGenerating && !isAdmin && (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="text-center">
+                      <Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-4" />
+                      <p className="text-slate-400">Loading case study...</p>
+                    </div>
                   </div>
                 )}
 
@@ -290,11 +300,11 @@ export function CountryBestPracticeModal({
                     <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <FileText className="w-8 h-8 text-slate-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Case Study Not Available</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">Case Study Coming Soon</h3>
                     <p className="text-slate-400 max-w-md mx-auto">
                       {isAdmin 
-                        ? "Click Generate to create a detailed case study for this country."
-                        : "The case study for this country has not been generated yet."}
+                        ? "Click Initialize to create a detailed case study for this country."
+                        : "The case study for this country is being prepared. Please check back later."}
                     </p>
                   </div>
                 )}
@@ -407,12 +417,6 @@ export function CountryBestPracticeModal({
                       )}
                     </div>
 
-                    {/* Generated timestamp */}
-                    {data.generated_at && (
-                      <p className="text-center text-xs text-slate-500">
-                        Generated: {new Date(data.generated_at).toLocaleString()}
-                      </p>
-                    )}
                   </motion.div>
                 )}
               </div>

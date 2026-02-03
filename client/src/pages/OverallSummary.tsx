@@ -802,12 +802,12 @@ export function OverallSummary() {
               {isAdmin ? <Sparkles className="w-8 h-8 text-cyan-400" /> : <Lock className="w-8 h-8 text-white/40" />}
             </div>
             <h2 className="text-xl font-bold text-white mb-2">
-              {isAdmin ? "Report Not Yet Generated" : "Report Pending Generation"}
+              {isAdmin ? "Report Not Yet Available" : "Report Coming Soon"}
             </h2>
             <p className="text-sm text-white/60 mb-6">
               {isAdmin 
-                ? `The strategic assessment for ${currentCountry.name} has not been generated yet.`
-                : `The strategic assessment for ${currentCountry.name} is not yet available.`
+                ? `The strategic assessment for ${currentCountry.name} has not been prepared yet.`
+                : `The strategic assessment for ${currentCountry.name} is being prepared. Please check back later.`
               }
             </p>
             {isAdmin ? (
@@ -821,9 +821,9 @@ export function OverallSummary() {
                 )}
               >
                 {isRegenerating ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /><span>Generating...</span></>
+                  <><Loader2 className="w-5 h-5 animate-spin" /><span>Processing...</span></>
                 ) : (
-                  <><Sparkles className="w-5 h-5" /><span>Generate Report</span></>
+                  <><Sparkles className="w-5 h-5" /><span>Initialize Report</span></>
                 )}
               </button>
             ) : (
@@ -884,14 +884,14 @@ export function OverallSummary() {
                 onClick={handleBatchGenerate}
                 disabled={isBatchGenerating || reportLoading}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-emerald-400 text-xs font-medium transition-colors disabled:opacity-50"
-                title="Generate All Reports"
+                title="Initialize All Reports"
               >
                 {isBatchGenerating ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Generating...</span></>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Processing...</span></>
                 ) : batchGenerationStatus?.completed === 5 ? (
                   <><CheckCircle2 className="w-3.5 h-3.5" /><span>All Ready</span></>
                 ) : (
-                  <><PlayCircle className="w-3.5 h-3.5" /><span>Generate All</span></>
+                  <><PlayCircle className="w-3.5 h-3.5" /><span>Initialize All</span></>
                 )}
               </button>
               
@@ -899,10 +899,10 @@ export function OverallSummary() {
                 onClick={() => handleGenerate(true)}
                 disabled={isRegenerating || reportLoading}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium transition-colors disabled:opacity-50"
-                title="Regenerate Report"
+                title="Refresh Report"
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", (isRegenerating || reportLoading) && "animate-spin")} />
-                <span>Regenerate</span>
+                <span>Refresh</span>
               </button>
             </>
           )}
@@ -925,7 +925,7 @@ export function OverallSummary() {
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-3" />
-              <p className="text-sm text-white/50">{isRegenerating ? "Generating assessment..." : "Loading report..."}</p>
+              <p className="text-sm text-white/50">{isRegenerating ? "Preparing assessment..." : "Loading report..."}</p>
             </div>
           </div>
         ) : (

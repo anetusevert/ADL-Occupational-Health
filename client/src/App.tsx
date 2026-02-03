@@ -33,6 +33,8 @@ import { ReportWorkshop } from "./pages/admin/ReportWorkshop";
 import { DatabaseExplorer } from "./pages/admin/DatabaseExplorer";
 import { PillarPage } from "./pages/PillarPage";
 import { OverallSummary } from "./pages/OverallSummary";
+import { CountryDashboard } from "./pages/CountryDashboard";
+import { CountryFocus } from "./pages/CountryFocus";
 
 // Create React Query client with optimized defaults
 const queryClient = new QueryClient({
@@ -216,10 +218,16 @@ function AppContent() {
             }
           />
 
-          {/* Redirect old country route to summary */}
+          {/* Country Dashboard - New 4-quadrant experience */}
           <Route
             path="/country/:iso"
-            element={<Navigate to="summary" replace />}
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <CountryDashboard />
+                </ProtectedRoute>
+              </AppLayout>
+            }
           />
 
           {/* Summary route (separate component) */}
@@ -264,6 +272,18 @@ function AppContent() {
               <AppLayout>
                 <ProtectedRoute>
                   <CompareV2 />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
+          {/* Country Focus - Framework Architecture Analysis */}
+          <Route
+            path="/country-focus"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <CountryFocus />
                 </ProtectedRoute>
               </AppLayout>
             }

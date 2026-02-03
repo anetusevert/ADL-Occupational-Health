@@ -38,6 +38,7 @@ export default {
         'adl-gradient': 'linear-gradient(135deg, #1a1a4e 0%, #12123a 100%)',
         'adl-gradient-light': 'linear-gradient(135deg, #252569 0%, #1a1a4e 100%)',
         'adl-gradient-subtle': 'linear-gradient(180deg, #1a1a4e 0%, #252569 50%, #1a1a4e 100%)',
+        'radial-gradient': 'radial-gradient(ellipse at center, rgba(74, 107, 181, 0.15) 0%, transparent 70%)',
       },
       boxShadow: {
         'adl': '0 4px 20px -2px rgba(26, 26, 78, 0.25)',
