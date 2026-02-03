@@ -31,6 +31,76 @@ import { type PersonaJourneyStep } from "../../data/personas";
 import { cn } from "../../lib/utils";
 
 // ============================================================================
+// JOURNEY DESCRIPTION PARSER
+// ============================================================================
+
+function JourneyDescription({ description, colors }: { description: string; colors: typeof colorConfig.cyan }) {
+  // Parse description into segments based on labels like POSITIVE:, CHALLENGE:, etc.
+  const segments = description.split(/(?=POSITIVE:|CHALLENGE:|EXCELLENT|CRITICAL|BENEFIT:|IMPROVEMENT:|REALITY:|INSIGHT:|OPPORTUNITY:|DANGER:|KEY|REFORM|TWO PATHS:|THREE PATHS:|IF PROVIDED:|ZERO|COMPLETE|GLIMMER|PARTIAL|PRESSURE:|IMPORTANT:)/);
+  
+  if (segments.length <= 1) {
+    // No special formatting needed
+    return <p className="text-xs text-white/60 leading-relaxed">{description}</p>;
+  }
+
+  return (
+    <div className="space-y-1.5 text-xs">
+      {segments.map((segment, i) => {
+        const trimmed = segment.trim();
+        if (!trimmed) return null;
+
+        // Determine segment type and styling
+        let labelClass = "text-white/50";
+        let textClass = "text-white/60";
+        let label = "";
+        let content = trimmed;
+
+        if (trimmed.startsWith("POSITIVE:") || trimmed.startsWith("EXCELLENT") || trimmed.startsWith("BENEFIT:") || trimmed.startsWith("IMPROVEMENT:") || trimmed.startsWith("GLIMMER")) {
+          labelClass = "text-emerald-400 font-semibold";
+          textClass = "text-emerald-300/80";
+          const colonIndex = trimmed.indexOf(":");
+          if (colonIndex > -1) {
+            label = trimmed.substring(0, colonIndex + 1);
+            content = trimmed.substring(colonIndex + 1).trim();
+          }
+        } else if (trimmed.startsWith("CHALLENGE:") || trimmed.startsWith("CRITICAL") || trimmed.startsWith("DANGER:") || trimmed.startsWith("ZERO") || trimmed.startsWith("COMPLETE") || trimmed.startsWith("PRESSURE:")) {
+          labelClass = "text-amber-400 font-semibold";
+          textClass = "text-amber-300/80";
+          const colonIndex = trimmed.indexOf(":");
+          if (colonIndex > -1) {
+            label = trimmed.substring(0, colonIndex + 1);
+            content = trimmed.substring(colonIndex + 1).trim();
+          }
+        } else if (trimmed.startsWith("INSIGHT:") || trimmed.startsWith("REALITY:") || trimmed.startsWith("KEY") || trimmed.startsWith("IMPORTANT:") || trimmed.startsWith("IF PROVIDED:") || trimmed.startsWith("PARTIAL")) {
+          labelClass = "text-cyan-400 font-semibold";
+          textClass = "text-cyan-300/80";
+          const colonIndex = trimmed.indexOf(":");
+          if (colonIndex > -1) {
+            label = trimmed.substring(0, colonIndex + 1);
+            content = trimmed.substring(colonIndex + 1).trim();
+          }
+        } else if (trimmed.startsWith("OPPORTUNITY:") || trimmed.startsWith("REFORM") || trimmed.startsWith("TWO PATHS:") || trimmed.startsWith("THREE PATHS:")) {
+          labelClass = "text-purple-400 font-semibold";
+          textClass = "text-purple-300/80";
+          const colonIndex = trimmed.indexOf(":");
+          if (colonIndex > -1) {
+            label = trimmed.substring(0, colonIndex + 1);
+            content = trimmed.substring(colonIndex + 1).trim();
+          }
+        }
+
+        return (
+          <p key={i} className="leading-relaxed">
+            {label && <span className={labelClass}>{label} </span>}
+            <span className={textClass}>{content}</span>
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -355,36 +425,34 @@ function HorizontalTimeline({
           initial="initial"
           animate="animate"
           exit="exit"
-          className="flex-1 p-4 rounded-xl bg-slate-800/60 border border-white/10"
+          className="flex-1 p-4 rounded-xl bg-slate-800/60 border border-white/10 overflow-auto"
         >
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3">
             {/* Icon */}
             <div className={cn(
-              "p-3 rounded-xl",
+              "p-2.5 rounded-xl flex-shrink-0",
               colors.bg,
               colors.border,
               "border"
             )}>
-              <Icon className={cn("w-6 h-6", colors.text)} />
+              <Icon className={cn("w-5 h-5", colors.text)} />
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={cn("text-xs font-bold px-2 py-0.5 rounded", colors.bg, colors.text)}>
+                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", colors.bg, colors.text)}>
                     Step {selectedIndex + 1}
                   </span>
-                  <h4 className="text-lg font-semibold text-white">{selectedStep.title}</h4>
+                  <h4 className="text-base font-semibold text-white">{selectedStep.title}</h4>
                 </div>
-                <div className="px-3 py-1 rounded-lg bg-slate-700/50 border border-white/10">
-                  <span className="text-xs text-white/60">Duration: </span>
-                  <span className="text-sm font-medium text-white">{selectedStep.duration}</span>
+                <div className="px-2 py-1 rounded-lg bg-slate-700/50 border border-white/10 flex-shrink-0">
+                  <span className="text-[10px] text-white/60">Duration: </span>
+                  <span className="text-xs font-medium text-white">{selectedStep.duration}</span>
                 </div>
               </div>
-              <p className="text-sm text-white/60 leading-relaxed">
-                {selectedStep.description}
-              </p>
+              <JourneyDescription description={selectedStep.description} colors={colors} />
             </div>
           </div>
         </motion.div>
