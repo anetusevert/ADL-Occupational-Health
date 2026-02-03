@@ -2506,12 +2506,6 @@ function GOSIRankingsDisplay() {
     </div>
   );
 }
-          </motion.div>
-        </HeroReveal>
-      </div>
-    </div>
-  );
-}
 
 // ============================================================================
 // GET VISUAL FOR SLIDE
