@@ -29,12 +29,12 @@ interface ConsultingSlideHeaderProps {
   actionTitle: string;
   subtitle?: string;
   icon?: ReactNode;
-  color?: "purple" | "blue" | "emerald" | "amber" | "cyan";
+  color?: string;
   align?: "left" | "center";
   showLogos?: boolean;
 }
 
-const colorStyles = {
+const colorStyles: Record<string, { accent: string; bg: string; border: string; glow: string }> = {
   purple: {
     accent: "text-purple-400",
     bg: "bg-purple-500/10",
@@ -65,7 +65,34 @@ const colorStyles = {
     border: "border-cyan-500/30",
     glow: "shadow-cyan-500/20",
   },
+  red: {
+    accent: "text-red-400",
+    bg: "bg-red-500/10",
+    border: "border-red-500/30",
+    glow: "shadow-red-500/20",
+  },
+  teal: {
+    accent: "text-teal-400",
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/30",
+    glow: "shadow-teal-500/20",
+  },
+  rose: {
+    accent: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+    glow: "shadow-rose-500/20",
+  },
+  orange: {
+    accent: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/30",
+    glow: "shadow-orange-500/20",
+  },
 };
+
+// Safe color getter with fallback
+const getColorStyle = (color: string | undefined) => colorStyles[color || "cyan"] || colorStyles.cyan;
 
 export function ConsultingSlideHeader({
   actionTitle,
@@ -75,7 +102,7 @@ export function ConsultingSlideHeader({
   align = "left",
   showLogos = false,
 }: ConsultingSlideHeaderProps) {
-  const styles = colorStyles[color];
+  const styles = getColorStyle(color);
 
   return (
     <motion.div
@@ -213,7 +240,7 @@ export function StatGrid({
   return (
     <div className={cn("grid gap-2 sm:gap-3 flex-shrink-0", gridCols[columns])}>
       {stats.map((stat, i) => {
-        const styles = colorStyles[stat.color || "cyan"];
+        const styles = getColorStyle(stat.color);
         return (
           <HeroReveal key={i} delay={0.15 + i * 0.08} direction="up">
             <motion.div
@@ -293,7 +320,7 @@ export function InsightBox({
   variant = "callout",
   icon,
 }: InsightBoxProps) {
-  const styles = colorStyles[color];
+  const styles = getColorStyle(color);
 
   return (
     <HeroReveal delay={0.35} direction="up">
@@ -372,7 +399,7 @@ export function EvidenceCard({
   delay = 0,
   highlighted = false,
 }: EvidenceCardProps) {
-  const styles = colorStyles[color];
+  const styles = getColorStyle(color);
 
   return (
     <HeroReveal delay={delay} direction="up">
@@ -447,7 +474,7 @@ export function KeyPointsList({
   columns = 1,
   startDelay = 0.3,
 }: KeyPointsListProps) {
-  const styles = colorStyles[color];
+  const styles = getColorStyle(color);
 
   return (
     <div className={cn(
@@ -569,7 +596,7 @@ interface SectionDividerProps {
 }
 
 export function SectionDivider({ label, color = "cyan" }: SectionDividerProps) {
-  const styles = colorStyles[color];
+  const styles = getColorStyle(color);
 
   return (
     <motion.div
