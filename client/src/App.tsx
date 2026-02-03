@@ -289,6 +289,18 @@ function AppContent() {
             }
           />
 
+          {/* Personas - Saudi Arabia Labor Force Personas */}
+          <Route
+            path="/personas"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <Personas />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+
           <Route
             path="/leaderboard"
             element={
