@@ -26,7 +26,7 @@ import {
   Cell, ReferenceLine
 } from "recharts";
 import { cn } from "../../lib/utils";
-import { apiClient } from "../../services/api";
+import { apiClient, aiApiClient } from "../../services/api";
 
 // Define InsightCategory locally to avoid circular dependency with CountryDashboard
 export type InsightCategory = 
@@ -677,7 +677,8 @@ export function CentralInsightModal({
     setRegenerateError(null);
     
     try {
-      const response = await apiClient.post<{
+      // Use aiApiClient with 6-minute timeout for AI generation
+      const response = await aiApiClient.post<{
         success: boolean;
         message: string;
         insight?: ApiInsightData;
@@ -692,7 +693,18 @@ export function CentralInsightModal({
       onRegenerate?.();
     } catch (error: unknown) {
       console.error("Regenerate failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to regenerate. Check AI configuration.";
+      // Better error message extraction
+      let errorMessage = "Failed to regenerate. Check AI configuration.";
+      if (error && typeof error === 'object') {
+        const axiosError = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail;
+        } else if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        } else if (axiosError.message) {
+          errorMessage = axiosError.message;
+        }
+      }
       setRegenerateError(errorMessage);
     } finally {
       setIsRegenerating(false);

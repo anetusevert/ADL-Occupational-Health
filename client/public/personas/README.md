@@ -1,61 +1,79 @@
 # Persona Avatar Images
 
-This folder contains AI-generated avatar images for the Personas page.
+This folder contains realistic 3D avatar images for the Personas page.
 
-## Required Images
+## Required Images (Photorealistic 3D Renders)
 
-Generate the following 5 professional portrait illustrations:
+Generate the following 5 professional 3D portrait renders:
 
-1. **saudi-male-professional.png**
-   - Saudi Arabian male business professional (30s-40s)
-   - Modern business attire (navy suit, white shirt)
-   - Confident expression, office setting
-   - Purple/violet color accents
+### 1. saudi-male-professional.png
+- **Demographic**: Saudi Arabian man, late 30s
+- **Attire**: Traditional white thobe with red-checkered ghutra and black agal
+- **Features**: Well-groomed short beard, warm brown eyes, confident professional expression
+- **Background**: Gradient purple-to-dark
+- **Style**: Photorealistic 3D render, studio lighting, upper body portrait
 
-2. **saudi-female-professional.png**
-   - Saudi Arabian female professional (30s)
-   - Professional attire with optional modern hijab
-   - Confident, warm expression, corporate setting
-   - Cyan/teal color accents
+### 2. saudi-female-professional.png
+- **Demographic**: Saudi Arabian woman, early 30s
+- **Attire**: Elegant teal hijab, modern professional business attire
+- **Features**: Beautiful features, warm brown eyes, confident empowered expression with subtle smile
+- **Background**: Gradient cyan-to-dark
+- **Style**: Photorealistic 3D render, studio lighting, upper body portrait
 
-3. **migrant-construction-worker.png**
-   - South Asian construction worker (30s)
-   - Safety hard hat, high-visibility vest
-   - Determined, dignified expression, construction site
-   - Amber/orange color accents
+### 3. migrant-construction-worker.png
+- **Demographic**: South Asian (Pakistani/Indian) man, 30s
+- **Attire**: Yellow safety hard hat, orange high-visibility vest
+- **Features**: Weathered but dignified expression, dark skin, mustache, honest resilient eyes
+- **Background**: Gradient amber-to-dark
+- **Style**: Photorealistic 3D render, studio lighting, respectful portrayal
 
-4. **domestic-worker.png**
-   - Southeast Asian female domestic worker (30s-40s)
-   - Neat casual work attire
-   - Kind, dignified expression, residential interior
-   - Rose/pink color accents
+### 4. domestic-worker.png
+- **Demographic**: Filipina woman, late 30s
+- **Attire**: Neat casual work attire (clean polo shirt)
+- **Features**: Warm, kind expression with gentle smile, dark hair pulled back, compassionate brown eyes
+- **Background**: Gradient rose-pink-to-dark
+- **Style**: Photorealistic 3D render, studio lighting, dignified humanizing portrayal
 
-5. **young-saudi-worker.png**
-   - Young Saudi Arabian male (early 20s)
-   - Smart casual attire
-   - Eager, optimistic expression, training center
-   - Emerald/green color accents
+### 5. young-saudi-worker.png
+- **Demographic**: Saudi Arabian young man, early 20s
+- **Attire**: Smart casual - modern button-up shirt
+- **Features**: Clean-shaven or light stubble, eager optimistic expression, bright ambitious eyes
+- **Background**: Gradient emerald-green-to-dark
+- **Style**: Photorealistic 3D render, studio lighting, youthful energy
 
 ## Image Specifications
 
-- Format: PNG with transparency support
-- Size: 512x512 pixels minimum
-- Style: Clean, minimalist digital illustration
-- Composition: Professional portrait/headshot
-- Lighting: Soft, professional
+- **Format**: PNG with gradient background (not transparent)
+- **Size**: 512x512 pixels minimum
+- **Style**: Photorealistic 3D rendered portraits
+- **Composition**: Upper body portrait/headshot
+- **Lighting**: Soft professional studio lighting
+- **Quality**: High quality, web-optimized
+
+## Generation Prompt Template
+
+For AI image generation tools, use this template:
+```
+Photorealistic 3D rendered portrait of [demographic description]. 
+[Attire details]. [Physical features and expression]. 
+Soft studio lighting, gradient [color]-to-dark background. 
+Upper body portrait composition, high quality 3D render, 
+professional headshot style, [mood/demeanor].
+```
 
 ## Fallback Behavior
 
-The PersonaAvatar component displays styled icons as fallback when images are not available. This ensures the page works correctly even without the avatar images.
+The PersonaAvatar component displays styled gradient icons as fallback when images are not available. This ensures the page works correctly even without the avatar images.
 
-## Generating Images
+## Recommended Tools
 
-Use an AI image generation tool like:
-- DALL-E
-- Midjourney
-- Stable Diffusion
+- Midjourney (v6)
+- DALL-E 3
+- Stable Diffusion XL
+- Leonardo AI
 
-Ensure the images are:
-- Culturally respectful and appropriate
+Ensure all images are:
+- Culturally respectful and accurate
 - Professional and dignified
-- Consistent in style across all 5 personas
+- Consistent in 3D style across all 5 personas
+- Properly representing the demographic
