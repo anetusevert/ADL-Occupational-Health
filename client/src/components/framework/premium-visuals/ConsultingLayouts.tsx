@@ -81,19 +81,31 @@ export function ConsultingSlideHeader({
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "w-full px-8 py-5 border-b border-white/10",
-        "bg-gradient-to-r from-slate-900/90 via-slate-800/90 to-slate-900/90",
+        "w-full px-6 md:px-10 py-4 md:py-6 border-b border-white/10",
+        "bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95",
         "backdrop-blur-xl relative overflow-hidden"
       )}
     >
-      {/* Subtle animated gradient line */}
+      {/* Animated accent line */}
       <motion.div
-        className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent"
+        className={cn(
+          "absolute bottom-0 left-0 h-[2px]",
+          `bg-gradient-to-r from-transparent via-${color === "cyan" ? "cyan-500" : color === "purple" ? "purple-500" : color === "blue" ? "blue-500" : color === "emerald" ? "emerald-500" : "amber-500"} to-transparent`
+        )}
+        style={{
+          background: `linear-gradient(to right, transparent, ${
+            color === "cyan" ? "#06b6d4" : 
+            color === "purple" ? "#9333ea" : 
+            color === "blue" ? "#2563eb" : 
+            color === "emerald" ? "#10b981" : 
+            "#f59e0b"
+          }, transparent)`
+        }}
         initial={{ width: 0, opacity: 0 }}
-        animate={{ width: "100%", opacity: 1 }}
-        transition={{ duration: 1, delay: 0.3 }}
+        animate={{ width: "100%", opacity: 0.8 }}
+        transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
       />
 
       <div className={cn(
@@ -101,16 +113,17 @@ export function ConsultingSlideHeader({
         align === "center" ? "justify-center text-center" : "justify-between"
       )}>
         <div className={cn("flex-1", align === "center" && "flex flex-col items-center")}>
-          {/* Action Title - Large, Bold, Statement */}
-          <div className="flex items-center gap-3">
+          {/* Action Title - Large, Bold, McKinsey Statement */}
+          <div className="flex items-center gap-4">
             {icon && (
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", delay: 0.2 }}
+                transition={{ type: "spring", damping: 15, delay: 0.15 }}
                 className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
-                  styles.bg, styles.border, "border"
+                  "w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center",
+                  styles.bg, styles.border, "border shadow-lg",
+                  styles.glow
                 )}
               >
                 {icon}
@@ -119,20 +132,25 @@ export function ConsultingSlideHeader({
             <motion.h1
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight"
+              transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="text-xl sm:text-2xl md:text-[28px] lg:text-3xl font-bold text-white tracking-tight leading-tight"
             >
               {actionTitle}
             </motion.h1>
           </div>
 
-          {/* Subtitle */}
+          {/* Subtitle - Contextual tag */}
           {subtitle && (
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className={cn("mt-2 text-sm md:text-base", styles.accent, "font-medium")}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25, ease: "easeOut" }}
+              className={cn(
+                "mt-2 text-sm md:text-base", 
+                styles.accent, 
+                "font-medium tracking-wide",
+                icon && "ml-14 md:ml-16"
+              )}
             >
               {subtitle}
             </motion.p>
@@ -144,12 +162,12 @@ export function ConsultingSlideHeader({
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex items-center gap-3"
+            transition={{ duration: 0.4, delay: 0.35 }}
+            className="hidden sm:flex items-center gap-3"
           >
-            <img src="/adl-logo.png" alt="ADL" className="h-8 object-contain opacity-80" />
-            <div className="w-px h-6 bg-white/20" />
-            <img src="/gosi-logo.png" alt="GOSI" className="h-8 object-contain opacity-80" />
+            <img src="/adl-logo.png" alt="ADL" className="h-7 md:h-8 object-contain opacity-80 hover:opacity-100 transition-opacity" />
+            <div className="w-px h-5 bg-white/20" />
+            <img src="/gosi-logo.png" alt="GOSI" className="h-7 md:h-8 object-contain opacity-80 hover:opacity-100 transition-opacity" />
           </motion.div>
         )}
       </div>
@@ -184,37 +202,40 @@ export function StatGrid({
   animated = true 
 }: StatGridProps) {
   const gridCols = {
-    2: "grid-cols-2",
-    3: "grid-cols-3",
-    4: "grid-cols-2 md:grid-cols-4",
+    2: "grid-cols-1 sm:grid-cols-2",
+    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+    4: "grid-cols-2 lg:grid-cols-4",
   };
 
   const sizes = {
-    sm: { value: "text-2xl md:text-3xl", label: "text-xs", padding: "p-4" },
-    md: { value: "text-3xl md:text-4xl", label: "text-sm", padding: "p-5" },
-    lg: { value: "text-4xl md:text-5xl", label: "text-base", padding: "p-6" },
+    sm: { value: "text-2xl sm:text-3xl", label: "text-xs", padding: "p-3 sm:p-4" },
+    md: { value: "text-2xl sm:text-3xl md:text-4xl", label: "text-xs sm:text-sm", padding: "p-3 sm:p-4 md:p-5" },
+    lg: { value: "text-3xl sm:text-4xl md:text-5xl", label: "text-sm md:text-base", padding: "p-4 sm:p-5 md:p-6" },
   };
 
   return (
-    <div className={cn("grid gap-4", gridCols[columns])}>
+    <div className={cn("grid gap-3 sm:gap-4", gridCols[columns])}>
       {stats.map((stat, i) => {
         const styles = colorStyles[stat.color || "cyan"];
         return (
-          <HeroReveal key={i} delay={0.2 + i * 0.1} direction="up">
+          <HeroReveal key={i} delay={0.15 + i * 0.08} direction="up">
             <motion.div
-              whileHover={{ scale: 1.02, y: -2 }}
+              whileHover={{ scale: 1.02, y: -3 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className={cn(
-                "relative rounded-2xl border overflow-hidden",
+                "relative rounded-xl sm:rounded-2xl border overflow-hidden",
                 styles.bg, styles.border,
                 sizes[size].padding,
-                "group cursor-default"
+                "group cursor-default",
+                "transform-gpu will-change-transform"
               )}
             >
-              <ShimmerOverlay delay={0.5 + i * 0.15} duration={3} />
+              <ShimmerOverlay delay={0.4 + i * 0.12} duration={3.5} />
               
               {/* Glow effect on hover */}
               <div className={cn(
-                "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+                "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
                 "bg-gradient-to-br from-white/5 to-transparent"
               )} />
 
@@ -225,25 +246,25 @@ export function StatGrid({
                   </div>
                 )}
                 
-                <div className={cn(sizes[size].value, "font-bold text-white")}>
+                <div className={cn(sizes[size].value, "font-bold text-white tabular-nums")}>
                   {stat.prefix}
                   {animated && typeof stat.value === "number" ? (
                     <NumberCounter 
                       value={stat.value} 
-                      duration={1.5} 
-                      delay={0.3 + i * 0.1}
+                      duration={1.2} 
+                      delay={0.25 + i * 0.08}
                     />
                   ) : (
                     stat.value
                   )}
                   {stat.suffix && (
-                    <span className={styles.accent}>{stat.suffix}</span>
+                    <span className={cn(styles.accent, "ml-0.5")}>{stat.suffix}</span>
                   )}
                 </div>
                 
                 <p className={cn(
                   sizes[size].label, 
-                  "text-white/60 mt-1 font-medium uppercase tracking-wider"
+                  "text-white/60 mt-1 sm:mt-1.5 font-semibold uppercase tracking-wider"
                 )}>
                   {stat.label}
                 </p>
@@ -278,48 +299,49 @@ export function InsightBox({
   const styles = colorStyles[color];
 
   return (
-    <HeroReveal delay={0.4} direction="up">
+    <HeroReveal delay={0.35} direction="up">
       <motion.div
-        whileHover={{ scale: 1.01 }}
+        whileHover={{ scale: 1.005 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className={cn(
-          "relative rounded-2xl border overflow-hidden",
+          "relative rounded-xl sm:rounded-2xl border overflow-hidden",
           variant === "quote" 
             ? "bg-gradient-to-br from-white/5 to-transparent border-l-4 border-l-white/40 border-t-0 border-r-0 border-b-0"
             : cn(styles.bg, styles.border),
-          "p-5"
+          "p-3 sm:p-4 md:p-5"
         )}
       >
-        {variant !== "quote" && <ShimmerOverlay delay={0.6} duration={4} />}
+        {variant !== "quote" && <ShimmerOverlay delay={0.5} duration={4} />}
 
         <div className="relative z-10">
           {variant === "quote" ? (
-            <div className="flex gap-3">
-              <Quote className="w-6 h-6 text-white/40 flex-shrink-0 mt-1" />
+            <div className="flex gap-2 sm:gap-3">
+              <Quote className="w-5 h-5 sm:w-6 sm:h-6 text-white/40 flex-shrink-0 mt-0.5 sm:mt-1" />
               <div>
-                <p className="text-white/90 italic text-base leading-relaxed">
+                <p className="text-sm sm:text-base text-white/90 italic leading-relaxed">
                   "{insight}"
                 </p>
                 {source && (
-                  <p className="mt-2 text-xs text-white/50">— {source}</p>
+                  <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/50">— {source}</p>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5 sm:gap-3">
               {icon || (
                 <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                  "w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0",
                   styles.bg, styles.border, "border"
                 )}>
-                  <TrendingUp className={cn("w-4 h-4", styles.accent)} />
+                  <TrendingUp className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", styles.accent)} />
                 </div>
               )}
               <div>
-                <p className="text-white font-medium leading-relaxed">
+                <p className="text-sm sm:text-base text-white font-medium leading-relaxed">
                   {insight}
                 </p>
                 {source && (
-                  <p className="mt-2 text-xs text-white/50">Source: {source}</p>
+                  <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/50">Source: {source}</p>
                 )}
               </div>
             </div>
@@ -358,50 +380,52 @@ export function EvidenceCard({
   return (
     <HeroReveal delay={delay} direction="up">
       <motion.div
-        whileHover={{ scale: 1.03, y: -4 }}
+        whileHover={{ scale: 1.02, y: -3 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
-          "relative rounded-2xl border overflow-hidden p-5",
+          "relative rounded-xl sm:rounded-2xl border overflow-hidden p-3 sm:p-4 md:p-5",
           highlighted 
             ? "bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border-cyan-400/50"
             : cn(styles.bg, styles.border),
-          "group cursor-default"
+          "group cursor-default transform-gpu"
         )}
       >
-        <ShimmerOverlay delay={delay + 0.2} duration={3} />
+        <ShimmerOverlay delay={delay + 0.15} duration={3.5} />
         
         {highlighted && (
           <motion.div
             className="absolute top-2 right-2"
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            animate={{ rotate: [0, 8, -8, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
           >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
           </motion.div>
         )}
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
             {flag && (
               <motion.span 
-                className="text-3xl"
-                animate={highlighted ? { scale: [1, 1.1, 1] } : undefined}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="text-2xl sm:text-3xl"
+                animate={highlighted ? { scale: [1, 1.08, 1] } : undefined}
+                transition={{ duration: 2.5, repeat: Infinity }}
               >
                 {flag}
               </motion.span>
             )}
-            <h3 className="text-lg font-bold text-white">{title}</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white">{title}</h3>
           </div>
 
           <div className={cn(
-            "text-xl font-bold mb-2",
+            "text-lg sm:text-xl font-bold mb-1 sm:mb-2",
             highlighted ? "text-cyan-400" : styles.accent
           )}>
             {achievement}
           </div>
 
           {detail && (
-            <p className="text-sm text-white/60">{detail}</p>
+            <p className="text-xs sm:text-sm text-white/60">{detail}</p>
           )}
         </div>
       </motion.div>
@@ -430,22 +454,27 @@ export function KeyPointsList({
 
   return (
     <div className={cn(
-      "grid gap-3",
+      "grid gap-2 sm:gap-3",
       columns === 2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
     )}>
       {points.map((point, i) => (
         <motion.div
           key={i}
-          initial={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: startDelay + i * 0.08 }}
+          transition={{ 
+            duration: 0.35, 
+            delay: startDelay + i * 0.06,
+            ease: [0.22, 1, 0.36, 1]
+          }}
           className={cn(
-            "flex items-start gap-3 p-3 rounded-xl",
-            styles.bg, styles.border, "border"
+            "flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl",
+            styles.bg, styles.border, "border",
+            "hover:bg-white/5 transition-colors duration-200"
           )}
         >
-          <CheckCircle className={cn("w-5 h-5 mt-0.5 flex-shrink-0", styles.accent)} />
-          <span className="text-sm text-white/90 leading-relaxed">{point}</span>
+          <CheckCircle className={cn("w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0", styles.accent)} />
+          <span className="text-xs sm:text-sm text-white/90 leading-relaxed">{point}</span>
         </motion.div>
       ))}
     </div>
@@ -477,13 +506,13 @@ export function SlideBody({
     )}>
       {/* Ambient particles */}
       {withParticles && (
-        <div className="absolute inset-0 pointer-events-none opacity-40">
-          <ParticleField count={30} color={particleColor} speed={0.3} />
+        <div className="absolute inset-0 pointer-events-none opacity-30">
+          <ParticleField count={25} color={particleColor} speed={0.25} />
         </div>
       )}
       
       {/* Content */}
-      <div className="relative z-10 h-full p-6 md:p-8 overflow-auto">
+      <div className="relative z-10 h-full px-4 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 lg:px-10 lg:py-8 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
         {children}
       </div>
     </div>

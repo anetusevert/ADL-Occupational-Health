@@ -335,6 +335,50 @@ Overall Maturity: {self._fmt(country.maturity_score)}%"""
         if value is None:
             return "Unknown"
         return "Yes" if value else "No"
+    
+    def get_framework_metrics_context(self) -> str:
+        """
+        Get a description of the OHI framework metrics for AI context.
+        
+        Returns:
+            String describing the 4 pillars and key metrics
+        """
+        return """## OHI Framework Metrics Reference
+
+### Governance Layer (Strategic Capacity)
+- Ratified ILO Conventions (C155, C161, C187)
+- Dedicated OSH Authority existence
+- National OSH Strategy/Policy
+- OSH Inspector density per 100,000 workers
+- Budget allocation for occupational health
+
+### Pillar 1: Hazard Control
+- Occupational Exposure Limits (OELs) for chemicals
+- Heat stress regulations
+- Noise exposure standards
+- Biological hazard controls
+- PPE requirements and enforcement
+- Workplace inspection frequency
+
+### Pillar 2: Health Vigilance (Surveillance)
+- Occupational disease reporting system
+- Cancer registry with occupation tracking
+- Exposure monitoring programs
+- Health screening requirements
+- Disease notification mechanisms
+
+### Pillar 3: Restoration (Compensation & Rehabilitation)
+- Workers' compensation coverage rate
+- Return-to-work programs
+- Rehabilitation services availability
+- Compensation adequacy (wage replacement ratio)
+- Claim processing efficiency
+
+### Scoring Methodology
+- Each metric is scored 0-100 based on data availability and maturity
+- Pillar scores are weighted averages of constituent metrics
+- Overall OHI Score is the average of the 4 pillar scores
+- Maturity stages: Nascent (0-25), Developing (25-50), Established (50-75), Advanced (75-100)"""
 
 
 # =============================================================================

@@ -29,11 +29,9 @@ import {
   Wallet,
   Building2,
   RefreshCcw,
-  Zap,
   TrendingUp,
   CheckCircle,
   Database,
-  Info,
   Layers,
   FileCheck,
   Activity,
@@ -2501,7 +2499,7 @@ function CompactIntroVisual() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        <GlowOrb color="cyan" size="xl" intensity="high">
+        <GlowOrb color="cyan" size="xl" intensity="intense">
           <div className="flex items-center gap-3">
             <img src="/adl-logo.png" alt="ADL" className="h-12 object-contain" />
           </div>
@@ -2583,7 +2581,7 @@ function CompactSaudiVisual() {
         animate={{ scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <GlowOrb color="cyan" size="lg" intensity="high">
+        <GlowOrb color="cyan" size="lg" intensity="intense">
           <span className="text-4xl">🇸🇦</span>
         </GlowOrb>
       </motion.div>
@@ -2744,7 +2742,7 @@ function CompactGovernanceVisual({ onInsightClick }: CompactGovernanceVisualProp
   return (
     <div className="relative flex flex-col items-center">
       {/* Central crown */}
-      <GlowOrb color="purple" size="lg" intensity="high">
+      <GlowOrb color="purple" size="lg" intensity="intense">
         <Crown className="w-8 h-8 text-white" />
       </GlowOrb>
       
@@ -2813,7 +2811,7 @@ function CompactPillarVisual({ pillar, onInsightClick }: CompactPillarVisualProp
   return (
     <div className="relative flex flex-col items-center">
       {/* Central icon */}
-      <GlowOrb color={color} size="lg" intensity="high">
+      <GlowOrb color={color} size="lg" intensity="intense">
         <MainIcon className="w-8 h-8 text-white" />
       </GlowOrb>
       
@@ -2844,157 +2842,6 @@ function CompactPillarVisual({ pillar, onInsightClick }: CompactPillarVisualProp
           </motion.button>
         ))}
       </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// CONTENT PANEL - Left Side
-// ============================================================================
-
-function ContentPanel({ slide }: { slide: GuideSlide }) {
-  const c = colors[slide.color || "cyan"];
-
-  return (
-    <div className="h-full flex flex-col p-4 sm:p-6">
-      {/* ADL Logo */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-4 flex-shrink-0"
-      >
-        <img 
-          src="/adl-logo.png" 
-          alt="Arthur D. Little" 
-          className="h-8 object-contain"
-        />
-      </motion.div>
-
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex-shrink-0"
-      >
-        <h2 className="text-2xl font-bold text-white mb-1">{slide.title}</h2>
-        {slide.subtitle && (
-          <p className={cn("text-sm font-medium", c.text)}>{slide.subtitle}</p>
-        )}
-      </motion.div>
-
-      {/* Divider */}
-      <motion.div
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className={cn("h-0.5 my-4 origin-left flex-shrink-0", c.bgSolid, "opacity-30")}
-      />
-
-      {/* Main content */}
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-slate-300 leading-relaxed text-sm flex-shrink-0"
-      >
-        {slide.content}
-      </motion.p>
-
-      {/* Key points */}
-      {slide.highlights && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 flex-1 overflow-auto"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Zap className={cn("w-4 h-4", c.text)} />
-            <span className={cn("text-xs font-semibold uppercase tracking-wider", c.text)}>
-              Key Elements
-            </span>
-          </div>
-          <div className="space-y-2">
-            {slide.highlights.map((highlight, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + idx * 0.08 }}
-                className={cn("flex items-start gap-3 p-3 rounded-lg", c.bg, c.border, "border")}
-              >
-                <CheckCircle className={cn("w-4 h-4 mt-0.5 flex-shrink-0", c.text)} />
-                <span className="text-sm text-white/90">{highlight}</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Stats display for challenge/opportunity slides */}
-      {slide.stats && slide.stats.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-4 flex-shrink-0"
-        >
-          <div className="grid grid-cols-3 gap-2">
-            {slide.stats.map((stat, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 + idx * 0.1 }}
-                className={cn(
-                  "p-3 rounded-lg text-center border",
-                  colors[stat.color || slide.color || "cyan"].bg,
-                  colors[stat.color || slide.color || "cyan"].border
-                )}
-              >
-                <p className={cn("text-xl font-bold", colors[stat.color || slide.color || "cyan"].text)}>
-                  {stat.value}
-                </p>
-                <p className="text-[10px] text-white/60 mt-1">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Relevance quote for component slides */}
-      {slide.type === "component" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-auto pt-4 border-t border-slate-700/50 flex-shrink-0"
-        >
-          <div className="flex items-start gap-2">
-            <TrendingUp className={cn("w-4 h-4 mt-0.5", c.text)} />
-            <p className="text-xs text-slate-400 italic">
-              {slide.id === "governance" && "Strong governance correlates directly with lower fatality rates."}
-              {slide.id === "pillar-1" && "Every $1 in prevention saves $4-6 in downstream costs."}
-              {slide.id === "pillar-2" && "Early detection reduces treatment costs by 60%."}
-              {slide.id === "pillar-3" && "The ultimate test of commitment to worker dignity."}
-            </p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Visual guide hint */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-4 flex-shrink-0"
-      >
-        <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-xs", c.bg, c.border, "border")}>
-          <Info className={cn("w-3.5 h-3.5", c.text)} />
-          <span className="text-white/60">Watch the animated visualization on the right</span>
-        </div>
-      </motion.div>
     </div>
   );
 }
