@@ -2608,23 +2608,20 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       );
 
     // DATA IMPACT LAYOUT - Challenge and opportunity slides
+    // SLIDE 2: THE ICEBERG - Saudi Arabia's Silent Economic Hemorrhage
     case "challenge":
       return (
-        <DataImpactLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          stats={[
-            { value: 2.9, suffix: "M", label: "Annual Deaths", color: "amber" },
-            { value: 4, suffix: "%", label: "Global GDP Lost", color: "purple" },
-            { value: 395, suffix: "M", label: "Injuries/Year", color: "blue" },
-          ]}
-          highlights={slide.highlights}
-          insight="Occupational accidents and diseases claim more lives than road accidents, malaria, and HIV/AIDS combined."
-          insightSource="ILO Global Estimates, 2024"
-          color="amber"
-          icon={<Globe className="w-5 h-5 text-amber-400" />}
-          visual={<CompactGlobeVisual />}
-        />
+        <div className="h-full flex flex-col overflow-hidden">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
+            color="amber"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <IcebergVisual />
+          </div>
+        </div>
       );
 
     // SLIDE 11: THE ASCENT - 3-Year Strategic Transformation
@@ -2825,6 +2822,402 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
 
 interface SovereignVisualProps {
   onInsightClick?: (id: string) => void;
+}
+
+// ============================================================================
+// SLIDE 2: THE ICEBERG - Saudi Arabia's Silent Economic Hemorrhage
+// ============================================================================
+
+function IcebergVisual() {
+  const controls = useAnimationControls();
+  
+  // Iceberg data points (Saudi Arabia specific)
+  const icebergData = {
+    visible: { value: 15, label: "Direct Claims Costs", suffix: "B", currency: "$" },
+    hidden: { value: 53, label: "Lost GDP & Productivity", suffix: "B", currency: "$" },
+    total: { value: 68, label: "Total Annual Loss", suffix: "B", currency: "$" },
+    percentage: { visible: 22, hidden: 78 }
+  };
+
+  useEffect(() => {
+    const sequence = async () => {
+      await controls.start("visible");
+    };
+    sequence();
+  }, [controls]);
+
+  // Fracture line paths for the underwater section
+  const fracturePaths = [
+    "M 20 60 Q 35 70 50 65 Q 65 58 80 68",
+    "M 15 75 Q 40 82 60 72 Q 80 78 95 70",
+    "M 10 88 Q 30 95 55 85 Q 75 92 90 82",
+    "M 25 100 Q 45 108 70 98 Q 85 105 100 95",
+    "M 5 115 Q 25 125 50 118 Q 75 128 95 115",
+  ];
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 via-blue-950/30 to-slate-900">
+      {/* Deep water particle effect */}
+      <ParticleField count={60} color="cyan" speed="slow" />
+      
+      {/* Ambient glow orbs */}
+      <FloatingGlowOrb color="cyan" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="red" size="md" position="bottom-right" delay={0.5} />
+      <FloatingGlowOrb color="blue" size="sm" position="bottom-left" delay={1} />
+      
+      {/* Main Iceberg Container */}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4">
+        
+        {/* Title Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-6"
+        >
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-cyan-400/80 text-sm font-medium tracking-widest uppercase mb-2"
+          >
+            Saudi Arabia's Hidden Economic Crisis
+          </motion.p>
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white"
+          >
+            The <span className="text-red-400">$68 Billion</span> Iceberg
+          </motion.h2>
+        </motion.div>
+
+        {/* Iceberg SVG Visualization */}
+        <div className="relative w-full max-w-2xl aspect-[4/3]">
+          <svg viewBox="0 0 120 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Water surface line with animated wave */}
+            <motion.g
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+            >
+              {/* Water gradient */}
+              <defs>
+                <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(6,182,212,0.1)" />
+                  <stop offset="100%" stopColor="rgba(30,58,138,0.4)" />
+                </linearGradient>
+                <linearGradient id="icebergTipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+                  <stop offset="50%" stopColor="rgba(165,243,252,0.8)" />
+                  <stop offset="100%" stopColor="rgba(34,211,238,0.6)" />
+                </linearGradient>
+                <linearGradient id="icebergMassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(8,145,178,0.6)" />
+                  <stop offset="50%" stopColor="rgba(7,89,133,0.8)" />
+                  <stop offset="100%" stopColor="rgba(12,74,110,0.9)" />
+                </linearGradient>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <filter id="redGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feFlood floodColor="#ef4444" floodOpacity="0.6"/>
+                  <feComposite in2="coloredBlur" operator="in"/>
+                  <feMerge>
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              
+              {/* Water background below waterline */}
+              <rect x="0" y="50" width="120" height="50" fill="url(#waterGradient)" />
+              
+              {/* Animated water surface */}
+              <motion.path
+                d="M 0 50 Q 15 48 30 50 Q 45 52 60 50 Q 75 48 90 50 Q 105 52 120 50"
+                stroke="rgba(6,182,212,0.6)"
+                strokeWidth="0.5"
+                fill="none"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.5, duration: 1 }}
+              />
+              <motion.path
+                d="M 0 50 Q 15 48 30 50 Q 45 52 60 50 Q 75 48 90 50 Q 105 52 120 50"
+                stroke="rgba(6,182,212,0.3)"
+                strokeWidth="1.5"
+                fill="none"
+                animate={{ 
+                  d: [
+                    "M 0 50 Q 15 48 30 50 Q 45 52 60 50 Q 75 48 90 50 Q 105 52 120 50",
+                    "M 0 50 Q 15 52 30 50 Q 45 48 60 50 Q 75 52 90 50 Q 105 48 120 50",
+                    "M 0 50 Q 15 48 30 50 Q 45 52 60 50 Q 75 48 90 50 Q 105 52 120 50"
+                  ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.g>
+
+            {/* Iceberg Tip (Above Water) - VISIBLE COSTS */}
+            <motion.g
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.8, duration: 1, ease: "easeOut" }}
+            >
+              <motion.path
+                d="M 60 20 L 45 50 L 75 50 Z"
+                fill="url(#icebergTipGradient)"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth="0.3"
+                filter="url(#glow)"
+                animate={{ 
+                  filter: ["url(#glow)", "none", "url(#glow)"]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              {/* Tip glow effect */}
+              <motion.ellipse
+                cx="60"
+                cy="35"
+                rx="8"
+                ry="4"
+                fill="rgba(6,182,212,0.2)"
+                animate={{ opacity: [0.2, 0.5, 0.2] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </motion.g>
+
+            {/* Iceberg Mass (Below Water) - HIDDEN COSTS */}
+            <motion.g
+              initial={{ opacity: 0, y: 30, scale: 0.7 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 1.2, duration: 1.2, ease: "easeOut" }}
+            >
+              <motion.path
+                d="M 45 50 L 20 95 L 100 95 L 75 50 Z"
+                fill="url(#icebergMassGradient)"
+                stroke="rgba(8,145,178,0.4)"
+                strokeWidth="0.3"
+              />
+              
+              {/* Animated red fracture lines - the "bleeding" of hidden costs */}
+              {fracturePaths.map((path, i) => (
+                <motion.path
+                  key={i}
+                  d={path}
+                  stroke="#ef4444"
+                  strokeWidth="0.8"
+                  fill="none"
+                  filter="url(#redGlow)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ 
+                    pathLength: [0, 1, 1],
+                    opacity: [0, 0.8, 0.4]
+                  }}
+                  transition={{ 
+                    delay: 1.5 + i * 0.2,
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatDelay: 3
+                  }}
+                />
+              ))}
+              
+              {/* Pulsing danger zones */}
+              <motion.circle
+                cx="40"
+                cy="75"
+                r="3"
+                fill="rgba(239,68,68,0.3)"
+                animate={{ 
+                  r: [3, 5, 3],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: 2 }}
+              />
+              <motion.circle
+                cx="80"
+                cy="80"
+                r="2.5"
+                fill="rgba(239,68,68,0.3)"
+                animate={{ 
+                  r: [2.5, 4.5, 2.5],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: 2.3 }}
+              />
+              <motion.circle
+                cx="60"
+                cy="88"
+                r="4"
+                fill="rgba(239,68,68,0.2)"
+                animate={{ 
+                  r: [4, 7, 4],
+                  opacity: [0.2, 0.5, 0.2]
+                }}
+                transition={{ duration: 3, repeat: Infinity, delay: 2.6 }}
+              />
+            </motion.g>
+
+            {/* Labels - Visible Costs */}
+            <motion.g
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 2, duration: 0.6 }}
+            >
+              <line x1="10" y1="35" x2="42" y2="35" stroke="rgba(6,182,212,0.6)" strokeWidth="0.3" strokeDasharray="2,1" />
+              <circle cx="10" cy="35" r="1.5" fill="#06b6d4" />
+            </motion.g>
+
+            {/* Labels - Hidden Costs */}
+            <motion.g
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 2.5, duration: 0.6 }}
+            >
+              <line x1="78" y1="72" x2="110" y2="72" stroke="rgba(239,68,68,0.6)" strokeWidth="0.3" strokeDasharray="2,1" />
+              <circle cx="110" cy="72" r="1.5" fill="#ef4444" />
+            </motion.g>
+          </svg>
+
+          {/* Floating Label Cards */}
+          {/* Visible Costs Card - Left */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 2.2, duration: 0.8 }}
+            className="absolute left-0 top-1/4 -translate-y-1/2"
+          >
+            <div className="bg-cyan-500/10 backdrop-blur-md border border-cyan-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3">
+              <p className="text-[10px] sm:text-xs text-cyan-400/80 uppercase tracking-wider mb-1">Visible (22%)</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-cyan-400 text-lg sm:text-2xl font-bold">$</span>
+                <NumberCounter 
+                  end={icebergData.visible.value} 
+                  duration={1.5} 
+                  delay={2.5}
+                  className="text-xl sm:text-3xl font-bold text-white"
+                />
+                <span className="text-cyan-400 text-lg sm:text-2xl font-bold">B</span>
+              </div>
+              <p className="text-[9px] sm:text-xs text-white/60 mt-1">Direct Claims Costs</p>
+            </div>
+          </motion.div>
+
+          {/* Hidden Costs Card - Right */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 2.7, duration: 0.8 }}
+            className="absolute right-0 bottom-1/4 translate-y-1/2"
+          >
+            <div className="bg-red-500/10 backdrop-blur-md border border-red-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3">
+              <p className="text-[10px] sm:text-xs text-red-400/80 uppercase tracking-wider mb-1">Hidden (78%)</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-red-400 text-lg sm:text-2xl font-bold">$</span>
+                <NumberCounter 
+                  end={icebergData.hidden.value} 
+                  duration={2} 
+                  delay={3}
+                  className="text-xl sm:text-3xl font-bold text-white"
+                />
+                <span className="text-red-400 text-lg sm:text-2xl font-bold">B</span>
+              </div>
+              <p className="text-[9px] sm:text-xs text-white/60 mt-1">Lost GDP & Productivity</p>
+            </div>
+          </motion.div>
+
+          {/* Water Line Indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="absolute left-1/2 -translate-x-1/2 top-[50%] -translate-y-1/2 pointer-events-none"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 sm:w-16 h-px bg-gradient-to-r from-transparent to-cyan-500/50" />
+              <span className="text-[8px] sm:text-[10px] text-cyan-400/60 uppercase tracking-widest whitespace-nowrap">Water Line</span>
+              <div className="w-8 sm:w-16 h-px bg-gradient-to-l from-transparent to-cyan-500/50" />
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom Stats Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3.2, duration: 0.6 }}
+          className="mt-6 flex flex-wrap justify-center gap-4 sm:gap-8"
+        >
+          {/* Total Loss */}
+          <div className="text-center">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-red-400 text-xl sm:text-2xl font-bold">$</span>
+              <NumberCounter 
+                end={68} 
+                duration={2} 
+                delay={3.5}
+                className="text-2xl sm:text-4xl font-bold text-white"
+              />
+              <span className="text-red-400 text-xl sm:text-2xl font-bold">B</span>
+            </div>
+            <p className="text-xs sm:text-sm text-white/60 mt-1">Total Annual Loss</p>
+          </div>
+          
+          {/* GDP Impact */}
+          <div className="text-center border-l border-white/10 pl-4 sm:pl-8">
+            <div className="flex items-baseline justify-center gap-1">
+              <NumberCounter 
+                end={4} 
+                duration={1} 
+                delay={3.7}
+                className="text-2xl sm:text-4xl font-bold text-amber-400"
+              />
+              <span className="text-amber-400 text-xl sm:text-2xl font-bold">%</span>
+            </div>
+            <p className="text-xs sm:text-sm text-white/60 mt-1">of Saudi GDP</p>
+          </div>
+          
+          {/* Global Deaths */}
+          <div className="text-center border-l border-white/10 pl-4 sm:pl-8">
+            <div className="flex items-baseline justify-center gap-1">
+              <NumberCounter 
+                end={2.9} 
+                duration={1.5} 
+                delay={3.9}
+                decimals={1}
+                className="text-2xl sm:text-4xl font-bold text-purple-400"
+              />
+              <span className="text-purple-400 text-xl sm:text-2xl font-bold">M</span>
+            </div>
+            <p className="text-xs sm:text-sm text-white/60 mt-1">Global Deaths/Year</p>
+          </div>
+        </motion.div>
+
+        {/* Quote / Context */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 4, duration: 0.8 }}
+          className="mt-6 max-w-xl text-center"
+        >
+          <p className="text-xs sm:text-sm text-white/70 italic leading-relaxed">
+            "Saudi Arabia's economic growth is silently taxed by preventable workplace incidents.
+            <span className="text-red-400 font-medium"> 78% of these costs remain invisible</span>—hidden in lost productivity, 
+            unreported illnesses, and diminished workforce potential."
+          </p>
+          <p className="text-[10px] sm:text-xs text-white/40 mt-2">— ILO Global Estimates, World Bank, GOSI Annual Reports</p>
+        </motion.div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
