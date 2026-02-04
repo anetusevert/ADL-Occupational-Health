@@ -144,10 +144,11 @@ export function getCountryFlag(isoCode: string): string {
 /**
  * Pillar weights for ADL OHI Score calculation
  * Based on WHO/ILO occupational health framework priorities
+ * Hazard Control weighted highest as prevention is the primary goal
  */
 export const OHI_PILLAR_WEIGHTS = {
-  governance: 0.30,      // 30% - Regulatory foundation
-  hazardControl: 0.25,   // 25% - Prevention (Pillar 1)
+  governance: 0.20,      // 20% - Regulatory foundation
+  hazardControl: 0.35,   // 35% - Prevention (Pillar 1) - Highest priority
   healthVigilance: 0.25, // 25% - Detection (Pillar 2)
   restoration: 0.20,     // 20% - Recovery (Pillar 3)
 } as const;

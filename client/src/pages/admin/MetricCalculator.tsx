@@ -3,25 +3,24 @@
  * Admin Configuration for Framework-Aligned Scoring
  * 
  * Features:
- * - Visual weight sliders for each metric component
- * - Score breakdown visualization per pillar
- * - Expert-level WHO/ILO aligned default weights
+ * - Visual score flow diagram showing metric → pillar → OHI flow
+ * - Interactive calculation preview with sample data
+ * - Weight configuration with animated sliders
+ * - Maturity scoring rules visualization
  * - Live preview of score calculations
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Variants } from "framer-motion";
 import {
   Calculator,
   RefreshCw,
-  ChevronDown,
-  ChevronRight,
   Check,
   AlertTriangle,
   Save,
   Loader2,
-  Scale,
   Target,
   Sliders,
   BarChart3,
@@ -30,13 +29,24 @@ import {
   Heart,
   Zap,
   Info,
-  Edit2,
   X,
-  TrendingUp,
-  TrendingDown,
+  Settings,
+  FileText,
+  Play,
+  Workflow,
 } from "lucide-react";
 import { apiClient } from "../../services/api";
 import { cn } from "../../lib/utils";
+
+// Import new scoring components
+import {
+  ScoreFlowDiagram,
+  CalculationPreview,
+  PillarWeightChart,
+  AnimatedWeightBars,
+  EnhancedWeightSlider,
+  MaturityRuleVisualizer,
+} from "../../components/scoring";
 
 // =============================================================================
 // TYPES
@@ -70,7 +80,7 @@ interface MaturityRule {
   priority: number;
   condition_type: string;
   condition_config: Record<string, any>;
-  impact_type: string;
+  impact_type: "add" | "multiply" | "cap" | "set";
   impact_value: number;
   is_active: boolean;
   updated_at: string | null;
@@ -124,11 +134,6 @@ const getMetricOverview = async (): Promise<MetricConfigOverview> => {
   return response.data;
 };
 
-const updateMetric = async (metricKey: string, update: Partial<MetricDefinition>) => {
-  const response = await apiClient.put(`/api/v1/admin/metric-config/metrics/${metricKey}`, update);
-  return response.data;
-};
-
 const updatePillarSummary = async (pillar: string, update: Partial<PillarSummary>) => {
   const response = await apiClient.put(`/api/v1/admin/metric-config/pillar-summaries/${pillar}`, update);
   return response.data;
@@ -137,6 +142,39 @@ const updatePillarSummary = async (pillar: string, update: Partial<PillarSummary
 const recalculateAllScores = async (): Promise<RecalculationResult> => {
   const response = await apiClient.post("/api/v1/admin/metric-config/recalculate");
   return response.data;
+};
+
+// =============================================================================
+// VIEW TYPES
+// =============================================================================
+
+type ViewType = "overview" | "configure" | "rules" | "simulate";
+
+const viewConfig: Record<ViewType, {
+  icon: typeof Workflow;
+  label: string;
+  description: string;
+}> = {
+  overview: {
+    icon: Workflow,
+    label: "Overview",
+    description: "Visual score flow and calculation structure",
+  },
+  configure: {
+    icon: Settings,
+    label: "Configure",
+    description: "Adjust pillar weights and metrics",
+  },
+  rules: {
+    icon: FileText,
+    label: "Rules",
+    description: "Maturity scoring rules and conditions",
+  },
+  simulate: {
+    icon: Play,
+    label: "Simulate",
+    description: "Preview calculations with sample data",
+  },
 };
 
 // =============================================================================
@@ -150,6 +188,7 @@ const pillarConfig: Record<PillarKey, {
   color: string; 
   bgColor: string; 
   borderColor: string;
+  colorKey: "purple" | "red" | "amber" | "emerald" | "cyan";
   label: string;
   shortLabel: string;
   weight: number;
@@ -160,6 +199,7 @@ const pillarConfig: Record<PillarKey, {
     color: "text-purple-400",
     bgColor: "bg-purple-500/20",
     borderColor: "border-purple-500/30",
+    colorKey: "purple",
     label: "Governance",
     shortLabel: "GOV",
     weight: 0.20,
@@ -170,6 +210,7 @@ const pillarConfig: Record<PillarKey, {
     color: "text-red-400",
     bgColor: "bg-red-500/20",
     borderColor: "border-red-500/30",
+    colorKey: "red",
     label: "Hazard Control",
     shortLabel: "P1",
     weight: 0.35,
@@ -180,6 +221,7 @@ const pillarConfig: Record<PillarKey, {
     color: "text-amber-400",
     bgColor: "bg-amber-500/20",
     borderColor: "border-amber-500/30",
+    colorKey: "amber",
     label: "Health Vigilance",
     shortLabel: "P2",
     weight: 0.25,
@@ -190,6 +232,7 @@ const pillarConfig: Record<PillarKey, {
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/20",
     borderColor: "border-emerald-500/30",
+    colorKey: "emerald",
     label: "Restoration",
     shortLabel: "P3",
     weight: 0.20,
@@ -200,10 +243,42 @@ const pillarConfig: Record<PillarKey, {
     color: "text-cyan-400",
     bgColor: "bg-cyan-500/20",
     borderColor: "border-cyan-500/30",
+    colorKey: "cyan",
     label: "ADL OHI Score",
     shortLabel: "OHI",
     weight: 1.0,
     description: "Arthur D. Little Occupational Health Index (1.0-4.0 scale)",
+  },
+};
+
+const PILLAR_HEX: Record<Exclude<PillarKey, "composite">, string> = {
+  governance: "#a855f7",
+  pillar_1_hazard: "#ef4444",
+  pillar_2_vigilance: "#f59e0b",
+  pillar_3_restoration: "#10b981",
+};
+
+// =============================================================================
+// ANIMATION VARIANTS
+// =============================================================================
+
+const pageVariants: Variants = {
+  initial: { opacity: 0, y: 20 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
+  exit: { opacity: 0, y: -20 },
+};
+
+const fadeInUp: Variants = {
+  initial: { opacity: 0, y: 20, filter: "blur(10px)" },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { type: "spring", damping: 25, stiffness: 300 },
   },
 };
 
@@ -215,8 +290,8 @@ export function MetricCalculator() {
   const queryClient = useQueryClient();
   
   // State
+  const [activeView, setActiveView] = useState<ViewType>("overview");
   const [activePillar, setActivePillar] = useState<PillarKey>("governance");
-  const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
   const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [recalcResult, setRecalcResult] = useState<RecalculationResult | null>(null);
@@ -239,7 +314,6 @@ export function MetricCalculator() {
     mutationFn: initializeMetricConfig,
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["metric-config-overview"] });
-      // Auto-recalculate all scores after initialization
       try {
         const result = await recalculateAllScores();
         setRecalcResult(result);
@@ -258,7 +332,6 @@ export function MetricCalculator() {
       queryClient.invalidateQueries({ queryKey: ["metric-config-overview"] });
       setEditingWeights({});
       setHasUnsavedChanges(false);
-      // Auto-recalculate all scores after weight changes
       try {
         const result = await recalculateAllScores();
         setRecalcResult(result);
@@ -286,20 +359,32 @@ export function MetricCalculator() {
   }, [overview, activePillar]);
 
   // Get metrics for current pillar
-  const currentMetrics = useMemo(() => {
-    if (!overview) return [];
-    return overview.metrics.filter(m => m.category === activePillar);
-  }, [overview, activePillar]);
-
   // Calculate total weight for current pillar
   const totalWeight = useMemo(() => {
     if (!currentPillarSummary) return 0;
-    const weights = { ...currentPillarSummary.component_weights, ...editingWeights };
-    return Object.values(weights).reduce((sum, config) => {
-      const w = typeof config === 'object' ? config.weight : config;
+    const merged: Record<string, number | { weight: number }> = {
+      ...currentPillarSummary.component_weights,
+    };
+
+    for (const [key, value] of Object.entries(editingWeights)) {
+      merged[key] = value;
+    }
+
+    return Object.values(merged).reduce<number>((sum, value) => {
+      const w = typeof value === "number" ? value : value.weight;
       return sum + (w || 0);
     }, 0);
   }, [currentPillarSummary, editingWeights]);
+
+  // Get component weights for chart
+  const componentWeightsForChart = useMemo(() => {
+    if (!overview) return {};
+    const weights: Record<string, Record<string, { weight: number; invert?: boolean }>> = {};
+    overview.pillar_summaries.forEach((ps) => {
+      weights[ps.pillar] = ps.component_weights;
+    });
+    return weights;
+  }, [overview]);
 
   // Handle weight change
   const handleWeightChange = (metricKey: string, newWeight: number) => {
@@ -331,30 +416,47 @@ export function MetricCalculator() {
   const needsInit = (isError && (error as any)?.response?.status === 404) || 
     (overview && overview.metrics.length === 0 && overview.rules.length === 0);
 
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-white/60">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading metric configuration...</span>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="relative">
+            <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
+            <div className="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full" />
+          </div>
+          <span className="text-white/60">Loading scoring configuration...</span>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a1a] p-6">
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="min-h-screen bg-[#0a0a1a] p-6"
+    >
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div variants={fadeInUp} className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-              <Calculator className="w-6 h-6 text-amber-400" />
+            <div className="relative">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                <Calculator className="w-7 h-7 text-amber-400" />
+              </div>
+              <div className="absolute inset-0 bg-amber-500/10 blur-xl rounded-xl" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Metric Calculator</h1>
+              <h1 className="text-2xl font-bold text-white">Scoring Configuration</h1>
               <p className="text-white/40 text-sm">
-                Configure scoring weights and formulas for framework pillars
+                Configure weights, formulas, and rules for the OHI framework
               </p>
             </div>
           </div>
@@ -416,7 +518,7 @@ export function MetricCalculator() {
               Recalculate All
             </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Recalculation Result */}
         <AnimatePresence>
@@ -455,287 +557,370 @@ export function MetricCalculator() {
 
         {overview && (
           <>
-            {/* Pillar Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {(Object.keys(pillarConfig) as PillarKey[]).map((key) => {
-                const config = pillarConfig[key];
+            {/* View Navigation */}
+            <motion.div variants={fadeInUp} className="flex gap-2 p-1 bg-white/5 rounded-xl">
+              {(Object.keys(viewConfig) as ViewType[]).map((view) => {
+                const config = viewConfig[view];
                 const Icon = config.icon;
-                const isActive = activePillar === key;
-                
+                const isActive = activeView === view;
+
                 return (
                   <button
-                    key={key}
-                    onClick={() => setActivePillar(key)}
+                    key={view}
+                    onClick={() => setActiveView(view)}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 rounded-xl transition-all min-w-fit",
+                      "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all",
                       isActive
-                        ? `${config.bgColor} ${config.borderColor} border-2`
-                        : "bg-white/5 border border-white/10 hover:bg-white/10"
+                        ? "bg-white/10 text-white"
+                        : "text-white/50 hover:text-white/80 hover:bg-white/5"
                     )}
                   >
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.bgColor)}>
-                      <Icon className={cn("w-4 h-4", config.color)} />
-                    </div>
-                    <div className="text-left">
-                      <p className={cn("font-medium", isActive ? "text-white" : "text-white/60")}>
-                        {config.label}
-                      </p>
-                      <p className="text-xs text-white/40">
-                        {key === "composite" ? "1.0-4.0 scale" : `${(config.weight * 100).toFixed(0)}% of maturity`}
-                      </p>
-                    </div>
+                    <Icon className="w-4 h-4" />
+                    <span className="font-medium">{config.label}</span>
                   </button>
                 );
               })}
-            </div>
+            </motion.div>
 
-            {/* Pillar Content - Responsive */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Score Breakdown Panel */}
-              <div className="lg:col-span-2 space-y-4">
-                {/* Pillar Header */}
-                <div className={cn(
-                  "rounded-xl p-6 border",
-                  pillarConfig[activePillar].bgColor,
-                  pillarConfig[activePillar].borderColor
-                )}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white mb-1">
-                        {pillarConfig[activePillar].label} Index
-                      </h2>
-                      <p className="text-white/60 text-sm">
-                        {pillarConfig[activePillar].description}
-                      </p>
+            {/* View Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeView}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Overview View */}
+                {activeView === "overview" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Score Flow Diagram */}
+                    <div className="lg:col-span-2 bg-white/5 rounded-xl border border-white/10 p-6">
+                      <ScoreFlowDiagram
+                        componentWeights={componentWeightsForChart}
+                        onPillarClick={(pillarId) => {
+                          setActivePillar(pillarId as PillarKey);
+                          setActiveView("configure");
+                        }}
+                      />
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-white">
-                        {activePillar === "composite" ? "1-4" : "0-100"}
-                      </p>
-                      <p className="text-white/40 text-sm">Output Range</p>
+
+                    {/* Pillar Weight Distribution */}
+                    <div className="bg-white/5 rounded-xl border border-white/10 p-6">
+                      <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-white/40" />
+                        Pillar Weight Distribution
+                      </h3>
+                      <PillarWeightChart className="mb-6" />
+                      
+                      {/* Statistics */}
+                      <div className="space-y-3 pt-4 border-t border-white/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/50 text-sm">Active Metrics</span>
+                          <span className="text-white font-mono">{overview.statistics.active_metrics}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/50 text-sm">Active Rules</span>
+                          <span className="text-white font-mono">{overview.statistics.active_rules}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/50 text-sm">Total Pillars</span>
+                          <span className="text-white font-mono">{overview.pillar_summaries.length}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Pillar Cards */}
+                    <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {(Object.keys(pillarConfig) as PillarKey[])
+                        .filter((key) => key !== "composite")
+                        .map((key, index) => {
+                          const config = pillarConfig[key];
+                          const metricsCount = overview.metrics.filter((m) => m.category === key).length;
+
+                          return (
+                            <motion.button
+                              key={key}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              whileHover={{ scale: 1.02, y: -4 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                setActivePillar(key);
+                                setActiveView("configure");
+                              }}
+                              className={cn(
+                                "p-4 rounded-xl border text-left transition-colors",
+                                config.bgColor,
+                                config.borderColor,
+                                "hover:bg-white/10"
+                              )}
+                            >
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", config.bgColor)}>
+                                  <config.icon className={cn("w-5 h-5", config.color)} />
+                                </div>
+                                <div>
+                                  <p className="text-white font-medium">{config.label}</p>
+                                  <p className="text-white/40 text-xs">{metricsCount} metrics</p>
+                                </div>
+                              </div>
+                              <div className="flex items-baseline gap-1">
+                                <span className={cn("text-2xl font-bold font-mono", config.color)}>
+                                  {(config.weight * 100).toFixed(0)}%
+                                </span>
+                                <span className="text-white/40 text-sm">weight</span>
+                              </div>
+                            </motion.button>
+                          );
+                        })}
                     </div>
                   </div>
-                  
-                  {/* Total Weight Indicator */}
-                  {currentPillarSummary && activePillar !== "composite" && (
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/60 text-sm">Total Component Weight</span>
-                        <span className={cn(
-                          "font-mono font-bold",
-                          Math.abs(totalWeight - 1.0) < 0.001 ? "text-emerald-400" : "text-amber-400"
-                        )}>
-                          {(totalWeight * 100).toFixed(0)}%
-                        </span>
+                )}
+
+                {/* Configure View */}
+                {activeView === "configure" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Pillar Tabs */}
+                    <div className="lg:col-span-3">
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {(Object.keys(pillarConfig) as PillarKey[])
+                          .filter((key) => key !== "composite")
+                          .map((key) => {
+                            const config = pillarConfig[key];
+                            const Icon = config.icon;
+                            const isActive = activePillar === key;
+                            
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setActivePillar(key)}
+                                className={cn(
+                                  "flex items-center gap-2 px-4 py-3 rounded-xl transition-all min-w-fit",
+                                  isActive
+                                    ? `${config.bgColor} ${config.borderColor} border-2`
+                                    : "bg-white/5 border border-white/10 hover:bg-white/10"
+                                )}
+                              >
+                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.bgColor)}>
+                                  <Icon className={cn("w-4 h-4", config.color)} />
+                                </div>
+                                <div className="text-left">
+                                  <p className={cn("font-medium", isActive ? "text-white" : "text-white/60")}>
+                                    {config.label}
+                                  </p>
+                                  <p className="text-xs text-white/40">
+                                    {(config.weight * 100).toFixed(0)}% of maturity
+                                  </p>
+                                </div>
+                              </button>
+                            );
+                          })}
                       </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full transition-all duration-300",
-                            Math.abs(totalWeight - 1.0) < 0.001 ? "bg-emerald-500" : "bg-amber-500"
-                          )}
-                          style={{ width: `${Math.min(totalWeight * 100, 100)}%` }}
-                        />
+                    </div>
+
+                    {/* Weight Configuration */}
+                    <div className="lg:col-span-2 space-y-4">
+                      {/* Pillar Header */}
+                      <div className={cn(
+                        "rounded-xl p-6 border",
+                        pillarConfig[activePillar].bgColor,
+                        pillarConfig[activePillar].borderColor
+                      )}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h2 className="text-xl font-bold text-white mb-1">
+                              {pillarConfig[activePillar].label} Index
+                            </h2>
+                            <p className="text-white/60 text-sm">
+                              {pillarConfig[activePillar].description}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-3xl font-bold text-white">0-100</p>
+                            <p className="text-white/40 text-sm">Output Range</p>
+                          </div>
+                        </div>
+                        
+                        {/* Total Weight Indicator */}
+                        {currentPillarSummary && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-white/60 text-sm">Total Component Weight</span>
+                              <span className={cn(
+                                "font-mono font-bold",
+                                Math.abs(totalWeight - 1.0) < 0.001 ? "text-emerald-400" : "text-amber-400"
+                              )}>
+                                {(totalWeight * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                              <motion.div 
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  Math.abs(totalWeight - 1.0) < 0.001 ? "bg-emerald-500" : "bg-amber-500"
+                                )}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(totalWeight * 100, 100)}%` }}
+                              />
+                            </div>
+                            {Math.abs(totalWeight - 1.0) > 0.001 && (
+                              <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Weights should sum to 100%
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {Math.abs(totalWeight - 1.0) > 0.001 && (
-                        <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Weights should sum to 100%
-                        </p>
+
+                      {/* Component Weights with Enhanced Sliders */}
+                      {currentPillarSummary && 
+                        currentPillarSummary.component_weights && 
+                        Object.keys(currentPillarSummary.component_weights).length > 0 ? (
+                        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                          <div className="px-4 py-3 border-b border-white/10">
+                            <h3 className="text-white font-medium flex items-center gap-2">
+                              <Sliders className="w-4 h-4 text-white/40" />
+                              Component Weights
+                            </h3>
+                            <p className="text-white/40 text-xs mt-1">
+                              Adjust the contribution of each metric to the pillar score
+                            </p>
+                          </div>
+                          
+                          <div className="divide-y divide-white/5">
+                            {Object.entries(currentPillarSummary.component_weights).map(([metricKey, config]) => {
+                              const currentWeight = editingWeights[metricKey] ?? config.weight;
+                              const metric = overview.metrics.find(m => m.metric_key === metricKey);
+                              
+                              return (
+                                <EnhancedWeightSlider
+                                  key={metricKey}
+                                  metricKey={metricKey}
+                                  metricName={metric?.name || metricKey.replace(/_/g, " ")}
+                                  description={metric?.description || null}
+                                  weight={currentWeight}
+                                  defaultWeight={config.weight}
+                                  isInverted={config.invert || false}
+                                  maxValue={config.max_value}
+                                  unit={metric?.unit || null}
+                                  lowerIsBetter={metric?.lower_is_better || false}
+                                  onChange={(newWeight) => handleWeightChange(metricKey, newWeight)}
+                                  onReset={() => handleWeightChange(metricKey, config.weight)}
+                                  pillarColor={pillarConfig[activePillar].color}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 text-center">
+                          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+                          <p className="text-white font-medium text-lg">Configuration Not Initialized</p>
+                          <p className="text-white/60 text-sm mt-2 mb-4">
+                            No component weights are configured for this pillar yet.
+                          </p>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => initMutation.mutate()}
+                            disabled={initMutation.isPending}
+                            className="px-6 py-2.5 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2 mx-auto"
+                          >
+                            {initMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Zap className="w-4 h-4" />
+                            )}
+                            Initialize Configuration
+                          </motion.button>
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                {/* Component Weights with Sliders */}
-                {activePillar !== "composite" && (
-                  currentPillarSummary && 
-                  currentPillarSummary.component_weights && 
-                  Object.keys(currentPillarSummary.component_weights).length > 0 ? (
-                    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                      <div className="px-4 py-3 border-b border-white/10">
-                        <h3 className="text-white font-medium flex items-center gap-2">
-                          <Sliders className="w-4 h-4 text-white/40" />
-                          Component Weights
+                    {/* Info Panel */}
+                    <div className="space-y-4">
+                      {/* Scoring Methodology */}
+                      <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                        <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                          <Info className="w-4 h-4 text-white/40" />
+                          Scoring Methodology
                         </h3>
-                        <p className="text-white/40 text-xs mt-1">
-                          Adjust the contribution of each metric to the pillar score
+                        <div className="space-y-3 text-sm text-white/60">
+                          <p>The <span className="text-white">{pillarConfig[activePillar].label}</span> index uses a weighted average:</p>
+                          <div className="bg-white/5 rounded-lg p-3 font-mono text-xs">
+                            Score = Σ(metric × weight)
+                          </div>
+                          <p>Each metric is normalized to 0-100 before weighting. Inverted metrics (where lower is better) are calculated as: <span className="font-mono">100 - normalized_value</span></p>
+                        </div>
+                      </div>
+
+                      {/* Weight Distribution Chart */}
+                      {currentPillarSummary && (
+                        <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                          <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-white/40" />
+                            Weight Distribution
+                          </h3>
+                          <AnimatedWeightBars
+                            segments={Object.entries(currentPillarSummary.component_weights)
+                              .map(([key, config]) => ({
+                                id: key,
+                                label: key.split("_").slice(0, 3).join(" "),
+                                weight: editingWeights[key] ?? config.weight,
+                                color:
+                                  activePillar === "composite"
+                                    ? "#06b6d4"
+                                    : PILLAR_HEX[activePillar],
+                              }))}
+                            maxWidth={250}
+                          />
+                        </div>
+                      )}
+
+                      {/* Expert Guidance */}
+                      <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-4">
+                        <h3 className="text-amber-400 font-medium mb-2 flex items-center gap-2">
+                          <Target className="w-4 h-4" />
+                          WHO/ILO Guidance
+                        </h3>
+                        <p className="text-white/60 text-sm">
+                          Default weights follow WHO/ILO occupational health system assessment frameworks. 
+                          Hazard Control (35%) is weighted highest as prevention is the primary goal.
                         </p>
                       </div>
-                      
-                      <div className="divide-y divide-white/5">
-                        {Object.entries(currentPillarSummary.component_weights).map(([metricKey, config]) => {
-                          const currentWeight = editingWeights[metricKey] ?? config.weight;
-                          const metric = overview.metrics.find(m => m.metric_key === metricKey);
-                          
-                          return (
-                            <WeightSlider
-                              key={metricKey}
-                              metricKey={metricKey}
-                              metricName={metric?.name || metricKey.replace(/_/g, " ")}
-                              description={metric?.description || null}
-                              weight={currentWeight}
-                              isInverted={config.invert || false}
-                              maxValue={config.max_value}
-                              unit={metric?.unit || null}
-                              lowerIsBetter={metric?.lower_is_better || false}
-                              onChange={(newWeight) => handleWeightChange(metricKey, newWeight)}
-                              pillarColor={pillarConfig[activePillar].color}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 text-center">
-                      <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                      <p className="text-white font-medium text-lg">Configuration Not Initialized</p>
-                      <p className="text-white/60 text-sm mt-2 mb-4">
-                        No component weights are configured for this pillar yet.
-                        Click the button below to initialize default weights based on WHO/ILO guidance.
-                      </p>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => initMutation.mutate()}
-                        disabled={initMutation.isPending}
-                        className="px-6 py-2.5 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        {initMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Zap className="w-4 h-4" />
-                        )}
-                        Initialize Configuration
-                      </motion.button>
-                    </div>
-                  )
-                )}
-
-                {/* Maturity Scoring Rules (for composite tab) */}
-                {activePillar === "composite" && (
-                  <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <h3 className="text-white font-medium flex items-center gap-2">
-                        <Scale className="w-4 h-4 text-white/40" />
-                        Maturity Scoring Rules
-                      </h3>
-                      <p className="text-white/40 text-xs mt-1">
-                        Rules that determine the overall maturity score (1.0-4.0)
-                      </p>
-                    </div>
-                    
-                    <div className="divide-y divide-white/5">
-                      {overview.rules.map((rule) => (
-                        <MaturityRuleRow key={rule.id} rule={rule} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Info Panel */}
-              <div className="space-y-4">
-                {/* Pillar Overview */}
-                <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-                  <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-white/40" />
-                    Scoring Methodology
-                  </h3>
-                  
-                  {activePillar === "composite" ? (
-                    <div className="space-y-3 text-sm text-white/60">
-                      <p>The <span className="text-white">Maturity Score</span> uses a rule-based calculation:</p>
-                      <ul className="space-y-2">
-                        <li className="flex items-start gap-2">
-                          <span className="text-red-400 font-mono">1.0</span>
-                          <span>Base score (Reactive)</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-emerald-400 font-mono">+1.0</span>
-                          <span>Low fatal rate & high inspector density</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-amber-400 font-mono">+0.5</span>
-                          <span>Risk-based surveillance</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-emerald-400 font-mono">+1.0</span>
-                          <span>Reintegration law in place</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-emerald-400 font-mono">+0.5</span>
-                          <span>No-fault compensation</span>
-                        </li>
-                      </ul>
-                      <p className="pt-2 border-t border-white/10">
-                        Maximum score: <span className="text-white font-mono">4.0</span> (Resilient)
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 text-sm text-white/60">
-                      <p>The <span className="text-white">{pillarConfig[activePillar].label}</span> index uses a weighted average:</p>
-                      <div className="bg-white/5 rounded-lg p-3 font-mono text-xs">
-                        Score = Σ(metric × weight)
-                      </div>
-                      <p>Each metric is normalized to 0-100 before weighting. Inverted metrics (where lower is better) are calculated as: <span className="font-mono">100 - normalized_value</span></p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Weight Distribution Chart */}
-                {currentPillarSummary && activePillar !== "composite" && (
-                  <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-                    <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-white/40" />
-                      Weight Distribution
-                    </h3>
-                    
-                    <div className="space-y-2">
-                      {Object.entries(currentPillarSummary.component_weights)
-                        .sort((a, b) => b[1].weight - a[1].weight)
-                        .map(([key, config]) => {
-                          const currentWeight = editingWeights[key] ?? config.weight;
-                          return (
-                            <div key={key} className="flex items-center gap-2">
-                              <div className="w-20 text-xs text-white/40 truncate">
-                                {key.split("_").slice(0, 2).join(" ")}
-                              </div>
-                              <div className="flex-1 h-4 bg-white/10 rounded-full overflow-hidden">
-                                <div 
-                                  className={cn("h-full rounded-full", pillarConfig[activePillar].bgColor.replace("/20", ""))}
-                                  style={{ width: `${currentWeight * 100}%` }}
-                                />
-                              </div>
-                              <div className="w-12 text-xs text-white/60 text-right font-mono">
-                                {(currentWeight * 100).toFixed(0)}%
-                              </div>
-                            </div>
-                          );
-                        })}
                     </div>
                   </div>
                 )}
 
-                {/* Expert Guidance */}
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-4">
-                  <h3 className="text-amber-400 font-medium mb-2 flex items-center gap-2">
-                    <Target className="w-4 h-4" />
-                    WHO/ILO Guidance
-                  </h3>
-                  <p className="text-white/60 text-sm">
-                    Default weights follow WHO/ILO occupational health system assessment frameworks. 
-                    Hazard Control (35%) is weighted highest as prevention is the primary goal.
-                  </p>
-                </div>
-              </div>
-            </div>
+                {/* Rules View */}
+                {activeView === "rules" && (
+                  <MaturityRuleVisualizer
+                    rules={overview.rules}
+                    showInactive={false}
+                  />
+                )}
+
+                {/* Simulate View */}
+                {activeView === "simulate" && (
+                  <CalculationPreview
+                    countryName="Sample Country"
+                    countryCode="XX"
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </>
         )}
 
         {/* Empty State */}
         {!overview && !isLoading && !needsInit && (
-          <div className="bg-white/5 rounded-xl p-8 text-center">
+          <motion.div
+            variants={fadeInUp}
+            className="bg-white/5 rounded-xl p-8 text-center"
+          >
             <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
             <p className="text-white font-medium mb-2">Unable to load metric configuration</p>
             <p className="text-white/40 text-sm mb-4">
@@ -747,177 +932,10 @@ export function MetricCalculator() {
             >
               Retry
             </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// WEIGHT SLIDER COMPONENT
-// =============================================================================
-
-function WeightSlider({
-  metricKey,
-  metricName,
-  description,
-  weight,
-  isInverted,
-  maxValue,
-  unit,
-  lowerIsBetter,
-  onChange,
-  pillarColor,
-}: {
-  metricKey: string;
-  metricName: string;
-  description: string | null;
-  weight: number;
-  isInverted: boolean;
-  maxValue?: number;
-  unit: string | null;
-  lowerIsBetter: boolean;
-  onChange: (weight: number) => void;
-  pillarColor: string;
-}) {
-  return (
-    <div className="px-4 py-4 hover:bg-white/5 transition-colors">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-white font-medium">{metricName}</p>
-            {isInverted && (
-              <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 flex items-center gap-1">
-                <TrendingDown className="w-3 h-3" />
-                Inverted
-              </span>
-            )}
-          </div>
-          {description && (
-            <p className="text-white/40 text-sm mt-0.5 line-clamp-1">{description}</p>
-          )}
-        </div>
-        <div className="text-right">
-          <p className={cn("text-2xl font-bold font-mono", pillarColor)}>
-            {(weight * 100).toFixed(0)}%
-          </p>
-          {unit && <p className="text-white/40 text-xs">{unit}</p>}
-        </div>
-      </div>
-      
-      {/* Slider */}
-      <div className="relative">
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="5"
-          value={weight * 100}
-          onChange={(e) => onChange(parseInt(e.target.value) / 100)}
-          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-4
-            [&::-webkit-slider-thumb]:h-4
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-white
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:cursor-grab
-            [&::-webkit-slider-thumb]:transition-transform
-            [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-moz-range-thumb]:w-4
-            [&::-moz-range-thumb]:h-4
-            [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:bg-white
-            [&::-moz-range-thumb]:border-0
-            [&::-moz-range-thumb]:cursor-grab"
-        />
-        {/* Track fill */}
-        <div 
-          className="absolute top-0 left-0 h-2 rounded-full pointer-events-none bg-gradient-to-r from-white/20 to-white/40"
-          style={{ width: `${weight * 100}%` }}
-        />
-      </div>
-      
-      {/* Scale markers */}
-      <div className="flex justify-between mt-1 text-xs text-white/30">
-        <span>0%</span>
-        <span>25%</span>
-        <span>50%</span>
-        <span>75%</span>
-        <span>100%</span>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// MATURITY RULE ROW COMPONENT
-// =============================================================================
-
-function MaturityRuleRow({ rule }: { rule: MaturityRule }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const config = pillarConfig[rule.pillar as PillarKey] || pillarConfig.composite;
-  const Icon = config.icon;
-
-  const impactDisplay = rule.impact_type === "cap" 
-    ? `Cap at ${rule.impact_value}` 
-    : rule.impact_type === "set"
-    ? `Set to ${rule.impact_value}`
-    : `${rule.impact_value >= 0 ? "+" : ""}${rule.impact_value}`;
-
-  return (
-    <div className="px-4 py-3 hover:bg-white/5 transition-colors">
-      <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-3">
-          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.bgColor)}>
-            <Icon className={cn("w-4 h-4", config.color)} />
-          </div>
-          <div>
-            <p className="text-white font-medium">{rule.name}</p>
-            <p className="text-white/40 text-sm">{rule.description}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <span className={cn(
-            "text-lg font-bold font-mono",
-            rule.impact_type === "cap" ? "text-red-400" : 
-            rule.impact_value >= 0 ? "text-emerald-400" : "text-red-400"
-          )}>
-            {impactDisplay}
-          </span>
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-white/40" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-white/40" />
-          )}
-        </div>
-      </div>
-      
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-white/40 text-xs mb-2">Condition</p>
-              <div className="bg-white/5 rounded-lg p-3 font-mono text-xs text-white/60">
-                <pre className="whitespace-pre-wrap">
-                  {JSON.stringify(rule.condition_config, null, 2)}
-                </pre>
-              </div>
-            </div>
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </motion.div>
   );
 }
 
