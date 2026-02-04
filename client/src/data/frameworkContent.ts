@@ -807,29 +807,25 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "amber"
   },
-  // Slide 3: The ADL Solution (NEW) - Promotional for Arthur D. Little
+  // Slide 3: The Current Landscape - Fragmented Data, Accelerating Risks
   {
     id: "adl-solution",
     type: "solution",
-    title: "Arthur D. Little",
-    actionTitle: "The World's First Management Consultancy, Since 1886",
-    subtitle: "140 Years of Pioneering Innovation & Strategic Excellence",
-    content: "Founded in Boston in 1886, Arthur D. Little is the world's first management consulting firm. With 51 offices across 39 countries, we combine deep industry expertise with cutting-edge innovation to solve the world's most complex challenges.",
+    title: "The Current Landscape",
+    actionTitle: "Fragmented Data, Accelerating Risks",
+    subtitle: "Why Traditional Approaches Are Failing",
+    content: "Occupational health systems worldwide face a perfect storm: data fragmentation prevents longitudinal analysis, emerging work modalities outpace regulation, and psychosocial risks remain largely unmeasured.",
     highlights: [
-      "World's first management consulting firm (1886)",
-      "51 offices across 39 countries globally",
-      "Middle East hub with dedicated regional leadership",
-      "Pioneers of R&D consulting - organized first GM R&D lab (1911)",
-      "Deep healthcare and public sector transformation expertise",
-      "Proprietary evidence-based analytical frameworks"
+      "Data Silos & Fragmentation",
+      "The Evolving Risk Profile",
+      "The Psychosocial Deficit"
     ],
     stats: [
-      { value: "1886", label: "Founded", color: "purple" },
-      { value: "51", label: "Global Offices", color: "cyan" },
-      { value: "39", label: "Countries", color: "blue" },
-      { value: "140+", label: "Years Excellence", color: "emerald" }
+      { value: "73%", label: "Data Fragmentation", color: "red" },
+      { value: "4x", label: "Risk Acceleration", color: "amber" },
+      { value: "85%", label: "Unmeasured Psych Risks", color: "purple" }
     ],
-    color: "purple"
+    color: "blue"
   },
   // Slide 4: THE ARCHITECTURE - The 3D Isometric Cube
   {

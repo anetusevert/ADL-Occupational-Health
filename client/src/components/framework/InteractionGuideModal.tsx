@@ -2738,13 +2738,10 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
       );
 
     case "solution":
-      // Premium ADL promotional layout - full visual showcase
+      // SLIDE 3: The Current Landscape - Fragmented Data, Accelerating Risks
       return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900">
-          {/* Full-bleed ADL visual showcase */}
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <ADLSolutionVisual />
-          </div>
+        <div className="h-full flex flex-col overflow-hidden">
+          <CurrentLandscapeVisual />
         </div>
       );
 
@@ -3264,6 +3261,494 @@ function GlobalIntelVisual() {
               <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
                 <p className="text-sm text-white/60 mb-1">Impact</p>
                 <p className="text-lg font-semibold text-cyan-400">{activeCapability.impact}</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================================================
+// SLIDE 3: THE CURRENT LANDSCAPE - Fragmented Data, Accelerating Risks
+// ============================================================================
+
+// Challenge data with detailed information
+const landscapeChallenges = {
+  dataSilos: {
+    id: "data-silos",
+    title: "Data Silos & Fragmentation",
+    icon: "Database",
+    description: "Critical disconnects between occupational exposure, clinical records, and productivity data. Prevents longitudinal analysis.",
+    detailedDescription: "Healthcare systems, insurers, and employers maintain separate databases with incompatible formats. This fragmentation makes it impossible to track a worker's health journey across employers or link occupational exposures to long-term health outcomes.",
+    implications: [
+      "Cannot correlate workplace exposures with disease onset",
+      "No unified view of worker health across employers",
+      "Duplicate assessments waste resources",
+      "Delayed identification of emerging hazards",
+      "Policy decisions based on incomplete data"
+    ],
+    statistics: [
+      { metric: "73%", description: "of occupational health data sits in incompatible silos" },
+      { metric: "5-10 years", description: "average delay in linking exposure to disease" },
+      { metric: "$2.3B", description: "annual cost of duplicate assessments globally" }
+    ],
+    sources: [
+      { name: "EU-OSHA Data Integration Study", url: "https://osha.europa.eu/" },
+      { name: "WHO Digital Health Strategy", url: "https://www.who.int/health-topics/digital-health" }
+    ]
+  },
+  evolvingRisk: {
+    id: "evolving-risk",
+    title: "The Evolving Risk Profile",
+    icon: "TrendingUp",
+    description: "Rapid shift in work modalities (gig economy, remote, platform) outpacing regulatory frameworks. Automation risks.",
+    detailedDescription: "The nature of work is transforming faster than regulatory systems can adapt. Gig workers lack coverage, remote work creates new ergonomic and psychosocial risks, and automation introduces novel hazards that traditional frameworks never anticipated.",
+    implications: [
+      "40% of workforce in non-traditional arrangements",
+      "Remote work ergonomic injuries up 300% since 2020",
+      "AI/automation creating unregulated human-machine interfaces",
+      "Platform workers excluded from most OH protections",
+      "Regulatory lag of 5-15 years behind work reality"
+    ],
+    statistics: [
+      { metric: "4x", description: "increase in gig economy workers since 2015" },
+      { metric: "68%", description: "of countries lack remote work OH regulations" },
+      { metric: "23%", description: "of automation injuries go unreported" }
+    ],
+    sources: [
+      { name: "ILO Future of Work Report", url: "https://www.ilo.org/global/topics/future-of-work/" },
+      { name: "McKinsey Gig Economy Analysis", url: "https://www.mckinsey.com/featured-insights/future-of-work" }
+    ]
+  },
+  psychosocial: {
+    id: "psychosocial",
+    title: "The Psychosocial Deficit",
+    icon: "Brain",
+    description: "Mental health hazards poorly integrated into standard physical risk models. Lack of standardized global metrics.",
+    detailedDescription: "While physical hazards have well-established measurement protocols, psychosocial risks—stress, burnout, workplace harassment, job insecurity—lack standardized assessment tools. Most countries don't require psychosocial risk assessment, despite mental health being the fastest-growing cause of work disability.",
+    implications: [
+      "Mental health now #1 cause of work disability in OECD",
+      "No ILO convention specifically on psychosocial risks",
+      "Stigma prevents reporting of mental health issues",
+      "Economic cost exceeds physical injury costs in many sectors",
+      "Burnout recognized by WHO but not legally as occupational disease"
+    ],
+    statistics: [
+      { metric: "85%", description: "of psychosocial risks remain unmeasured" },
+      { metric: "$1T", description: "annual global cost of workplace depression/anxiety" },
+      { metric: "12%", description: "of countries mandate psychosocial risk assessment" }
+    ],
+    sources: [
+      { name: "WHO Mental Health at Work", url: "https://www.who.int/news-room/fact-sheets/detail/mental-health-at-work" },
+      { name: "OECD Mental Health and Work", url: "https://www.oecd.org/employment/mental-health-and-work.htm" }
+    ]
+  }
+};
+
+function CurrentLandscapeVisual() {
+  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
+  
+  const challenges = [
+    { key: "dataSilos", icon: Database, color: "cyan", delay: 0.5 },
+    { key: "evolvingRisk", icon: TrendingUp, color: "amber", delay: 0.7 },
+    { key: "psychosocial", icon: Heart, color: "purple", delay: 0.9 },
+  ];
+
+  const activeChallenge = selectedChallenge 
+    ? landscapeChallenges[selectedChallenge as keyof typeof landscapeChallenges] 
+    : null;
+
+  const getColorClasses = (color: string) => {
+    const colors: Record<string, { text: string; bg: string; border: string }> = {
+      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30" },
+      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+      purple: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+      red: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+    };
+    return colors[color] || colors.cyan;
+  };
+
+  return (
+    <div className="relative w-full h-full flex overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900">
+      {/* Particle effects */}
+      <ParticleField count={50} color="blue" speed="slow" />
+      
+      {/* Ambient glow orbs */}
+      <FloatingGlowOrb color="blue" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="purple" size="md" position="bottom-right" delay={0.5} />
+
+      {/* Main Content */}
+      <div className="relative z-10 w-full h-full flex flex-col p-6 lg:p-8">
+        
+        {/* Title */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-6"
+        >
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-2">
+            THE CURRENT LANDSCAPE:
+          </h1>
+          <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            FRAGMENTED DATA, ACCELERATING RISKS
+          </h2>
+        </motion.div>
+
+        {/* Main Content Grid */}
+        <div className="flex-1 grid grid-cols-3 gap-6 min-h-0">
+          
+          {/* Left Column - Systemic Challenges */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="flex flex-col"
+          >
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-4 py-2 mb-4 inline-block self-start">
+              <h3 className="text-cyan-400 font-semibold text-sm tracking-wide">SYSTEMIC CHALLENGES</h3>
+            </div>
+            
+            <div className="space-y-3 flex-1">
+              {challenges.map((chal, index) => {
+                const data = landscapeChallenges[chal.key as keyof typeof landscapeChallenges];
+                const colors = getColorClasses(chal.color);
+                const Icon = chal.icon;
+                
+                return (
+                  <motion.button
+                    key={chal.key}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: chal.delay, duration: 0.4 }}
+                    onClick={() => setSelectedChallenge(chal.key)}
+                    whileHover={{ x: 5, scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className={`flex items-start gap-3 p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all text-left w-full ${colors.bg} ${colors.border} hover:shadow-lg`}
+                  >
+                    <div className={`p-2 rounded-lg ${colors.bg} flex-shrink-0`}>
+                      <Icon className={`w-4 h-4 ${colors.text}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-semibold ${colors.text} text-sm mb-1`}>
+                        {data.title}
+                      </h4>
+                      <p className="text-white/60 text-xs leading-relaxed line-clamp-3">
+                        {data.description}
+                      </p>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+            
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="text-white/40 text-xs mt-3"
+            >
+              Click any challenge for details
+            </motion.p>
+          </motion.div>
+
+          {/* Center Column - Data Silos Visualization */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="flex items-center justify-center"
+          >
+            <div className="relative w-full max-w-xs aspect-square">
+              {/* Database cylinders */}
+              <svg viewBox="0 0 200 200" className="w-full h-full">
+                <defs>
+                  <linearGradient id="dbGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
+                    <stop offset="100%" stopColor="rgba(6,182,212,0.1)" />
+                  </linearGradient>
+                  <linearGradient id="dbGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(139,92,246,0.4)" />
+                    <stop offset="100%" stopColor="rgba(139,92,246,0.1)" />
+                  </linearGradient>
+                  <linearGradient id="dbGradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(251,191,36,0.4)" />
+                    <stop offset="100%" stopColor="rgba(251,191,36,0.1)" />
+                  </linearGradient>
+                </defs>
+                
+                {/* Clinical Database */}
+                <motion.g
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7, duration: 0.5 }}
+                >
+                  <ellipse cx="50" cy="50" rx="30" ry="10" fill="url(#dbGradient1)" stroke="rgba(6,182,212,0.6)" strokeWidth="1" />
+                  <rect x="20" y="50" width="60" height="40" fill="url(#dbGradient1)" />
+                  <ellipse cx="50" cy="90" rx="30" ry="10" fill="url(#dbGradient1)" stroke="rgba(6,182,212,0.6)" strokeWidth="1" />
+                  <ellipse cx="50" cy="50" rx="30" ry="10" fill="none" stroke="rgba(6,182,212,0.6)" strokeWidth="1" />
+                  <line x1="20" y1="50" x2="20" y2="90" stroke="rgba(6,182,212,0.6)" strokeWidth="1" />
+                  <line x1="80" y1="50" x2="80" y2="90" stroke="rgba(6,182,212,0.6)" strokeWidth="1" />
+                  <text x="50" y="75" textAnchor="middle" fill="white" fontSize="8" fontWeight="500">CLINICAL</text>
+                </motion.g>
+                
+                {/* Industrial Hygiene Database */}
+                <motion.g
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.5 }}
+                >
+                  <ellipse cx="150" cy="80" rx="30" ry="10" fill="url(#dbGradient2)" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+                  <rect x="120" y="80" width="60" height="40" fill="url(#dbGradient2)" />
+                  <ellipse cx="150" cy="120" rx="30" ry="10" fill="url(#dbGradient2)" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+                  <ellipse cx="150" cy="80" rx="30" ry="10" fill="none" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+                  <line x1="120" y1="80" x2="120" y2="120" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+                  <line x1="180" y1="80" x2="180" y2="120" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+                  <text x="150" y="102" textAnchor="middle" fill="white" fontSize="7" fontWeight="500">INDUSTRIAL</text>
+                  <text x="150" y="112" textAnchor="middle" fill="white" fontSize="7" fontWeight="500">HYGIENE</text>
+                </motion.g>
+                
+                {/* Psychosocial Database */}
+                <motion.g
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1, duration: 0.5 }}
+                >
+                  <ellipse cx="70" cy="140" rx="30" ry="10" fill="url(#dbGradient3)" stroke="rgba(251,191,36,0.6)" strokeWidth="1" />
+                  <rect x="40" y="140" width="60" height="40" fill="url(#dbGradient3)" />
+                  <ellipse cx="70" cy="180" rx="30" ry="10" fill="url(#dbGradient3)" stroke="rgba(251,191,36,0.6)" strokeWidth="1" />
+                  <ellipse cx="70" cy="140" rx="30" ry="10" fill="none" stroke="rgba(251,191,36,0.6)" strokeWidth="1" />
+                  <line x1="40" y1="140" x2="40" y2="180" stroke="rgba(251,191,36,0.6)" strokeWidth="1" />
+                  <line x1="100" y1="140" x2="100" y2="180" stroke="rgba(251,191,36,0.6)" strokeWidth="1" />
+                  <text x="70" y="165" textAnchor="middle" fill="white" fontSize="7" fontWeight="500">PSYCHOSOCIAL</text>
+                </motion.g>
+                
+                {/* Connection arrows (broken/fragmented) */}
+                <motion.g
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3, duration: 0.5 }}
+                >
+                  <path d="M 80 70 Q 100 75 120 85" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="4,4" fill="none" markerEnd="url(#arrowhead)" />
+                  <path d="M 80 90 Q 90 120 70 135" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="4,4" fill="none" />
+                  <path d="M 120 115 Q 105 130 100 145" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="4,4" fill="none" />
+                </motion.g>
+              </svg>
+            </div>
+          </motion.div>
+
+          {/* Right Column - Macro-Level Implications */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="flex flex-col"
+          >
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 mb-4 inline-block self-start">
+              <h3 className="text-amber-400 font-semibold text-sm tracking-wide">MACRO-LEVEL IMPLICATIONS</h3>
+            </div>
+            
+            <div className="flex-1 flex flex-col justify-center space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="p-4 rounded-xl bg-white/5 border border-white/10"
+              >
+                <p className="text-white/80 text-sm leading-relaxed">
+                  <span className="text-amber-400 font-semibold">Suboptimal OH strategies</span> are transitioning from an organizational cost to a{" "}
+                  <span className="text-red-400 font-semibold">measurable drag on state-level GDP</span> and{" "}
+                  <span className="text-cyan-400 font-semibold">national healthcare resilience</span>.
+                </p>
+              </motion.div>
+              
+              {/* Emerging Threats Visualization */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1 }}
+                className="relative"
+              >
+                <svg viewBox="0 0 200 100" className="w-full">
+                  {/* Rising trend line */}
+                  <motion.path
+                    d="M 20 80 Q 60 75 80 60 Q 100 45 130 35 Q 160 25 180 15"
+                    stroke="url(#riskGradient)"
+                    strokeWidth="3"
+                    fill="none"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 1.2, duration: 1.5 }}
+                  />
+                  <defs>
+                    <linearGradient id="riskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#06b6d4" />
+                      <stop offset="50%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#ef4444" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Arrow at end */}
+                  <motion.polygon
+                    points="185,12 175,8 175,16"
+                    fill="#ef4444"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.7 }}
+                  />
+                  
+                  {/* Data points */}
+                  {[
+                    { x: 40, y: 77 },
+                    { x: 80, y: 60 },
+                    { x: 120, y: 40 },
+                    { x: 160, y: 22 },
+                  ].map((point, i) => (
+                    <motion.circle
+                      key={i}
+                      cx={point.x}
+                      cy={point.y}
+                      r="4"
+                      fill="white"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1.5 + i * 0.2 }}
+                    />
+                  ))}
+                  
+                  {/* Label */}
+                  <motion.text
+                    x="175"
+                    y="35"
+                    fill="#ef4444"
+                    fontSize="8"
+                    fontWeight="bold"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.5 }}
+                  >
+                    EMERGING
+                  </motion.text>
+                  <motion.text
+                    x="175"
+                    y="45"
+                    fill="#ef4444"
+                    fontSize="8"
+                    fontWeight="bold"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.5 }}
+                  >
+                    THREATS
+                  </motion.text>
+                </svg>
+              </motion.div>
+              
+              {/* Stats */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+                className="grid grid-cols-3 gap-2"
+              >
+                <div className="text-center p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-red-400 font-bold text-lg">73%</p>
+                  <p className="text-white/50 text-[10px]">Data Fragmented</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-amber-400 font-bold text-lg">4x</p>
+                  <p className="text-white/50 text-[10px]">Risk Acceleration</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <p className="text-purple-400 font-bold text-lg">85%</p>
+                  <p className="text-white/50 text-[10px]">Unmeasured</p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Challenge Detail Modal */}
+      <AnimatePresence>
+        {activeChallenge && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedChallenge(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-6 shadow-2xl"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedChallenge(null)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+
+              {/* Header */}
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">{activeChallenge.title}</h3>
+                <p className="text-white/70">{activeChallenge.detailedDescription}</p>
+              </div>
+
+              {/* Key Statistics */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-cyan-400 mb-3">Key Statistics</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {activeChallenge.statistics.map((stat, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
+                      <p className="text-2xl font-bold text-cyan-400">{stat.metric}</p>
+                      <p className="text-xs text-white/60 mt-1">{stat.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Implications */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-amber-400 mb-3">Implications</h4>
+                <div className="space-y-2">
+                  {activeChallenge.implications.map((impl, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-white/80">{impl}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sources */}
+              <div>
+                <h4 className="text-sm font-semibold text-emerald-400 mb-3">Sources</h4>
+                <div className="space-y-2">
+                  {activeChallenge.sources.map((source, i) => (
+                    <a
+                      key={i}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
+                    >
+                      <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span className="text-xs text-white/80 group-hover:text-white">{source.name}</span>
+                      <ArrowRight className="w-3 h-3 text-white/40 group-hover:text-emerald-400 ml-auto" />
+                    </a>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </>
