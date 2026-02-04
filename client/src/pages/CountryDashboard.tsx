@@ -240,6 +240,13 @@ export function CountryDashboard() {
       
       console.log(`[CountryDashboard] Regenerated all insights for ${iso}:`, response.data);
       
+      // Log detailed errors if any
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error(`[CountryDashboard] Generation errors (${response.data.errors.length}):`, 
+          response.data.errors.map((e: { category: string; error: string }) => `${e.category}: ${e.error}`).join('\n')
+        );
+      }
+      
       setInitStatus("complete");
       setGenerationProgress(`Regenerated ${response.data.successful}/${response.data.total_categories} insights`);
       

@@ -736,6 +736,74 @@ async def check_ai_config(
     )
 
 
+class AITestResponse(BaseModel):
+    """Response from AI test call."""
+    success: bool
+    message: str
+    response_preview: Optional[str] = None
+    error: Optional[str] = None
+    elapsed_seconds: Optional[float] = None
+
+
+@router.post("/diagnostic/test-ai", response_model=AITestResponse)
+async def test_ai_call(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Test AI call - makes a simple request to verify the AI service works.
+    This helps diagnose if the issue is with AI configuration vs insights code.
+    """
+    import time
+    
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    # Get AI config
+    ai_config = get_ai_config(db)
+    if not ai_config:
+        return AITestResponse(
+            success=False,
+            message="No AI configuration found",
+            error="AI not configured. Please configure in Admin > AI Settings."
+        )
+    
+    try:
+        from app.services.ai_service import call_ai_api
+        
+        start_time = time.time()
+        
+        # Simple test prompt
+        response = await call_ai_api(
+            db=db,
+            ai_config=ai_config,
+            prompt="Say 'Hello from the insights AI service!' in exactly those words.",
+            agent_id="diagnostic-test",
+            user_email=current_user.email,
+            system_prompt="You are a helpful assistant. Respond exactly as requested."
+        )
+        
+        elapsed = time.time() - start_time
+        
+        return AITestResponse(
+            success=True,
+            message=f"AI connection successful via {ai_config.provider.value}",
+            response_preview=response[:200] if response else None,
+            elapsed_seconds=round(elapsed, 2)
+        )
+        
+    except Exception as e:
+        logger.error(f"[Diagnostic] AI test failed: {e}", exc_info=True)
+        return AITestResponse(
+            success=False,
+            message="AI call failed",
+            error=str(e)
+        )
+
+
 # =============================================================================
 # ENDPOINTS (dynamic routes must come AFTER static routes like /diagnostic)
 # =============================================================================

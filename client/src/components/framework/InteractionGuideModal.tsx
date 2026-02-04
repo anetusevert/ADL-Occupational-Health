@@ -49,6 +49,7 @@ import {
   Star,
   AlertTriangle,
   Target,
+  ExternalLink,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
@@ -4739,315 +4740,752 @@ function IcebergVisual() {
 }
 
 // ============================================================================
-// SLIDE 4: THE SOLUTION - Unified Global Occupational Health Framework
+// SLIDE 4: THE SOLUTION - ADL Framework Temple with Animated Data Sources
 // ============================================================================
 
-// Framework data inputs and outputs
-const frameworkElements = {
-  inputs: [
-    { id: "clinical", title: "Clinical Data", icon: Stethoscope, description: "Patient records, diagnoses, treatment outcomes, and longitudinal health tracking.", color: "cyan" },
-    { id: "exposure", title: "Exposure Data (IH)", icon: Beaker, description: "Industrial hygiene measurements, chemical exposures, physical hazards, and workplace assessments.", color: "purple" },
-    { id: "psychosocial", title: "Psychosocial Metrics", icon: Heart, description: "Stress indicators, workplace culture assessments, mental health screenings, and burnout metrics.", color: "amber" },
-  ],
-  outputs: [
-    { id: "predictive", title: "Predictive Risk Modeling", icon: BarChart3, description: "Anticipate emerging threats before latency periods end. AI-driven forecasting of occupational disease clusters.", color: "emerald" },
-    { id: "policy", title: "Evidence-Based Policy & Strategy", icon: FileCheck, description: "Translate complex data into resilient state & organizational action. Regulatory recommendations backed by data.", color: "blue" },
-  ],
-};
+// Data sources that feed into the framework
+interface FrameworkDataSource {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
+  borderColor: string;
+  feedsInto: ('governance' | 'pillar1' | 'pillar2' | 'pillar3')[];
+  description: string;
+  metrics: string[];
+  url: string;
+}
+
+const frameworkDataSources: FrameworkDataSource[] = [
+  {
+    id: "ilo",
+    name: "International Labour Organization (ILOSTAT)",
+    shortName: "ILO",
+    color: "blue",
+    textColor: "text-blue-400",
+    bgColor: "bg-blue-500/20",
+    borderColor: "border-blue-500/40",
+    feedsInto: ["governance", "pillar1"],
+    description: "Official global labor statistics including fatal and non-fatal occupational injury rates, inspector density, and social security coverage.",
+    metrics: ["Fatal Accident Rate", "Inspector Density", "ILO C187/C155 Status"],
+    url: "https://ilostat.ilo.org/data/"
+  },
+  {
+    id: "who",
+    name: "World Health Organization (GHO)",
+    shortName: "WHO",
+    color: "purple",
+    textColor: "text-purple-400",
+    bgColor: "bg-purple-500/20",
+    borderColor: "border-purple-500/40",
+    feedsInto: ["pillar2"],
+    description: "Global Health Observatory data including UHC Service Coverage Index, health workforce density, and mortality metrics.",
+    metrics: ["UHC Coverage Index", "Health Workers Density", "Life Expectancy"],
+    url: "https://www.who.int/data/gho"
+  },
+  {
+    id: "worldbank",
+    name: "World Bank Open Data (WDI)",
+    shortName: "World Bank",
+    color: "amber",
+    textColor: "text-amber-400",
+    bgColor: "bg-amber-500/20",
+    borderColor: "border-amber-500/40",
+    feedsInto: ["governance", "pillar3"],
+    description: "World Development Indicators including governance effectiveness, regulatory quality, health expenditure, and labor market statistics.",
+    metrics: ["Government Effectiveness", "Regulatory Quality", "Health Expenditure"],
+    url: "https://data.worldbank.org/"
+  },
+  {
+    id: "ti",
+    name: "Transparency International (CPI)",
+    shortName: "CPI",
+    color: "rose",
+    textColor: "text-rose-400",
+    bgColor: "bg-rose-500/20",
+    borderColor: "border-rose-500/40",
+    feedsInto: ["governance"],
+    description: "Corruption Perception Index measuring perceived levels of public sector corruption. Critical for assessing inspector integrity.",
+    metrics: ["Corruption Perception Index", "CPI Rank"],
+    url: "https://www.transparency.org/cpi"
+  },
+  {
+    id: "undp",
+    name: "UNDP Human Development Report",
+    shortName: "HDI",
+    color: "emerald",
+    textColor: "text-emerald-400",
+    bgColor: "bg-emerald-500/20",
+    borderColor: "border-emerald-500/40",
+    feedsInto: ["pillar3"],
+    description: "Human Development Index combining life expectancy, education, and income indicators for rehabilitation capacity.",
+    metrics: ["HDI Score", "Education Index", "Income Index"],
+    url: "https://hdr.undp.org/data-center"
+  },
+  {
+    id: "ihme",
+    name: "IHME Global Burden of Disease",
+    shortName: "IHME GBD",
+    color: "orange",
+    textColor: "text-orange-400",
+    bgColor: "bg-orange-500/20",
+    borderColor: "border-orange-500/40",
+    feedsInto: ["pillar1", "pillar2"],
+    description: "Comprehensive disease burden data including DALYs from occupational carcinogens, noise, ergonomic factors, and injuries.",
+    metrics: ["Occupational DALYs", "Carcinogen Exposure", "Occupational Deaths"],
+    url: "https://www.healthdata.org/gbd"
+  },
+  {
+    id: "wjp",
+    name: "World Justice Project",
+    shortName: "WJP",
+    color: "indigo",
+    textColor: "text-indigo-400",
+    bgColor: "bg-indigo-500/20",
+    borderColor: "border-indigo-500/40",
+    feedsInto: ["governance"],
+    description: "Rule of law measurements including regulatory enforcement capacity and civil justice effectiveness.",
+    metrics: ["Rule of Law Index", "Regulatory Enforcement", "Civil Justice"],
+    url: "https://worldjusticeproject.org/"
+  },
+  {
+    id: "epi",
+    name: "Yale Environmental Performance Index",
+    shortName: "EPI",
+    color: "teal",
+    textColor: "text-teal-400",
+    bgColor: "bg-teal-500/20",
+    borderColor: "border-teal-500/40",
+    feedsInto: ["pillar1"],
+    description: "Environmental performance rankings including air quality, heavy metals exposure, and environmental health scores.",
+    metrics: ["EPI Score", "Air Quality", "Environmental Health"],
+    url: "https://epi.yale.edu/"
+  },
+];
+
+// Framework temple blocks
+interface FrameworkBlock {
+  id: 'governance' | 'pillar1' | 'pillar2' | 'pillar3';
+  title: string;
+  subtitle: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
+  borderColor: string;
+  glowColor: string;
+  icon: React.ElementType;
+  description: string;
+  keyMetrics: string[];
+  dataSources: string[];
+}
+
+const frameworkBlocks: FrameworkBlock[] = [
+  {
+    id: "governance",
+    title: "Governance Ecosystem",
+    subtitle: "The Overarching Driver",
+    color: "purple",
+    textColor: "text-purple-400",
+    bgColor: "bg-purple-500/20",
+    borderColor: "border-purple-500/40",
+    glowColor: "shadow-purple-500/40",
+    icon: Crown,
+    description: "The brain and law that drives the entire occupational health system. Establishes regulatory frameworks, enforcement mechanisms, and institutional capacity.",
+    keyMetrics: ["ILO C187 Ratification", "Inspector Coverage Ratio", "Enforcement Actions/Year"],
+    dataSources: ["ILO", "World Bank", "CPI", "WJP"]
+  },
+  {
+    id: "pillar1",
+    title: "Hazard Prevention",
+    subtitle: "Pillar I — Prevention",
+    color: "blue",
+    textColor: "text-blue-400",
+    bgColor: "bg-blue-500/20",
+    borderColor: "border-blue-500/40",
+    glowColor: "shadow-blue-500/40",
+    icon: Shield,
+    description: "The proactive shield against workplace dangers. Focuses on identifying, assessing, and eliminating hazards before they cause harm.",
+    keyMetrics: ["Fatal Accident Rate", "OEL Compliance", "Safety Training Hours"],
+    dataSources: ["ILO", "IHME GBD", "EPI"]
+  },
+  {
+    id: "pillar2",
+    title: "Surveillance & Detection",
+    subtitle: "Pillar II — Vigilance",
+    color: "emerald",
+    textColor: "text-emerald-400",
+    bgColor: "bg-emerald-500/20",
+    borderColor: "border-emerald-500/40",
+    glowColor: "shadow-emerald-500/40",
+    icon: Eye,
+    description: "The early warning system for occupational health. Continuous monitoring to detect emerging threats and patterns before they become epidemics.",
+    keyMetrics: ["Disease Detection Rate", "Screening Coverage", "Biomarker Monitoring"],
+    dataSources: ["WHO", "IHME GBD"]
+  },
+  {
+    id: "pillar3",
+    title: "Restoration & Compensation",
+    subtitle: "Pillar III — Restoration",
+    color: "amber",
+    textColor: "text-amber-400",
+    bgColor: "bg-amber-500/20",
+    borderColor: "border-amber-500/40",
+    glowColor: "shadow-amber-500/40",
+    icon: Heart,
+    description: "The safety net that catches workers when prevention and surveillance fail. Ensures swift, fair compensation and rehabilitation support.",
+    keyMetrics: ["Coverage Rate", "Claim Settlement Time", "RTW Success Rate"],
+    dataSources: ["World Bank", "HDI"]
+  },
+];
 
 function UnifiedFrameworkVisual() {
-  const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  
-  const allElements = [...frameworkElements.inputs, ...frameworkElements.outputs];
-  const activeElement = selectedElement ? allElements.find(el => el.id === selectedElement) : null;
+  const [selectedBlock, setSelectedBlock] = useState<FrameworkBlock | null>(null);
+  const [selectedSource, setSelectedSource] = useState<FrameworkDataSource | null>(null);
+  const [flowsVisible, setFlowsVisible] = useState(false);
 
-  const getColorClasses = (color: string) => {
-    const colors: Record<string, { text: string; bg: string; border: string; glow: string }> = {
-      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", glow: "shadow-cyan-500/30" },
-      purple: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", glow: "shadow-purple-500/30" },
-      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", glow: "shadow-amber-500/30" },
-      emerald: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", glow: "shadow-emerald-500/30" },
-      blue: { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", glow: "shadow-blue-500/30" },
+  // Trigger flow animations after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => setFlowsVisible(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Get position for data source badge (arranged in semicircle at top)
+  const getSourcePosition = (index: number, total: number) => {
+    const startAngle = -160;
+    const endAngle = -20;
+    const angle = startAngle + (index / (total - 1)) * (endAngle - startAngle);
+    const radians = (angle * Math.PI) / 180;
+    const radius = 42;
+    return {
+      x: 50 + radius * Math.cos(radians),
+      y: 18 + radius * Math.sin(radians) * 0.5,
     };
-    return colors[color] || colors.cyan;
+  };
+
+  // Get position for framework blocks
+  const getBlockPosition = (blockId: string) => {
+    const positions: Record<string, { x: number; y: number }> = {
+      governance: { x: 50, y: 48 },
+      pillar1: { x: 25, y: 78 },
+      pillar2: { x: 50, y: 78 },
+      pillar3: { x: 75, y: 78 },
+    };
+    return positions[blockId] || { x: 50, y: 50 };
+  };
+
+  // Calculate SVG path between source and target
+  const calculateFlowPath = (sourcePos: { x: number; y: number }, targetPos: { x: number; y: number }) => {
+    const midY = (sourcePos.y + targetPos.y) / 2;
+    return `M ${sourcePos.x} ${sourcePos.y} Q ${sourcePos.x} ${midY} ${targetPos.x} ${targetPos.y}`;
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
       {/* Particle effects */}
-      <ParticleField count={50} color="cyan" speed="slow" />
+      <ParticleField count={40} color="purple" speed="slow" />
       
       {/* Ambient glow orbs */}
-      <FloatingGlowOrb color="cyan" size="lg" position="top-left" delay={0} />
-      <FloatingGlowOrb color="purple" size="md" position="bottom-right" delay={0.5} />
+      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="blue" size="md" position="bottom-right" delay={0.3} />
+      <FloatingGlowOrb color="emerald" size="sm" position="bottom-left" delay={0.6} />
 
       {/* Title Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center pt-4 pb-2 px-4 flex-shrink-0"
+        className="text-center pt-3 pb-1 px-4 flex-shrink-0"
       >
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">
-          THE SOLUTION: <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">A UNIFIED GLOBAL</span>
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5">
+          THE SOLUTION: <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">THE ADL FRAMEWORK</span>
         </h1>
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-          OCCUPATIONAL HEALTH FRAMEWORK
-        </h2>
-        <p className="text-white/60 text-sm mt-1">From Fragmented Data to Integrated Intelligence</p>
+        <p className="text-white/60 text-xs sm:text-sm">Global Data Sources Powering Integrated Intelligence</p>
       </motion.div>
 
-      {/* Main Flow Visualization */}
-      <div className="flex-1 flex items-center justify-center px-4 py-2 min-h-0">
-        <div className="relative w-full max-w-5xl h-full flex items-center">
-          
-          {/* Left Column - Data Inputs */}
-          <div className="flex flex-col justify-center gap-3 w-1/4 pr-2">
-            {frameworkElements.inputs.map((input, i) => {
-              const colors = getColorClasses(input.color);
-              const Icon = input.icon;
-              return (
-                <motion.button
-                  key={input.id}
-                  initial={{ opacity: 0, x: -30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.15 }}
-                  onClick={() => setSelectedElement(input.id)}
-                  whileHover={{ scale: 1.03, x: 5 }}
-                  className={`flex items-center gap-2 p-2 sm:p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-lg ${colors.glow}`}
-                >
-                  <div className={`p-1.5 sm:p-2 rounded-lg ${colors.bg} flex-shrink-0`}>
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
-                  </div>
-                  <span className={`font-medium text-xs sm:text-sm ${colors.text}`}>{input.title}</span>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Center - Platform with Arrows */}
-          <div className="flex-1 flex items-center justify-center relative px-2">
+      {/* Main Visualization Area */}
+      <div className="flex-1 relative min-h-0 px-2 sm:px-4">
+        {/* SVG Layer for Flow Animations */}
+        <svg 
+          className="absolute inset-0 w-full h-full pointer-events-none" 
+          viewBox="0 0 100 100" 
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            {/* Gradients for each color */}
+            <linearGradient id="flowGradientPurple" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(168,85,247,0.8)" />
+              <stop offset="100%" stopColor="rgba(168,85,247,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(59,130,246,0.8)" />
+              <stop offset="100%" stopColor="rgba(59,130,246,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientEmerald" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(16,185,129,0.8)" />
+              <stop offset="100%" stopColor="rgba(16,185,129,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientAmber" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(245,158,11,0.8)" />
+              <stop offset="100%" stopColor="rgba(245,158,11,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientRose" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(244,63,94,0.8)" />
+              <stop offset="100%" stopColor="rgba(244,63,94,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(249,115,22,0.8)" />
+              <stop offset="100%" stopColor="rgba(249,115,22,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientIndigo" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(99,102,241,0.8)" />
+              <stop offset="100%" stopColor="rgba(99,102,241,0.2)" />
+            </linearGradient>
+            <linearGradient id="flowGradientTeal" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(20,184,166,0.8)" />
+              <stop offset="100%" stopColor="rgba(20,184,166,0.2)" />
+            </linearGradient>
             
-            {/* Input Arrows */}
-            <svg className="absolute left-0 top-0 w-1/4 h-full" viewBox="0 0 100 200" preserveAspectRatio="none">
-              {[40, 100, 160].map((y, i) => (
-                <motion.g key={i}>
-                  <motion.path
-                    d={`M 0 ${y} Q 50 ${y} 100 100`}
-                    stroke="url(#arrowGradient)"
-                    strokeWidth="2"
-                    fill="none"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.6 }}
-                    transition={{ delay: 0.8 + i * 0.2, duration: 1 }}
-                  />
-                </motion.g>
-              ))}
-              <defs>
-                <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgba(6,182,212,0.3)" />
-                  <stop offset="100%" stopColor="rgba(6,182,212,0.8)" />
-                </linearGradient>
-              </defs>
-            </svg>
+            {/* Glow filter */}
+            <filter id="flowGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="0.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
 
-            {/* Central Platform */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="relative z-10"
-            >
-              {/* Glowing chip/processor */}
-              <div className="relative">
-                {/* Outer glow */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl bg-cyan-400/20 blur-xl"
-                  animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                />
-                
-                {/* Platform base */}
-                <div className="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48">
-                  {/* 3D platform effect */}
-                  <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <defs>
-                      <linearGradient id="platformGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
-                        <stop offset="50%" stopColor="rgba(6,182,212,0.2)" />
-                        <stop offset="100%" stopColor="rgba(30,64,175,0.3)" />
-                      </linearGradient>
-                      <filter id="platformGlow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    
-                    {/* Platform shape - isometric */}
-                    <motion.polygon
-                      points="50,15 85,35 85,65 50,85 15,65 15,35"
-                      fill="url(#platformGradient)"
-                      stroke="rgba(6,182,212,0.6)"
-                      strokeWidth="1"
-                      filter="url(#platformGlow)"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.8 }}
-                    />
-                    
-                    {/* Top face */}
-                    <motion.polygon
-                      points="50,15 85,35 50,55 15,35"
-                      fill="rgba(6,182,212,0.3)"
-                      stroke="rgba(6,182,212,0.8)"
-                      strokeWidth="0.5"
-                    />
-                    
-                    {/* Center chip glow */}
-                    <motion.rect
-                      x="35"
-                      y="30"
-                      width="30"
-                      height="20"
-                      rx="3"
-                      fill="rgba(6,182,212,0.4)"
-                      stroke="rgba(255,255,255,0.6)"
-                      strokeWidth="0.5"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                    
-                    {/* Chip lines */}
-                    {[0, 1, 2, 3].map((i) => (
-                      <motion.line
-                        key={i}
-                        x1={40 + i * 5}
-                        y1="33"
-                        x2={40 + i * 5}
-                        y2="47"
-                        stroke="rgba(255,255,255,0.4)"
-                        strokeWidth="1"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0.3, 0.8, 0.3] }}
-                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
-                      />
-                    ))}
-                  </svg>
-                  
-                  {/* Light beam from top */}
-                  <motion.div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-8 bg-gradient-to-b from-cyan-400 to-transparent"
-                    animate={{ opacity: [0.3, 0.8, 0.3], height: ["2rem", "3rem", "2rem"] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+          {/* Flow lines from sources to framework blocks */}
+          {flowsVisible && frameworkDataSources.map((source, sourceIndex) => {
+            const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
+            return source.feedsInto.map((targetId, targetIndex) => {
+              const targetPos = getBlockPosition(targetId);
+              const path = calculateFlowPath(sourcePos, targetPos);
+              const gradientId = `flowGradient${source.color.charAt(0).toUpperCase() + source.color.slice(1)}`;
+              const delay = sourceIndex * 0.15 + targetIndex * 0.1;
+              
+              return (
+                <g key={`${source.id}-${targetId}`}>
+                  {/* Main flow line */}
+                  <motion.path
+                    d={path}
+                    stroke={`url(#${gradientId})`}
+                    strokeWidth="0.4"
+                    fill="none"
+                    filter="url(#flowGlow)"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.7 }}
+                    transition={{ delay, duration: 1.2, ease: "easeOut" }}
                   />
+                  
+                  {/* Animated data particle */}
+                  <motion.circle
+                    r="0.8"
+                    fill={source.color === "blue" ? "#3b82f6" : 
+                          source.color === "purple" ? "#a855f7" :
+                          source.color === "amber" ? "#f59e0b" :
+                          source.color === "rose" ? "#f43f5e" :
+                          source.color === "emerald" ? "#10b981" :
+                          source.color === "orange" ? "#f97316" :
+                          source.color === "indigo" ? "#6366f1" :
+                          source.color === "teal" ? "#14b8a6" : "#06b6d4"}
+                    filter="url(#flowGlow)"
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity: [0, 1, 1, 0],
+                      offsetDistance: ["0%", "100%"],
+                    }}
+                    transition={{
+                      delay: delay + 1,
+                      duration: 2.5,
+                      repeat: Infinity,
+                      repeatDelay: 1.5,
+                      ease: "linear",
+                    }}
+                    style={{ offsetPath: `path("${path}")` }}
+                  />
+                </g>
+              );
+            });
+          })}
+        </svg>
+
+        {/* Data Source Badges - Top Arc */}
+        <div className="absolute inset-0">
+          {frameworkDataSources.map((source, index) => {
+            const pos = getSourcePosition(index, frameworkDataSources.length);
+            return (
+              <motion.button
+                key={source.id}
+                initial={{ opacity: 0, scale: 0, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.08, type: "spring", stiffness: 200 }}
+                whileHover={{ scale: 1.15, zIndex: 50 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedSource(source)}
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer`}
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+              >
+                <motion.div
+                  className={`relative px-2 py-1 sm:px-3 sm:py-1.5 rounded-full ${source.bgColor} ${source.borderColor} border backdrop-blur-sm`}
+                  animate={{ 
+                    boxShadow: [
+                      `0 0 10px 2px ${source.color === "blue" ? "rgba(59,130,246,0.3)" : 
+                        source.color === "purple" ? "rgba(168,85,247,0.3)" :
+                        source.color === "amber" ? "rgba(245,158,11,0.3)" :
+                        source.color === "rose" ? "rgba(244,63,94,0.3)" :
+                        source.color === "emerald" ? "rgba(16,185,129,0.3)" :
+                        source.color === "orange" ? "rgba(249,115,22,0.3)" :
+                        source.color === "indigo" ? "rgba(99,102,241,0.3)" :
+                        source.color === "teal" ? "rgba(20,184,166,0.3)" : "rgba(6,182,212,0.3)"}`,
+                      `0 0 20px 4px ${source.color === "blue" ? "rgba(59,130,246,0.5)" : 
+                        source.color === "purple" ? "rgba(168,85,247,0.5)" :
+                        source.color === "amber" ? "rgba(245,158,11,0.5)" :
+                        source.color === "rose" ? "rgba(244,63,94,0.5)" :
+                        source.color === "emerald" ? "rgba(16,185,129,0.5)" :
+                        source.color === "orange" ? "rgba(249,115,22,0.5)" :
+                        source.color === "indigo" ? "rgba(99,102,241,0.5)" :
+                        source.color === "teal" ? "rgba(20,184,166,0.5)" : "rgba(6,182,212,0.5)"}`,
+                      `0 0 10px 2px ${source.color === "blue" ? "rgba(59,130,246,0.3)" : 
+                        source.color === "purple" ? "rgba(168,85,247,0.3)" :
+                        source.color === "amber" ? "rgba(245,158,11,0.3)" :
+                        source.color === "rose" ? "rgba(244,63,94,0.3)" :
+                        source.color === "emerald" ? "rgba(16,185,129,0.3)" :
+                        source.color === "orange" ? "rgba(249,115,22,0.3)" :
+                        source.color === "indigo" ? "rgba(99,102,241,0.3)" :
+                        source.color === "teal" ? "rgba(20,184,166,0.3)" : "rgba(6,182,212,0.3)"}`,
+                    ]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <span className={`font-semibold text-[10px] sm:text-xs ${source.textColor} whitespace-nowrap`}>
+                    {source.shortName}
+                  </span>
+                </motion.div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Framework Temple Structure */}
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 sm:pb-6">
+          {/* Governance - Roof */}
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
+            className="w-full max-w-lg px-4 mb-2"
+          >
+            <motion.button
+              onClick={() => setSelectedBlock(frameworkBlocks[0])}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className={`w-full relative p-3 sm:p-4 rounded-xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all hover:shadow-xl ${frameworkBlocks[0].glowColor}`}
+            >
+              {/* Roof decorative top */}
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3/4 h-1.5 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent rounded-full" />
+              
+              <div className="flex items-center justify-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="p-2 rounded-lg bg-purple-500/30"
+                >
+                  <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
+                </motion.div>
+                <div className="text-center">
+                  <h3 className="text-sm sm:text-base font-bold text-purple-300">{frameworkBlocks[0].title}</h3>
+                  <p className="text-[10px] sm:text-xs text-purple-400/70">{frameworkBlocks[0].subtitle}</p>
                 </div>
               </div>
               
-              {/* Platform label */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2 }}
-                className="text-center mt-2"
-              >
-                <p className="text-cyan-400 font-semibold text-xs sm:text-sm">INTEGRATED INTELLIGENCE</p>
-                <p className="text-cyan-400/60 text-[10px] sm:text-xs">PLATFORM (AI/ML DRIVEN)</p>
-              </motion.div>
-            </motion.div>
+              {/* Connecting lines to pillars */}
+              <div className="absolute -bottom-4 left-1/4 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
+              <div className="absolute -bottom-4 right-1/4 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
+            </motion.button>
+          </motion.div>
 
-            {/* Output Arrows */}
-            <svg className="absolute right-0 top-0 w-1/4 h-full" viewBox="0 0 100 200" preserveAspectRatio="none">
-              {[70, 130].map((y, i) => (
-                <motion.g key={i}>
-                  <motion.path
-                    d={`M 0 100 Q 50 100 100 ${y}`}
-                    stroke="url(#outputGradient)"
-                    strokeWidth="2"
-                    fill="none"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.6 }}
-                    transition={{ delay: 1.5 + i * 0.2, duration: 1 }}
-                  />
-                  <motion.polygon
-                    points={`95,${y-5} 100,${y} 95,${y+5}`}
-                    fill="rgba(16,185,129,0.8)"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2.5 + i * 0.2 }}
-                  />
-                </motion.g>
-              ))}
-              <defs>
-                <linearGradient id="outputGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgba(6,182,212,0.8)" />
-                  <stop offset="100%" stopColor="rgba(16,185,129,0.6)" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          {/* Right Column - Outputs */}
-          <div className="flex flex-col justify-center gap-3 w-1/4 pl-2">
-            {frameworkElements.outputs.map((output, i) => {
-              const colors = getColorClasses(output.color);
-              const Icon = output.icon;
+          {/* Pillars Row */}
+          <div className="w-full max-w-2xl px-2 sm:px-4 grid grid-cols-3 gap-2 sm:gap-3">
+            {frameworkBlocks.slice(1).map((block, index) => {
+              const Icon = block.icon;
               return (
                 <motion.button
-                  key={output.id}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.5 + i * 0.15 }}
-                  onClick={() => setSelectedElement(output.id)}
-                  whileHover={{ scale: 1.03, x: -5 }}
-                  className={`flex items-start gap-2 p-2 sm:p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-lg ${colors.glow}`}
+                  key={block.id}
+                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 1.0 + index * 0.15, duration: 0.5, type: "spring" }}
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSelectedBlock(block)}
+                  className={`relative p-2 sm:p-3 rounded-xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all hover:shadow-lg ${block.glowColor}`}
                 >
-                  <div className={`p-1.5 sm:p-2 rounded-lg ${colors.bg} flex-shrink-0`}>
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
-                  </div>
-                  <div className="text-left">
-                    <span className={`font-semibold text-xs sm:text-sm ${colors.text} block`}>{output.title}</span>
-                    <span className="text-white/50 text-[10px] sm:text-xs line-clamp-2">{output.description.split('.')[0]}.</span>
+                  {/* Pillar top decoration */}
+                  <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-2/3 h-1 rounded-full ${
+                    block.color === "blue" ? "bg-blue-400/50" :
+                    block.color === "emerald" ? "bg-emerald-400/50" :
+                    "bg-amber-400/50"
+                  }`} />
+                  
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 3, -3, 0]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                      className={`p-1.5 sm:p-2 rounded-lg ${block.bgColor}`}
+                    >
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${block.textColor}`} />
+                    </motion.div>
+                    <div className="text-center">
+                      <h3 className={`text-[10px] sm:text-xs font-bold ${block.textColor} leading-tight`}>
+                        {block.title}
+                      </h3>
+                      <p className="text-[8px] sm:text-[10px] text-white/50 hidden sm:block">
+                        {block.subtitle}
+                      </p>
+                    </div>
                   </div>
                 </motion.button>
               );
             })}
           </div>
         </div>
+
+        {/* Legend */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 2 }}
+          className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 text-right"
+        >
+          <p className="text-[8px] sm:text-[10px] text-white/40">Click any element for details</p>
+          <p className="text-[8px] sm:text-[10px] text-white/30">8 global data sources • 4 framework pillars</p>
+        </motion.div>
       </div>
 
-      {/* Element Detail Modal */}
+      {/* Data Source Detail Modal */}
       <AnimatePresence>
-        {activeElement && (
+        {selectedSource && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedElement(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => setSelectedSource(null)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md max-h-[70vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-5 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[80vh] overflow-hidden bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-2xl shadow-2xl"
             >
-              <button
-                onClick={() => setSelectedElement(null)}
-                className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <X className="w-4 h-4 text-white/60" />
-              </button>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`p-2 rounded-lg ${getColorClasses(activeElement.color).bg}`}>
-                  <activeElement.icon className={`w-6 h-6 ${getColorClasses(activeElement.color).text}`} />
-                </div>
-                <h3 className="text-lg font-bold text-white">{activeElement.title}</h3>
+              {/* Modal Header */}
+              <div className={`p-4 sm:p-5 ${selectedSource.bgColor} border-b border-white/10`}>
+                <button
+                  onClick={() => setSelectedSource(null)}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-4 h-4 text-white/60" />
+                </button>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className={`p-2.5 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border`}>
+                    <Database className={`w-6 h-6 ${selectedSource.textColor}`} />
+                  </div>
+                  <div>
+                    <h3 className={`text-base sm:text-lg font-bold ${selectedSource.textColor}`}>
+                      {selectedSource.shortName}
+                    </h3>
+                    <p className="text-white/60 text-xs sm:text-sm">{selectedSource.name}</p>
+                  </div>
+                </motion.div>
               </div>
-              <p className="text-white/70 text-sm leading-relaxed">{activeElement.description}</p>
+
+              {/* Modal Content */}
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[50vh]">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <p className="text-white/70 text-sm leading-relaxed">{selectedSource.description}</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h4 className="text-white/90 text-sm font-semibold mb-2">Key Metrics Provided</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSource.metrics.map((metric, i) => (
+                      <span
+                        key={i}
+                        className={`px-2 py-1 rounded-full text-xs ${selectedSource.bgColor} ${selectedSource.textColor} ${selectedSource.borderColor} border`}
+                      >
+                        {metric}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <h4 className="text-white/90 text-sm font-semibold mb-2">Feeds Into</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSource.feedsInto.map((targetId) => {
+                      const targetBlock = frameworkBlocks.find(b => b.id === targetId);
+                      if (!targetBlock) return null;
+                      return (
+                        <span
+                          key={targetId}
+                          className={`px-2 py-1 rounded-full text-xs ${targetBlock.bgColor} ${targetBlock.textColor} ${targetBlock.borderColor} border`}
+                        >
+                          {targetBlock.title}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+
+                <motion.a
+                  href={selectedSource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border hover:bg-white/10 transition-colors`}
+                >
+                  <ExternalLink className={`w-4 h-4 ${selectedSource.textColor}`} />
+                  <span className={`text-sm font-medium ${selectedSource.textColor}`}>Visit Official Source</span>
+                  <ArrowRight className={`w-4 h-4 ${selectedSource.textColor} ml-auto`} />
+                </motion.a>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Framework Block Detail Modal */}
+      <AnimatePresence>
+        {selectedBlock && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedBlock(null)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[80vh] overflow-hidden bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-2xl shadow-2xl"
+            >
+              {/* Modal Header */}
+              <div className={`p-4 sm:p-5 ${selectedBlock.bgColor} border-b border-white/10`}>
+                <button
+                  onClick={() => setSelectedBlock(null)}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-4 h-4 text-white/60" />
+                </button>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className={`p-2.5 rounded-xl ${selectedBlock.bgColor} ${selectedBlock.borderColor} border`}
+                  >
+                    <selectedBlock.icon className={`w-6 h-6 ${selectedBlock.textColor}`} />
+                  </motion.div>
+                  <div>
+                    <h3 className={`text-base sm:text-lg font-bold ${selectedBlock.textColor}`}>
+                      {selectedBlock.title}
+                    </h3>
+                    <p className="text-white/60 text-xs sm:text-sm">{selectedBlock.subtitle}</p>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[50vh]">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <p className="text-white/70 text-sm leading-relaxed">{selectedBlock.description}</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h4 className="text-white/90 text-sm font-semibold mb-2">Key Metrics</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedBlock.keyMetrics.map((metric, i) => (
+                      <span
+                        key={i}
+                        className={`px-2 py-1 rounded-full text-xs ${selectedBlock.bgColor} ${selectedBlock.textColor} ${selectedBlock.borderColor} border`}
+                      >
+                        {metric}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <h4 className="text-white/90 text-sm font-semibold mb-2">Data Sources</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedBlock.dataSources.map((sourceName) => {
+                      const source = frameworkDataSources.find(s => s.shortName === sourceName);
+                      if (!source) return null;
+                      return (
+                        <motion.button
+                          key={source.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setSelectedBlock(null);
+                            setTimeout(() => setSelectedSource(source), 200);
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg ${source.bgColor} ${source.borderColor} border hover:bg-white/10 transition-colors`}
+                        >
+                          <Database className={`w-3.5 h-3.5 ${source.textColor}`} />
+                          <span className={`text-xs font-medium ${source.textColor}`}>{source.shortName}</span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              </div>
             </motion.div>
           </>
         )}
