@@ -4943,69 +4943,109 @@ const frameworkBlocks: FrameworkBlock[] = [
 function UnifiedFrameworkVisual() {
   const [selectedBlock, setSelectedBlock] = useState<FrameworkBlock | null>(null);
   const [selectedSource, setSelectedSource] = useState<FrameworkDataSource | null>(null);
-  const [flowsVisible, setFlowsVisible] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState<'framework' | 'sources' | 'flows' | 'complete'>('framework');
 
-  // Trigger flow animations after initial render
+  // Animation phase progression
   useEffect(() => {
-    const timer = setTimeout(() => setFlowsVisible(true), 1500);
-    return () => clearTimeout(timer);
+    const timers = [
+      setTimeout(() => setAnimationPhase('sources'), 1500),
+      setTimeout(() => setAnimationPhase('flows'), 2700),
+      setTimeout(() => setAnimationPhase('complete'), 5000),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, []);
 
-  // Get position for data source badge (arranged in semicircle at top)
+  // Helper to get color values for glow effects
+  const getColorRgba = (color: string, alpha: number) => {
+    const colors: Record<string, string> = {
+      blue: `rgba(59,130,246,${alpha})`,
+      purple: `rgba(168,85,247,${alpha})`,
+      amber: `rgba(245,158,11,${alpha})`,
+      rose: `rgba(244,63,94,${alpha})`,
+      emerald: `rgba(16,185,129,${alpha})`,
+      orange: `rgba(249,115,22,${alpha})`,
+      indigo: `rgba(99,102,241,${alpha})`,
+      teal: `rgba(20,184,166,${alpha})`,
+    };
+    return colors[color] || `rgba(6,182,212,${alpha})`;
+  };
+
+  // Get position for data source badge (arranged in tighter arc above framework)
   const getSourcePosition = (index: number, total: number) => {
-    const startAngle = -160;
-    const endAngle = -20;
+    const startAngle = -150;
+    const endAngle = -30;
     const angle = startAngle + (index / (total - 1)) * (endAngle - startAngle);
     const radians = (angle * Math.PI) / 180;
-    const radius = 42;
+    const radius = 32;
     return {
       x: 50 + radius * Math.cos(radians),
-      y: 18 + radius * Math.sin(radians) * 0.5,
+      y: 28 + radius * Math.sin(radians) * 0.4,
     };
   };
 
-  // Get position for framework blocks
+  // Get position for framework blocks (centered in viewport)
   const getBlockPosition = (blockId: string) => {
     const positions: Record<string, { x: number; y: number }> = {
-      governance: { x: 50, y: 48 },
-      pillar1: { x: 25, y: 78 },
-      pillar2: { x: 50, y: 78 },
-      pillar3: { x: 75, y: 78 },
+      governance: { x: 50, y: 52 },
+      pillar1: { x: 25, y: 72 },
+      pillar2: { x: 50, y: 72 },
+      pillar3: { x: 75, y: 72 },
     };
     return positions[blockId] || { x: 50, y: 50 };
   };
 
-  // Calculate SVG path between source and target
+  // Calculate SVG path between source and target with smooth curves
   const calculateFlowPath = (sourcePos: { x: number; y: number }, targetPos: { x: number; y: number }) => {
-    const midY = (sourcePos.y + targetPos.y) / 2;
-    return `M ${sourcePos.x} ${sourcePos.y} Q ${sourcePos.x} ${midY} ${targetPos.x} ${targetPos.y}`;
+    const controlY = sourcePos.y + (targetPos.y - sourcePos.y) * 0.4;
+    return `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x} ${controlY} ${targetPos.x} ${controlY} ${targetPos.x} ${targetPos.y}`;
+  };
+
+  // Calculate flow delay based on target pillar (sequential by pillar)
+  const getFlowDelay = (targetId: string, sourceIndex: number) => {
+    const pillarOrder: Record<string, number> = {
+      governance: 0,
+      pillar1: 1,
+      pillar2: 2,
+      pillar3: 3,
+    };
+    const baseDelay = 2.7; // After sources appear
+    const pillarDelay = pillarOrder[targetId] * 0.6;
+    const sourceOffset = sourceIndex * 0.08;
+    return baseDelay + pillarDelay + sourceOffset;
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900">
       {/* Particle effects */}
-      <ParticleField count={40} color="purple" speed="slow" />
+      <ParticleField count={50} color="purple" speed="slow" />
       
       {/* Ambient glow orbs */}
       <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
       <FloatingGlowOrb color="blue" size="md" position="bottom-right" delay={0.3} />
-      <FloatingGlowOrb color="emerald" size="sm" position="bottom-left" delay={0.6} />
+      <FloatingGlowOrb color="amber" size="sm" position="bottom-left" delay={0.6} />
 
       {/* Title Section */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center pt-3 pb-1 px-4 flex-shrink-0"
+        transition={{ duration: 0.8, type: "spring" }}
+        className="text-center pt-2 pb-1 px-4 flex-shrink-0"
       >
         <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5">
-          THE SOLUTION: <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">THE ADL FRAMEWORK</span>
+          THE SOLUTION: <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">THE ADL FRAMEWORK</span>
         </h1>
-        <p className="text-white/60 text-xs sm:text-sm">Global Data Sources Powering Integrated Intelligence</p>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-white/60 text-xs sm:text-sm"
+        >
+          Global Data Sources Powering Integrated Intelligence
+        </motion.p>
       </motion.div>
 
-      {/* Main Visualization Area */}
-      <div className="flex-1 relative min-h-0 px-2 sm:px-4">
+      {/* Main Visualization Area - CENTERED */}
+      <div className="flex-1 relative min-h-0 flex items-center justify-center">
         {/* SVG Layer for Flow Animations */}
         <svg 
           className="absolute inset-0 w-full h-full pointer-events-none" 
@@ -5013,154 +5053,152 @@ function UnifiedFrameworkVisual() {
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            {/* Gradients for each color */}
-            <linearGradient id="flowGradientPurple" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(168,85,247,0.8)" />
-              <stop offset="100%" stopColor="rgba(168,85,247,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientBlue" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(59,130,246,0.8)" />
-              <stop offset="100%" stopColor="rgba(59,130,246,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientEmerald" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(16,185,129,0.8)" />
-              <stop offset="100%" stopColor="rgba(16,185,129,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientAmber" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(245,158,11,0.8)" />
-              <stop offset="100%" stopColor="rgba(245,158,11,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientRose" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(244,63,94,0.8)" />
-              <stop offset="100%" stopColor="rgba(244,63,94,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientOrange" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(249,115,22,0.8)" />
-              <stop offset="100%" stopColor="rgba(249,115,22,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientIndigo" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(99,102,241,0.8)" />
-              <stop offset="100%" stopColor="rgba(99,102,241,0.2)" />
-            </linearGradient>
-            <linearGradient id="flowGradientTeal" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(20,184,166,0.8)" />
-              <stop offset="100%" stopColor="rgba(20,184,166,0.2)" />
-            </linearGradient>
+            {/* Enhanced gradients with glow */}
+            {['Purple', 'Blue', 'Emerald', 'Amber', 'Rose', 'Orange', 'Indigo', 'Teal'].map((color) => (
+              <linearGradient key={color} id={`flowGradient${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor={getColorRgba(color.toLowerCase(), 0.9)} />
+                <stop offset="50%" stopColor={getColorRgba(color.toLowerCase(), 0.6)} />
+                <stop offset="100%" stopColor={getColorRgba(color.toLowerCase(), 0.3)} />
+              </linearGradient>
+            ))}
             
-            {/* Glow filter */}
-            <filter id="flowGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="0.5" result="blur" />
+            {/* Enhanced glow filter */}
+            <filter id="flowGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="0.8" result="blur" />
               <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            
+            {/* Particle trail filter */}
+            <filter id="particleGlow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="1.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
 
-          {/* Flow lines from sources to framework blocks */}
-          {flowsVisible && frameworkDataSources.map((source, sourceIndex) => {
+          {/* Flow lines from sources to framework blocks - Sequential by target */}
+          {animationPhase !== 'framework' && frameworkDataSources.map((source, sourceIndex) => {
             const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
-            return source.feedsInto.map((targetId, targetIndex) => {
+            return source.feedsInto.map((targetId) => {
               const targetPos = getBlockPosition(targetId);
               const path = calculateFlowPath(sourcePos, targetPos);
               const gradientId = `flowGradient${source.color.charAt(0).toUpperCase() + source.color.slice(1)}`;
-              const delay = sourceIndex * 0.15 + targetIndex * 0.1;
+              const delay = getFlowDelay(targetId, sourceIndex);
+              const particleColor = getColorRgba(source.color, 1).replace(/,[^,]+\)$/, ',1)');
               
               return (
                 <g key={`${source.id}-${targetId}`}>
+                  {/* Background glow line */}
+                  <motion.path
+                    d={path}
+                    stroke={getColorRgba(source.color, 0.15)}
+                    strokeWidth="2"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={animationPhase !== 'framework' ? { pathLength: 1, opacity: 1 } : {}}
+                    transition={{ delay, duration: 0.8, ease: "easeOut" }}
+                  />
+                  
                   {/* Main flow line */}
                   <motion.path
                     d={path}
                     stroke={`url(#${gradientId})`}
-                    strokeWidth="0.4"
+                    strokeWidth="0.5"
                     fill="none"
                     filter="url(#flowGlow)"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.7 }}
-                    transition={{ delay, duration: 1.2, ease: "easeOut" }}
+                    animate={animationPhase !== 'framework' ? { pathLength: 1, opacity: 0.8 } : {}}
+                    transition={{ delay, duration: 0.8, ease: "easeOut" }}
                   />
                   
-                  {/* Animated data particle */}
-                  <motion.circle
-                    r="0.8"
-                    fill={source.color === "blue" ? "#3b82f6" : 
-                          source.color === "purple" ? "#a855f7" :
-                          source.color === "amber" ? "#f59e0b" :
-                          source.color === "rose" ? "#f43f5e" :
-                          source.color === "emerald" ? "#10b981" :
-                          source.color === "orange" ? "#f97316" :
-                          source.color === "indigo" ? "#6366f1" :
-                          source.color === "teal" ? "#14b8a6" : "#06b6d4"}
-                    filter="url(#flowGlow)"
-                    initial={{ opacity: 0 }}
-                    animate={{
-                      opacity: [0, 1, 1, 0],
-                      offsetDistance: ["0%", "100%"],
-                    }}
-                    transition={{
-                      delay: delay + 1,
-                      duration: 2.5,
-                      repeat: Infinity,
-                      repeatDelay: 1.5,
-                      ease: "linear",
-                    }}
-                    style={{ offsetPath: `path("${path}")` }}
-                  />
+                  {/* Animated data particle with trail effect */}
+                  {animationPhase === 'complete' && (
+                    <>
+                      {/* Trail particles */}
+                      {[0.1, 0.2, 0.3].map((offset, i) => (
+                        <motion.circle
+                          key={i}
+                          r={0.4 - i * 0.1}
+                          fill={getColorRgba(source.color, 0.3 - i * 0.1)}
+                          initial={{ opacity: 0 }}
+                          animate={{
+                            opacity: [0, 0.5, 0.5, 0],
+                            offsetDistance: ["0%", "100%"],
+                          }}
+                          transition={{
+                            delay: delay + 0.8 + offset,
+                            duration: 2.5,
+                            repeat: Infinity,
+                            repeatDelay: 2,
+                            ease: "linear",
+                          }}
+                          style={{ offsetPath: `path("${path}")` }}
+                        />
+                      ))}
+                      {/* Main particle */}
+                      <motion.circle
+                        r="1"
+                        fill={particleColor}
+                        filter="url(#particleGlow)"
+                        initial={{ opacity: 0 }}
+                        animate={{
+                          opacity: [0, 1, 1, 0],
+                          offsetDistance: ["0%", "100%"],
+                        }}
+                        transition={{
+                          delay: delay + 0.8,
+                          duration: 2.5,
+                          repeat: Infinity,
+                          repeatDelay: 2,
+                          ease: "linear",
+                        }}
+                        style={{ offsetPath: `path("${path}")` }}
+                      />
+                    </>
+                  )}
                 </g>
               );
             });
           })}
         </svg>
 
-        {/* Data Source Badges - Top Arc */}
+        {/* Data Source Badges - Organized Arc */}
         <div className="absolute inset-0">
           {frameworkDataSources.map((source, index) => {
             const pos = getSourcePosition(index, frameworkDataSources.length);
+            const delay = 1.5 + index * 0.12;
             return (
               <motion.button
                 key={source.id}
-                initial={{ opacity: 0, scale: 0, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.08, type: "spring", stiffness: 200 }}
-                whileHover={{ scale: 1.15, zIndex: 50 }}
-                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0, y: -30 }}
+                animate={animationPhase !== 'framework' ? { opacity: 1, scale: 1, y: 0 } : {}}
+                transition={{ delay, duration: 0.5, type: "spring", stiffness: 300, damping: 20 }}
+                whileHover={{ scale: 1.2, zIndex: 50 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setSelectedSource(source)}
                 className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer`}
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               >
                 <motion.div
-                  className={`relative px-2 py-1 sm:px-3 sm:py-1.5 rounded-full ${source.bgColor} ${source.borderColor} border backdrop-blur-sm`}
-                  animate={{ 
+                  className={`relative px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full ${source.bgColor} ${source.borderColor} border-2 backdrop-blur-md`}
+                  animate={animationPhase === 'complete' ? { 
                     boxShadow: [
-                      `0 0 10px 2px ${source.color === "blue" ? "rgba(59,130,246,0.3)" : 
-                        source.color === "purple" ? "rgba(168,85,247,0.3)" :
-                        source.color === "amber" ? "rgba(245,158,11,0.3)" :
-                        source.color === "rose" ? "rgba(244,63,94,0.3)" :
-                        source.color === "emerald" ? "rgba(16,185,129,0.3)" :
-                        source.color === "orange" ? "rgba(249,115,22,0.3)" :
-                        source.color === "indigo" ? "rgba(99,102,241,0.3)" :
-                        source.color === "teal" ? "rgba(20,184,166,0.3)" : "rgba(6,182,212,0.3)"}`,
-                      `0 0 20px 4px ${source.color === "blue" ? "rgba(59,130,246,0.5)" : 
-                        source.color === "purple" ? "rgba(168,85,247,0.5)" :
-                        source.color === "amber" ? "rgba(245,158,11,0.5)" :
-                        source.color === "rose" ? "rgba(244,63,94,0.5)" :
-                        source.color === "emerald" ? "rgba(16,185,129,0.5)" :
-                        source.color === "orange" ? "rgba(249,115,22,0.5)" :
-                        source.color === "indigo" ? "rgba(99,102,241,0.5)" :
-                        source.color === "teal" ? "rgba(20,184,166,0.5)" : "rgba(6,182,212,0.5)"}`,
-                      `0 0 10px 2px ${source.color === "blue" ? "rgba(59,130,246,0.3)" : 
-                        source.color === "purple" ? "rgba(168,85,247,0.3)" :
-                        source.color === "amber" ? "rgba(245,158,11,0.3)" :
-                        source.color === "rose" ? "rgba(244,63,94,0.3)" :
-                        source.color === "emerald" ? "rgba(16,185,129,0.3)" :
-                        source.color === "orange" ? "rgba(249,115,22,0.3)" :
-                        source.color === "indigo" ? "rgba(99,102,241,0.3)" :
-                        source.color === "teal" ? "rgba(20,184,166,0.3)" : "rgba(6,182,212,0.3)"}`,
-                    ]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      `0 0 8px 2px ${getColorRgba(source.color, 0.3)}`,
+                      `0 0 16px 4px ${getColorRgba(source.color, 0.5)}`,
+                      `0 0 8px 2px ${getColorRgba(source.color, 0.3)}`,
+                    ],
+                    scale: [1, 1.02, 1],
+                  } : {}}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <span className={`font-semibold text-[10px] sm:text-xs ${source.textColor} whitespace-nowrap`}>
+                  <span className={`font-bold text-[10px] sm:text-xs ${source.textColor} whitespace-nowrap`}>
                     {source.shortName}
                   </span>
                 </motion.div>
@@ -5169,83 +5207,131 @@ function UnifiedFrameworkVisual() {
           })}
         </div>
 
-        {/* Framework Temple Structure */}
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 sm:pb-6">
-          {/* Governance - Roof */}
+        {/* Framework Temple Structure - CENTERED */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pt-16 sm:pt-20">
+          {/* Governance - Roof with dramatic entrance */}
           <motion.div
-            initial={{ opacity: 0, y: -30, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
-            className="w-full max-w-lg px-4 mb-2"
+            initial={{ opacity: 0, scale: 0.5, y: -50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8, type: "spring", stiffness: 100, damping: 15 }}
+            className="w-full max-w-md px-4 mb-3"
           >
             <motion.button
               onClick={() => setSelectedBlock(frameworkBlocks[0])}
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className={`w-full relative p-3 sm:p-4 rounded-xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all hover:shadow-xl ${frameworkBlocks[0].glowColor}`}
+              whileHover={{ scale: 1.03, y: -4, boxShadow: `0 0 30px 8px ${getColorRgba('purple', 0.4)}` }}
+              whileTap={{ scale: 0.97 }}
+              className={`w-full relative p-3 sm:p-4 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
+              style={{ perspective: '1000px' }}
             >
-              {/* Roof decorative top */}
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3/4 h-1.5 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent rounded-full" />
+              {/* Animated roof glow */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl"
+                animate={animationPhase === 'complete' ? {
+                  boxShadow: [
+                    `0 0 15px 3px ${getColorRgba('purple', 0.2)}`,
+                    `0 0 25px 6px ${getColorRgba('purple', 0.35)}`,
+                    `0 0 15px 3px ${getColorRgba('purple', 0.2)}`,
+                  ]
+                } : {}}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
               
-              <div className="flex items-center justify-center gap-3">
+              {/* Roof decorative top beam */}
+              <motion.div 
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="absolute -top-2 left-1/2 -translate-x-1/2 w-4/5 h-2 bg-gradient-to-r from-transparent via-purple-400/60 to-transparent rounded-full" 
+              />
+              
+              <div className="flex items-center justify-center gap-3 relative z-10">
                 <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
+                  animate={{ 
+                    rotate: [0, 5, -5, 0],
+                    scale: [1, 1.05, 1],
+                  }}
                   transition={{ duration: 4, repeat: Infinity }}
-                  className="p-2 rounded-lg bg-purple-500/30"
+                  className="p-2.5 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30"
                 >
-                  <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
+                  <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-purple-300" />
                 </motion.div>
                 <div className="text-center">
-                  <h3 className="text-sm sm:text-base font-bold text-purple-300">{frameworkBlocks[0].title}</h3>
-                  <p className="text-[10px] sm:text-xs text-purple-400/70">{frameworkBlocks[0].subtitle}</p>
+                  <h3 className="text-sm sm:text-lg font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
+                  <p className="text-[10px] sm:text-xs text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
                 </div>
               </div>
               
-              {/* Connecting lines to pillars */}
-              <div className="absolute -bottom-4 left-1/4 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
-              <div className="absolute -bottom-4 right-1/4 w-0.5 h-4 bg-gradient-to-b from-purple-400/50 to-transparent" />
+              {/* Animated connecting lines to pillars */}
+              {[0.25, 0.5, 0.75].map((pos, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scaleY: 0, opacity: 0 }}
+                  animate={{ scaleY: 1, opacity: 1 }}
+                  transition={{ delay: 1.0 + i * 0.1, duration: 0.3 }}
+                  className="absolute -bottom-5 w-0.5 h-5 bg-gradient-to-b from-purple-400/70 to-purple-400/10 origin-top"
+                  style={{ left: `${pos * 100}%`, transform: `translateX(-50%)` }}
+                />
+              ))}
             </motion.button>
           </motion.div>
 
-          {/* Pillars Row */}
-          <div className="w-full max-w-2xl px-2 sm:px-4 grid grid-cols-3 gap-2 sm:gap-3">
+          {/* Pillars Row - Rise from bottom */}
+          <div className="w-full max-w-xl px-3 sm:px-4 grid grid-cols-3 gap-3 sm:gap-4">
             {frameworkBlocks.slice(1).map((block, index) => {
               const Icon = block.icon;
+              const pillarDelay = 0.6 + index * 0.2;
               return (
                 <motion.button
                   key={block.id}
-                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  initial={{ opacity: 0, y: 60, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 1.0 + index * 0.15, duration: 0.5, type: "spring" }}
-                  whileHover={{ scale: 1.03, y: -3 }}
-                  whileTap={{ scale: 0.97 }}
+                  transition={{ delay: pillarDelay, duration: 0.6, type: "spring", stiffness: 120, damping: 15 }}
+                  whileHover={{ scale: 1.05, y: -5, boxShadow: `0 0 25px 6px ${getColorRgba(block.color, 0.4)}` }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedBlock(block)}
-                  className={`relative p-2 sm:p-3 rounded-xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all hover:shadow-lg ${block.glowColor}`}
+                  className={`relative p-3 sm:p-4 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
                 >
-                  {/* Pillar top decoration */}
-                  <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-2/3 h-1 rounded-full ${
-                    block.color === "blue" ? "bg-blue-400/50" :
-                    block.color === "emerald" ? "bg-emerald-400/50" :
-                    "bg-amber-400/50"
-                  }`} />
+                  {/* Breathing glow effect */}
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl"
+                    animate={animationPhase === 'complete' ? {
+                      boxShadow: [
+                        `0 0 12px 2px ${getColorRgba(block.color, 0.15)}`,
+                        `0 0 20px 5px ${getColorRgba(block.color, 0.3)}`,
+                        `0 0 12px 2px ${getColorRgba(block.color, 0.15)}`,
+                      ]
+                    } : {}}
+                    transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.3 }}
+                  />
                   
-                  <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+                  {/* Pillar top decoration with draw-in */}
+                  <motion.div 
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ delay: pillarDelay + 0.3, duration: 0.4 }}
+                    className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3/4 h-1.5 rounded-full ${
+                      block.color === "blue" ? "bg-blue-400/60" :
+                      block.color === "emerald" ? "bg-emerald-400/60" :
+                      "bg-amber-400/60"
+                    }`} 
+                  />
+                  
+                  <div className="flex flex-col items-center gap-2 relative z-10">
                     <motion.div
-                      animate={{ 
-                        scale: [1, 1.1, 1],
+                      animate={animationPhase === 'complete' ? { 
+                        scale: [1, 1.08, 1],
                         rotate: [0, 3, -3, 0]
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
-                      className={`p-1.5 sm:p-2 rounded-lg ${block.bgColor}`}
+                      } : {}}
+                      transition={{ duration: 3.5, repeat: Infinity, delay: index * 0.4 }}
+                      className={`p-2 sm:p-2.5 rounded-xl ${block.bgColor} border ${block.borderColor}`}
                     >
-                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${block.textColor}`} />
+                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${block.textColor}`} />
                     </motion.div>
                     <div className="text-center">
-                      <h3 className={`text-[10px] sm:text-xs font-bold ${block.textColor} leading-tight`}>
+                      <h3 className={`text-[11px] sm:text-sm font-bold ${block.textColor} leading-tight`}>
                         {block.title}
                       </h3>
-                      <p className="text-[8px] sm:text-[10px] text-white/50 hidden sm:block">
+                      <p className="text-[8px] sm:text-[10px] text-white/50 mt-0.5">
                         {block.subtitle}
                       </p>
                     </div>
@@ -5256,235 +5342,326 @@ function UnifiedFrameworkVisual() {
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Legend with fade-in */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 text-right"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 4.5 }}
+          className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 text-right"
         >
-          <p className="text-[8px] sm:text-[10px] text-white/40">Click any element for details</p>
-          <p className="text-[8px] sm:text-[10px] text-white/30">8 global data sources • 4 framework pillars</p>
+          <p className="text-[8px] sm:text-[10px] text-white/50">Click any element for details</p>
+          <p className="text-[8px] sm:text-[10px] text-white/40">8 global data sources • 4 framework pillars</p>
         </motion.div>
       </div>
 
-      {/* Data Source Detail Modal */}
+      {/* Data Source Detail Modal - PREMIUM ANIMATION */}
       <AnimatePresence>
         {selectedSource && (
           <>
+            {/* Backdrop with blur animation */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
               onClick={() => setSelectedSource(null)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: "spring", damping: 25 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[80vh] overflow-hidden bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-2xl shadow-2xl"
+              className="fixed inset-0 z-50"
+              style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
             >
-              {/* Modal Header */}
-              <div className={`p-4 sm:p-5 ${selectedSource.bgColor} border-b border-white/10`}>
-                <button
-                  onClick={() => setSelectedSource(null)}
-                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-4 h-4 text-white/60" />
-                </button>
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+              <motion.div
+                className="absolute inset-0"
+                initial={{ backdropFilter: 'blur(0px)' }}
+                animate={{ backdropFilter: 'blur(12px)' }}
+                exit={{ backdropFilter: 'blur(0px)' }}
+                transition={{ duration: 0.4 }}
+              />
+            </motion.div>
+            
+            {/* Modal with 3D entrance */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.75, y: 60, rotateX: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 40, rotateX: 10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              style={{ perspective: '1200px' }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[75vh] overflow-hidden rounded-3xl shadow-2xl"
+            >
+              {/* Animated border glow */}
+              <motion.div
+                className="absolute inset-0 rounded-3xl"
+                animate={{
+                  boxShadow: [
+                    `0 0 20px 5px ${getColorRgba(selectedSource.color, 0.3)}`,
+                    `0 0 40px 10px ${getColorRgba(selectedSource.color, 0.5)}`,
+                    `0 0 20px 5px ${getColorRgba(selectedSource.color, 0.3)}`,
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              
+              <div className="relative bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-3xl overflow-hidden">
+                {/* Modal Header */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="flex items-center gap-3"
+                  className={`p-5 ${selectedSource.bgColor} border-b border-white/10`}
                 >
-                  <div className={`p-2.5 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border`}>
-                    <Database className={`w-6 h-6 ${selectedSource.textColor}`} />
-                  </div>
-                  <div>
-                    <h3 className={`text-base sm:text-lg font-bold ${selectedSource.textColor}`}>
-                      {selectedSource.shortName}
-                    </h3>
-                    <p className="text-white/60 text-xs sm:text-sm">{selectedSource.name}</p>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[50vh]">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
-                  <p className="text-white/70 text-sm leading-relaxed">{selectedSource.description}</p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h4 className="text-white/90 text-sm font-semibold mb-2">Key Metrics Provided</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSource.metrics.map((metric, i) => (
-                      <span
-                        key={i}
-                        className={`px-2 py-1 rounded-full text-xs ${selectedSource.bgColor} ${selectedSource.textColor} ${selectedSource.borderColor} border`}
-                      >
-                        {metric}
-                      </span>
-                    ))}
-                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSelectedSource(null)}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-white/80" />
+                  </motion.button>
+                  
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.15, type: "spring", stiffness: 400 }}
+                    className="flex items-center gap-4"
+                  >
+                    <motion.div 
+                      animate={{ rotate: [0, 5, -5, 0] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className={`p-3 rounded-2xl ${selectedSource.bgColor} ${selectedSource.borderColor} border-2`}
+                    >
+                      <Database className={`w-7 h-7 ${selectedSource.textColor}`} />
+                    </motion.div>
+                    <div>
+                      <h3 className={`text-lg sm:text-xl font-bold ${selectedSource.textColor}`}>
+                        {selectedSource.shortName}
+                      </h3>
+                      <p className="text-white/60 text-sm">{selectedSource.name}</p>
+                    </div>
+                  </motion.div>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <h4 className="text-white/90 text-sm font-semibold mb-2">Feeds Into</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSource.feedsInto.map((targetId) => {
-                      const targetBlock = frameworkBlocks.find(b => b.id === targetId);
-                      if (!targetBlock) return null;
-                      return (
-                        <span
-                          key={targetId}
-                          className={`px-2 py-1 rounded-full text-xs ${targetBlock.bgColor} ${targetBlock.textColor} ${targetBlock.borderColor} border`}
+                {/* Modal Content with staggered sections */}
+                <div className="p-5 space-y-5 overflow-y-auto max-h-[50vh]">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, type: "spring" }}
+                  >
+                    <p className="text-white/80 text-sm leading-relaxed">{selectedSource.description}</p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                  >
+                    <h4 className="text-white/90 text-sm font-semibold mb-3">Key Metrics Provided</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSource.metrics.map((metric, i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.35 + i * 0.05 }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium ${selectedSource.bgColor} ${selectedSource.textColor} ${selectedSource.borderColor} border`}
                         >
-                          {targetBlock.title}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </motion.div>
+                          {metric}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
 
-                <motion.a
-                  href={selectedSource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border hover:bg-white/10 transition-colors`}
-                >
-                  <ExternalLink className={`w-4 h-4 ${selectedSource.textColor}`} />
-                  <span className={`text-sm font-medium ${selectedSource.textColor}`}>Visit Official Source</span>
-                  <ArrowRight className={`w-4 h-4 ${selectedSource.textColor} ml-auto`} />
-                </motion.a>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, type: "spring" }}
+                  >
+                    <h4 className="text-white/90 text-sm font-semibold mb-3">Feeds Into Framework</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSource.feedsInto.map((targetId, i) => {
+                        const targetBlock = frameworkBlocks.find(b => b.id === targetId);
+                        if (!targetBlock) return null;
+                        return (
+                          <motion.span
+                            key={targetId}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.45 + i * 0.05 }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium ${targetBlock.bgColor} ${targetBlock.textColor} ${targetBlock.borderColor} border`}
+                          >
+                            {targetBlock.title}
+                          </motion.span>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+
+                  <motion.a
+                    href={selectedSource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border-2 hover:bg-white/10 transition-all`}
+                  >
+                    <ExternalLink className={`w-5 h-5 ${selectedSource.textColor}`} />
+                    <span className={`text-sm font-medium ${selectedSource.textColor}`}>Visit Official Source</span>
+                    <ArrowRight className={`w-5 h-5 ${selectedSource.textColor} ml-auto`} />
+                  </motion.a>
+                </div>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Framework Block Detail Modal */}
+      {/* Framework Block Detail Modal - PREMIUM ANIMATION */}
       <AnimatePresence>
         {selectedBlock && (
           <>
+            {/* Backdrop with blur animation */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
               onClick={() => setSelectedBlock(null)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: "spring", damping: 25 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[80vh] overflow-hidden bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-2xl shadow-2xl"
+              className="fixed inset-0 z-50"
+              style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
             >
-              {/* Modal Header */}
-              <div className={`p-4 sm:p-5 ${selectedBlock.bgColor} border-b border-white/10`}>
-                <button
-                  onClick={() => setSelectedBlock(null)}
-                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-4 h-4 text-white/60" />
-                </button>
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+              <motion.div
+                className="absolute inset-0"
+                initial={{ backdropFilter: 'blur(0px)' }}
+                animate={{ backdropFilter: 'blur(12px)' }}
+                exit={{ backdropFilter: 'blur(0px)' }}
+                transition={{ duration: 0.4 }}
+              />
+            </motion.div>
+            
+            {/* Modal with 3D entrance */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.75, y: 60, rotateX: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 40, rotateX: 10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              style={{ perspective: '1200px' }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[75vh] overflow-hidden rounded-3xl shadow-2xl"
+            >
+              {/* Animated border glow */}
+              <motion.div
+                className="absolute inset-0 rounded-3xl"
+                animate={{
+                  boxShadow: [
+                    `0 0 20px 5px ${getColorRgba(selectedBlock.color, 0.3)}`,
+                    `0 0 40px 10px ${getColorRgba(selectedBlock.color, 0.5)}`,
+                    `0 0 20px 5px ${getColorRgba(selectedBlock.color, 0.3)}`,
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              
+              <div className="relative bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-3xl overflow-hidden">
+                {/* Modal Header */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="flex items-center gap-3"
+                  className={`p-5 ${selectedBlock.bgColor} border-b border-white/10`}
                 >
-                  <motion.div
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className={`p-2.5 rounded-xl ${selectedBlock.bgColor} ${selectedBlock.borderColor} border`}
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSelectedBlock(null)}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                   >
-                    <selectedBlock.icon className={`w-6 h-6 ${selectedBlock.textColor}`} />
+                    <X className="w-4 h-4 text-white/80" />
+                  </motion.button>
+                  
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.15, type: "spring", stiffness: 400 }}
+                    className="flex items-center gap-4"
+                  >
+                    <motion.div 
+                      animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className={`p-3 rounded-2xl ${selectedBlock.bgColor} ${selectedBlock.borderColor} border-2`}
+                    >
+                      <selectedBlock.icon className={`w-7 h-7 ${selectedBlock.textColor}`} />
+                    </motion.div>
+                    <div>
+                      <h3 className={`text-lg sm:text-xl font-bold ${selectedBlock.textColor}`}>
+                        {selectedBlock.title}
+                      </h3>
+                      <p className="text-white/60 text-sm">{selectedBlock.subtitle}</p>
+                    </div>
                   </motion.div>
-                  <div>
-                    <h3 className={`text-base sm:text-lg font-bold ${selectedBlock.textColor}`}>
-                      {selectedBlock.title}
-                    </h3>
-                    <p className="text-white/60 text-xs sm:text-sm">{selectedBlock.subtitle}</p>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[50vh]">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
-                  <p className="text-white/70 text-sm leading-relaxed">{selectedBlock.description}</p>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h4 className="text-white/90 text-sm font-semibold mb-2">Key Metrics</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedBlock.keyMetrics.map((metric, i) => (
-                      <span
-                        key={i}
-                        className={`px-2 py-1 rounded-full text-xs ${selectedBlock.bgColor} ${selectedBlock.textColor} ${selectedBlock.borderColor} border`}
-                      >
-                        {metric}
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
+                {/* Modal Content with staggered sections */}
+                <div className="p-5 space-y-5 overflow-y-auto max-h-[50vh]">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, type: "spring" }}
+                  >
+                    <p className="text-white/80 text-sm leading-relaxed">{selectedBlock.description}</p>
+                  </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <h4 className="text-white/90 text-sm font-semibold mb-2">Data Sources</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedBlock.dataSources.map((sourceName) => {
-                      const source = frameworkDataSources.find(s => s.shortName === sourceName);
-                      if (!source) return null;
-                      return (
-                        <motion.button
-                          key={source.id}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setSelectedBlock(null);
-                            setTimeout(() => setSelectedSource(source), 200);
-                          }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg ${source.bgColor} ${source.borderColor} border hover:bg-white/10 transition-colors`}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                  >
+                    <h4 className="text-white/90 text-sm font-semibold mb-3">Key Metrics</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedBlock.keyMetrics.map((metric, i) => (
+                        <motion.span
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.35 + i * 0.05 }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium ${selectedBlock.bgColor} ${selectedBlock.textColor} ${selectedBlock.borderColor} border`}
                         >
-                          <Database className={`w-3.5 h-3.5 ${source.textColor}`} />
-                          <span className={`text-xs font-medium ${source.textColor}`}>{source.shortName}</span>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
+                          {metric}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, type: "spring" }}
+                  >
+                    <h4 className="text-white/90 text-sm font-semibold mb-3">Data Sources</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedBlock.dataSources.map((sourceName, i) => {
+                        const source = frameworkDataSources.find(s => s.shortName === sourceName);
+                        if (!source) return null;
+                        return (
+                          <motion.button
+                            key={source.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 + i * 0.08 }}
+                            whileHover={{ scale: 1.03, x: 3 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => {
+                              setSelectedBlock(null);
+                              setTimeout(() => setSelectedSource(source), 250);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl ${source.bgColor} ${source.borderColor} border-2 hover:bg-white/10 transition-all`}
+                          >
+                            <Database className={`w-4 h-4 ${source.textColor}`} />
+                            <span className={`text-xs font-medium ${source.textColor}`}>{source.shortName}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </div>
               </div>
             </motion.div>
           </>
