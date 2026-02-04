@@ -135,19 +135,66 @@ CURATED_IMAGES = {
             {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
         ],
     },
+    # Mexico (MEX)
+    "MEX": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=800&q=80", "alt": "Mexico City skyline"},
+            {"url": "https://images.unsplash.com/photo-1547995886-6dc09384c6e6?w=800&q=80", "alt": "Mexican architecture"},
+            {"url": "https://images.unsplash.com/photo-1570737209810-87a8e7245f88?w=800&q=80", "alt": "Traditional Mexican culture"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Mexican manufacturing"},
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Industrial facility"},
+            {"url": "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80", "alt": "Auto manufacturing"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "Mexican hospital"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare facility"},
+            {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical center"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Government building"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "National Palace"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=800&q=80", "alt": "Mexico City panorama"},
+            {"url": "https://images.unsplash.com/photo-1547995886-6dc09384c6e6?w=800&q=80", "alt": "Urban development"},
+            {"url": "https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?w=800&q=80", "alt": "Modern Mexican city"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "Mexican workforce"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
+            {"url": "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=80", "alt": "Factory workers"},
+        ],
+    },
     # Germany (DEU)
     "DEU": {
         "culture": [
             {"url": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&q=80", "alt": "German cityscape"},
             {"url": "https://images.unsplash.com/photo-1554072675-66db59dba46f?w=800&q=80", "alt": "Traditional German architecture"},
+            {"url": "https://images.unsplash.com/photo-1599946347371-68eb71b16afc?w=800&q=80", "alt": "German culture"},
         ],
         "industry": [
             {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "German manufacturing"},
             {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Industrial facility"},
+            {"url": "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80", "alt": "Automotive industry"},
         ],
         "oh-infrastructure": [
             {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "German hospital"},
             {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare center"},
+            {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical facility"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Bundestag"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Government building"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&q=80", "alt": "Berlin cityscape"},
+            {"url": "https://images.unsplash.com/photo-1554072675-66db59dba46f?w=800&q=80", "alt": "German urban area"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "German workers"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workforce"},
         ],
     },
     # Canada (CAN)
@@ -155,14 +202,87 @@ CURATED_IMAGES = {
         "culture": [
             {"url": "https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&q=80", "alt": "Toronto skyline"},
             {"url": "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&q=80", "alt": "Canadian landscape"},
+            {"url": "https://images.unsplash.com/photo-1551009175-15bdf9dcb580?w=800&q=80", "alt": "Canadian culture"},
         ],
         "industry": [
             {"url": "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=800&q=80", "alt": "Canadian industry"},
             {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Industrial operations"},
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Manufacturing"},
         ],
         "oh-infrastructure": [
             {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "Canadian hospital"},
             {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical facility"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare center"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Parliament Hill"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Government building"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&q=80", "alt": "Toronto urban"},
+            {"url": "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&q=80", "alt": "Vancouver cityscape"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "Canadian workforce"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
+        ],
+    },
+    # United States (USA)
+    "USA": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?w=800&q=80", "alt": "New York skyline"},
+            {"url": "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&q=80", "alt": "American cityscape"},
+            {"url": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80", "alt": "Golden Gate Bridge"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "US manufacturing"},
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Industrial facility"},
+            {"url": "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80", "alt": "Technology industry"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "American hospital"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare facility"},
+            {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical center"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "US Capitol"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Government building"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?w=800&q=80", "alt": "NYC skyline"},
+            {"url": "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&q=80", "alt": "Urban development"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "American workforce"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
+        ],
+    },
+    # United Kingdom (GBR)
+    "GBR": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80", "alt": "London skyline"},
+            {"url": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=800&q=80", "alt": "British architecture"},
+            {"url": "https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=800&q=80", "alt": "London landmarks"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "UK manufacturing"},
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Industrial facility"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "NHS hospital"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare facility"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Westminster"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Parliament"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80", "alt": "London urban"},
+            {"url": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=800&q=80", "alt": "UK cityscape"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "British workforce"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
         ],
     },
 }

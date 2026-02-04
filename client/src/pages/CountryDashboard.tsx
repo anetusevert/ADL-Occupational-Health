@@ -13,9 +13,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Loader2, AlertCircle, RefreshCw, Sparkles, CheckCircle2 } from "lucide-react";
 import { apiClient, aiApiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
 import { getEffectiveOHIScore } from "../lib/utils";
@@ -151,27 +151,104 @@ export function CountryDashboard() {
     );
   }, [currentCountry]);
 
+  const queryClient = useQueryClient();
+  
   // Auto-initialize country insights when admin visits (generates all 6 tiles)
   const [isInitializing, setIsInitializing] = useState(false);
+  const [initStatus, setInitStatus] = useState<"idle" | "generating" | "complete" | "error">("idle");
+  const [generationProgress, setGenerationProgress] = useState<string>("");
+  
   useEffect(() => {
     if (!iso || !isAdmin || !currentCountry) return;
     
     const initializeInsights = async () => {
       try {
         setIsInitializing(true);
+        setInitStatus("generating");
+        setGenerationProgress("Initializing insights...");
+        
         // Call initialize endpoint - uses extended timeout for AI generation
-        await aiApiClient.post(`/api/v1/insights/${iso}/initialize`);
-        console.log(`[CountryDashboard] Initialized insights for ${iso}`);
+        const response = await aiApiClient.post<{
+          status: string;
+          existing: number;
+          missing: number;
+          total_categories: number;
+        }>(`/api/v1/insights/${iso}/initialize`);
+        
+        console.log(`[CountryDashboard] Initialized insights for ${iso}:`, response.data);
+        
+        if (response.data.status === "already_complete") {
+          setInitStatus("complete");
+          setGenerationProgress("All insights ready");
+        } else if (response.data.status === "generated" || response.data.status === "partial") {
+          setInitStatus("complete");
+          setGenerationProgress(`Generated ${response.data.existing}/${response.data.total_categories} insights`);
+          // Invalidate any cached insight data
+          queryClient.invalidateQueries({ queryKey: ["insights", iso] });
+        }
+        
+        // Clear status after 3 seconds
+        setTimeout(() => {
+          setInitStatus("idle");
+          setGenerationProgress("");
+        }, 3000);
+        
       } catch (error) {
-        // Silent fail - content can still be generated on-demand
         console.warn(`[CountryDashboard] Auto-init failed for ${iso}:`, error);
+        setInitStatus("error");
+        setGenerationProgress("Generation unavailable");
+        setTimeout(() => {
+          setInitStatus("idle");
+          setGenerationProgress("");
+        }, 3000);
       } finally {
         setIsInitializing(false);
       }
     };
     
     initializeInsights();
-  }, [iso, isAdmin, currentCountry]);
+  }, [iso, isAdmin, currentCountry, queryClient]);
+
+  // Regenerate all insights (admin only)
+  const handleRegenerateAll = async () => {
+    if (!iso || !isAdmin || isInitializing) return;
+    
+    try {
+      setIsInitializing(true);
+      setInitStatus("generating");
+      setGenerationProgress("Regenerating all insights...");
+      
+      const response = await aiApiClient.post<{
+        successful: number;
+        failed: number;
+        total_categories: number;
+      }>(`/api/v1/insights/${iso}/regenerate-all`);
+      
+      console.log(`[CountryDashboard] Regenerated all insights for ${iso}:`, response.data);
+      
+      setInitStatus("complete");
+      setGenerationProgress(`Regenerated ${response.data.successful}/${response.data.total_categories} insights`);
+      
+      // Invalidate cached data
+      queryClient.invalidateQueries({ queryKey: ["insights", iso] });
+      
+      setTimeout(() => {
+        setInitStatus("idle");
+        setGenerationProgress("");
+      }, 3000);
+      
+    } catch (error) {
+      console.error(`[CountryDashboard] Regenerate-all failed:`, error);
+      setInitStatus("error");
+      setGenerationProgress("Regeneration failed");
+      setTimeout(() => {
+        setInitStatus("idle");
+        setGenerationProgress("");
+      }, 3000);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   // Loading state
   if (geoLoading || intelLoading) {
@@ -244,13 +321,46 @@ export function CountryDashboard() {
             ohiScore={ohiScore}
           />
           
-          {/* View Full Report Button */}
-          <button
-            onClick={() => navigate(`/country/${iso}/summary`)}
-            className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-400 text-xs font-medium transition-colors whitespace-nowrap"
-          >
-            View Full Report
-          </button>
+          {/* Admin: Regenerate All Button + Status */}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              {/* Status indicator */}
+              <AnimatePresence mode="wait">
+                {initStatus !== "idle" && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${
+                      initStatus === "generating" ? "bg-amber-500/20 text-amber-400" :
+                      initStatus === "complete" ? "bg-emerald-500/20 text-emerald-400" :
+                      "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {initStatus === "generating" && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {initStatus === "complete" && <CheckCircle2 className="w-3 h-3" />}
+                    {initStatus === "error" && <AlertCircle className="w-3 h-3" />}
+                    <span>{generationProgress}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Regenerate All Button */}
+              <button
+                onClick={handleRegenerateAll}
+                disabled={isInitializing}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-purple-500/30 rounded-lg text-purple-400 text-xs font-medium transition-colors whitespace-nowrap"
+                title="Regenerate all insights with AI"
+              >
+                {isInitializing ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+                Regenerate All
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
