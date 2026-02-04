@@ -59,11 +59,23 @@ interface DatabaseOverview {
 
 // API fetch function
 async function fetchDatabaseOverview(): Promise<DatabaseOverview> {
+  const token = localStorage.getItem("gohip_token");
+  
   const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/database`, {
     credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication required. Please log in again.");
+    }
+    if (response.status === 403) {
+      throw new Error("Admin access required.");
+    }
     throw new Error("Failed to fetch database overview");
   }
   
