@@ -53,7 +53,7 @@ interface TopCountry {
   flag_url?: string;
 }
 
-// Utility to generate flag URL from ISO code
+// Utility to generate flag URL from ISO code using flagcdn.com CDN
 const getFlagUrl = (isoCode: string): string => {
   // Convert 3-letter ISO to 2-letter for flag service
   const iso2Map: Record<string, string> = {
@@ -67,7 +67,8 @@ const getFlagUrl = (isoCode: string): string => {
     "ZAF": "za", "NGA": "ng", "KEN": "ke", "GHA": "gh", "TZA": "tz",
   };
   const iso2 = iso2Map[isoCode] || isoCode.toLowerCase().substring(0, 2);
-  return `/static/flags/${iso2}.svg`;
+  // Use flagcdn.com for reliable flag images
+  return `https://flagcdn.com/w80/${iso2}.png`;
 };
 
 interface BestPracticeData {
