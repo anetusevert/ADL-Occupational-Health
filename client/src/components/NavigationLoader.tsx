@@ -28,7 +28,7 @@ interface NavigationLoaderProps {
 
 // Map routes to their icons and labels
 const routeConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-  "/home": { icon: Map, label: "Global Overview", color: "text-adl-accent" },
+  "/home": { icon: Map, label: "Global", color: "text-adl-accent" },
   "/framework": { icon: Layers, label: "Framework", color: "text-purple-400" },
   "/deep-dive": { icon: Brain, label: "Best Practices Compendium", color: "text-cyan-400" },
   "/compare": { icon: GitCompare, label: "Compare", color: "text-emerald-400" },
