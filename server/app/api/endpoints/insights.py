@@ -710,6 +710,83 @@ async def list_country_insights(
     )
 
 
+# =============================================================================
+# DIAGNOSTIC ENDPOINT
+# =============================================================================
+
+class AIConfigDiagnostic(BaseModel):
+    """Diagnostic info about AI configuration."""
+    has_active_config: bool
+    has_configured_config: bool
+    has_api_key: bool
+    provider: Optional[str]
+    model: Optional[str]
+    can_decrypt_key: bool
+    error_message: Optional[str] = None
+
+
+@router.get("/diagnostic/ai-config", response_model=AIConfigDiagnostic)
+async def check_ai_config(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Diagnostic endpoint to check AI configuration status.
+    Helps identify why AI generation might be failing.
+    """
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    # Check for any active config
+    active_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+    
+    if not active_config:
+        return AIConfigDiagnostic(
+            has_active_config=False,
+            has_configured_config=False,
+            has_api_key=False,
+            provider=None,
+            model=None,
+            can_decrypt_key=False,
+            error_message="No active AI configuration found. Please configure AI in Admin > AI Settings."
+        )
+    
+    # Check if it's marked as configured
+    has_configured = bool(active_config.is_configured)
+    
+    # Check if API key exists
+    has_api_key = bool(active_config.api_key_encrypted)
+    
+    # Try to decrypt the key
+    can_decrypt = False
+    error_msg = None
+    
+    if has_api_key:
+        try:
+            from app.core.security import decrypt_api_key
+            decrypted = decrypt_api_key(active_config.api_key_encrypted)
+            can_decrypt = decrypted is not None and len(decrypted) > 0
+            if not can_decrypt:
+                error_msg = "API key decryption returned empty. Check ENCRYPTION_KEY/SECRET_KEY environment variable."
+        except Exception as e:
+            error_msg = f"API key decryption failed: {str(e)}"
+    else:
+        error_msg = "No API key configured. Please add your API key in Admin > AI Settings."
+    
+    return AIConfigDiagnostic(
+        has_active_config=True,
+        has_configured_config=has_configured,
+        has_api_key=has_api_key,
+        provider=active_config.provider.value if active_config.provider else None,
+        model=active_config.model_name,
+        can_decrypt_key=can_decrypt,
+        error_message=error_msg if not can_decrypt else None,
+    )
+
+
 # Country Insight categories to auto-generate (the 6 bottom tiles)
 COUNTRY_INSIGHT_CATEGORIES = [
     InsightCategory.culture,
