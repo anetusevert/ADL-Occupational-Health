@@ -173,16 +173,30 @@ export function CountryDashboard() {
           existing: number;
           missing: number;
           total_categories: number;
+          errors?: Array<{ category: string; error: string }>;
         }>(`/api/v1/insights/${iso}/initialize`);
         
         console.log(`[CountryDashboard] Initialized insights for ${iso}:`, response.data);
+        
+        // Log detailed errors if any
+        if (response.data.errors && response.data.errors.length > 0) {
+          console.error(`[CountryDashboard] AI Generation Errors for ${iso}:`);
+          response.data.errors.forEach((err) => {
+            console.error(`  - ${err.category}: ${err.error}`);
+          });
+        }
         
         if (response.data.status === "already_complete") {
           setInitStatus("complete");
           setGenerationProgress("All insights ready");
         } else if (response.data.status === "generated" || response.data.status === "partial") {
           setInitStatus("complete");
-          setGenerationProgress(`Generated ${response.data.existing}/${response.data.total_categories} insights`);
+          const hasErrors = response.data.errors && response.data.errors.length > 0;
+          setGenerationProgress(
+            hasErrors 
+              ? `Generated ${response.data.existing}/${response.data.total_categories} (${response.data.errors.length} failed)`
+              : `Generated ${response.data.existing}/${response.data.total_categories} insights`
+          );
           // Invalidate any cached insight data
           queryClient.invalidateQueries({ queryKey: ["insights", iso] });
         }

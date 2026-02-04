@@ -798,15 +798,22 @@ COUNTRY_INSIGHT_CATEGORIES = [
 ]
 
 
+class InitializeError(BaseModel):
+    """Error detail for failed category."""
+    category: str
+    error: str
+
+
 class InitializeResponse(BaseModel):
     """Response for initialize operation."""
     country_iso: str
     country_name: str
-    status: str  # "already_complete", "generating", "started"
+    status: str  # "already_complete", "generating", "partial", "started"
     total_categories: int
     existing: int
     missing: int
     categories_to_generate: List[str]
+    errors: Optional[List[InitializeError]] = None  # Included when generation fails
 
 
 @router.post("/{country_iso}/initialize", response_model=InitializeResponse)
@@ -930,8 +937,15 @@ async def initialize_country_insights(
             logger.info(f"Generated {category.value} insight for {country_iso}")
             
         except Exception as e:
-            logger.error(f"Failed to generate {category.value} for {country_iso}: {e}")
-            errors.append({"category": category.value, "error": str(e)})
+            error_msg = str(e)
+            # Extract more specific error message if available
+            if hasattr(e, 'detail'):
+                error_msg = e.detail
+            logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
+            errors.append({"category": category.value, "error": error_msg})
+    
+    # Convert errors to response format
+    error_details = [InitializeError(category=e["category"], error=e["error"]) for e in errors] if errors else None
     
     return InitializeResponse(
         country_iso=country_iso,
@@ -941,6 +955,7 @@ async def initialize_country_insights(
         existing=len(existing_categories) + generated,
         missing=len(missing_categories) - generated,
         categories_to_generate=[],
+        errors=error_details,
     )
 
 
