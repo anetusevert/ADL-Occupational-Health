@@ -48,6 +48,7 @@ import {
   DollarSign,
   Star,
   AlertTriangle,
+  Target,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { cn } from "../../lib/utils";
@@ -2574,18 +2575,12 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
 
   // Map slide types to layout templates
   switch (slide.type) {
-    // HERO LAYOUT - Intro and CTA slides
+    // SLIDE 1: GLOBAL OCCUPATIONAL HEALTH INTELLIGENCE - Full immersive layout
     case "intro":
       return (
-        <HeroSlideLayout
-          actionTitle={slide.actionTitle}
-          subtitle={slide.subtitle}
-          description={slide.content}
-          highlights={slide.highlights}
-          color={(slide.color as "cyan" | "purple" | "blue" | "emerald" | "amber") || "cyan"}
-          showLogos={true}
-          visual={<CompactIntroVisual />}
-        />
+        <div className="h-full flex flex-col overflow-hidden">
+          <GlobalIntelVisual />
+        </div>
       );
 
     // SLIDE 12: THE HANDSHAKE - ADL + GOSI Partnership
@@ -2829,6 +2824,453 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
 
 interface SovereignVisualProps {
   onInsightClick?: (id: string) => void;
+}
+
+// ============================================================================
+// SLIDE 1: GLOBAL OCCUPATIONAL HEALTH INTELLIGENCE
+// ============================================================================
+
+// Capability data with detailed information
+const globalIntelCapabilities = {
+  dataArchitecture: {
+    id: "data-architecture",
+    title: "Foundational Data Architecture",
+    icon: "Database",
+    description: "Constructing robust, longitudinal global databases. Harmonizing datasets.",
+    detailedDescription: "Our data architecture integrates 50+ years of occupational health data from WHO, ILO, national health agencies, and proprietary sources into a unified analytical framework.",
+    keyFeatures: [
+      "Longitudinal tracking across 195+ countries",
+      "Real-time incident reporting integration",
+      "Harmonized metrics across different regulatory frameworks",
+      "AI-powered data quality assurance",
+      "Secure, GDPR-compliant infrastructure"
+    ],
+    dataSources: [
+      { name: "ILO LABORSTA Database", url: "https://ilostat.ilo.org/" },
+      { name: "WHO Global Health Observatory", url: "https://www.who.int/data/gho" },
+      { name: "EU-OSHA European Survey", url: "https://osha.europa.eu/en/surveys-and-statistics-osh" },
+      { name: "GOSI National Statistics", url: "https://www.gosi.gov.sa" }
+    ],
+    impact: "Enables evidence-based policy decisions with 95%+ data confidence"
+  },
+  holisticSynthesis: {
+    id: "holistic-synthesis",
+    title: "Holistic Synthesis",
+    icon: "Layers",
+    description: "Integrating clinical, ergonomic, and psychosocial perspectives into unified frameworks.",
+    detailedDescription: "We combine multiple disciplinary lenses—medical, engineering, behavioral, and economic—to create comprehensive occupational health assessments.",
+    keyFeatures: [
+      "Multi-disciplinary expert panels",
+      "Clinical outcome integration",
+      "Ergonomic risk quantification",
+      "Psychosocial hazard mapping",
+      "Economic impact modeling"
+    ],
+    dataSources: [
+      { name: "Cochrane Occupational Safety Reviews", url: "https://work.cochrane.org/" },
+      { name: "NIOSH Research Database", url: "https://www.cdc.gov/niosh/" },
+      { name: "European Agency for Safety & Health", url: "https://osha.europa.eu/" }
+    ],
+    impact: "360° view of workplace health risks and interventions"
+  },
+  researchDepth: {
+    id: "research-depth",
+    title: "Research Depth & Breadth",
+    icon: "BarChart3",
+    description: "Rigorous technical analysis balanced with macro-level socio-economic impact.",
+    detailedDescription: "Our research spans from micro-level hazard analysis to macro-economic impact modeling, ensuring both granular insights and strategic relevance.",
+    keyFeatures: [
+      "Peer-reviewed methodology",
+      "Cross-sector benchmarking",
+      "Predictive risk modeling",
+      "Cost-benefit analysis frameworks",
+      "Regulatory impact assessment"
+    ],
+    dataSources: [
+      { name: "PubMed Occupational Health", url: "https://pubmed.ncbi.nlm.nih.gov/?term=occupational+health" },
+      { name: "World Bank Development Indicators", url: "https://data.worldbank.org/" },
+      { name: "IMF Economic Outlook", url: "https://www.imf.org/en/Publications/WEO" }
+    ],
+    impact: "Research-backed recommendations with measurable ROI"
+  },
+  strategicTranslation: {
+    id: "strategic-translation",
+    title: "Strategic Translation",
+    icon: "Target",
+    description: "Converting complex data into actionable state policy and national resilience.",
+    detailedDescription: "We transform research insights into practical policy recommendations, implementation roadmaps, and governance frameworks tailored to each nation's context.",
+    keyFeatures: [
+      "Policy recommendation engine",
+      "Implementation playbooks",
+      "Change management support",
+      "Stakeholder engagement strategies",
+      "Performance monitoring dashboards"
+    ],
+    dataSources: [
+      { name: "ILO Convention Ratification Status", url: "https://www.ilo.org/dyn/normlex/" },
+      { name: "OECD Policy Reviews", url: "https://www.oecd.org/employment/" },
+      { name: "Vision 2030 Framework", url: "https://www.vision2030.gov.sa/" }
+    ],
+    impact: "From insight to action in 90 days"
+  }
+};
+
+function GlobalIntelVisual() {
+  const [selectedCapability, setSelectedCapability] = useState<string | null>(null);
+  
+  const capabilities = [
+    { key: "dataArchitecture", icon: Database, color: "cyan", delay: 0.5 },
+    { key: "holisticSynthesis", icon: Layers, color: "purple", delay: 0.7 },
+    { key: "researchDepth", icon: BarChart3, color: "emerald", delay: 0.9 },
+    { key: "strategicTranslation", icon: Target, color: "amber", delay: 1.1 },
+  ];
+
+  const activeCapability = selectedCapability 
+    ? globalIntelCapabilities[selectedCapability as keyof typeof globalIntelCapabilities] 
+    : null;
+
+  const getColorClasses = (color: string) => {
+    const colors: Record<string, { text: string; bg: string; border: string; glow: string }> = {
+      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", glow: "shadow-cyan-500/20" },
+      purple: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", glow: "shadow-purple-500/20" },
+      emerald: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", glow: "shadow-emerald-500/20" },
+      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", glow: "shadow-amber-500/20" },
+    };
+    return colors[color] || colors.cyan;
+  };
+
+  return (
+    <div className="relative w-full h-full flex overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900">
+      {/* Particle effects */}
+      <ParticleField count={80} color="cyan" speed="slow" />
+      
+      {/* Ambient glow orbs */}
+      <FloatingGlowOrb color="cyan" size="lg" position="top-right" delay={0} />
+      <FloatingGlowOrb color="blue" size="md" position="bottom-left" delay={0.5} />
+      
+      {/* Left Content Section */}
+      <div className="relative z-10 w-1/2 flex flex-col justify-center px-8 lg:px-12">
+        {/* ADL Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-6"
+        >
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            onClick={() => window.open("https://www.adlittle.com", "_blank")}
+            className="flex items-center gap-3 cursor-pointer"
+          >
+            <img src="/adl-logo.png" alt="Arthur D. Little" className="h-8 lg:h-10 object-contain" />
+            <span className="text-white/40 text-xs">Est. 1886</span>
+          </motion.button>
+        </motion.div>
+
+        {/* Main Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight mb-3">
+            <span className="bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
+              GLOBAL OCCUPATIONAL
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              HEALTH INTELLIGENCE
+            </span>
+          </h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-lg lg:text-xl text-white/70 italic mb-8"
+          >
+            Synthesizing Evidence. Defining Strategy.
+          </motion.p>
+        </motion.div>
+
+        {/* Capabilities List - Clickable */}
+        <div className="space-y-4">
+          {capabilities.map((cap, index) => {
+            const data = globalIntelCapabilities[cap.key as keyof typeof globalIntelCapabilities];
+            const colors = getColorClasses(cap.color);
+            const Icon = cap.icon;
+            
+            return (
+              <motion.button
+                key={cap.key}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: cap.delay, duration: 0.5 }}
+                onClick={() => setSelectedCapability(cap.key)}
+                whileHover={{ x: 8, scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className={`flex items-start gap-4 p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all text-left w-full ${colors.bg} ${colors.border} hover:shadow-lg ${colors.glow}`}
+              >
+                <div className={`p-2 rounded-lg ${colors.bg}`}>
+                  <Icon className={`w-5 h-5 ${colors.text}`} />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`font-semibold ${colors.text} text-sm lg:text-base`}>
+                    {data.title}
+                  </h3>
+                  <p className="text-white/60 text-xs lg:text-sm leading-relaxed">
+                    {data.description}
+                  </p>
+                </div>
+                <ArrowRight className={`w-4 h-4 ${colors.text} opacity-50 mt-1`} />
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Click hint */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-white/40 text-xs mt-6"
+        >
+          Click any capability to explore details and sources
+        </motion.p>
+      </div>
+
+      {/* Right Globe Section */}
+      <div className="relative w-1/2 flex items-center justify-center">
+        {/* Globe visualization */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="relative w-[80%] aspect-square"
+        >
+          {/* Globe glow background */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-transparent blur-3xl" />
+          
+          {/* Animated globe SVG */}
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <defs>
+              <radialGradient id="globeGradient" cx="30%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="rgba(6,182,212,0.3)" />
+                <stop offset="50%" stopColor="rgba(30,64,175,0.2)" />
+                <stop offset="100%" stopColor="rgba(15,23,42,0.1)" />
+              </radialGradient>
+              <filter id="globeGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            
+            {/* Globe outline */}
+            <motion.circle
+              cx="100"
+              cy="100"
+              r="80"
+              fill="url(#globeGradient)"
+              stroke="rgba(6,182,212,0.4)"
+              strokeWidth="0.5"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1 }}
+            />
+            
+            {/* Longitude lines */}
+            {[-60, -30, 0, 30, 60].map((angle, i) => (
+              <motion.ellipse
+                key={`long-${i}`}
+                cx="100"
+                cy="100"
+                rx={Math.cos((angle * Math.PI) / 180) * 80}
+                ry="80"
+                fill="none"
+                stroke="rgba(6,182,212,0.2)"
+                strokeWidth="0.3"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
+              />
+            ))}
+            
+            {/* Latitude lines */}
+            {[30, 50, 70].map((r, i) => (
+              <motion.circle
+                key={`lat-${i}`}
+                cx="100"
+                cy="100"
+                r={r}
+                fill="none"
+                stroke="rgba(6,182,212,0.15)"
+                strokeWidth="0.3"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+              />
+            ))}
+            
+            {/* Animated data points */}
+            {[
+              { x: 60, y: 50, delay: 1.2 },
+              { x: 140, y: 60, delay: 1.4 },
+              { x: 80, y: 100, delay: 1.6 },
+              { x: 130, y: 90, delay: 1.8 },
+              { x: 100, y: 130, delay: 2.0 },
+              { x: 70, y: 80, delay: 2.2 },
+              { x: 150, y: 120, delay: 2.4 },
+              { x: 55, y: 120, delay: 2.6 },
+            ].map((point, i) => (
+              <motion.g key={i}>
+                <motion.circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="2"
+                  fill="#06b6d4"
+                  filter="url(#globeGlow)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [0, 1.5, 1], opacity: [0, 1, 0.8] }}
+                  transition={{ delay: point.delay, duration: 0.5 }}
+                />
+                <motion.circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="4"
+                  fill="none"
+                  stroke="#06b6d4"
+                  strokeWidth="0.5"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [1, 2, 1], opacity: [0.6, 0, 0.6] }}
+                  transition={{ delay: point.delay + 0.5, duration: 2, repeat: Infinity }}
+                />
+              </motion.g>
+            ))}
+            
+            {/* Connection lines between points */}
+            {[
+              { x1: 60, y1: 50, x2: 140, y2: 60 },
+              { x1: 140, y1: 60, x2: 130, y2: 90 },
+              { x1: 80, y1: 100, x2: 100, y2: 130 },
+              { x1: 70, y1: 80, x2: 130, y2: 90 },
+              { x1: 55, y1: 120, x2: 100, y2: 130 },
+            ].map((line, i) => (
+              <motion.line
+                key={`line-${i}`}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="rgba(6,182,212,0.3)"
+                strokeWidth="0.5"
+                strokeDasharray="4,2"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 0.5 }}
+                transition={{ delay: 2.5 + i * 0.2, duration: 1 }}
+              />
+            ))}
+          </svg>
+
+          {/* Floating data labels */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 3 }}
+            className="absolute top-1/4 right-0 text-right"
+          >
+            <span className="text-[10px] text-cyan-400/60 font-mono">195+ Countries</span>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 3.2 }}
+            className="absolute bottom-1/3 left-0"
+          >
+            <span className="text-[10px] text-cyan-400/60 font-mono">Real-time Data</span>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Capability Detail Modal */}
+      <AnimatePresence>
+        {activeCapability && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedCapability(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-6 shadow-2xl"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedCapability(null)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+
+              {/* Header */}
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">{activeCapability.title}</h3>
+                <p className="text-white/70">{activeCapability.detailedDescription}</p>
+              </div>
+
+              {/* Key Features */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-cyan-400 mb-3">Key Features</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {activeCapability.keyFeatures.map((feature, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-white/80">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Data Sources */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-emerald-400 mb-3">Data Sources</h4>
+                <div className="space-y-2">
+                  {activeCapability.dataSources.map((source, i) => (
+                    <a
+                      key={i}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
+                    >
+                      <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span className="text-xs text-white/80 group-hover:text-white">{source.name}</span>
+                      <ArrowRight className="w-3 h-3 text-white/40 group-hover:text-emerald-400 ml-auto" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Impact Statement */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
+                <p className="text-sm text-white/60 mb-1">Impact</p>
+                <p className="text-lg font-semibold text-cyan-400">{activeCapability.impact}</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 // ============================================================================

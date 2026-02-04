@@ -770,18 +770,19 @@ export interface GuideSlide {
 }
 
 export const guideSlides: GuideSlide[] = [
-  // Slide 1: Opening Impact
+  // Slide 1: Global Occupational Health Intelligence
   {
     id: "intro",
     type: "intro",
-    title: "Transforming Occupational Health",
-    actionTitle: "GOSI Can Lead Regional Worker Protection",
-    subtitle: "A Strategic Partnership for Saudi Arabia",
-    content: "GOSI stands at a pivotal moment to lead the region in worker protection. This framework represents Arthur D. Little's comprehensive approach to building world-class occupational health systems.",
+    title: "Global Occupational Health Intelligence",
+    actionTitle: "Synthesizing Evidence. Defining Strategy.",
+    subtitle: "Arthur D. Little's Comprehensive Framework",
+    content: "ADL's Global Occupational Health Intelligence Platform synthesizes worldwide evidence into actionable strategy, enabling nations and organizations to build world-class worker protection systems.",
     highlights: [
-      "Aligned with Saudi Vision 2030",
-      "Evidence-based assessment methodology",
-      "Benchmarked against global leaders"
+      "Foundational Data Architecture",
+      "Holistic Synthesis",
+      "Research Depth & Breadth",
+      "Strategic Translation"
     ],
     color: "cyan"
   },
