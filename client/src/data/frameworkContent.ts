@@ -827,21 +827,22 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "blue"
   },
-  // Slide 4: THE ARCHITECTURE - The 3D Isometric Cube
+  // Slide 4: THE SOLUTION - Unified Global Occupational Health Framework
   {
     id: "overview",
     type: "overview",
-    title: "The Architecture",
-    actionTitle: "Four Integrated Components of Complete Protection",
-    subtitle: "The Sovereign Shield Framework",
-    content: "A revolutionary architecture where four distinct yet interlocking components create an impenetrable defense system. Each quadrant specializes, yet all share a unified data foundation.",
+    title: "The Solution",
+    actionTitle: "A Unified Global Occupational Health Framework",
+    subtitle: "From Fragmented Data to Integrated Intelligence",
+    content: "ADL's Integrated Intelligence Platform transforms siloed data streams into actionable insights, enabling predictive risk modeling and evidence-based policy at national scale.",
     highlights: [
-      "Governance: The regulatory command layer",
-      "Prevention: Proactive hazard elimination",
-      "Surveillance: Real-time health intelligence",
-      "Restoration: Rapid recovery pathways"
+      "Clinical Data Integration",
+      "Exposure Data (IH)",
+      "Psychosocial Metrics",
+      "Predictive Risk Modeling",
+      "Evidence-Based Policy & Strategy"
     ],
-    color: "purple"
+    color: "cyan"
   },
   // Slide 5: PILLAR I - GOVERNANCE (The Control Tower)
   {

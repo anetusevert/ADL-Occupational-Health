@@ -2642,19 +2642,11 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         </div>
       );
 
-    // SLIDE 4: THE ARCHITECTURE - 3D Isometric Cube
+    // SLIDE 4: THE SOLUTION - Unified Global Occupational Health Framework
     case "overview":
       return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<Layers className="w-5 h-5 text-purple-400" />}
-            color="purple"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <IsometricCubeVisual />
-          </div>
+        <div className="h-full flex flex-col overflow-hidden">
+          <UnifiedFrameworkVisual />
         </div>
       );
 
@@ -4332,116 +4324,319 @@ function IcebergVisual() {
 }
 
 // ============================================================================
-// SLIDE 4: THE ARCHITECTURE - 3D Isometric Cube
+// SLIDE 4: THE SOLUTION - Unified Global Occupational Health Framework
 // ============================================================================
 
-function IsometricCubeVisual() {
-  const quadrants = [
-    { id: "governance", label: "Governance", color: "purple", icon: Crown, position: "top-left" },
-    { id: "prevention", label: "Prevention", color: "blue", icon: Shield, position: "top-right" },
-    { id: "surveillance", label: "Surveillance", color: "emerald", icon: Eye, position: "bottom-left" },
-    { id: "restoration", label: "Restoration", color: "amber", icon: Heart, position: "bottom-right" },
-  ];
+// Framework data inputs and outputs
+const frameworkElements = {
+  inputs: [
+    { id: "clinical", title: "Clinical Data", icon: Stethoscope, description: "Patient records, diagnoses, treatment outcomes, and longitudinal health tracking.", color: "cyan" },
+    { id: "exposure", title: "Exposure Data (IH)", icon: Beaker, description: "Industrial hygiene measurements, chemical exposures, physical hazards, and workplace assessments.", color: "purple" },
+    { id: "psychosocial", title: "Psychosocial Metrics", icon: Heart, description: "Stress indicators, workplace culture assessments, mental health screenings, and burnout metrics.", color: "amber" },
+  ],
+  outputs: [
+    { id: "predictive", title: "Predictive Risk Modeling", icon: BarChart3, description: "Anticipate emerging threats before latency periods end. AI-driven forecasting of occupational disease clusters.", color: "emerald" },
+    { id: "policy", title: "Evidence-Based Policy & Strategy", icon: FileCheck, description: "Translate complex data into resilient state & organizational action. Regulatory recommendations backed by data.", color: "blue" },
+  ],
+};
+
+function UnifiedFrameworkVisual() {
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  
+  const allElements = [...frameworkElements.inputs, ...frameworkElements.outputs];
+  const activeElement = selectedElement ? allElements.find(el => el.id === selectedElement) : null;
+
+  const getColorClasses = (color: string) => {
+    const colors: Record<string, { text: string; bg: string; border: string; glow: string }> = {
+      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", glow: "shadow-cyan-500/30" },
+      purple: { text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", glow: "shadow-purple-500/30" },
+      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", glow: "shadow-amber-500/30" },
+      emerald: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", glow: "shadow-emerald-500/30" },
+      blue: { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", glow: "shadow-blue-500/30" },
+    };
+    return colors[color] || colors.cyan;
+  };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <ParticleField count={40} color="cyan" speed="slow" />
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900">
+      {/* Particle effects */}
+      <ParticleField count={50} color="cyan" speed="slow" />
       
-      {/* Floating glow orbs */}
-      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
-      <FloatingGlowOrb color="cyan" size="md" position="bottom-right" delay={0.5} />
-      
-      {/* Central 3D Isometric Cube */}
-      <div className="relative z-10 flex flex-col items-center">
-        {/* The Cube Structure */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5, rotateY: -30 }}
-          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="relative"
-          style={{ perspective: "1000px" }}
-        >
-          {/* Cube container with 3D transform */}
-          <motion.div
-            animate={{ rotateY: [0, 5, 0, -5, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="relative w-64 h-64 sm:w-80 sm:h-80"
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            {/* Cube faces - Glass effect */}
-            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-1 p-2">
-              {quadrants.map((quad, i) => {
-                const QuadIcon = quad.icon;
-                return (
-                  <motion.div
-                    key={quad.id}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.15 }}
-                    whileHover={{ scale: 1.05, zIndex: 10 }}
-                    className={cn(
-                      "relative rounded-xl backdrop-blur-md border cursor-pointer transition-all duration-300",
-                      "bg-gradient-to-br",
-                      quad.color === "purple" && "from-purple-500/20 to-purple-900/40 border-purple-500/40 hover:border-purple-400",
-                      quad.color === "blue" && "from-blue-500/20 to-blue-900/40 border-blue-500/40 hover:border-blue-400",
-                      quad.color === "emerald" && "from-emerald-500/20 to-emerald-900/40 border-emerald-500/40 hover:border-emerald-400",
-                      quad.color === "amber" && "from-amber-500/20 to-amber-900/40 border-amber-500/40 hover:border-amber-400",
-                    )}
-                  >
-                    {/* Glassmorphism shimmer */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl"
-                      animate={{ x: ["-100%", "200%"] }}
-                      transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+      {/* Ambient glow orbs */}
+      <FloatingGlowOrb color="cyan" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="purple" size="md" position="bottom-right" delay={0.5} />
+
+      {/* Title Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center pt-4 pb-2 px-4 flex-shrink-0"
+      >
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">
+          THE SOLUTION: <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">A UNIFIED GLOBAL</span>
+        </h1>
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+          OCCUPATIONAL HEALTH FRAMEWORK
+        </h2>
+        <p className="text-white/60 text-sm mt-1">From Fragmented Data to Integrated Intelligence</p>
+      </motion.div>
+
+      {/* Main Flow Visualization */}
+      <div className="flex-1 flex items-center justify-center px-4 py-2 min-h-0">
+        <div className="relative w-full max-w-5xl h-full flex items-center">
+          
+          {/* Left Column - Data Inputs */}
+          <div className="flex flex-col justify-center gap-3 w-1/4 pr-2">
+            {frameworkElements.inputs.map((input, i) => {
+              const colors = getColorClasses(input.color);
+              const Icon = input.icon;
+              return (
+                <motion.button
+                  key={input.id}
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.15 }}
+                  onClick={() => setSelectedElement(input.id)}
+                  whileHover={{ scale: 1.03, x: 5 }}
+                  className={`flex items-center gap-2 p-2 sm:p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-lg ${colors.glow}`}
+                >
+                  <div className={`p-1.5 sm:p-2 rounded-lg ${colors.bg} flex-shrink-0`}>
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
+                  </div>
+                  <span className={`font-medium text-xs sm:text-sm ${colors.text}`}>{input.title}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Center - Platform with Arrows */}
+          <div className="flex-1 flex items-center justify-center relative px-2">
+            
+            {/* Input Arrows */}
+            <svg className="absolute left-0 top-0 w-1/4 h-full" viewBox="0 0 100 200" preserveAspectRatio="none">
+              {[40, 100, 160].map((y, i) => (
+                <motion.g key={i}>
+                  <motion.path
+                    d={`M 0 ${y} Q 50 ${y} 100 100`}
+                    stroke="url(#arrowGradient)"
+                    strokeWidth="2"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.6 }}
+                    transition={{ delay: 0.8 + i * 0.2, duration: 1 }}
+                  />
+                </motion.g>
+              ))}
+              <defs>
+                <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgba(6,182,212,0.3)" />
+                  <stop offset="100%" stopColor="rgba(6,182,212,0.8)" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Central Platform */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="relative z-10"
+            >
+              {/* Glowing chip/processor */}
+              <div className="relative">
+                {/* Outer glow */}
+                <motion.div
+                  className="absolute inset-0 rounded-2xl bg-cyan-400/20 blur-xl"
+                  animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+                
+                {/* Platform base */}
+                <div className="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48">
+                  {/* 3D platform effect */}
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="platformGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
+                        <stop offset="50%" stopColor="rgba(6,182,212,0.2)" />
+                        <stop offset="100%" stopColor="rgba(30,64,175,0.3)" />
+                      </linearGradient>
+                      <filter id="platformGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    
+                    {/* Platform shape - isometric */}
+                    <motion.polygon
+                      points="50,15 85,35 85,65 50,85 15,65 15,35"
+                      fill="url(#platformGradient)"
+                      stroke="rgba(6,182,212,0.6)"
+                      strokeWidth="1"
+                      filter="url(#platformGlow)"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 }}
                     />
                     
-                    <div className="relative z-10 h-full flex flex-col items-center justify-center p-3">
-                      <motion.div
-                        animate={{ 
-                          boxShadow: [
-                            `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
-                            `0 0 40px ${quad.color === "purple" ? "rgba(168,85,247,0.5)" : quad.color === "blue" ? "rgba(59,130,246,0.5)" : quad.color === "emerald" ? "rgba(16,185,129,0.5)" : "rgba(245,158,11,0.5)"}`,
-                            `0 0 20px ${quad.color === "purple" ? "rgba(168,85,247,0.3)" : quad.color === "blue" ? "rgba(59,130,246,0.3)" : quad.color === "emerald" ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"}`,
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="p-3 rounded-full bg-black/40 backdrop-blur-sm"
-                      >
-                        <QuadIcon className={cn(
-                          "w-8 h-8 sm:w-10 sm:h-10",
-                          getColor(quad.color).text
-                        )} />
-                      </motion.div>
-                      <p className="mt-2 text-white font-semibold text-xs sm:text-sm">{quad.label}</p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-            
-            {/* Center connection point */}
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <div className="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.8)]" />
+                    {/* Top face */}
+                    <motion.polygon
+                      points="50,15 85,35 50,55 15,35"
+                      fill="rgba(6,182,212,0.3)"
+                      stroke="rgba(6,182,212,0.8)"
+                      strokeWidth="0.5"
+                    />
+                    
+                    {/* Center chip glow */}
+                    <motion.rect
+                      x="35"
+                      y="30"
+                      width="30"
+                      height="20"
+                      rx="3"
+                      fill="rgba(6,182,212,0.4)"
+                      stroke="rgba(255,255,255,0.6)"
+                      strokeWidth="0.5"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    
+                    {/* Chip lines */}
+                    {[0, 1, 2, 3].map((i) => (
+                      <motion.line
+                        key={i}
+                        x1={40 + i * 5}
+                        y1="33"
+                        x2={40 + i * 5}
+                        y2="47"
+                        stroke="rgba(255,255,255,0.4)"
+                        strokeWidth="1"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0.3, 0.8, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                      />
+                    ))}
+                  </svg>
+                  
+                  {/* Light beam from top */}
+                  <motion.div
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-8 bg-gradient-to-b from-cyan-400 to-transparent"
+                    animate={{ opacity: [0.3, 0.8, 0.3], height: ["2rem", "3rem", "2rem"] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+              </div>
+              
+              {/* Platform label */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+                className="text-center mt-2"
+              >
+                <p className="text-cyan-400 font-semibold text-xs sm:text-sm">INTEGRATED INTELLIGENCE</p>
+                <p className="text-cyan-400/60 text-[10px] sm:text-xs">PLATFORM (AI/ML DRIVEN)</p>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        </motion.div>
-        
-        {/* Base plate label */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5 }}
-          className="mt-6 px-6 py-2 rounded-full bg-gradient-to-r from-slate-800/80 to-slate-700/80 border border-cyan-500/30 backdrop-blur-sm"
-        >
-          <p className="text-cyan-400 text-xs sm:text-sm font-medium tracking-wider">
-            UNIFIED DATA FOUNDATION
-          </p>
-        </motion.div>
+
+            {/* Output Arrows */}
+            <svg className="absolute right-0 top-0 w-1/4 h-full" viewBox="0 0 100 200" preserveAspectRatio="none">
+              {[70, 130].map((y, i) => (
+                <motion.g key={i}>
+                  <motion.path
+                    d={`M 0 100 Q 50 100 100 ${y}`}
+                    stroke="url(#outputGradient)"
+                    strokeWidth="2"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.6 }}
+                    transition={{ delay: 1.5 + i * 0.2, duration: 1 }}
+                  />
+                  <motion.polygon
+                    points={`95,${y-5} 100,${y} 95,${y+5}`}
+                    fill="rgba(16,185,129,0.8)"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.5 + i * 0.2 }}
+                  />
+                </motion.g>
+              ))}
+              <defs>
+                <linearGradient id="outputGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgba(6,182,212,0.8)" />
+                  <stop offset="100%" stopColor="rgba(16,185,129,0.6)" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+
+          {/* Right Column - Outputs */}
+          <div className="flex flex-col justify-center gap-3 w-1/4 pl-2">
+            {frameworkElements.outputs.map((output, i) => {
+              const colors = getColorClasses(output.color);
+              const Icon = output.icon;
+              return (
+                <motion.button
+                  key={output.id}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.5 + i * 0.15 }}
+                  onClick={() => setSelectedElement(output.id)}
+                  whileHover={{ scale: 1.03, x: -5 }}
+                  className={`flex items-start gap-2 p-2 sm:p-3 rounded-xl border backdrop-blur-sm cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-lg ${colors.glow}`}
+                >
+                  <div className={`p-1.5 sm:p-2 rounded-lg ${colors.bg} flex-shrink-0`}>
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
+                  </div>
+                  <div className="text-left">
+                    <span className={`font-semibold text-xs sm:text-sm ${colors.text} block`}>{output.title}</span>
+                    <span className="text-white/50 text-[10px] sm:text-xs line-clamp-2">{output.description.split('.')[0]}.</span>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Element Detail Modal */}
+      <AnimatePresence>
+        {activeElement && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedElement(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-md max-h-[70vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-5 shadow-2xl"
+            >
+              <button
+                onClick={() => setSelectedElement(null)}
+                className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4 text-white/60" />
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-2 rounded-lg ${getColorClasses(activeElement.color).bg}`}>
+                  <activeElement.icon className={`w-6 h-6 ${getColorClasses(activeElement.color).text}`} />
+                </div>
+                <h3 className="text-lg font-bold text-white">{activeElement.title}</h3>
+              </div>
+              <p className="text-white/70 text-sm leading-relaxed">{activeElement.description}</p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
