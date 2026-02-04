@@ -1,4 +1,5 @@
 # GOHIP Backend - Production Dockerfile
+# Build trigger: v4
 FROM python:3.11-slim
 
 # Set working directory
