@@ -111,19 +111,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBrie
           className="flex-1 flex flex-col items-center overflow-hidden group"
           onClick={handleNavClick}
         >
-          <div className="flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center pt-1">
             <div className={cn(
-              "overflow-hidden",
-              isMobile || !isCollapsed ? "h-8 w-16" : "h-6 w-12"
+              "flex items-center justify-center",
+              isMobile || !isCollapsed ? "h-10 w-20" : "h-8 w-14"
             )}>
               <img 
                 src="/gosi-logo.png" 
                 alt="GOSI"
-                className="brightness-0 invert object-cover object-top w-full scale-[1.4] origin-top"
+                className="brightness-0 invert object-contain w-full h-full"
               />
             </div>
             {(isMobile || !isCollapsed) && (
-              <span className="text-[9px] text-adl-accent font-medium mt-1 whitespace-nowrap tracking-wide text-center">
+              <span className="text-[9px] text-adl-accent font-medium mt-0.5 whitespace-nowrap tracking-wide text-center">
                 Occupational Health Intelligence
               </span>
             )}
@@ -180,35 +180,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBrie
           
           {/* Content */}
           <div className="relative z-10">
-            {/* Logo Row */}
+            {/* Logo Row - ADL only, no text */}
             <div className={cn(
               "flex items-center gap-2 mb-2",
               !isMobile && isCollapsed ? "justify-center" : "justify-center"
             )}>
-              {/* ADL Logo */}
-              <div className="h-6 w-10 flex-shrink-0 overflow-hidden">
+              {/* ADL Logo only (no text) */}
+              <div className="h-7 w-12 flex-shrink-0 overflow-hidden">
                 <img 
                   src="/adl-logo.png" 
                   alt="ADL"
                   className="h-full w-full object-contain brightness-0 invert opacity-90"
                 />
               </div>
-              
-              {(isMobile || !isCollapsed) && (
-                <>
-                  {/* Divider */}
-                  <div className="h-5 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-                  
-                  {/* GOSI Logo */}
-                  <div className="h-6 w-12 flex-shrink-0 overflow-hidden">
-                    <img 
-                      src="/gosi-logo.png" 
-                      alt="GOSI"
-                      className="h-full w-full object-contain brightness-0 invert opacity-90 scale-125"
-                    />
-                  </div>
-                </>
-              )}
             </div>
             
             {/* Text and CTA */}
