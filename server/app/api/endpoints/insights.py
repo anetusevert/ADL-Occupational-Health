@@ -660,58 +660,7 @@ def generate_placeholder_images(country_name: str, category: InsightCategory) ->
 
 
 # =============================================================================
-# ENDPOINTS
-# =============================================================================
-
-@router.get("/{country_iso}", response_model=InsightListResponse)
-async def list_country_insights(
-    country_iso: str,
-    db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
-):
-    """
-    List all insights for a country.
-    
-    Returns status for each category (pending, completed, etc.)
-    """
-    country_iso = country_iso.upper()
-    
-    # Get country name
-    country = get_country_data(db, country_iso)
-    country_name = country.name if country else None
-    
-    # Get all insights for this country
-    insights = db.query(CountryInsight).filter(
-        CountryInsight.country_iso == country_iso
-    ).all()
-    
-    # Build lookup map
-    insight_map = {i.category: i for i in insights}
-    
-    # Build summaries for all categories
-    summaries = []
-    for category in InsightCategory:
-        insight = insight_map.get(category)
-        meta = CATEGORY_METADATA.get(category, {})
-        
-        summaries.append(InsightSummary(
-            category=category.value,
-            title=meta.get("title", category.value),
-            status=insight.status.value if insight else "pending",
-            generated_at=insight.generated_at.isoformat() if insight and insight.generated_at else None,
-            has_content=bool(insight and insight.what_is_analysis),
-        ))
-    
-    return InsightListResponse(
-        country_iso=country_iso,
-        country_name=country_name,
-        total=len(summaries),
-        insights=summaries,
-    )
-
-
-# =============================================================================
-# DIAGNOSTIC ENDPOINT
+# DIAGNOSTIC ENDPOINT (must be BEFORE dynamic routes)
 # =============================================================================
 
 class AIConfigDiagnostic(BaseModel):
@@ -784,6 +733,57 @@ async def check_ai_config(
         model=active_config.model_name,
         can_decrypt_key=can_decrypt,
         error_message=error_msg if not can_decrypt else None,
+    )
+
+
+# =============================================================================
+# ENDPOINTS (dynamic routes must come AFTER static routes like /diagnostic)
+# =============================================================================
+
+@router.get("/{country_iso}", response_model=InsightListResponse)
+async def list_country_insights(
+    country_iso: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    List all insights for a country.
+    
+    Returns status for each category (pending, completed, etc.)
+    """
+    country_iso = country_iso.upper()
+    
+    # Get country name
+    country = get_country_data(db, country_iso)
+    country_name = country.name if country else None
+    
+    # Get all insights for this country
+    insights = db.query(CountryInsight).filter(
+        CountryInsight.country_iso == country_iso
+    ).all()
+    
+    # Build lookup map
+    insight_map = {i.category: i for i in insights}
+    
+    # Build summaries for all categories
+    summaries = []
+    for category in InsightCategory:
+        insight = insight_map.get(category)
+        meta = CATEGORY_METADATA.get(category, {})
+        
+        summaries.append(InsightSummary(
+            category=category.value,
+            title=meta.get("title", category.value),
+            status=insight.status.value if insight else "pending",
+            generated_at=insight.generated_at.isoformat() if insight and insight.generated_at else None,
+            has_content=bool(insight and insight.what_is_analysis),
+        ))
+    
+    return InsightListResponse(
+        country_iso=country_iso,
+        country_name=country_name,
+        total=len(summaries),
+        insights=summaries,
     )
 
 
@@ -965,6 +965,7 @@ async def initialize_country_insights(
         raise
     except Exception as e:
         # Catch any unhandled exceptions and return a proper error response
+        # Note: country_iso comes from function parameter, so it's always defined
         logger.error(f"[Initialize] Unhandled error for {country_iso}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
