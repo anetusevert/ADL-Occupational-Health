@@ -3372,10 +3372,10 @@ function CurrentLandscapeVisual() {
     : null;
 
   const getColorClasses = (color: string) => {
-    const colors: Record<string, { text: string; bg: string; border: string; glow: string }> = {
-      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", glow: "shadow-cyan-500/30" },
-      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", glow: "shadow-amber-500/30" },
-      red: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30", glow: "shadow-red-500/30" },
+    const colors: Record<string, { text: string; bg: string; border: string; glow: string; glowIntense: string }> = {
+      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/30", glow: "shadow-cyan-500/30", glowIntense: "rgba(6,182,212,0.6)" },
+      amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", glow: "shadow-amber-500/30", glowIntense: "rgba(251,191,36,0.6)" },
+      red: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30", glow: "shadow-red-500/30", glowIntense: "rgba(239,68,68,0.6)" },
     };
     return colors[color] || colors.cyan;
   };
@@ -3383,301 +3383,778 @@ function CurrentLandscapeVisual() {
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900">
       {/* Particle effects */}
-      <ParticleField count={60} color="cyan" speed="slow" />
+      <ParticleField count={80} color="cyan" speed="slow" />
       
       {/* Ambient glow orbs */}
       <FloatingGlowOrb color="cyan" size="lg" position="top-left" delay={0} />
       <FloatingGlowOrb color="amber" size="md" position="bottom-right" delay={0.5} />
+      <FloatingGlowOrb color="red" size="sm" position="bottom-left" delay={1} />
 
-      {/* Title Section */}
+      {/* Title Section - Larger typography */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center pt-4 pb-3 px-4 flex-shrink-0"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-center pt-6 pb-4 px-4 flex-shrink-0"
       >
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">
-          THE CURRENT LANDSCAPE: <span className="bg-gradient-to-r from-cyan-400 to-amber-400 bg-clip-text text-transparent">RAPID TRANSFORMATION,</span>
-        </h1>
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-amber-400 to-red-400 bg-clip-text text-transparent">
+        <motion.h1 
+          className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+        >
+          THE CURRENT LANDSCAPE:{" "}
+          <motion.span 
+            className="bg-gradient-to-r from-cyan-400 to-amber-400 bg-clip-text text-transparent"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            RAPID TRANSFORMATION,
+          </motion.span>
+        </motion.h1>
+        <motion.h2 
+          className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-amber-400 to-red-400 bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
           EMERGING RISKS
-        </h2>
+        </motion.h2>
       </motion.div>
 
-      {/* Three Column Layout */}
-      <div className="flex-1 grid grid-cols-3 gap-4 px-4 pb-4 min-h-0">
-        {pillars.map((pillar, index) => {
-          const data = saudiLandscapePillars[pillar.key as keyof typeof saudiLandscapePillars];
-          const colors = getColorClasses(data.color);
-          const Icon = data.icon;
-          
-          return (
-            <motion.div
-              key={pillar.key}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: pillar.delay, duration: 0.6 }}
-              className="flex flex-col"
-            >
-              {/* Card */}
-              <motion.button
-                onClick={() => setSelectedPillar(pillar.key)}
-                whileHover={{ scale: 1.02, y: -5 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex-1 flex flex-col rounded-2xl border backdrop-blur-md cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-xl ${colors.glow} overflow-hidden`}
+      {/* Three Column Layout - Compact tiles with large icons */}
+      <div className="flex-1 flex items-center justify-center px-6 pb-6 min-h-0">
+        <div className="grid grid-cols-3 gap-6 w-full max-w-6xl">
+          {pillars.map((pillar, index) => {
+            const data = saudiLandscapePillars[pillar.key as keyof typeof saudiLandscapePillars];
+            const colors = getColorClasses(data.color);
+            
+            return (
+              <motion.div
+                key={pillar.key}
+                initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  delay: pillar.delay, 
+                  duration: 0.8,
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 20
+                }}
               >
-                {/* Header */}
-                <div className={`px-4 py-3 border-b ${colors.border}`}>
-                  <h3 className={`font-bold text-sm sm:text-base ${colors.text} text-center`}>
-                    {data.title.toUpperCase()}
-                  </h3>
-                </div>
-                
-                {/* Visual Icon Area */}
-                <div className="flex-shrink-0 py-4 flex items-center justify-center">
-                  <motion.div
-                    animate={{ 
-                      scale: [1, 1.05, 1],
-                      opacity: [0.8, 1, 0.8]
-                    }}
-                    transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
-                    className={`p-4 rounded-2xl ${colors.bg} border ${colors.border}`}
-                  >
-                    {/* Custom SVG icons based on pillar */}
+                {/* Compact Card */}
+                <motion.button
+                  onClick={() => setSelectedPillar(pillar.key)}
+                  whileHover={{ scale: 1.03, y: -8, boxShadow: `0 20px 40px ${colors.glowIntense}` }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full rounded-2xl border backdrop-blur-md cursor-pointer transition-all ${colors.bg} ${colors.border} hover:shadow-2xl overflow-hidden`}
+                >
+                  {/* Header - Larger text */}
+                  <div className={`px-4 py-3 border-b ${colors.border}`}>
+                    <h3 className={`font-bold text-base sm:text-lg lg:text-xl ${colors.text} text-center tracking-wide`}>
+                      {data.title.toUpperCase()}
+                    </h3>
+                  </div>
+                  
+                  {/* LARGE Animated Icon Area */}
+                  <div className="py-6 sm:py-8 flex items-center justify-center">
+                    {/* Giga-Project Icon - Construction with animated build-up */}
                     {pillar.key === "gigaProject" && (
-                      <svg viewBox="0 0 60 60" className="w-16 h-16 sm:w-20 sm:h-20">
-                        {/* NEOM-style construction */}
-                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-                          {/* Crane */}
-                          <rect x="10" y="35" width="4" height="25" fill="rgba(6,182,212,0.6)" />
-                          <rect x="8" y="15" width="8" height="4" fill="rgba(6,182,212,0.8)" />
-                          <rect x="14" y="17" width="20" height="2" fill="rgba(6,182,212,0.6)" />
-                          <line x1="32" y1="17" x2="32" y2="30" stroke="rgba(6,182,212,0.5)" strokeWidth="1" />
-                          {/* Buildings */}
-                          <rect x="35" y="25" width="10" height="35" fill="rgba(6,182,212,0.4)" stroke="rgba(6,182,212,0.6)" strokeWidth="0.5" />
-                          <rect x="47" y="35" width="8" height="25" fill="rgba(6,182,212,0.3)" stroke="rgba(6,182,212,0.5)" strokeWidth="0.5" />
-                          {/* Windows */}
-                          {[30, 38, 46, 54].map((y) => (
-                            <g key={y}>
-                              <rect x="37" y={y} width="2" height="2" fill="rgba(6,182,212,0.8)" />
-                              <rect x="41" y={y} width="2" height="2" fill="rgba(6,182,212,0.8)" />
-                            </g>
-                          ))}
-                          {/* NEOM text */}
-                          <text x="30" y="58" textAnchor="middle" fill="rgba(6,182,212,0.8)" fontSize="6" fontWeight="bold">NEOM</text>
-                        </motion.g>
-                      </svg>
-                    )}
-                    {pillar.key === "systemicGaps" && (
-                      <svg viewBox="0 0 80 50" className="w-20 h-12 sm:w-24 sm:h-14">
-                        {/* MoH - GOSI disconnect */}
-                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
-                          {/* Shield 1 - Private */}
-                          <path d="M 12 10 L 12 25 Q 12 35 20 40 Q 28 35 28 25 L 28 10 Z" fill="rgba(6,182,212,0.3)" stroke="rgba(6,182,212,0.8)" strokeWidth="1" />
-                          <Building2 className="w-3 h-3" x="16" y="18" />
-                          {/* Disconnect arrows */}
-                          <motion.g animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
-                            <text x="33" y="25" fill="rgba(251,191,36,0.8)" fontSize="8">&lt;/&gt;</text>
-                          </motion.g>
-                          {/* Shield 2 - MoH */}
-                          <rect x="42" y="12" width="16" height="20" rx="2" fill="rgba(139,92,246,0.3)" stroke="rgba(139,92,246,0.8)" strokeWidth="1" />
-                          <text x="50" y="25" textAnchor="middle" fill="white" fontSize="5">MoH</text>
-                          {/* Disconnect arrows */}
-                          <motion.g animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}>
-                            <text x="61" y="25" fill="rgba(251,191,36,0.8)" fontSize="8">&lt;/&gt;</text>
-                          </motion.g>
-                          {/* Shield 3 - GOSI */}
-                          <circle cx="75" cy="22" r="10" fill="rgba(16,185,129,0.3)" stroke="rgba(16,185,129,0.8)" strokeWidth="1" />
-                          <text x="75" y="20" textAnchor="middle" fill="white" fontSize="4">GOSI</text>
-                          <text x="75" y="26" textAnchor="middle" fill="white" fontSize="3">Claims</text>
-                        </motion.g>
-                      </svg>
-                    )}
-                    {pillar.key === "economicImpact" && (
-                      <svg viewBox="0 0 60 50" className="w-16 h-12 sm:w-20 sm:h-14">
-                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
-                          {/* Declining chart */}
-                          <motion.path
-                            d="M 5 15 Q 15 18 25 25 Q 35 32 45 40"
-                            stroke="rgba(239,68,68,0.8)"
+                      <div className="relative">
+                        {/* Glow backdrop */}
+                        <motion.div
+                          className="absolute inset-0 rounded-full blur-2xl"
+                          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.3) 0%, transparent 70%)" }}
+                          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        />
+                        <svg viewBox="0 0 100 100" className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 relative z-10">
+                          {/* Ground line */}
+                          <motion.line
+                            x1="5" y1="95" x2="95" y2="95"
+                            stroke="rgba(6,182,212,0.4)"
                             strokeWidth="2"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ delay: pillar.delay + 0.2, duration: 0.5 }}
+                          />
+                          
+                          {/* Crane Tower - builds up */}
+                          <motion.rect
+                            x="15" y="25" width="6" height="70"
+                            fill="rgba(6,182,212,0.7)"
+                            stroke="rgba(6,182,212,0.9)"
+                            strokeWidth="1"
+                            initial={{ scaleY: 0, originY: 1 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ delay: pillar.delay + 0.3, duration: 0.8, ease: "easeOut" }}
+                            style={{ transformOrigin: "bottom" }}
+                          />
+                          
+                          {/* Crane Arm - extends */}
+                          <motion.rect
+                            x="15" y="20" width="45" height="5"
+                            fill="rgba(6,182,212,0.8)"
+                            stroke="rgba(6,182,212,1)"
+                            strokeWidth="1"
+                            initial={{ scaleX: 0, originX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ delay: pillar.delay + 1, duration: 0.6, ease: "easeOut" }}
+                            style={{ transformOrigin: "left" }}
+                          />
+                          
+                          {/* Crane Cable */}
+                          <motion.line
+                            x1="55" y1="25" x2="55" y2="50"
+                            stroke="rgba(6,182,212,0.6)"
+                            strokeWidth="1.5"
+                            strokeDasharray="3,2"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ delay: pillar.delay + 1.5, duration: 0.4 }}
+                          />
+                          
+                          {/* Crane Hook */}
+                          <motion.path
+                            d="M 52 50 L 58 50 L 55 56 Z"
+                            fill="rgba(6,182,212,0.8)"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: pillar.delay + 1.8, duration: 0.3 }}
+                          />
+                          
+                          {/* Building 1 - Tall - rises from ground */}
+                          <motion.rect
+                            x="40" y="40" width="18" height="55"
+                            fill="rgba(6,182,212,0.4)"
+                            stroke="rgba(6,182,212,0.7)"
+                            strokeWidth="1.5"
+                            initial={{ scaleY: 0, originY: 1 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ delay: pillar.delay + 0.6, duration: 1, ease: "easeOut" }}
+                            style={{ transformOrigin: "bottom" }}
+                          />
+                          
+                          {/* Building 2 - Medium - rises from ground */}
+                          <motion.rect
+                            x="62" y="55" width="14" height="40"
+                            fill="rgba(6,182,212,0.35)"
+                            stroke="rgba(6,182,212,0.6)"
+                            strokeWidth="1"
+                            initial={{ scaleY: 0, originY: 1 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ delay: pillar.delay + 0.9, duration: 0.8, ease: "easeOut" }}
+                            style={{ transformOrigin: "bottom" }}
+                          />
+                          
+                          {/* Building 3 - Short - rises from ground */}
+                          <motion.rect
+                            x="80" y="70" width="12" height="25"
+                            fill="rgba(6,182,212,0.3)"
+                            stroke="rgba(6,182,212,0.5)"
+                            strokeWidth="1"
+                            initial={{ scaleY: 0, originY: 1 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ delay: pillar.delay + 1.1, duration: 0.6, ease: "easeOut" }}
+                            style={{ transformOrigin: "bottom" }}
+                          />
+                          
+                          {/* Windows - illuminate sequentially */}
+                          {[
+                            { x: 44, y: 48 }, { x: 52, y: 48 },
+                            { x: 44, y: 58 }, { x: 52, y: 58 },
+                            { x: 44, y: 68 }, { x: 52, y: 68 },
+                            { x: 44, y: 78 }, { x: 52, y: 78 },
+                            { x: 66, y: 62 }, { x: 66, y: 72 }, { x: 66, y: 82 },
+                            { x: 83, y: 78 }, { x: 83, y: 86 },
+                          ].map((win, i) => (
+                            <motion.rect
+                              key={i}
+                              x={win.x} y={win.y} width="4" height="4"
+                              fill="rgba(6,182,212,0.9)"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: [0, 1, 0.7, 1] }}
+                              transition={{ delay: pillar.delay + 2 + i * 0.08, duration: 0.3 }}
+                            />
+                          ))}
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Systemic Gaps Icon - Disconnected shields with pulsing breaks */}
+                    {pillar.key === "systemicGaps" && (
+                      <div className="relative">
+                        {/* Glow backdrop */}
+                        <motion.div
+                          className="absolute inset-0 rounded-full blur-2xl"
+                          style={{ background: "radial-gradient(circle, rgba(251,191,36,0.3) 0%, transparent 70%)" }}
+                          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        />
+                        <svg viewBox="0 0 140 80" className="w-36 h-20 sm:w-48 sm:h-28 lg:w-56 lg:h-32 relative z-10">
+                          {/* Shield 1 - Private/Employer */}
+                          <motion.g
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: pillar.delay + 0.3, duration: 0.6, type: "spring" }}
+                          >
+                            <motion.path
+                              d="M 15 15 L 15 40 Q 15 55 28 62 Q 41 55 41 40 L 41 15 Z"
+                              fill="rgba(6,182,212,0.25)"
+                              stroke="rgba(6,182,212,0.8)"
+                              strokeWidth="2"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ delay: pillar.delay + 0.4, duration: 0.8 }}
+                            />
+                            <motion.g
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: pillar.delay + 1 }}
+                            >
+                              <rect x="22" y="28" width="12" height="16" rx="1" fill="rgba(6,182,212,0.5)" />
+                              <rect x="26" y="38" width="4" height="6" fill="rgba(6,182,212,0.8)" />
+                              <polygon points="28,22 20,28 36,28" fill="rgba(6,182,212,0.6)" />
+                            </motion.g>
+                          </motion.g>
+                          
+                          {/* Disconnect Symbol 1 */}
+                          <motion.g
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: pillar.delay + 1.2, duration: 0.4 }}
+                          >
+                            <motion.path
+                              d="M 48 35 L 52 40 M 52 35 L 48 40"
+                              stroke="rgba(251,191,36,0.9)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.5, repeat: Infinity }}
+                            />
+                            <motion.path
+                              d="M 55 32 L 62 32 M 55 38 L 62 38 M 55 44 L 62 44"
+                              stroke="rgba(251,191,36,0.6)"
+                              strokeWidth="1.5"
+                              strokeDasharray="2,2"
+                              animate={{ x: [-2, 2, -2] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                            />
+                          </motion.g>
+                          
+                          {/* Shield 2 - MoH */}
+                          <motion.g
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: pillar.delay + 0.5, duration: 0.6, type: "spring" }}
+                          >
+                            <motion.rect
+                              x="55" y="18" width="30" height="40" rx="4"
+                              fill="rgba(139,92,246,0.25)"
+                              stroke="rgba(139,92,246,0.8)"
+                              strokeWidth="2"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ delay: pillar.delay + 0.6, duration: 0.8 }}
+                            />
+                            <motion.text
+                              x="70" y="42"
+                              textAnchor="middle"
+                              fill="white"
+                              fontSize="10"
+                              fontWeight="bold"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: pillar.delay + 1.2 }}
+                            >
+                              MoH
+                            </motion.text>
+                          </motion.g>
+                          
+                          {/* Disconnect Symbol 2 */}
+                          <motion.g
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: pillar.delay + 1.4, duration: 0.4 }}
+                          >
+                            <motion.path
+                              d="M 92 35 L 96 40 M 96 35 L 92 40"
+                              stroke="rgba(251,191,36,0.9)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                            />
+                            <motion.path
+                              d="M 99 32 L 106 32 M 99 38 L 106 38 M 99 44 L 106 44"
+                              stroke="rgba(251,191,36,0.6)"
+                              strokeWidth="1.5"
+                              strokeDasharray="2,2"
+                              animate={{ x: [-2, 2, -2] }}
+                              transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}
+                            />
+                          </motion.g>
+                          
+                          {/* Shield 3 - GOSI */}
+                          <motion.g
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: pillar.delay + 0.7, duration: 0.6, type: "spring" }}
+                          >
+                            <motion.circle
+                              cx="120" cy="40" r="18"
+                              fill="rgba(16,185,129,0.25)"
+                              stroke="rgba(16,185,129,0.8)"
+                              strokeWidth="2"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ delay: pillar.delay + 0.8, duration: 0.8 }}
+                            />
+                            <motion.text
+                              x="120" y="37"
+                              textAnchor="middle"
+                              fill="white"
+                              fontSize="8"
+                              fontWeight="bold"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: pillar.delay + 1.4 }}
+                            >
+                              GOSI
+                            </motion.text>
+                            <motion.text
+                              x="120" y="48"
+                              textAnchor="middle"
+                              fill="rgba(255,255,255,0.7)"
+                              fontSize="6"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: pillar.delay + 1.5 }}
+                            >
+                              Claims
+                            </motion.text>
+                          </motion.g>
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Economic Impact Icon - Declining chart with coin drain */}
+                    {pillar.key === "economicImpact" && (
+                      <div className="relative">
+                        {/* Glow backdrop */}
+                        <motion.div
+                          className="absolute inset-0 rounded-full blur-2xl"
+                          style={{ background: "radial-gradient(circle, rgba(239,68,68,0.3) 0%, transparent 70%)" }}
+                          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        />
+                        <svg viewBox="0 0 100 100" className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 relative z-10">
+                          {/* Chart axes */}
+                          <motion.line
+                            x1="15" y1="85" x2="85" y2="85"
+                            stroke="rgba(255,255,255,0.3)"
+                            strokeWidth="2"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ delay: pillar.delay + 0.2, duration: 0.4 }}
+                          />
+                          <motion.line
+                            x1="15" y1="15" x2="15" y2="85"
+                            stroke="rgba(255,255,255,0.3)"
+                            strokeWidth="2"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ delay: pillar.delay + 0.3, duration: 0.4 }}
+                          />
+                          
+                          {/* Declining trend line */}
+                          <motion.path
+                            d="M 20 25 Q 35 30 45 45 Q 55 55 65 70 Q 72 78 78 82"
+                            stroke="rgba(239,68,68,0.9)"
+                            strokeWidth="4"
+                            strokeLinecap="round"
                             fill="none"
                             initial={{ pathLength: 0 }}
                             animate={{ pathLength: 1 }}
-                            transition={{ delay: 1.5, duration: 1 }}
+                            transition={{ delay: pillar.delay + 0.6, duration: 1.2, ease: "easeInOut" }}
                           />
-                          {/* Arrow pointing down */}
-                          <polygon points="47,38 43,35 45,42" fill="rgba(239,68,68,0.8)" />
-                          {/* Coins/money stack */}
-                          <ellipse cx="50" cy="25" rx="6" ry="2" fill="rgba(251,191,36,0.4)" stroke="rgba(251,191,36,0.8)" strokeWidth="0.5" />
-                          <ellipse cx="50" cy="22" rx="6" ry="2" fill="rgba(251,191,36,0.5)" stroke="rgba(251,191,36,0.8)" strokeWidth="0.5" />
-                          <ellipse cx="50" cy="19" rx="6" ry="2" fill="rgba(251,191,36,0.6)" stroke="rgba(251,191,36,0.8)" strokeWidth="0.5" />
-                          <rect x="44" y="19" width="12" height="6" fill="rgba(251,191,36,0.4)" />
-                          {/* Saudi Arabia outline (simplified) */}
-                          <path d="M 5 35 Q 8 32 15 33 Q 22 34 25 38 Q 20 42 12 42 Q 6 40 5 35" fill="rgba(16,185,129,0.2)" stroke="rgba(16,185,129,0.5)" strokeWidth="0.5" />
-                        </motion.g>
-                      </svg>
+                          
+                          {/* Decline arrow */}
+                          <motion.polygon
+                            points="82,78 75,72 78,85"
+                            fill="rgba(239,68,68,0.9)"
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: pillar.delay + 1.8, duration: 0.3 }}
+                          />
+                          <motion.polygon
+                            points="82,78 75,72 78,85"
+                            fill="rgba(239,68,68,0.9)"
+                            animate={{ opacity: [1, 0.5, 1] }}
+                            transition={{ delay: pillar.delay + 2, duration: 1, repeat: Infinity }}
+                          />
+                          
+                          {/* Coin stack - animated shrinking */}
+                          {[0, 1, 2, 3].map((i) => (
+                            <motion.g key={i}>
+                              <motion.ellipse
+                                cx="75" cy={35 + i * 6} rx="12" ry="4"
+                                fill={`rgba(251,191,36,${0.8 - i * 0.15})`}
+                                stroke="rgba(251,191,36,0.9)"
+                                strokeWidth="1"
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ 
+                                  opacity: [0, 1, 1, 0.5],
+                                  scale: [0, 1, 1, 0.8],
+                                  y: [0, 0, 0, 20]
+                                }}
+                                transition={{ 
+                                  delay: pillar.delay + 1 + i * 0.15,
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  repeatDelay: 1
+                                }}
+                              />
+                            </motion.g>
+                          ))}
+                          
+                          {/* Saudi Arabia silhouette */}
+                          <motion.path
+                            d="M 20 75 Q 25 68 35 70 Q 45 72 50 78 Q 42 85 30 84 Q 22 82 20 75"
+                            fill="rgba(16,185,129,0.2)"
+                            stroke="rgba(16,185,129,0.5)"
+                            strokeWidth="1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0, 0.6, 0.4, 0.6] }}
+                            transition={{ delay: pillar.delay + 1.5, duration: 2, repeat: Infinity }}
+                          />
+                          
+                          {/* Gear/cog - representing economy */}
+                          <motion.g
+                            initial={{ opacity: 0, rotate: 0 }}
+                            animate={{ opacity: 1, rotate: 360 }}
+                            transition={{ 
+                              opacity: { delay: pillar.delay + 1.2, duration: 0.3 },
+                              rotate: { delay: pillar.delay + 1.2, duration: 8, repeat: Infinity, ease: "linear" }
+                            }}
+                            style={{ transformOrigin: "35px 35px" }}
+                          >
+                            <circle cx="35" cy="35" r="10" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
+                            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
+                              const rad = (angle * Math.PI) / 180;
+                              const x1 = 35 + Math.cos(rad) * 8;
+                              const y1 = 35 + Math.sin(rad) * 8;
+                              const x2 = 35 + Math.cos(rad) * 14;
+                              const y2 = 35 + Math.sin(rad) * 14;
+                              return (
+                                <line
+                                  key={i}
+                                  x1={x1} y1={y1} x2={x2} y2={y2}
+                                  stroke="rgba(255,255,255,0.3)"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                />
+                              );
+                            })}
+                          </motion.g>
+                        </svg>
+                      </div>
                     )}
+                  </div>
+                  
+                  {/* Content - Larger text */}
+                  <div className="px-4 pb-4">
+                    <ul className="space-y-2">
+                      {data.points.map((point, i) => (
+                        <motion.li
+                          key={i}
+                          initial={{ opacity: 0, x: -15 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: pillar.delay + 2.2 + i * 0.2 }}
+                          className="flex items-start gap-2"
+                        >
+                          <span className={`${colors.text} text-sm sm:text-base mt-0.5`}>•</span>
+                          <span className="text-white/80 text-sm sm:text-base leading-relaxed">{point}</span>
+                        </motion.li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  {/* Click indicator */}
+                  <motion.div 
+                    className={`px-4 py-3 border-t ${colors.border} text-center`}
+                    whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                  >
+                    <span className={`text-sm ${colors.text} font-medium`}>Click for details →</span>
                   </motion.div>
-                </div>
-                
-                {/* Content */}
-                <div className="flex-1 px-3 pb-3 flex flex-col justify-start">
-                  <ul className="space-y-2">
-                    {data.points.map((point, i) => (
-                      <motion.li
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: pillar.delay + 0.3 + i * 0.15 }}
-                        className="flex items-start gap-2"
-                      >
-                        <span className={`${colors.text} text-xs mt-0.5`}>•</span>
-                        <span className="text-white/70 text-xs leading-relaxed">{point}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {/* Click indicator */}
-                <div className={`px-3 py-2 border-t ${colors.border} text-center`}>
-                  <span className={`text-[10px] ${colors.text} opacity-60`}>Click for details →</span>
-                </div>
-              </motion.button>
-            </motion.div>
-          );
-        })}
+                </motion.button>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Vision 2030 Badge */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 2, type: "spring" }}
+        className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/40 backdrop-blur-sm"
       >
-        <span className="text-emerald-400 text-xs font-medium">VISION 2030</span>
+        <span className="text-emerald-400 text-sm font-semibold tracking-wide">VISION 2030</span>
       </motion.div>
 
-      {/* Pillar Detail Modal */}
-      <AnimatePresence>
+      {/* Premium Pillar Detail Modal - Slideshow quality */}
+      <AnimatePresence mode="wait">
         {activePillar && (
           <>
+            {/* Backdrop with particles */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
               onClick={() => setSelectedPillar(null)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-900/98 border border-cyan-500/30 rounded-2xl p-5 shadow-2xl"
+              className="fixed inset-0 z-50 overflow-hidden"
             >
-              <button
+              {/* Dark overlay */}
+              <motion.div 
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+              
+              {/* Ambient effects in modal */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                  className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl"
+                  style={{ background: `radial-gradient(circle, ${getColorClasses(activePillar.color).glowIntense} 0%, transparent 70%)` }}
+                  animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.2, 1] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                />
+                <motion.div
+                  className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full blur-3xl"
+                  style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)" }}
+                  animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.1, 0.9, 1.1] }}
+                  transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+                />
+              </div>
+            </motion.div>
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 60, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.95 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                mass: 1
+              }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-3xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-3xl shadow-2xl"
+              style={{ boxShadow: `0 25px 80px ${getColorClasses(activePillar.color).glowIntense}` }}
+            >
+              {/* Close button */}
+              <motion.button
                 onClick={() => setSelectedPillar(null)}
-                className="absolute top-3 right-3 p-2 rounded-full hover:bg-white/10 transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/15 transition-colors z-10"
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
               >
-                <X className="w-5 h-5 text-white/60" />
-              </button>
+                <X className="w-6 h-6 text-white/70" />
+              </motion.button>
 
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`p-2 rounded-lg ${getColorClasses(activePillar.color).bg}`}>
-                  <activePillar.icon className={`w-6 h-6 ${getColorClasses(activePillar.color).text}`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">{activePillar.title}</h3>
-                  <p className="text-white/60 text-sm">{activePillar.description}</p>
-                </div>
-              </div>
-
-              {/* Overview */}
-              <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-white/80 text-sm leading-relaxed">{activePillar.detailedContent.overview}</p>
-              </div>
-
-              {/* Giga Projects Table (for gigaProject pillar) */}
-              {activePillar.detailedContent.keyProjects && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-cyan-400 mb-2">Key Giga-Projects</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {activePillar.detailedContent.keyProjects.map((proj: { name: string; investment: string; workers: string }, i: number) => (
-                      <div key={i} className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                        <p className="text-cyan-400 font-semibold text-sm">{proj.name}</p>
-                        <p className="text-white/60 text-xs">{proj.investment} • {proj.workers} workers</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Systems Table (for systemicGaps pillar) */}
-              {activePillar.detailedContent.systems && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-amber-400 mb-2">Disconnected Systems</h4>
-                  <div className="space-y-2">
-                    {activePillar.detailedContent.systems.map((sys: { name: string; data: string; gap: string }, i: number) => (
-                      <div key={i} className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <p className="text-amber-400 font-semibold text-sm">{sys.name}</p>
-                        <p className="text-white/70 text-xs">Data: {sys.data}</p>
-                        <p className="text-red-400/80 text-xs">Gap: {sys.gap}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Economic Impacts (for economicImpact pillar) */}
-              {activePillar.detailedContent.impacts && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-red-400 mb-2">Economic Impact Metrics</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {activePillar.detailedContent.impacts.map((impact: { metric: string; label: string; description: string }, i: number) => (
-                      <div key={i} className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-center">
-                        <p className="text-red-400 font-bold text-lg">{impact.metric}</p>
-                        <p className="text-white/80 text-xs font-medium">{impact.label}</p>
-                        <p className="text-white/50 text-[10px]">{impact.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Challenges */}
-              <div className="mb-4">
-                <h4 className="text-sm font-semibold text-purple-400 mb-2">
-                  {activePillar.detailedContent.vision2030Alignment ? "Vision 2030 Alignment" : "Key Challenges"}
-                </h4>
-                <div className="space-y-1">
-                  {(activePillar.detailedContent.challenges || activePillar.detailedContent.vision2030Alignment || []).map((item: string, i: number) => (
-                    <div key={i} className="flex items-start gap-2 p-1.5 rounded bg-white/5">
-                      <CheckCircle className="w-3 h-3 text-purple-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-xs text-white/70">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sources */}
-              <div>
-                <h4 className="text-sm font-semibold text-emerald-400 mb-2">Sources</h4>
-                <div className="flex flex-wrap gap-2">
-                  {activePillar.detailedContent.sources.map((source: { name: string; url: string }, i: number) => (
-                    <a
-                      key={i}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+              {/* Header with large icon */}
+              <motion.div 
+                className={`p-6 border-b border-white/10 ${getColorClasses(activePillar.color).bg}`}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="flex items-center gap-4">
+                  <motion.div 
+                    className={`p-4 rounded-2xl ${getColorClasses(activePillar.color).bg} border ${getColorClasses(activePillar.color).border}`}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                    style={{ boxShadow: `0 0 30px ${getColorClasses(activePillar.color).glowIntense}` }}
+                  >
+                    <activePillar.icon className={`w-10 h-10 ${getColorClasses(activePillar.color).text}`} />
+                  </motion.div>
+                  <div>
+                    <motion.h3 
+                      className="text-2xl font-bold text-white"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.25 }}
                     >
-                      <Globe className="w-3 h-3 text-emerald-400" />
-                      <span className="text-xs text-white/80">{source.name}</span>
-                    </a>
-                  ))}
+                      {activePillar.title}
+                    </motion.h3>
+                    <motion.p 
+                      className="text-white/70 text-base mt-1"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      {activePillar.description}
+                    </motion.p>
+                  </div>
                 </div>
+              </motion.div>
+
+              {/* Content sections with staggered entrance */}
+              <div className="p-6 space-y-5">
+                {/* Overview */}
+                <motion.div 
+                  className="p-4 rounded-2xl bg-white/5 border border-white/10"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                >
+                  <p className="text-white/85 text-base leading-relaxed">{activePillar.detailedContent.overview}</p>
+                </motion.div>
+
+                {/* Giga Projects Table */}
+                {activePillar.detailedContent.keyProjects && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <h4 className="text-base font-semibold text-cyan-400 mb-3">Key Giga-Projects</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {activePillar.detailedContent.keyProjects.map((proj: { name: string; investment: string; workers: string }, i: number) => (
+                        <motion.div 
+                          key={i} 
+                          className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/25"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.45 + i * 0.08 }}
+                          whileHover={{ scale: 1.02, borderColor: "rgba(6,182,212,0.5)" }}
+                        >
+                          <p className="text-cyan-400 font-semibold text-base">{proj.name}</p>
+                          <p className="text-white/70 text-sm mt-1">{proj.investment} • {proj.workers} workers</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Systems Table */}
+                {activePillar.detailedContent.systems && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <h4 className="text-base font-semibold text-amber-400 mb-3">Disconnected Systems</h4>
+                    <div className="space-y-3">
+                      {activePillar.detailedContent.systems.map((sys: { name: string; data: string; gap: string }, i: number) => (
+                        <motion.div 
+                          key={i} 
+                          className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.45 + i * 0.1 }}
+                          whileHover={{ x: 5, borderColor: "rgba(251,191,36,0.5)" }}
+                        >
+                          <p className="text-amber-400 font-semibold text-base">{sys.name}</p>
+                          <p className="text-white/75 text-sm mt-1">Data: {sys.data}</p>
+                          <p className="text-red-400/90 text-sm">Gap: {sys.gap}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Economic Impacts */}
+                {activePillar.detailedContent.impacts && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <h4 className="text-base font-semibold text-red-400 mb-3">Economic Impact Metrics</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      {activePillar.detailedContent.impacts.map((impact: { metric: string; label: string; description: string }, i: number) => (
+                        <motion.div 
+                          key={i} 
+                          className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-center"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.45 + i * 0.1, type: "spring" }}
+                          whileHover={{ scale: 1.05, borderColor: "rgba(239,68,68,0.5)" }}
+                        >
+                          <motion.p 
+                            className="text-red-400 font-bold text-2xl"
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                          >
+                            {impact.metric}
+                          </motion.p>
+                          <p className="text-white/85 text-sm font-medium mt-1">{impact.label}</p>
+                          <p className="text-white/55 text-xs mt-0.5">{impact.description}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Challenges/Vision 2030 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55 }}
+                >
+                  <h4 className="text-base font-semibold text-purple-400 mb-3">
+                    {activePillar.detailedContent.vision2030Alignment ? "Vision 2030 Alignment" : "Key Challenges"}
+                  </h4>
+                  <div className="space-y-2">
+                    {(activePillar.detailedContent.challenges || activePillar.detailedContent.vision2030Alignment || []).map((item: string, i: number) => (
+                      <motion.div 
+                        key={i} 
+                        className="flex items-start gap-3 p-2 rounded-lg bg-white/5"
+                        initial={{ opacity: 0, x: -15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + i * 0.08 }}
+                      >
+                        <CheckCircle className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-white/75">{item}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Sources */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <h4 className="text-base font-semibold text-emerald-400 mb-3">Sources</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {activePillar.detailedContent.sources.map((source: { name: string; url: string }, i: number) => (
+                      <motion.a
+                        key={i}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 transition-all"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.75 + i * 0.1 }}
+                        whileHover={{ scale: 1.05, y: -2 }}
+                      >
+                        <Globe className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm text-white/85">{source.name}</span>
+                        <ArrowRight className="w-3 h-3 text-emerald-400/60" />
+                      </motion.a>
+                    ))}
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
           </>
