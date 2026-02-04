@@ -803,55 +803,52 @@ export function KSADeepAnalysisModal({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {/* AI Deep Analysis Badge */}
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
-                    <span className="text-sm text-purple-400 font-semibold">Deep Analysis</span>
-                  </div>
-
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-                  >
-                    <X className="w-5 h-5 text-white/60" />
-                  </button>
-                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                >
+                  <X className="w-5 h-5 text-white/60" />
+                </button>
               </div>
             </div>
 
-            {/* Content - Scrollable */}
+            {/* Fixed Section - Strategic Question & Positioning Scale */}
+            <div className="flex-shrink-0 px-6 pt-4 pb-2 border-b border-white/5">
+              <div className="max-w-5xl mx-auto">
+                {/* Strategic Question - Compact */}
+                <motion.div
+                  variants={questionVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="p-4 rounded-xl bg-slate-800/50 border border-white/10 mb-4"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className={cn("w-4 h-4", pillarDef.color)} />
+                    <h3 className="text-sm font-semibold text-white">Strategic Question</h3>
+                  </div>
+                  <p className="text-white/90 text-base leading-relaxed">
+                    {question.question}
+                  </p>
+                </motion.div>
+
+                {/* POSITIONING SCALE - Always Visible */}
+                {!isLoadingLeaders && leaders.length > 0 && (
+                  <PositioningScale
+                    ksaScore={ksaScore}
+                    leaders={leaders}
+                    pillarColor={pillarDef.color}
+                    pillarBgColor={pillarDef.bgColor}
+                    questionTitle={question.title}
+                    onLeaderClick={handleLeaderClick}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable Content - Analysis & Leaders */}
             <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-              <div className="p-6">
+              <div className="p-6 pt-4">
                 <div className="max-w-5xl mx-auto">
-                  {/* Strategic Question */}
-                  <motion.div
-                    variants={questionVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="p-5 rounded-xl bg-slate-800/50 border border-white/10 mb-6"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className={cn("w-5 h-5", pillarDef.color)} />
-                      <h3 className="text-lg font-semibold text-white">Strategic Question</h3>
-                    </div>
-                    <p className="text-white/90 text-lg leading-relaxed">
-                      {question.question}
-                    </p>
-                  </motion.div>
-
-                  {/* POSITIONING SCALE - Main Feature */}
-                  {!isLoadingLeaders && leaders.length > 0 && (
-                    <PositioningScale
-                      ksaScore={ksaScore}
-                      leaders={leaders}
-                      pillarColor={pillarDef.color}
-                      pillarBgColor={pillarDef.bgColor}
-                      questionTitle={question.title}
-                      onLeaderClick={handleLeaderClick}
-                    />
-                  )}
-
                   {/* Two Column Layout */}
                   <motion.div
                     variants={contentVariants}
