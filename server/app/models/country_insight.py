@@ -115,6 +115,13 @@ class CountryInsight(Base):
         comment="'What does this mean for OH?' section - 3-4 paragraphs, no recommendations"
     )
     
+    # Structured Key Stats (6 stats per category for tile display)
+    key_stats = Column(
+        JSONB,
+        nullable=True,
+        comment="Array of key stats: [{label, value, description}] - 6 stats per category"
+    )
+    
     # Generation Status
     status = Column(
         Enum(InsightStatus, values_callable=lambda x: [e.value for e in x]),
@@ -196,6 +203,7 @@ class CountryInsight(Base):
             "images": self.images or [],
             "what_is_analysis": self.what_is_analysis,
             "oh_implications": self.oh_implications,
+            "key_stats": self.key_stats or [],
             "status": self.status.value if self.status else None,
             "error_message": self.error_message,
             "generated_at": self.generated_at.isoformat() if self.generated_at else None,

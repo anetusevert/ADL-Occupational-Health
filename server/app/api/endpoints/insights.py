@@ -53,6 +53,13 @@ class ImageData(BaseModel):
     photographer: Optional[str] = None
 
 
+class KeyStatData(BaseModel):
+    """Key stat for tile display."""
+    label: str
+    value: str
+    description: Optional[str] = None
+
+
 class InsightResponse(BaseModel):
     """Full insight response."""
     id: int
@@ -61,6 +68,7 @@ class InsightResponse(BaseModel):
     images: List[ImageData] = []
     what_is_analysis: Optional[str] = None
     oh_implications: Optional[str] = None
+    key_stats: List[KeyStatData] = []
     status: str
     error_message: Optional[str] = None
     generated_at: Optional[str] = None
@@ -92,8 +100,124 @@ class RegenerateResponse(BaseModel):
 
 
 # =============================================================================
+# CURATED IMAGES - Reliable country/category specific images
+# =============================================================================
+
+CURATED_IMAGES = {
+    # Saudi Arabia (SAU)
+    "SAU": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80", "alt": "Riyadh skyline at sunset"},
+            {"url": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80", "alt": "Traditional Saudi architecture"},
+            {"url": "https://images.unsplash.com/photo-1609252509102-aa7b66d0e6ce?w=800&q=80", "alt": "Modern Saudi Arabia"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=800&q=80", "alt": "Oil refinery at dusk"},
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Industrial facility"},
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Construction in Saudi Arabia"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "Modern hospital building"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare facility"},
+            {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical center"},
+        ],
+        "political": [
+            {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Government building"},
+            {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Administrative center"},
+        ],
+        "urban": [
+            {"url": "https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=800&q=80", "alt": "Riyadh cityscape"},
+            {"url": "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800&q=80", "alt": "Urban development"},
+            {"url": "https://images.unsplash.com/photo-1609252509102-aa7b66d0e6ce?w=800&q=80", "alt": "Modern city"},
+        ],
+        "workforce": [
+            {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "Diverse workforce"},
+            {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workers"},
+        ],
+    },
+    # Germany (DEU)
+    "DEU": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&q=80", "alt": "German cityscape"},
+            {"url": "https://images.unsplash.com/photo-1554072675-66db59dba46f?w=800&q=80", "alt": "Traditional German architecture"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "German manufacturing"},
+            {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Industrial facility"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "German hospital"},
+            {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare center"},
+        ],
+    },
+    # Canada (CAN)
+    "CAN": {
+        "culture": [
+            {"url": "https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&q=80", "alt": "Toronto skyline"},
+            {"url": "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&q=80", "alt": "Canadian landscape"},
+        ],
+        "industry": [
+            {"url": "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=800&q=80", "alt": "Canadian industry"},
+            {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Industrial operations"},
+        ],
+        "oh-infrastructure": [
+            {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "Canadian hospital"},
+            {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical facility"},
+        ],
+    },
+}
+
+# Default images by category (fallback)
+DEFAULT_CATEGORY_IMAGES = {
+    "culture": [
+        {"url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80", "alt": "Cultural scene"},
+        {"url": "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800&q=80", "alt": "Society and culture"},
+    ],
+    "industry": [
+        {"url": "https://images.unsplash.com/photo-1581093458791-9d42e3c7e117?w=800&q=80", "alt": "Industrial facility"},
+        {"url": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80", "alt": "Manufacturing plant"},
+        {"url": "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=800&q=80", "alt": "Oil and gas industry"},
+    ],
+    "oh-infrastructure": [
+        {"url": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80", "alt": "Modern hospital"},
+        {"url": "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80", "alt": "Healthcare facility"},
+        {"url": "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=800&q=80", "alt": "Medical center"},
+    ],
+    "political": [
+        {"url": "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80", "alt": "Government building"},
+        {"url": "https://images.unsplash.com/photo-1577416412292-747c6607f055?w=800&q=80", "alt": "Parliament"},
+    ],
+    "urban": [
+        {"url": "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80", "alt": "City skyline"},
+        {"url": "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80", "alt": "Urban development"},
+        {"url": "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80", "alt": "Metropolitan area"},
+    ],
+    "workforce": [
+        {"url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80", "alt": "Team collaboration"},
+        {"url": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&q=80", "alt": "Professional workforce"},
+        {"url": "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=80", "alt": "Workers in industry"},
+    ],
+}
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
+
+def get_curated_images(country_iso: str, category: str) -> List[Dict]:
+    """Get curated images for country/category with fallback."""
+    # Try country-specific first
+    if country_iso in CURATED_IMAGES:
+        if category in CURATED_IMAGES[country_iso]:
+            return CURATED_IMAGES[country_iso][category]
+    
+    # Fallback to default category images
+    if category in DEFAULT_CATEGORY_IMAGES:
+        return DEFAULT_CATEGORY_IMAGES[category]
+    
+    # Ultimate fallback
+    return [{"url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80", "alt": "Business and economy"}]
+
 
 def get_ai_config(db: Session) -> Optional[AIConfig]:
     """Get active AI configuration."""
@@ -135,6 +259,16 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
                 photographer=img.get("photographer"),
             ))
     
+    # Parse key_stats
+    key_stats = []
+    if insight.key_stats:
+        for stat in insight.key_stats:
+            key_stats.append(KeyStatData(
+                label=stat.get("label", ""),
+                value=stat.get("value", ""),
+                description=stat.get("description"),
+            ))
+    
     return InsightResponse(
         id=insight.id,
         country_iso=insight.country_iso,
@@ -142,6 +276,7 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
         images=images,
         what_is_analysis=insight.what_is_analysis,
         oh_implications=insight.oh_implications,
+        key_stats=key_stats,
         status=insight.status.value if insight.status else "pending",
         error_message=insight.error_message,
         generated_at=insight.generated_at.isoformat() if insight.generated_at else None,
@@ -178,6 +313,7 @@ async def generate_insight_content(
     Returns dict with:
     - what_is_analysis: str (3-4 paragraphs)
     - oh_implications: str (3-4 paragraphs)
+    - key_stats: list of 6 stat objects [{label, value, description}]
     """
     ai_config = get_ai_config(db)
     if not ai_config:
@@ -258,11 +394,26 @@ Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications
 - Describe how OH systems are affected
 - Be purely informative - NO strategic recommendations
 
+**SECTION 3: Key Statistics**
+Provide exactly 6 key statistics that highlight the most important data points about {category_title} in {country.name}.
+Each stat should have:
+- label: Short label (2-4 words, e.g., "GDP Growth", "Labor Force")
+- value: The actual value with unit (e.g., "$71,565", "4.0%", "33.7M")
+- description: Brief context (10-15 words explaining significance)
+
 ## OUTPUT FORMAT:
 Respond with valid JSON only:
 {{
   "what_is_analysis": "Full 3-4 paragraph analysis here...",
-  "oh_implications": "Full 3-4 paragraph OH analysis here..."
+  "oh_implications": "Full 3-4 paragraph OH analysis here...",
+  "key_stats": [
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}}
+  ]
 }}"""
 
         system_prompt = """You are a Senior McKinsey Partner specializing in country analysis for occupational health strategy.
@@ -307,6 +458,7 @@ TONE:
             return {
                 "what_is_analysis": parsed.get("what_is_analysis", ""),
                 "oh_implications": parsed.get("oh_implications", ""),
+                "key_stats": parsed.get("key_stats", []),
                 "ai_provider": ai_config.provider.value if ai_config.provider else None,
                 "ai_model": ai_config.model_name,
             }
@@ -316,6 +468,7 @@ TONE:
             return {
                 "what_is_analysis": result,
                 "oh_implications": "",
+                "key_stats": [],
                 "ai_provider": ai_config.provider.value if ai_config.provider else None,
                 "ai_model": ai_config.model_name,
             }

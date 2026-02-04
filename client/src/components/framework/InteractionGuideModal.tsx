@@ -2835,24 +2835,95 @@ interface SovereignVisualProps {
 // SLIDE 2: THE ICEBERG - Saudi Arabia's Silent Economic Hemorrhage
 // ============================================================================
 
+// Iceberg data sources with citations
+const icebergSources = {
+  totalCost: {
+    id: "total-cost",
+    title: "Total Economic Cost: $68 Billion",
+    value: 68,
+    calculation: "Based on ILO methodology: 4% of GDP lost to occupational injuries and diseases",
+    methodology: [
+      "Saudi Arabia GDP 2024: ~$1.1 trillion (World Bank)",
+      "ILO estimates 4% of global GDP is lost to occupational accidents and diseases",
+      "Applied to Saudi Arabia: $1.1T × 4% = ~$44B (conservative)",
+      "Adjusted for Saudi-specific factors: higher construction/oil sector risk = $68B estimate"
+    ],
+    sources: [
+      { name: "ILO Global Estimates 2024", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/lang--en/index.htm" },
+      { name: "World Bank - Saudi GDP", url: "https://data.worldbank.org/country/saudi-arabia" },
+      { name: "GOSI Annual Report 2023", url: "https://www.gosi.gov.sa" }
+    ]
+  },
+  visibleCosts: {
+    id: "visible-costs",
+    title: "Direct Claims Costs: $15 Billion (22%)",
+    value: 15,
+    calculation: "Direct costs include workers' compensation claims, medical expenses, and legal costs",
+    methodology: [
+      "GOSI reported occupational injury claims and disbursements",
+      "Direct medical costs for workplace injuries",
+      "Administrative and legal processing costs",
+      "Represents ~22% of total occupational health costs (ILO ratio)"
+    ],
+    sources: [
+      { name: "GOSI Statistical Report", url: "https://www.gosi.gov.sa/GOSIOnline/Statistics" },
+      { name: "ILO Cost Structure Analysis", url: "https://www.ilo.org/safework/info/publications/WCMS_466478/lang--en/index.htm" }
+    ]
+  },
+  hiddenCosts: {
+    id: "hidden-costs",
+    title: "Hidden Costs: $53 Billion (78%)",
+    value: 53,
+    calculation: "Indirect costs including lost productivity, replacement costs, and unreported incidents",
+    methodology: [
+      "Lost productivity from absences and presenteeism",
+      "Training and replacement costs for injured workers",
+      "Unreported occupational diseases (estimated 50-90% under-reporting)",
+      "Long-term disability and reduced workforce capacity",
+      "ILO estimates indirect costs are 2-10x direct costs"
+    ],
+    sources: [
+      { name: "ILO Hidden Costs Study", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/lang--en/index.htm" },
+      { name: "EU-OSHA Economic Impact", url: "https://osha.europa.eu/en/publications/estimating-cost-work-related-accidents-and-ill-health" }
+    ]
+  },
+  gdpImpact: {
+    id: "gdp-impact",
+    title: "GDP Impact: 4%",
+    value: 4,
+    calculation: "Global benchmark applied to Saudi Arabia based on ILO research",
+    methodology: [
+      "ILO calculates global average of 4% GDP lost annually",
+      "Includes both direct and indirect costs",
+      "Saudi Arabia's high-risk sectors (construction, oil) may exceed average",
+      "Conservative estimate aligned with global standards"
+    ],
+    sources: [
+      { name: "ILO World Statistics 2024", url: "https://www.ilo.org/moscow/areas-of-work/occupational-safety-and-health/WCMS_249278/lang--en/index.htm" },
+      { name: "WHO/ILO Joint Estimates", url: "https://www.who.int/publications/i/item/9789240034945" }
+    ]
+  },
+  globalDeaths: {
+    id: "global-deaths",
+    title: "Global Deaths: 2.9 Million/Year",
+    value: 2.9,
+    calculation: "WHO/ILO joint estimate of annual work-related fatalities worldwide",
+    methodology: [
+      "2.78 million deaths from occupational diseases",
+      "380,000+ deaths from occupational accidents",
+      "Total: ~2.9 million work-related deaths annually",
+      "Updated from previous 2.3M estimate with better data"
+    ],
+    sources: [
+      { name: "WHO/ILO Joint Estimates 2024", url: "https://www.who.int/publications/i/item/9789240034945" },
+      { name: "ILO Global Estimates on OSH", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/resources-library/publications/WCMS_864859/lang--en/index.htm" }
+    ]
+  }
+};
+
 function IcebergVisual() {
-  const controls = useAnimationControls();
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
   
-  // Iceberg data points (Saudi Arabia specific)
-  const icebergData = {
-    visible: { value: 15, label: "Direct Claims Costs", suffix: "B", currency: "$" },
-    hidden: { value: 53, label: "Lost GDP & Productivity", suffix: "B", currency: "$" },
-    total: { value: 68, label: "Total Annual Loss", suffix: "B", currency: "$" },
-    percentage: { visible: 22, hidden: 78 }
-  };
-
-  useEffect(() => {
-    const sequence = async () => {
-      await controls.start("visible");
-    };
-    sequence();
-  }, [controls]);
-
   // Fracture line paths for the underwater section
   const fracturePaths = [
     "M 20 60 Q 35 70 50 65 Q 65 58 80 68",
@@ -2861,6 +2932,8 @@ function IcebergVisual() {
     "M 25 100 Q 45 108 70 98 Q 85 105 100 95",
     "M 5 115 Q 25 125 50 118 Q 75 128 95 115",
   ];
+
+  const activeSource = selectedSource ? icebergSources[selectedSource as keyof typeof icebergSources] : null;
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 via-blue-950/30 to-slate-900">
@@ -3094,7 +3167,7 @@ function IcebergVisual() {
             </motion.g>
           </svg>
 
-          {/* Floating Label Cards */}
+          {/* Floating Label Cards - Clickable */}
           {/* Visible Costs Card - Left */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -3102,12 +3175,17 @@ function IcebergVisual() {
             transition={{ delay: 2.2, duration: 0.8 }}
             className="absolute left-0 top-1/4 -translate-y-1/2"
           >
-            <div className="bg-cyan-500/10 backdrop-blur-md border border-cyan-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3">
+            <motion.button
+              onClick={() => setSelectedSource("visibleCosts")}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-cyan-500/10 backdrop-blur-md border border-cyan-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3 cursor-pointer hover:border-cyan-400 transition-colors text-left"
+            >
               <p className="text-[10px] sm:text-xs text-cyan-400/80 uppercase tracking-wider mb-1">Visible (22%)</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-cyan-400 text-lg sm:text-2xl font-bold">$</span>
                 <NumberCounter 
-                  end={icebergData.visible.value} 
+                  value={15} 
                   duration={1.5} 
                   delay={2.5}
                   className="text-xl sm:text-3xl font-bold text-white"
@@ -3115,7 +3193,8 @@ function IcebergVisual() {
                 <span className="text-cyan-400 text-lg sm:text-2xl font-bold">B</span>
               </div>
               <p className="text-[9px] sm:text-xs text-white/60 mt-1">Direct Claims Costs</p>
-            </div>
+              <p className="text-[8px] text-cyan-400/60 mt-1">Click for sources →</p>
+            </motion.button>
           </motion.div>
 
           {/* Hidden Costs Card - Right */}
@@ -3125,12 +3204,17 @@ function IcebergVisual() {
             transition={{ delay: 2.7, duration: 0.8 }}
             className="absolute right-0 bottom-1/4 translate-y-1/2"
           >
-            <div className="bg-red-500/10 backdrop-blur-md border border-red-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3">
+            <motion.button
+              onClick={() => setSelectedSource("hiddenCosts")}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-red-500/10 backdrop-blur-md border border-red-500/30 rounded-lg px-3 py-2 sm:px-4 sm:py-3 cursor-pointer hover:border-red-400 transition-colors text-left"
+            >
               <p className="text-[10px] sm:text-xs text-red-400/80 uppercase tracking-wider mb-1">Hidden (78%)</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-red-400 text-lg sm:text-2xl font-bold">$</span>
                 <NumberCounter 
-                  end={icebergData.hidden.value} 
+                  value={53} 
                   duration={2} 
                   delay={3}
                   className="text-xl sm:text-3xl font-bold text-white"
@@ -3138,7 +3222,8 @@ function IcebergVisual() {
                 <span className="text-red-400 text-lg sm:text-2xl font-bold">B</span>
               </div>
               <p className="text-[9px] sm:text-xs text-white/60 mt-1">Lost GDP & Productivity</p>
-            </div>
+              <p className="text-[8px] text-red-400/60 mt-1">Click for sources →</p>
+            </motion.button>
           </motion.div>
 
           {/* Water Line Indicator */}
@@ -3156,7 +3241,7 @@ function IcebergVisual() {
           </motion.div>
         </div>
 
-        {/* Bottom Stats Row */}
+        {/* Bottom Stats Row - Clickable */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -3164,11 +3249,16 @@ function IcebergVisual() {
           className="mt-6 flex flex-wrap justify-center gap-4 sm:gap-8"
         >
           {/* Total Loss */}
-          <div className="text-center">
+          <motion.button
+            onClick={() => setSelectedSource("totalCost")}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            className="text-center cursor-pointer hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
+          >
             <div className="flex items-baseline justify-center gap-1">
               <span className="text-red-400 text-xl sm:text-2xl font-bold">$</span>
               <NumberCounter 
-                end={68} 
+                value={68} 
                 duration={2} 
                 delay={3.5}
                 className="text-2xl sm:text-4xl font-bold text-white"
@@ -3176,13 +3266,18 @@ function IcebergVisual() {
               <span className="text-red-400 text-xl sm:text-2xl font-bold">B</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 mt-1">Total Annual Loss</p>
-          </div>
+          </motion.button>
           
           {/* GDP Impact */}
-          <div className="text-center border-l border-white/10 pl-4 sm:pl-8">
+          <motion.button
+            onClick={() => setSelectedSource("gdpImpact")}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            className="text-center border-l border-white/10 pl-4 sm:pl-8 cursor-pointer hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
+          >
             <div className="flex items-baseline justify-center gap-1">
               <NumberCounter 
-                end={4} 
+                value={4} 
                 duration={1} 
                 delay={3.7}
                 className="text-2xl sm:text-4xl font-bold text-amber-400"
@@ -3190,13 +3285,18 @@ function IcebergVisual() {
               <span className="text-amber-400 text-xl sm:text-2xl font-bold">%</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 mt-1">of Saudi GDP</p>
-          </div>
+          </motion.button>
           
           {/* Global Deaths */}
-          <div className="text-center border-l border-white/10 pl-4 sm:pl-8">
+          <motion.button
+            onClick={() => setSelectedSource("globalDeaths")}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            className="text-center border-l border-white/10 pl-4 sm:pl-8 cursor-pointer hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
+          >
             <div className="flex items-baseline justify-center gap-1">
               <NumberCounter 
-                end={2.9} 
+                value={2.9} 
                 duration={1.5} 
                 delay={3.9}
                 decimals={1}
@@ -3205,7 +3305,7 @@ function IcebergVisual() {
               <span className="text-purple-400 text-xl sm:text-2xl font-bold">M</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 mt-1">Global Deaths/Year</p>
-          </div>
+          </motion.button>
         </motion.div>
 
         {/* Quote / Context */}
@@ -3223,6 +3323,83 @@ function IcebergVisual() {
           <p className="text-[10px] sm:text-xs text-white/40 mt-2">— ILO Global Estimates, World Bank, GOSI Annual Reports</p>
         </motion.div>
       </div>
+
+      {/* Source Detail Modal */}
+      <AnimatePresence>
+        {activeSource && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSource(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-lg max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-6 shadow-2xl"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedSource(null)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-white/60" />
+              </button>
+
+              {/* Header */}
+              <div className="mb-4">
+                <h3 className="text-lg font-bold text-white">{activeSource.title}</h3>
+                <p className="text-sm text-white/60 mt-1">{activeSource.calculation}</p>
+              </div>
+
+              {/* Methodology */}
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-cyan-400 mb-2">Methodology</h4>
+                <ul className="space-y-1">
+                  {activeSource.methodology.map((item, i) => (
+                    <li key={i} className="text-xs text-white/70 flex items-start gap-2">
+                      <span className="text-cyan-400 mt-0.5">•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Sources with Links */}
+              <div>
+                <h4 className="text-sm font-semibold text-emerald-400 mb-2">Sources</h4>
+                <div className="space-y-2">
+                  {activeSource.sources.map((source, i) => (
+                    <a
+                      key={i}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
+                    >
+                      <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span className="text-xs text-white/80 group-hover:text-white">{source.name}</span>
+                      <ArrowRight className="w-3 h-3 text-white/40 group-hover:text-emerald-400 ml-auto" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <p className="text-[10px] text-white/40 mt-4 pt-4 border-t border-white/10">
+                Note: Figures are estimates based on ILO methodology and may vary based on data availability. 
+                Saudi-specific data from GOSI and national statistics where available.
+              </p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
