@@ -259,15 +259,18 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
                 photographer=img.get("photographer"),
             ))
     
-    # Parse key_stats
+    # Parse key_stats (handle case where column doesn't exist yet)
     key_stats = []
-    if insight.key_stats:
-        for stat in insight.key_stats:
-            key_stats.append(KeyStatData(
-                label=stat.get("label", ""),
-                value=stat.get("value", ""),
-                description=stat.get("description"),
-            ))
+    try:
+        if hasattr(insight, 'key_stats') and insight.key_stats:
+            for stat in insight.key_stats:
+                key_stats.append(KeyStatData(
+                    label=stat.get("label", ""),
+                    value=stat.get("value", ""),
+                    description=stat.get("description"),
+                ))
+    except Exception:
+        pass  # Column may not exist in production yet
     
     return InsightResponse(
         id=insight.id,
@@ -670,7 +673,11 @@ async def initialize_country_insights(
             # Update insight
             insight.what_is_analysis = content.get("what_is_analysis")
             insight.oh_implications = content.get("oh_implications")
-            insight.key_stats = content.get("key_stats", [])
+            # Safely set key_stats (column may not exist in production yet)
+            try:
+                insight.key_stats = content.get("key_stats", [])
+            except Exception:
+                pass
             insight.images = images
             insight.status = InsightStatus.completed
             insight.generated_at = datetime.utcnow()
@@ -789,7 +796,11 @@ async def regenerate_insight(
         # Update insight
         insight.what_is_analysis = content.get("what_is_analysis")
         insight.oh_implications = content.get("oh_implications")
-        insight.key_stats = content.get("key_stats", [])
+        # Safely set key_stats (column may not exist in production yet)
+        try:
+            insight.key_stats = content.get("key_stats", [])
+        except Exception:
+            pass
         insight.images = images
         insight.status = InsightStatus.completed
         insight.generated_at = datetime.utcnow()
@@ -893,7 +904,11 @@ async def regenerate_all_insights(
             # Update insight
             insight.what_is_analysis = content.get("what_is_analysis")
             insight.oh_implications = content.get("oh_implications")
-            insight.key_stats = content.get("key_stats", [])
+            # Safely set key_stats (column may not exist in production yet)
+            try:
+                insight.key_stats = content.get("key_stats", [])
+            except Exception:
+                pass
             insight.images = images
             insight.status = InsightStatus.completed
             insight.generated_at = datetime.utcnow()
