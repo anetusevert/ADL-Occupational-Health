@@ -554,8 +554,6 @@ export function CentralInsightModal({
 }: CentralInsightModalProps) {
   const [insightData, setInsightData] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
   const isEconomicCategory = category ? ECONOMIC_CATEGORIES.includes(category) : false;
   const isPillarCategory = category ? PILLAR_CATEGORIES.includes(category) : false;
@@ -769,16 +767,11 @@ export function CentralInsightModal({
 
             {/* Content */}
             <div className="relative flex-1 overflow-hidden">
-              {isLoading || isRegenerating ? (
+              {isLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
-                    <p className="text-sm text-white/50">
-                      {isRegenerating ? "AI is generating detailed analysis..." : "Loading..."}
-                    </p>
-                    {isRegenerating && (
-                      <p className="text-xs text-white/30 mt-1">This may take 15-30 seconds</p>
-                    )}
+                    <p className="text-sm text-white/50">Loading...</p>
                   </div>
                 </div>
               ) : isEconomicCategory && economicMetricData ? (
@@ -954,12 +947,6 @@ export function CentralInsightModal({
                         </p>
                       </div>
 
-                      {isAdmin && (
-                        <div className="text-[10px] text-white/30 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Click "Regenerate with AI" for detailed country-specific analysis
-                        </div>
-                      )}
                     </motion.div>
                   </div>
                 </div>

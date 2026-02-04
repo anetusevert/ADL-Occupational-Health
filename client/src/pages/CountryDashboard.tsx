@@ -308,8 +308,58 @@ export function CountryDashboard() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* AI Generation Progress Banner - Fixed at top when generating */}
+      <AnimatePresence>
+        {isAdmin && initStatus === "generating" && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600/95 via-cyan-600/95 to-purple-600/95 backdrop-blur-md border-b border-white/20 shadow-lg"
+          >
+            <div className="px-4 py-3 flex items-center justify-between max-w-7xl mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Sparkles className="w-5 h-5 text-white animate-pulse" />
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-white/30"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    AI is generating insights for {currentCountry?.name}
+                  </p>
+                  <p className="text-xs text-white/70">
+                    {generationProgress || "Initializing AI agents..."}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <span className="text-xs text-white/80">Processing with GPT-5</span>
+                </div>
+                
+                {/* Progress indicator */}
+                <div className="w-32 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-white rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 60, ease: "linear" }}
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header with Positioning Bars */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm relative z-40">
+      <header className={`flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-slate-900/50 backdrop-blur-sm relative z-40 ${isAdmin && initStatus === "generating" ? "mt-14" : ""}`}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/home")}
