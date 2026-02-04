@@ -832,131 +832,144 @@ async def initialize_country_insights(
     
     Only admins can trigger generation. Regular users get status only.
     """
-    country_iso = country_iso.upper()
-    
-    # Get country data
-    country = get_country_data(db, country_iso)
-    if not country:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Country not found: {country_iso}"
-        )
-    
-    # Get existing insights for Country Insight categories only
-    existing_insights = db.query(CountryInsight).filter(
-        CountryInsight.country_iso == country_iso,
-        CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
-        CountryInsight.status == InsightStatus.completed,
-        CountryInsight.what_is_analysis.isnot(None),
-    ).all()
-    
-    existing_categories = {i.category for i in existing_insights}
-    missing_categories = [c for c in COUNTRY_INSIGHT_CATEGORIES if c not in existing_categories]
-    
-    # If all complete, return early
-    if not missing_categories:
-        return InitializeResponse(
-            country_iso=country_iso,
-            country_name=country.name,
-            status="already_complete",
-            total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
-            existing=len(existing_categories),
-            missing=0,
-            categories_to_generate=[],
-        )
-    
-    # Check if user is admin
-    if current_user.role != UserRole.admin:
-        return InitializeResponse(
-            country_iso=country_iso,
-            country_name=country.name,
-            status="missing_content",
-            total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
-            existing=len(existing_categories),
-            missing=len(missing_categories),
-            categories_to_generate=[c.value for c in missing_categories],
-        )
-    
-    # Admin: Generate all missing categories
-    intelligence = get_intelligence_data(db, country_iso)
-    
-    generated = 0
-    errors = []
-    
-    for category in missing_categories:
-        try:
-            # Find or create insight record
-            insight = db.query(CountryInsight).filter(
-                CountryInsight.country_iso == country_iso,
-                CountryInsight.category == category,
-            ).first()
-            
-            if not insight:
-                insight = CountryInsight(
-                    country_iso=country_iso,
-                    category=category,
-                    status=InsightStatus.generating,
-                )
-                db.add(insight)
-                db.commit()
-                db.refresh(insight)
-            else:
-                insight.status = InsightStatus.generating
-                db.commit()
-            
-            # Generate content
-            content = await generate_insight_content(
-                db, country, intelligence, category, current_user
+    try:
+        country_iso = country_iso.upper()
+        logger.info(f"[Initialize] Starting initialization for {country_iso} by user {current_user.email}")
+        
+        # Get country data
+        country = get_country_data(db, country_iso)
+        if not country:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Country not found: {country_iso}"
             )
-            
-            # Fetch dynamic images from Unsplash (with fallback)
-            images = await fetch_country_images(
-                country_name=country.name,
+        
+        # Get existing insights for Country Insight categories only
+        existing_insights = db.query(CountryInsight).filter(
+            CountryInsight.country_iso == country_iso,
+            CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
+            CountryInsight.status == InsightStatus.completed,
+            CountryInsight.what_is_analysis.isnot(None),
+        ).all()
+        
+        existing_categories = {i.category for i in existing_insights}
+        missing_categories = [c for c in COUNTRY_INSIGHT_CATEGORIES if c not in existing_categories]
+        
+        # If all complete, return early
+        if not missing_categories:
+            return InitializeResponse(
                 country_iso=country_iso,
-                category=category.value,
-                count=3
+                country_name=country.name,
+                status="already_complete",
+                total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
+                existing=len(existing_categories),
+                missing=0,
+                categories_to_generate=[],
             )
-            
-            # Update insight
-            insight.what_is_analysis = content.get("what_is_analysis")
-            insight.oh_implications = content.get("oh_implications")
-            # Safely set key_stats (column may not exist in production yet)
+        
+        # Check if user is admin
+        if current_user.role != UserRole.admin:
+            return InitializeResponse(
+                country_iso=country_iso,
+                country_name=country.name,
+                status="missing_content",
+                total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
+                existing=len(existing_categories),
+                missing=len(missing_categories),
+                categories_to_generate=[c.value for c in missing_categories],
+            )
+        
+        # Admin: Generate all missing categories
+        intelligence = get_intelligence_data(db, country_iso)
+        
+        generated = 0
+        errors = []
+        
+        for category in missing_categories:
             try:
-                insight.key_stats = content.get("key_stats", [])
-            except Exception:
-                pass
-            insight.images = images
-            insight.status = InsightStatus.completed
-            insight.generated_at = datetime.utcnow()
-            insight.generated_by = current_user.id
-            insight.ai_provider = content.get("ai_provider")
-            insight.ai_model = content.get("ai_model")
-            db.commit()
-            
-            generated += 1
-            logger.info(f"Generated {category.value} insight for {country_iso}")
-            
-        except Exception as e:
-            error_msg = str(e)
-            # Extract more specific error message if available
-            if hasattr(e, 'detail'):
-                error_msg = e.detail
-            logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
-            errors.append({"category": category.value, "error": error_msg})
+                # Find or create insight record
+                insight = db.query(CountryInsight).filter(
+                    CountryInsight.country_iso == country_iso,
+                    CountryInsight.category == category,
+                ).first()
+                
+                if not insight:
+                    insight = CountryInsight(
+                        country_iso=country_iso,
+                        category=category,
+                        status=InsightStatus.generating,
+                    )
+                    db.add(insight)
+                    db.commit()
+                    db.refresh(insight)
+                else:
+                    insight.status = InsightStatus.generating
+                    db.commit()
+                
+                # Generate content
+                content = await generate_insight_content(
+                    db, country, intelligence, category, current_user
+                )
+                
+                # Fetch dynamic images from Unsplash (with fallback)
+                images = await fetch_country_images(
+                    country_name=country.name,
+                    country_iso=country_iso,
+                    category=category.value,
+                    count=3
+                )
+                
+                # Update insight
+                insight.what_is_analysis = content.get("what_is_analysis")
+                insight.oh_implications = content.get("oh_implications")
+                # Safely set key_stats (column may not exist in production yet)
+                try:
+                    insight.key_stats = content.get("key_stats", [])
+                except Exception:
+                    pass
+                insight.images = images
+                insight.status = InsightStatus.completed
+                insight.generated_at = datetime.utcnow()
+                insight.generated_by = current_user.id
+                insight.ai_provider = content.get("ai_provider")
+                insight.ai_model = content.get("ai_model")
+                db.commit()
+                
+                generated += 1
+                logger.info(f"Generated {category.value} insight for {country_iso}")
+                
+            except Exception as e:
+                error_msg = str(e)
+                # Extract more specific error message if available
+                if hasattr(e, 'detail'):
+                    error_msg = e.detail
+                logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
+                errors.append({"category": category.value, "error": error_msg})
+        
+        # Convert errors to response format
+        error_details = [InitializeError(category=e["category"], error=e["error"]) for e in errors] if errors else None
+        
+        return InitializeResponse(
+            country_iso=country_iso,
+            country_name=country.name,
+            status="generated" if generated == len(missing_categories) else "partial",
+            total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
+            existing=len(existing_categories) + generated,
+            missing=len(missing_categories) - generated,
+            categories_to_generate=[],
+            errors=error_details,
+        )
     
-    # Convert errors to response format
-    error_details = [InitializeError(category=e["category"], error=e["error"]) for e in errors] if errors else None
-    
-    return InitializeResponse(
-        country_iso=country_iso,
-        country_name=country.name,
-        status="generated" if generated == len(missing_categories) else "partial",
-        total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
-        existing=len(existing_categories) + generated,
-        missing=len(missing_categories) - generated,
-        categories_to_generate=[],
-        errors=error_details,
-    )
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Catch any unhandled exceptions and return a proper error response
+        logger.error(f"[Initialize] Unhandled error for {country_iso}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error during initialization: {str(e)}"
+        )
 
 
 @router.get("/{country_iso}/{category}", response_model=Optional[InsightResponse])

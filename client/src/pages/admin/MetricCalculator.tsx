@@ -21,8 +21,8 @@ import {
   AlertTriangle,
   Save,
   Loader2,
-  Target,
   Sliders,
+  Target,
   BarChart3,
   Shield,
   Activity,
@@ -41,12 +41,14 @@ import { cn } from "../../lib/utils";
 // Import new scoring components
 import {
   ScoreFlowDiagram,
+  ScoreTree,
   CalculationPreview,
   PillarWeightChart,
-  AnimatedWeightBars,
-  EnhancedWeightSlider,
   MaturityRuleVisualizer,
+  WeightEditModal,
+  EnhancedWeightSlider,
 } from "../../components/scoring";
+import type { ScoreTreeNode } from "../../components/scoring/ScoreTree";
 
 // =============================================================================
 // TYPES
@@ -291,10 +293,12 @@ export function MetricCalculator() {
   
   // State
   const [activeView, setActiveView] = useState<ViewType>("overview");
-  const [activePillar, setActivePillar] = useState<PillarKey>("governance");
-  const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
+  const [editingWeights, setEditingWeights] = useState<Record<string, Record<string, number>>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [recalcResult, setRecalcResult] = useState<RecalculationResult | null>(null);
+  const [selectedNode, setSelectedNode] = useState<ScoreTreeNode | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
 
   // Queries
   const {
@@ -314,6 +318,8 @@ export function MetricCalculator() {
     mutationFn: initializeMetricConfig,
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["metric-config-overview"] });
+      setEditingWeights({});
+      setHasUnsavedChanges(false);
       try {
         const result = await recalculateAllScores();
         setRecalcResult(result);
@@ -325,9 +331,29 @@ export function MetricCalculator() {
     },
   });
 
-  const updatePillarMutation = useMutation({
-    mutationFn: ({ pillar, update }: { pillar: string; update: Partial<PillarSummary> }) =>
-      updatePillarSummary(pillar, update),
+  const saveAllWeightsMutation = useMutation({
+    mutationFn: async () => {
+      if (!overview) return;
+      const updates = Object.entries(editingWeights)
+        .filter(([, weights]) => Object.keys(weights).length > 0);
+
+      if (updates.length === 0) return;
+
+      await Promise.all(
+        updates.map(async ([pillarId, weights]) => {
+          const summary = overview.pillar_summaries.find((s) => s.pillar === pillarId);
+          if (!summary) return;
+          const updatedWeights = { ...summary.component_weights };
+          Object.entries(weights).forEach(([metricKey, weight]) => {
+            if (updatedWeights[metricKey]) {
+              updatedWeights[metricKey] = { ...updatedWeights[metricKey], weight };
+            }
+          });
+
+          await updatePillarSummary(pillarId, { component_weights: updatedWeights });
+        })
+      );
+    },
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["metric-config-overview"] });
       setEditingWeights({});
@@ -352,29 +378,41 @@ export function MetricCalculator() {
     },
   });
 
-  // Get current pillar summary
-  const currentPillarSummary = useMemo(() => {
-    if (!overview) return null;
-    return overview.pillar_summaries.find(s => s.pillar === activePillar);
-  }, [overview, activePillar]);
+  // Helper to get weight with pending edits
+  const getMetricWeight = (pillarId: string, metricKey: string, fallback: number) =>
+    editingWeights[pillarId]?.[metricKey] ?? fallback;
 
-  // Get metrics for current pillar
-  // Calculate total weight for current pillar
-  const totalWeight = useMemo(() => {
-    if (!currentPillarSummary) return 0;
-    const merged: Record<string, number | { weight: number }> = {
-      ...currentPillarSummary.component_weights,
-    };
+  const getPillarMetrics = (pillarId: string) => {
+    if (!overview) return [];
+    const summary = overview.pillar_summaries.find((s) => s.pillar === pillarId);
+    if (!summary) return [];
+    return Object.entries(summary.component_weights).map(([metricKey, config]) => {
+      const metric = overview.metrics.find((m) => m.metric_key === metricKey);
+      return {
+        pillarId,
+        metricKey,
+        name: metric?.name || metricKey.replace(/_/g, " "),
+        description: metric?.description || null,
+        weight: getMetricWeight(pillarId, metricKey, config.weight),
+        defaultWeight: config.weight,
+        invert: config.invert || metric?.lower_is_better || false,
+        unit: metric?.unit || null,
+      };
+    });
+  };
 
-    for (const [key, value] of Object.entries(editingWeights)) {
-      merged[key] = value;
+  const getScopeMetrics = (node: ScoreTreeNode | null) => {
+    if (!node || !overview) return [];
+    if (node.type === "pillar" && node.pillarId) {
+      return getPillarMetrics(node.pillarId);
     }
-
-    return Object.values(merged).reduce<number>((sum, value) => {
-      const w = typeof value === "number" ? value : value.weight;
-      return sum + (w || 0);
-    }, 0);
-  }, [currentPillarSummary, editingWeights]);
+    if (node.type === "root") {
+      return (Object.keys(pillarConfig) as PillarKey[])
+        .filter((key) => key !== "composite")
+        .flatMap((pillarId) => getPillarMetrics(pillarId));
+    }
+    return [];
+  };
 
   // Get component weights for chart
   const componentWeightsForChart = useMemo(() => {
@@ -386,30 +424,16 @@ export function MetricCalculator() {
     return weights;
   }, [overview]);
 
-  // Handle weight change
-  const handleWeightChange = (metricKey: string, newWeight: number) => {
+  // Handle weight change for any pillar/metric
+  const handleWeightChange = (pillarId: string, metricKey: string, newWeight: number) => {
     setEditingWeights(prev => ({
       ...prev,
-      [metricKey]: newWeight
+      [pillarId]: {
+        ...(prev[pillarId] || {}),
+        [metricKey]: newWeight,
+      },
     }));
     setHasUnsavedChanges(true);
-  };
-
-  // Save weights
-  const handleSaveWeights = () => {
-    if (!currentPillarSummary) return;
-    
-    const updatedWeights = { ...currentPillarSummary.component_weights };
-    Object.entries(editingWeights).forEach(([key, weight]) => {
-      if (updatedWeights[key]) {
-        updatedWeights[key] = { ...updatedWeights[key], weight };
-      }
-    });
-    
-    updatePillarMutation.mutate({
-      pillar: activePillar,
-      update: { component_weights: updatedWeights }
-    });
   };
 
   // Handle 404 OR empty data - need to initialize
@@ -485,11 +509,11 @@ export function MetricCalculator() {
                 animate={{ opacity: 1, x: 0 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSaveWeights}
-                disabled={updatePillarMutation.isPending}
+                onClick={() => saveAllWeightsMutation.mutate()}
+                disabled={saveAllWeightsMutation.isPending}
                 className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors flex items-center gap-2"
               >
-                {updatePillarMutation.isPending ? (
+                {saveAllWeightsMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4" />
@@ -501,21 +525,27 @@ export function MetricCalculator() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => recalcMutation.mutate()}
-              disabled={recalcMutation.isPending || !overview}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  saveAllWeightsMutation.mutate();
+                  return;
+                }
+                recalcMutation.mutate();
+              }}
+              disabled={recalcMutation.isPending || saveAllWeightsMutation.isPending || !overview}
               className={cn(
                 "px-4 py-2 rounded-lg flex items-center gap-2 transition-colors",
-                recalcMutation.isPending
+                recalcMutation.isPending || saveAllWeightsMutation.isPending
                   ? "bg-white/5 text-white/40 cursor-not-allowed"
                   : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
               )}
             >
-              {recalcMutation.isPending ? (
+              {recalcMutation.isPending || saveAllWeightsMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Recalculate All
+              {hasUnsavedChanges ? "Save & Recalculate" : "Recalculate All"}
             </motion.button>
           </div>
         </motion.div>
@@ -680,218 +710,144 @@ export function MetricCalculator() {
                 )}
 
                 {/* Configure View */}
-                {activeView === "configure" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Pillar Tabs */}
-                    <div className="lg:col-span-3">
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {(Object.keys(pillarConfig) as PillarKey[])
-                          .filter((key) => key !== "composite")
-                          .map((key) => {
-                            const config = pillarConfig[key];
-                            const Icon = config.icon;
-                            const isActive = activePillar === key;
-                            
-                            return (
-                              <button
-                                key={key}
-                                onClick={() => setActivePillar(key)}
-                                className={cn(
-                                  "flex items-center gap-2 px-4 py-3 rounded-xl transition-all min-w-fit",
-                                  isActive
-                                    ? `${config.bgColor} ${config.borderColor} border-2`
-                                    : "bg-white/5 border border-white/10 hover:bg-white/10"
-                                )}
-                              >
-                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.bgColor)}>
-                                  <Icon className={cn("w-4 h-4", config.color)} />
-                                </div>
-                                <div className="text-left">
-                                  <p className={cn("font-medium", isActive ? "text-white" : "text-white/60")}>
-                                    {config.label}
-                                  </p>
-                                  <p className="text-xs text-white/40">
-                                    {(config.weight * 100).toFixed(0)}% of maturity
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
+                {activeView === "configure" && overview && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-white font-semibold text-lg">Scoring Tree</h2>
+                        <p className="text-white/50 text-sm">
+                          Click any node to adjust weights in the calculation tree
+                        </p>
                       </div>
-                    </div>
-
-                    {/* Weight Configuration */}
-                    <div className="lg:col-span-2 space-y-4">
-                      {/* Pillar Header */}
-                      <div className={cn(
-                        "rounded-xl p-6 border",
-                        pillarConfig[activePillar].bgColor,
-                        pillarConfig[activePillar].borderColor
-                      )}>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h2 className="text-xl font-bold text-white mb-1">
-                              {pillarConfig[activePillar].label} Index
-                            </h2>
-                            <p className="text-white/60 text-sm">
-                              {pillarConfig[activePillar].description}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-3xl font-bold text-white">0-100</p>
-                            <p className="text-white/40 text-sm">Output Range</p>
-                          </div>
-                        </div>
-                        
-                        {/* Total Weight Indicator */}
-                        {currentPillarSummary && (
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-white/60 text-sm">Total Component Weight</span>
-                              <span className={cn(
-                                "font-mono font-bold",
-                                Math.abs(totalWeight - 1.0) < 0.001 ? "text-emerald-400" : "text-amber-400"
-                              )}>
-                                {(totalWeight * 100).toFixed(0)}%
-                              </span>
-                            </div>
-                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                              <motion.div 
-                                className={cn(
-                                  "h-full transition-all duration-300",
-                                  Math.abs(totalWeight - 1.0) < 0.001 ? "bg-emerald-500" : "bg-amber-500"
-                                )}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(totalWeight * 100, 100)}%` }}
-                              />
-                            </div>
-                            {Math.abs(totalWeight - 1.0) > 0.001 && (
-                              <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                Weights should sum to 100%
-                              </p>
-                            )}
-                          </div>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          if (window.confirm("Reset all pillar weights to WHO/ILO defaults?")) {
+                            initMutation.mutate();
+                          }
+                        }}
+                        disabled={initMutation.isPending}
+                        className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2"
+                      >
+                        {initMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4" />
                         )}
-                      </div>
-
-                      {/* Component Weights with Enhanced Sliders */}
-                      {currentPillarSummary && 
-                        currentPillarSummary.component_weights && 
-                        Object.keys(currentPillarSummary.component_weights).length > 0 ? (
-                        <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-                          <div className="px-4 py-3 border-b border-white/10">
-                            <h3 className="text-white font-medium flex items-center gap-2">
-                              <Sliders className="w-4 h-4 text-white/40" />
-                              Component Weights
-                            </h3>
-                            <p className="text-white/40 text-xs mt-1">
-                              Adjust the contribution of each metric to the pillar score
-                            </p>
-                          </div>
-                          
-                          <div className="divide-y divide-white/5">
-                            {Object.entries(currentPillarSummary.component_weights).map(([metricKey, config]) => {
-                              const currentWeight = editingWeights[metricKey] ?? config.weight;
-                              const metric = overview.metrics.find(m => m.metric_key === metricKey);
-                              
-                              return (
-                                <EnhancedWeightSlider
-                                  key={metricKey}
-                                  metricKey={metricKey}
-                                  metricName={metric?.name || metricKey.replace(/_/g, " ")}
-                                  description={metric?.description || null}
-                                  weight={currentWeight}
-                                  defaultWeight={config.weight}
-                                  isInverted={config.invert || false}
-                                  maxValue={config.max_value}
-                                  unit={metric?.unit || null}
-                                  lowerIsBetter={metric?.lower_is_better || false}
-                                  onChange={(newWeight) => handleWeightChange(metricKey, newWeight)}
-                                  onReset={() => handleWeightChange(metricKey, config.weight)}
-                                  pillarColor={pillarConfig[activePillar].color}
-                                />
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 text-center">
-                          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                          <p className="text-white font-medium text-lg">Configuration Not Initialized</p>
-                          <p className="text-white/60 text-sm mt-2 mb-4">
-                            No component weights are configured for this pillar yet.
-                          </p>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => initMutation.mutate()}
-                            disabled={initMutation.isPending}
-                            className="px-6 py-2.5 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2 mx-auto"
-                          >
-                            {initMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Zap className="w-4 h-4" />
-                            )}
-                            Initialize Configuration
-                          </motion.button>
-                        </div>
-                      )}
+                        Reset to Defaults
+                      </motion.button>
                     </div>
 
-                    {/* Info Panel */}
-                    <div className="space-y-4">
-                      {/* Scoring Methodology */}
-                      <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-                        <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                          <Info className="w-4 h-4 text-white/40" />
-                          Scoring Methodology
-                        </h3>
-                        <div className="space-y-3 text-sm text-white/60">
-                          <p>The <span className="text-white">{pillarConfig[activePillar].label}</span> index uses a weighted average:</p>
-                          <div className="bg-white/5 rounded-lg p-3 font-mono text-xs">
-                            Score = Σ(metric × weight)
-                          </div>
-                          <p>Each metric is normalized to 0-100 before weighting. Inverted metrics (where lower is better) are calculated as: <span className="font-mono">100 - normalized_value</span></p>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="lg:col-span-2 bg-white/5 border border-white/10 rounded-xl p-6">
+                        <ScoreTree
+                          rootLabel="ADL OHI Score"
+                          nodes={(Object.keys(pillarConfig) as PillarKey[])
+                            .filter((key) => key !== "composite")
+                            .map((pillarId) => {
+                              const summary = overview.pillar_summaries.find((s) => s.pillar === pillarId);
+                              const metrics = summary?.component_weights || {};
+                              return {
+                                id: pillarId,
+                                type: "pillar",
+                                label: pillarConfig[pillarId].label,
+                                description: pillarConfig[pillarId].description,
+                                weight: pillarConfig[pillarId].weight,
+                                pillarId,
+                                children: Object.entries(metrics).map(([metricKey, config]) => {
+                                  const metric = overview.metrics.find((m) => m.metric_key === metricKey);
+                                  return {
+                                    id: `${pillarId}-${metricKey}`,
+                                    type: "metric",
+                                    label: metric?.name || metricKey.replace(/_/g, " "),
+                                    description: metric?.description || null,
+                                    weight: getMetricWeight(pillarId, metricKey, config.weight),
+                                    pillarId,
+                                    metricKey,
+                                    inverted: config.invert || metric?.lower_is_better || false,
+                                    unit: metric?.unit || null,
+                                  };
+                                }),
+                              } as ScoreTreeNode;
+                            })}
+                          onNodeClick={(node) => {
+                            setSelectedNode(node);
+                            if (node.type === "metric") {
+                              setIsEditModalOpen(true);
+                            } else {
+                              setIsScopeModalOpen(true);
+                            }
+                          }}
+                        />
                       </div>
 
-                      {/* Weight Distribution Chart */}
-                      {currentPillarSummary && (
+                      <div className="space-y-4">
+                        <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                          <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                            <Info className="w-4 h-4 text-white/40" />
+                            Scoring Methodology
+                          </h3>
+                          <div className="space-y-3 text-sm text-white/60">
+                            <p>The pillar indices use a weighted average:</p>
+                            <div className="bg-white/5 rounded-lg p-3 font-mono text-xs">
+                              Score = Σ(metric × weight)
+                            </div>
+                            <p>Each metric is normalized to 0-100 before weighting.</p>
+                          </div>
+                        </div>
+
                         <div className="bg-white/5 rounded-xl border border-white/10 p-4">
                           <h3 className="text-white font-medium mb-3 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-white/40" />
-                            Weight Distribution
+                            Pillar Weight Distribution
                           </h3>
-                          <AnimatedWeightBars
-                            segments={Object.entries(currentPillarSummary.component_weights)
-                              .map(([key, config]) => ({
-                                id: key,
-                                label: key.split("_").slice(0, 3).join(" "),
-                                weight: editingWeights[key] ?? config.weight,
-                                color:
-                                  activePillar === "composite"
-                                    ? "#06b6d4"
-                                    : PILLAR_HEX[activePillar],
-                              }))}
-                            maxWidth={250}
-                          />
+                          <PillarWeightChart />
                         </div>
-                      )}
 
-                      {/* Expert Guidance */}
-                      <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-4">
-                        <h3 className="text-amber-400 font-medium mb-2 flex items-center gap-2">
-                          <Target className="w-4 h-4" />
-                          WHO/ILO Guidance
-                        </h3>
-                        <p className="text-white/60 text-sm">
-                          Default weights follow WHO/ILO occupational health system assessment frameworks. 
-                          Hazard Control (35%) is weighted highest as prevention is the primary goal.
-                        </p>
+                        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-4">
+                          <h3 className="text-amber-400 font-medium mb-2 flex items-center gap-2">
+                            <Target className="w-4 h-4" />
+                            WHO/ILO Guidance
+                          </h3>
+                          <p className="text-white/60 text-sm">
+                            Default weights follow WHO/ILO occupational health system assessment frameworks. 
+                            Hazard Control (35%) is weighted highest as prevention is the primary goal.
+                          </p>
+                        </div>
                       </div>
                     </div>
+
+                    <WeightEditModal
+                      isOpen={isEditModalOpen}
+                      node={selectedNode}
+                      currentWeight={
+                        selectedNode?.pillarId && selectedNode.metricKey && overview
+                          ? getMetricWeight(
+                              selectedNode.pillarId,
+                              selectedNode.metricKey,
+                              overview.pillar_summaries.find((s) => s.pillar === selectedNode.pillarId)
+                                ?.component_weights[selectedNode.metricKey]?.weight || 0
+                            )
+                          : 0
+                      }
+                      onClose={() => setIsEditModalOpen(false)}
+                      onSave={(newWeight) => {
+                        if (!selectedNode?.pillarId || !selectedNode.metricKey) return;
+                        handleWeightChange(selectedNode.pillarId, selectedNode.metricKey, newWeight);
+                        setIsEditModalOpen(false);
+                      }}
+                    />
+
+                    <ScopeWeightModal
+                      isOpen={isScopeModalOpen}
+                      node={selectedNode}
+                      metrics={getScopeMetrics(selectedNode)}
+                      onClose={() => setIsScopeModalOpen(false)}
+                      onWeightChange={(pillarId, metricKey, newWeight) =>
+                        handleWeightChange(pillarId, metricKey, newWeight)
+                      }
+                    />
                   </div>
                 )}
 
@@ -936,6 +892,140 @@ export function MetricCalculator() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+// =============================================================================
+// SCOPE WEIGHT MODAL
+// =============================================================================
+
+interface ScopeMetricItem {
+  pillarId: string;
+  metricKey: string;
+  name: string;
+  description: string | null;
+  weight: number;
+  defaultWeight: number;
+  invert: boolean;
+  unit: string | null;
+}
+
+function ScopeWeightModal({
+  isOpen,
+  node,
+  metrics,
+  onClose,
+  onWeightChange,
+}: {
+  isOpen: boolean;
+  node: ScoreTreeNode | null;
+  metrics: ScopeMetricItem[];
+  onClose: () => void;
+  onWeightChange: (pillarId: string, metricKey: string, newWeight: number) => void;
+}) {
+  if (!node) return null;
+
+  const grouped = metrics.reduce<Record<string, ScopeMetricItem[]>>((acc, metric) => {
+    acc[metric.pillarId] = acc[metric.pillarId] || [];
+    acc[metric.pillarId].push(metric);
+    return acc;
+  }, {});
+
+  const title =
+    node.type === "root" ? "ADL OHI Score" : node.type === "pillar" ? node.label : node.label;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a1a] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                  <Sliders className="w-5 h-5 text-white/60" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">{title}</p>
+                  <p className="text-white/40 text-sm">
+                    Adjust component weights with sliders
+                  </p>
+                </div>
+              </div>
+              <button onClick={onClose} className="text-white/40 hover:text-white/60">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-6 overflow-y-auto max-h-[70vh]">
+              {Object.keys(grouped).length === 0 ? (
+                <div className="text-center text-white/50 text-sm py-8">
+                  No metrics available for this selection.
+                </div>
+              ) : (
+                Object.entries(grouped).map(([pillarId, pillarMetrics]) => {
+                  const pillar = pillarConfig[pillarId as PillarKey];
+                  return (
+                    <div key={pillarId} className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", pillar.bgColor)}>
+                          <pillar.icon className={cn("w-4 h-4", pillar.color)} />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{pillar.label}</p>
+                          <p className="text-white/40 text-xs">{pillar.description}</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                        <div className="divide-y divide-white/5">
+                          {pillarMetrics.map((metric) => (
+                            <EnhancedWeightSlider
+                              key={`${pillarId}-${metric.metricKey}`}
+                              metricKey={metric.metricKey}
+                              metricName={metric.name}
+                              description={metric.description}
+                              weight={metric.weight}
+                              defaultWeight={metric.defaultWeight}
+                              isInverted={metric.invert}
+                              unit={metric.unit}
+                              onChange={(newWeight) =>
+                                onWeightChange(metric.pillarId, metric.metricKey, newWeight)
+                              }
+                              pillarColor={pillar.color}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-5 border-t border-white/10 flex items-center justify-end gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

@@ -16,6 +16,7 @@ import {
   Layers,
   Dot,
   Info,
+  TrendingDown,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -36,6 +37,7 @@ export interface ScoreTreeNode {
 
 interface ScoreTreeProps {
   rootLabel: string;
+  rootNode?: ScoreTreeNode;
   nodes: ScoreTreeNode[];
   onNodeClick?: (node: ScoreTreeNode) => void;
   className?: string;
@@ -59,8 +61,14 @@ const nodeVariants: Variants = {
   },
 };
 
-export function ScoreTree({ rootLabel, nodes, onNodeClick, className }: ScoreTreeProps) {
+export function ScoreTree({ rootLabel, rootNode, nodes, onNodeClick, className }: ScoreTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const resolvedRoot: ScoreTreeNode = rootNode || {
+    id: "adl_ohi",
+    type: "root",
+    label: rootLabel,
+    description: "Overall maturity score (1.0–4.0)",
+  };
 
   const toggleNode = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -79,18 +87,22 @@ export function ScoreTree({ rootLabel, nodes, onNodeClick, className }: ScoreTre
       className={cn("space-y-4", className)}
     >
       {/* Root */}
-      <motion.div variants={nodeVariants} className="rounded-xl border border-cyan-500/40 bg-cyan-500/15 p-4">
+      <motion.button
+        variants={nodeVariants}
+        onClick={() => onNodeClick?.(resolvedRoot)}
+        className="w-full rounded-xl border border-cyan-500/40 bg-cyan-500/15 p-4 text-left hover:bg-cyan-500/20 transition-colors"
+      >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
           </div>
           <div className="flex-1">
-            <p className="text-white font-semibold">{rootLabel}</p>
-            <p className="text-white/50 text-sm">Overall maturity score (1.0–4.0)</p>
+            <p className="text-white font-semibold">{resolvedRoot.label}</p>
+            <p className="text-white/50 text-sm">{resolvedRoot.description}</p>
           </div>
           <div className="text-white/40 text-sm">Root</div>
         </div>
-      </motion.div>
+      </motion.button>
 
       {/* Tree */}
       <div className="space-y-3">
@@ -99,26 +111,32 @@ export function ScoreTree({ rootLabel, nodes, onNodeClick, className }: ScoreTre
 
           return (
             <motion.div key={pillar.id} variants={nodeVariants} className="rounded-xl border border-white/10 bg-white/5">
-              <button
-                onClick={() => toggleNode(pillar.id)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
-                  <Layers className="w-4 h-4 text-white/60" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-white font-medium">{pillar.label}</p>
-                  <p className="text-white/40 text-sm">{pillar.description}</p>
-                </div>
-                {typeof pillar.weight === "number" && (
-                  <span className="text-white/60 font-mono text-sm">
-                    {(pillar.weight * 100).toFixed(0)}%
-                  </span>
-                )}
-                <div className="text-white/40">
+              <div className="w-full flex items-center gap-2 p-4 hover:bg-white/5 transition-colors">
+                <button
+                  onClick={() => toggleNode(pillar.id)}
+                  className="text-white/40 hover:text-white/70"
+                  aria-label={expandedPillar ? "Collapse pillar" : "Expand pillar"}
+                >
                   {expandedPillar ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                </div>
-              </button>
+                </button>
+                <button
+                  onClick={() => onNodeClick?.(pillar)}
+                  className="flex-1 flex items-center gap-3 text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Layers className="w-4 h-4 text-white/60" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-white font-medium">{pillar.label}</p>
+                    <p className="text-white/40 text-sm">{pillar.description}</p>
+                  </div>
+                  {typeof pillar.weight === "number" && (
+                    <span className="text-white/60 font-mono text-sm">
+                      {(pillar.weight * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </button>
+              </div>
 
               <AnimatePresence>
                 {expandedPillar && pillar.children && (
@@ -148,12 +166,19 @@ export function ScoreTree({ rootLabel, nodes, onNodeClick, className }: ScoreTre
                               {metric.description && (
                                 <p className="text-white/40 text-xs line-clamp-1">{metric.description}</p>
                               )}
+                              {metric.inverted && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 mt-1">
+                                  <TrendingDown className="w-3 h-3" />
+                                  Inverted
+                                </span>
+                              )}
                             </div>
                             {typeof metric.weight === "number" && (
                               <span className="text-white/60 font-mono text-sm">
                                 {(metric.weight * 100).toFixed(0)}%
                               </span>
                             )}
+                            {metric.unit && <span className="text-white/30 text-xs">{metric.unit}</span>}
                             <Info className="w-4 h-4 text-white/30" />
                           </motion.button>
                         ))}
