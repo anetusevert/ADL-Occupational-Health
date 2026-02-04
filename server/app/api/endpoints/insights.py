@@ -403,18 +403,24 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
                 photographer=img.get("photographer"),
             ))
     
-    # Parse key_stats (handle case where column doesn't exist yet)
+    # Parse key_stats (handle case where column doesn't exist yet in production)
+    # The column is defined with deferred() so it won't be in initial query
+    # But accessing it may fail if the column truly doesn't exist in DB
     key_stats = []
     try:
-        if hasattr(insight, 'key_stats') and insight.key_stats:
-            for stat in insight.key_stats:
-                key_stats.append(KeyStatData(
-                    label=stat.get("label", ""),
-                    value=stat.get("value", ""),
-                    description=stat.get("description"),
-                ))
-    except Exception:
-        pass  # Column may not exist in production yet
+        # Use getattr to safely access potentially missing/deferred column
+        stats_data = getattr(insight, 'key_stats', None)
+        if stats_data and isinstance(stats_data, list):
+            for stat in stats_data:
+                if isinstance(stat, dict):
+                    key_stats.append(KeyStatData(
+                        label=stat.get("label", ""),
+                        value=stat.get("value", ""),
+                        description=stat.get("description"),
+                    ))
+    except Exception as e:
+        # Column may not exist in production yet - log for debugging
+        logger.debug(f"[Insights] Could not load key_stats: {e}")
     
     return InsightResponse(
         id=insight.id,
@@ -999,9 +1005,9 @@ async def initialize_country_insights(
                 insight.oh_implications = content.get("oh_implications")
                 # Safely set key_stats (column may not exist in production yet)
                 try:
-                    insight.key_stats = content.get("key_stats", [])
-                except Exception:
-                    pass
+                    setattr(insight, 'key_stats', content.get("key_stats", []))
+                except Exception as e:
+                    logger.debug(f"[Insights] Could not set key_stats: {e}")
                 insight.images = images
                 insight.status = InsightStatus.completed
                 insight.generated_at = datetime.utcnow()
@@ -1147,9 +1153,9 @@ async def regenerate_insight(
         insight.oh_implications = content.get("oh_implications")
         # Safely set key_stats (column may not exist in production yet)
         try:
-            insight.key_stats = content.get("key_stats", [])
-        except Exception:
-            pass
+            setattr(insight, 'key_stats', content.get("key_stats", []))
+        except Exception as e:
+            logger.debug(f"[Insights] Could not set key_stats: {e}")
         insight.images = images
         insight.status = InsightStatus.completed
         insight.generated_at = datetime.utcnow()
@@ -1260,9 +1266,9 @@ async def regenerate_all_insights(
             insight.oh_implications = content.get("oh_implications")
             # Safely set key_stats (column may not exist in production yet)
             try:
-                insight.key_stats = content.get("key_stats", [])
-            except Exception:
-                pass
+                setattr(insight, 'key_stats', content.get("key_stats", []))
+            except Exception as e:
+                logger.debug(f"[Insights] Could not set key_stats: {e}")
             insight.images = images
             insight.status = InsightStatus.completed
             insight.generated_at = datetime.utcnow()

@@ -4943,41 +4943,45 @@ const frameworkBlocks: FrameworkBlock[] = [
 function UnifiedFrameworkVisual() {
   const [selectedBlock, setSelectedBlock] = useState<FrameworkBlock | null>(null);
   const [selectedSource, setSelectedSource] = useState<FrameworkDataSource | null>(null);
-  const [animationPhase, setAnimationPhase] = useState<'framework' | 'spotlight' | 'complete'>('framework');
+  const [animationPhase, setAnimationPhase] = useState<'framework' | 'cycling'>('framework');
   const [spotlightIndex, setSpotlightIndex] = useState(-1); // -1 means no spotlight active
+  const [isPaused, setIsPaused] = useState(false); // Pause cycling when modal is open
 
-  // Animation: Framework builds, then spotlight each source sequentially, then show all
+  // Pause/resume cycling when modal opens/closes
   useEffect(() => {
-    const FRAMEWORK_BUILD_TIME = 1500;
-    const SPOTLIGHT_DURATION = 2200; // Time each source is spotlighted (appear + flow + fade)
+    setIsPaused(selectedSource !== null || selectedBlock !== null);
+  }, [selectedSource, selectedBlock]);
+
+  // Animation: Framework builds, then continuously cycle through sources one at a time
+  useEffect(() => {
+    const FRAMEWORK_BUILD_TIME = 1800;
+    const SPOTLIGHT_DURATION = 2800; // Time each source is visible: appear (0.4s) + flow (1.4s) + linger (0.6s) + fade (0.4s)
     const TOTAL_SOURCES = frameworkDataSources.length;
     
-    // Start spotlight phase after framework builds
-    const startSpotlight = setTimeout(() => {
-      setAnimationPhase('spotlight');
+    // Start cycling phase after framework builds
+    const startCycling = setTimeout(() => {
+      setAnimationPhase('cycling');
       setSpotlightIndex(0);
     }, FRAMEWORK_BUILD_TIME);
 
-    // Cycle through each source
-    const spotlightTimers: NodeJS.Timeout[] = [];
-    for (let i = 1; i <= TOTAL_SOURCES; i++) {
-      const timer = setTimeout(() => {
-        if (i < TOTAL_SOURCES) {
-          setSpotlightIndex(i);
-        } else {
-          // All sources shown, transition to complete
-          setAnimationPhase('complete');
-          setSpotlightIndex(-1);
-        }
-      }, FRAMEWORK_BUILD_TIME + (i * SPOTLIGHT_DURATION));
-      spotlightTimers.push(timer);
-    }
-
     return () => {
-      clearTimeout(startSpotlight);
-      spotlightTimers.forEach(clearTimeout);
+      clearTimeout(startCycling);
     };
   }, []);
+
+  // Continuous cycling through sources
+  useEffect(() => {
+    if (animationPhase !== 'cycling' || isPaused) return;
+    
+    const SPOTLIGHT_DURATION = 2800;
+    const TOTAL_SOURCES = frameworkDataSources.length;
+    
+    const cycleTimer = setInterval(() => {
+      setSpotlightIndex(current => (current + 1) % TOTAL_SOURCES);
+    }, SPOTLIGHT_DURATION);
+
+    return () => clearInterval(cycleTimer);
+  }, [animationPhase, isPaused]);
 
   // Helper to get color values for glow effects
   const getColorRgba = (color: string, alpha: number) => {
@@ -5024,23 +5028,21 @@ function UnifiedFrameworkVisual() {
     return `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x} ${controlY} ${targetPos.x} ${controlY} ${targetPos.x} ${targetPos.y}`;
   };
 
-  // Check if a source should be visible
+  // Check if a source should be visible (only the current spotlighted source)
   const isSourceVisible = (sourceIndex: number) => {
-    if (animationPhase === 'complete') return true;
-    if (animationPhase === 'spotlight') return sourceIndex === spotlightIndex;
+    if (animationPhase === 'cycling') return sourceIndex === spotlightIndex;
     return false;
   };
 
-  // Check if a source's flow should be animating
+  // Check if a source's flow should be animating (only the current spotlighted source)
   const isFlowActive = (sourceIndex: number) => {
-    if (animationPhase === 'complete') return true;
-    if (animationPhase === 'spotlight') return sourceIndex === spotlightIndex;
+    if (animationPhase === 'cycling') return sourceIndex === spotlightIndex;
     return false;
   };
 
   // Check if a framework block is receiving data from the current spotlight source
   const isBlockReceiving = (blockId: string) => {
-    if (animationPhase !== 'spotlight' || spotlightIndex < 0) return false;
+    if (animationPhase !== 'cycling' || spotlightIndex < 0) return false;
     const currentSource = frameworkDataSources[spotlightIndex];
     return currentSource?.feedsInto.includes(blockId as 'governance' | 'pillar1' | 'pillar2' | 'pillar3');
   };
@@ -5125,22 +5127,21 @@ function UnifiedFrameworkVisual() {
               const gradientId = `flowGradient${source.color.charAt(0).toUpperCase() + source.color.slice(1)}`;
               const particleColor = getColorRgba(source.color, 1).replace(/,[^,]+\)$/, ',1)');
               
-              // In spotlight mode: quick animation for current source
-              // In complete mode: all visible with continuous particles
-              const flowDelay = animationPhase === 'spotlight' ? 0.3 + flowIndex * 0.15 : flowIndex * 0.1;
+              // Flow animation timing - quick appear, flow, then fade for cycling mode
+              const flowDelay = 0.2 + flowIndex * 0.12;
               
               return (
                 <g key={`${source.id}-${targetId}`}>
                   {/* Background glow line */}
                   <motion.path
                     d={path}
-                    stroke={getColorRgba(source.color, 0.2)}
+                    stroke={getColorRgba(source.color, 0.25)}
                     strokeWidth="2.5"
                     fill="none"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={showFlow ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     transition={{ 
-                      duration: animationPhase === 'spotlight' ? 0.6 : 0.8, 
+                      duration: 0.7, 
                       delay: flowDelay,
                       ease: "easeOut" 
                     }}
@@ -5150,57 +5151,53 @@ function UnifiedFrameworkVisual() {
                   <motion.path
                     d={path}
                     stroke={`url(#${gradientId})`}
-                    strokeWidth="0.8"
+                    strokeWidth="1"
                     fill="none"
                     filter="url(#flowGlow)"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={showFlow ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     transition={{ 
-                      duration: animationPhase === 'spotlight' ? 0.6 : 0.8, 
+                      duration: 0.7, 
                       delay: flowDelay,
                       ease: "easeOut" 
                     }}
                   />
                   
-                  {/* Data particle traveling along path */}
+                  {/* Data particle traveling along path - single run per cycle */}
                   {showFlow && (
                     <>
-                      {/* Main particle */}
+                      {/* Main particle with dramatic glow */}
                       <motion.circle
-                        r="1.2"
+                        r="1.4"
                         fill={particleColor}
                         filter="url(#particleGlow)"
                         initial={{ opacity: 0 }}
                         animate={{
-                          opacity: [0, 1, 1, 0.8, 0],
+                          opacity: [0, 1, 1, 0.9, 0.5, 0],
                           offsetDistance: ["0%", "100%"],
                         }}
                         transition={{
-                          delay: flowDelay + 0.3,
-                          duration: animationPhase === 'spotlight' ? 1.0 : 2.0,
-                          repeat: animationPhase === 'complete' ? Infinity : 0,
-                          repeatDelay: animationPhase === 'complete' ? 2.5 : 0,
+                          delay: flowDelay + 0.4,
+                          duration: 1.4,
                           ease: "easeInOut",
                         }}
                         style={{ offsetPath: `path("${path}")` }}
                       />
                       
-                      {/* Trail particles */}
-                      {[0.08, 0.16, 0.24].map((offset, i) => (
+                      {/* Trail particles for motion blur effect */}
+                      {[0.06, 0.12, 0.18].map((offset, i) => (
                         <motion.circle
                           key={i}
-                          r={0.8 - i * 0.2}
-                          fill={getColorRgba(source.color, 0.5 - i * 0.15)}
+                          r={1.0 - i * 0.25}
+                          fill={getColorRgba(source.color, 0.6 - i * 0.18)}
                           initial={{ opacity: 0 }}
                           animate={{
-                            opacity: [0, 0.7, 0.5, 0],
+                            opacity: [0, 0.8, 0.6, 0],
                             offsetDistance: ["0%", "100%"],
                           }}
                           transition={{
-                            delay: flowDelay + 0.3 + offset,
-                            duration: animationPhase === 'spotlight' ? 1.0 : 2.0,
-                            repeat: animationPhase === 'complete' ? Infinity : 0,
-                            repeatDelay: animationPhase === 'complete' ? 2.5 : 0,
+                            delay: flowDelay + 0.4 + offset,
+                            duration: 1.4,
                             ease: "easeInOut",
                           }}
                           style={{ offsetPath: `path("${path}")` }}
@@ -5219,68 +5216,65 @@ function UnifiedFrameworkVisual() {
           {frameworkDataSources.map((source, index) => {
             const pos = getSourcePosition(index, frameworkDataSources.length);
             const isVisible = isSourceVisible(index);
-            const isSpotlit = animationPhase === 'spotlight' && spotlightIndex === index;
+            const isSpotlit = animationPhase === 'cycling' && spotlightIndex === index;
             
             return (
               <motion.button
                 key={source.id}
-                initial={{ opacity: 0, scale: 0 }}
+                initial={{ opacity: 0, scale: 0.3, y: -20 }}
                 animate={isVisible ? { 
                   opacity: 1, 
-                  scale: isSpotlit ? 1.15 : 1, 
+                  scale: 1.1, 
                   y: 0 
                 } : { 
                   opacity: 0, 
-                  scale: 0.8, 
-                  y: -10 
+                  scale: 0.5, 
+                  y: -15 
                 }}
                 transition={{ 
-                  duration: 0.4, 
+                  duration: 0.5, 
                   type: "spring", 
-                  stiffness: 350, 
-                  damping: 22 
+                  stiffness: 280, 
+                  damping: 20 
                 }}
-                whileHover={animationPhase === 'complete' ? { scale: 1.2, zIndex: 50 } : {}}
-                whileTap={animationPhase === 'complete' ? { scale: 0.95 } : {}}
-                onClick={() => animationPhase === 'complete' && setSelectedSource(source)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 ${animationPhase === 'complete' ? 'cursor-pointer' : 'cursor-default'}`}
+                whileHover={isVisible ? { scale: 1.25, zIndex: 50 } : {}}
+                whileTap={isVisible ? { scale: 1.0 } : {}}
+                onClick={() => isVisible && setSelectedSource(source)}
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 ${isVisible ? 'cursor-pointer' : 'cursor-default pointer-events-none'}`}
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               >
                 <motion.div
-                  className={`relative px-3 py-1.5 sm:px-4 sm:py-2 rounded-full ${source.bgColor} ${source.borderColor} border-2 backdrop-blur-md`}
+                  className={`relative px-4 py-2 sm:px-5 sm:py-2.5 rounded-full ${source.bgColor} ${source.borderColor} border-2 backdrop-blur-md shadow-xl`}
                   animate={isSpotlit ? {
                     boxShadow: [
-                      `0 0 15px 4px ${getColorRgba(source.color, 0.5)}`,
-                      `0 0 30px 8px ${getColorRgba(source.color, 0.7)}`,
-                      `0 0 15px 4px ${getColorRgba(source.color, 0.5)}`,
-                    ],
-                  } : animationPhase === 'complete' ? { 
-                    boxShadow: [
-                      `0 0 8px 2px ${getColorRgba(source.color, 0.3)}`,
-                      `0 0 16px 4px ${getColorRgba(source.color, 0.5)}`,
-                      `0 0 8px 2px ${getColorRgba(source.color, 0.3)}`,
+                      `0 0 20px 6px ${getColorRgba(source.color, 0.5)}`,
+                      `0 0 40px 12px ${getColorRgba(source.color, 0.75)}`,
+                      `0 0 20px 6px ${getColorRgba(source.color, 0.5)}`,
                     ],
                   } : {}}
-                  transition={{ duration: isSpotlit ? 0.8 : 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ duration: 0.7, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <span className={`font-bold text-xs sm:text-sm ${source.textColor} whitespace-nowrap`}>
+                  <span className={`font-bold text-sm sm:text-base ${source.textColor} whitespace-nowrap`}>
                     {source.shortName}
                   </span>
                 </motion.div>
                 
-                {/* Source name label during spotlight */}
-                {isSpotlit && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap"
-                  >
-                    <span className="text-[10px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-0.5 rounded-full backdrop-blur-sm">
-                      {source.name.split('(')[0].trim()}
-                    </span>
-                  </motion.div>
-                )}
+                {/* Source name label - always visible when spotlit */}
+                <AnimatePresence>
+                  {isSpotlit && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 whitespace-nowrap"
+                    >
+                      <span className="text-xs sm:text-sm text-white/90 bg-slate-900/90 px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
+                        {source.name.split('(')[0].trim()}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.button>
             );
           })}
@@ -5307,19 +5301,19 @@ function UnifiedFrameworkVisual() {
                 className="absolute inset-0 rounded-2xl"
                 animate={isBlockReceiving('governance') ? {
                   boxShadow: [
-                    `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
-                    `0 0 40px 12px ${getColorRgba('purple', 0.7)}`,
-                    `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
+                    `0 0 30px 8px ${getColorRgba('purple', 0.6)}`,
+                    `0 0 50px 15px ${getColorRgba('purple', 0.8)}`,
+                    `0 0 30px 8px ${getColorRgba('purple', 0.6)}`,
                   ],
-                  scale: [1, 1.02, 1],
-                } : animationPhase === 'complete' ? {
+                  scale: [1, 1.03, 1],
+                } : {
                   boxShadow: [
-                    `0 0 15px 3px ${getColorRgba('purple', 0.2)}`,
-                    `0 0 25px 6px ${getColorRgba('purple', 0.35)}`,
-                    `0 0 15px 3px ${getColorRgba('purple', 0.2)}`,
+                    `0 0 10px 2px ${getColorRgba('purple', 0.15)}`,
+                    `0 0 18px 4px ${getColorRgba('purple', 0.25)}`,
+                    `0 0 10px 2px ${getColorRgba('purple', 0.15)}`,
                   ]
-                } : {}}
-                transition={{ duration: isBlockReceiving('governance') ? 0.6 : 3, repeat: Infinity }}
+                }}
+                transition={{ duration: isBlockReceiving('governance') ? 0.5 : 3.5, repeat: Infinity }}
               />
               
               {/* Roof decorative top beam */}
@@ -5382,19 +5376,19 @@ function UnifiedFrameworkVisual() {
                     className="absolute inset-0 rounded-2xl"
                     animate={isBlockReceiving(block.id) ? {
                       boxShadow: [
-                        `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
-                        `0 0 40px 12px ${getColorRgba(block.color, 0.7)}`,
-                        `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
+                        `0 0 30px 8px ${getColorRgba(block.color, 0.6)}`,
+                        `0 0 50px 15px ${getColorRgba(block.color, 0.8)}`,
+                        `0 0 30px 8px ${getColorRgba(block.color, 0.6)}`,
                       ],
-                      scale: [1, 1.03, 1],
-                    } : animationPhase === 'complete' ? {
+                      scale: [1, 1.04, 1],
+                    } : {
                       boxShadow: [
-                        `0 0 12px 2px ${getColorRgba(block.color, 0.15)}`,
-                        `0 0 20px 5px ${getColorRgba(block.color, 0.3)}`,
-                        `0 0 12px 2px ${getColorRgba(block.color, 0.15)}`,
+                        `0 0 8px 2px ${getColorRgba(block.color, 0.12)}`,
+                        `0 0 15px 4px ${getColorRgba(block.color, 0.22)}`,
+                        `0 0 8px 2px ${getColorRgba(block.color, 0.12)}`,
                       ]
-                    } : {}}
-                    transition={{ duration: isBlockReceiving(block.id) ? 0.6 : 2.5, repeat: Infinity, delay: isBlockReceiving(block.id) ? 0 : index * 0.3 }}
+                    }}
+                    transition={{ duration: isBlockReceiving(block.id) ? 0.5 : 3, repeat: Infinity, delay: index * 0.4 }}
                   />
                   
                   {/* Pillar top decoration with draw-in */}
@@ -5411,11 +5405,11 @@ function UnifiedFrameworkVisual() {
                   
                   <div className="flex flex-col items-center gap-2 relative z-10">
                     <motion.div
-                      animate={animationPhase === 'complete' ? { 
-                        scale: [1, 1.08, 1],
-                        rotate: [0, 3, -3, 0]
-                      } : {}}
-                      transition={{ duration: 3.5, repeat: Infinity, delay: index * 0.4 }}
+                      animate={{ 
+                        scale: [1, 1.06, 1],
+                        rotate: [0, 2, -2, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity, delay: index * 0.5 }}
                       className={`p-2 sm:p-2.5 rounded-xl ${block.bgColor} border ${block.borderColor}`}
                     >
                       <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${block.textColor}`} />
@@ -5442,22 +5436,22 @@ function UnifiedFrameworkVisual() {
           transition={{ delay: 1.5 }}
           className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 text-right"
         >
-          {animationPhase === 'spotlight' && spotlightIndex >= 0 && (
+          {animationPhase === 'cycling' && spotlightIndex >= 0 && (
             <motion.div
               key={spotlightIndex}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-1"
             >
-              <span className="text-[9px] sm:text-xs text-white/60">
-                Data Source {spotlightIndex + 1} of {frameworkDataSources.length}
+              <span className="text-[9px] sm:text-xs text-white/60 bg-slate-900/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                {frameworkDataSources[spotlightIndex]?.shortName} → Framework
               </span>
             </motion.div>
           )}
-          {animationPhase === 'complete' && (
+          {animationPhase === 'cycling' && (
             <>
-              <p className="text-[8px] sm:text-[10px] text-white/50">Click any element for details</p>
-              <p className="text-[8px] sm:text-[10px] text-white/40">8 global data sources • 4 framework pillars</p>
+              <p className="text-[8px] sm:text-[10px] text-white/50">Click data sources or pillars for details</p>
+              <p className="text-[8px] sm:text-[10px] text-white/40">{frameworkDataSources.length} global sources • 4 framework pillars</p>
             </>
           )}
         </motion.div>
