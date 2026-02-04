@@ -73,7 +73,7 @@ const toolSuiteItems: NavItem[] = [
 
 // Administration - Admin only features
 const adminNavItems: NavItem[] = [
-  { path: "/admin/database", label: "Database", icon: HardDrive, adminOnly: true },
+  { path: "/admin/database", label: "Data Explorer", icon: Database, adminOnly: true },
   { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
   { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
