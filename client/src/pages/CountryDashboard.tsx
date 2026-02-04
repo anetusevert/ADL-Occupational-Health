@@ -490,10 +490,6 @@ export function CountryDashboard() {
         countryIso={currentCountry.iso_code}
         countryName={currentCountry.name}
         isAdmin={isAdmin}
-        onRegenerate={() => {
-          // TODO: Invalidate cache and refetch
-          console.log("Regenerating insight for", selectedInsightCategory);
-        }}
         economicData={intelligence ? {
           laborForce: intelligence.labor_force_participation,
           gdpPerCapita: intelligence.gdp_per_capita_ppp,

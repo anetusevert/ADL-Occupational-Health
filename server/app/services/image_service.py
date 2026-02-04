@@ -170,7 +170,7 @@ async def search_unsplash(query: str, count: int = 3) -> List[Dict]:
     """
     api_key = os.getenv("UNSPLASH_ACCESS_KEY")
     if not api_key:
-        logger.debug("[ImageService] No UNSPLASH_ACCESS_KEY set, using fallbacks")
+        logger.warning("[ImageService] UNSPLASH_ACCESS_KEY not set - using fallback images. Set this env var for dynamic country-specific images.")
         return []
     
     try:
@@ -274,14 +274,17 @@ async def fetch_country_images(
     category_keywords = CATEGORY_QUERIES.get(category, category.replace("-", " "))
     query = f"{country_name} {category_keywords}"
     
-    logger.info(f"[ImageService] Fetching images for {country_name} - {category}")
+    logger.info(f"[ImageService] Fetching images for {country_name} ({country_iso}) - {category}")
     
     # Try Unsplash API first
     images = await search_unsplash(query, count)
     
     # Fallback to curated images if API fails or returns nothing
     if not images:
+        logger.info(f"[ImageService] Using fallback images for {country_iso}/{category}")
         images = get_fallback_images(country_iso, category, count)
+    else:
+        logger.info(f"[ImageService] Successfully fetched {len(images)} images from Unsplash for {country_iso}/{category}")
     
     return images
 
