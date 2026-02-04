@@ -33,6 +33,7 @@ from app.models.country_insight import (
     CATEGORY_METADATA,
 )
 from app.services.agent_runner import AgentRunner
+from app.services.image_service import fetch_country_images
 
 
 # Create router
@@ -340,8 +341,11 @@ def get_curated_images(country_iso: str, category: str) -> List[Dict]:
 
 
 def get_ai_config(db: Session) -> Optional[AIConfig]:
-    """Get active AI configuration."""
-    return db.query(AIConfig).filter(AIConfig.is_active == True).first()
+    """Get active AND configured AI configuration."""
+    return db.query(AIConfig).filter(
+        AIConfig.is_active == True,
+        AIConfig.is_configured == True
+    ).first()
 
 
 def get_country_data(db: Session, iso_code: str) -> Optional[Country]:
@@ -440,9 +444,23 @@ async def generate_insight_content(
     """
     ai_config = get_ai_config(db)
     if not ai_config:
+        # Check if there's an active but unconfigured config
+        unconfigured = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+        if unconfigured:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"AI is active but not fully configured. Provider: {unconfigured.provider.value if unconfigured.provider else 'None'}. Please complete AI setup in Admin > AI Settings."
+            )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI service not configured. Please configure AI settings in admin panel."
+            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings."
+        )
+    
+    # Validate API key exists
+    if not ai_config.api_key_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI API key not set for provider {ai_config.provider.value}. Please add your API key in Admin > AI Settings."
         )
     
     # Ensure agent exists
@@ -787,8 +805,13 @@ async def initialize_country_insights(
                 db, country, intelligence, category, current_user
             )
             
-            # Get curated images
-            images = get_curated_images(country_iso, category.value)
+            # Fetch dynamic images from Unsplash (with fallback)
+            images = await fetch_country_images(
+                country_name=country.name,
+                country_iso=country_iso,
+                category=category.value,
+                count=3
+            )
             
             # Update insight
             insight.what_is_analysis = content.get("what_is_analysis")
@@ -910,8 +933,13 @@ async def regenerate_insight(
             db, country, intelligence, cat_enum, current_user
         )
         
-        # Get curated images (reliable, country-specific)
-        images = get_curated_images(country_iso, cat_enum.value)
+        # Fetch dynamic images from Unsplash (with fallback)
+        images = await fetch_country_images(
+            country_name=country.name,
+            country_iso=country_iso,
+            category=cat_enum.value,
+            count=3
+        )
         
         # Update insight
         insight.what_is_analysis = content.get("what_is_analysis")
@@ -1018,8 +1046,13 @@ async def regenerate_all_insights(
                 db, country, intelligence, category, current_user
             )
             
-            # Get curated images
-            images = get_curated_images(country_iso, category.value)
+            # Fetch dynamic images from Unsplash (with fallback)
+            images = await fetch_country_images(
+                country_name=country.name,
+                country_iso=country_iso,
+                category=category.value,
+                count=3
+            )
             
             # Update insight
             insight.what_is_analysis = content.get("what_is_analysis")
