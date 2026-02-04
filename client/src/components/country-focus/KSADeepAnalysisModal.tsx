@@ -50,7 +50,25 @@ interface TopCountry {
   rank: number;
   score: number;
   summary?: string;
+  flag_url?: string;
 }
+
+// Utility to generate flag URL from ISO code
+const getFlagUrl = (isoCode: string): string => {
+  // Convert 3-letter ISO to 2-letter for flag service
+  const iso2Map: Record<string, string> = {
+    "DEU": "de", "SWE": "se", "NLD": "nl", "FIN": "fi", "JPN": "jp",
+    "AUS": "au", "SGP": "sg", "GBR": "gb", "CAN": "ca", "KOR": "kr",
+    "NOR": "no", "USA": "us", "DNK": "dk", "FRA": "fr", "BEL": "be",
+    "ESP": "es", "PRT": "pt", "ITA": "it", "AUT": "at", "CHE": "ch",
+    "SAU": "sa", "ARE": "ae", "QAT": "qa", "KWT": "kw", "BHR": "bh",
+    "OMN": "om", "JOR": "jo", "EGY": "eg", "MAR": "ma", "TUN": "tn",
+    "IND": "in", "CHN": "cn", "BRA": "br", "MEX": "mx", "ARG": "ar",
+    "ZAF": "za", "NGA": "ng", "KEN": "ke", "GHA": "gh", "TZA": "tz",
+  };
+  const iso2 = iso2Map[isoCode] || isoCode.toLowerCase().substring(0, 2);
+  return `/static/flags/${iso2}.svg`;
+};
 
 interface BestPracticeData {
   top_countries: TopCountry[];
@@ -308,7 +326,7 @@ function PositioningScale({
                 {index + 1}
               </div>
               <div className="w-8 h-6 rounded overflow-hidden ring-2 ring-white/30 group-hover:ring-white/60 transition-all shadow-lg">
-                <CountryFlag isoCode={leader.iso_code} size="sm" className="w-full h-full object-cover" />
+                <CountryFlag isoCode={leader.iso_code} flagUrl={leader.flag_url || getFlagUrl(leader.iso_code)} size="sm" className="w-full h-full object-cover" />
               </div>
             </div>
             {/* Tooltip on hover */}
@@ -339,7 +357,7 @@ function PositioningScale({
           {/* Flag container */}
           <div className="relative">
             <div className="w-12 h-9 rounded-lg overflow-hidden ring-4 ring-white shadow-2xl shadow-white/20">
-              <CountryFlag isoCode="SAU" size="md" className="w-full h-full object-cover" />
+              <CountryFlag isoCode="SAU" flagUrl={getFlagUrl("SAU")} size="md" className="w-full h-full object-cover" />
             </div>
             {/* KSA label */}
             <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-white text-slate-900 text-[10px] font-bold whitespace-nowrap shadow-lg">
@@ -458,14 +476,14 @@ function CountryBestPracticeSubModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-8 md:inset-16 lg:inset-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-[60] flex flex-col overflow-hidden"
+            className="fixed top-[12%] left-[20%] right-[20%] bottom-[12%] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-[60] flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex-shrink-0 px-6 py-4 bg-slate-800/80 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-12 rounded-xl overflow-hidden ring-2 ring-white/20 shadow-lg">
-                    <CountryFlag isoCode={countryIso} size="lg" className="w-full h-full object-cover" />
+                    <CountryFlag isoCode={countryIso} flagUrl={getFlagUrl(countryIso)} size="lg" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white">{countryName}</h2>
@@ -753,7 +771,7 @@ export function KSADeepAnalysisModal({
             animate="visible"
             exit="exit"
             className={cn(
-              "fixed inset-3 md:inset-6 lg:inset-10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-50 flex flex-col overflow-hidden",
+              "fixed top-[8%] left-[16%] right-[16%] bottom-[8%] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-50 flex flex-col overflow-hidden",
               selectedLeader && "opacity-50 scale-[0.98] pointer-events-none"
             )}
           >
@@ -801,10 +819,10 @@ export function KSADeepAnalysisModal({
               </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
               <div className="p-6">
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-5xl mx-auto">
                   {/* Strategic Question */}
                   <motion.div
                     variants={questionVariants}
@@ -1003,6 +1021,7 @@ export function KSADeepAnalysisModal({
                                   </span>
                                   <CountryFlag
                                     isoCode={leader.iso_code}
+                                    flagUrl={leader.flag_url || getFlagUrl(leader.iso_code)}
                                     size="sm"
                                     className="rounded shadow-sm"
                                   />
