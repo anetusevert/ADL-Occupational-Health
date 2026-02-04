@@ -78,8 +78,15 @@ interface CentralInsightModalProps {
 interface KeyStat {
   label: string;
   value: string;
+  description?: string;
   icon: React.ElementType;
   color: string;
+}
+
+interface ApiKeyStatData {
+  label: string;
+  value: string;
+  description?: string;
 }
 
 interface ApiInsightData {
@@ -89,6 +96,7 @@ interface ApiInsightData {
   images: { url: string; thumbnail_url?: string; alt: string; photographer?: string }[];
   what_is_analysis: string | null;
   oh_implications: string | null;
+  key_stats?: ApiKeyStatData[];
   status: string;
   error_message?: string | null;
   generated_at?: string | null;
@@ -344,14 +352,18 @@ function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 + index * 0.1 }}
-      className="bg-white/5 rounded-lg p-3 border border-white/10 hover:border-white/20 transition-colors"
+      transition={{ delay: 0.2 + index * 0.05 }}
+      className="group bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all cursor-default"
+      title={stat.description || stat.label}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className={cn("w-3.5 h-3.5", stat.color)} />
-        <span className="text-[10px] text-white/50 uppercase tracking-wider">{stat.label}</span>
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+        <Icon className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0", stat.color)} />
+        <span className="text-[9px] sm:text-[10px] text-white/50 uppercase tracking-wider truncate">{stat.label}</span>
       </div>
-      <p className={cn("text-lg font-bold", stat.color)}>{stat.value}</p>
+      <p className={cn("text-sm sm:text-base lg:text-lg font-bold truncate", stat.color)}>{stat.value}</p>
+      {stat.description && (
+        <p className="text-[9px] sm:text-[10px] text-white/40 mt-0.5 line-clamp-2 hidden sm:block">{stat.description}</p>
+      )}
     </motion.div>
   );
 }
@@ -594,6 +606,23 @@ export function CentralInsightModal({
   const convertApiToInsightData = (apiData: ApiInsightData): InsightData => {
     const config = category ? CATEGORY_CONFIGS[category] : null;
     
+    // Use API key_stats if available, otherwise extract from text
+    let keyStats: KeyStat[];
+    if (apiData.key_stats && apiData.key_stats.length > 0) {
+      // Map API stats to KeyStat format with alternating colors and icons
+      const icons = [Activity, DollarSign, Users, TrendingUp, Building2, HeartPulse];
+      const colors = ["text-cyan-400", "text-emerald-400", "text-purple-400", "text-amber-400", "text-rose-400", "text-blue-400"];
+      keyStats = apiData.key_stats.slice(0, 6).map((stat, i) => ({
+        label: stat.label,
+        value: stat.value,
+        description: stat.description,
+        icon: icons[i % icons.length],
+        color: colors[i % colors.length],
+      }));
+    } else {
+      keyStats = extractKeyStats(apiData.what_is_analysis || "", config);
+    }
+    
     return {
       images: apiData.images?.map(img => ({
         url: img.url,
@@ -601,14 +630,14 @@ export function CentralInsightModal({
       })) || [],
       whatIsAnalysis: apiData.what_is_analysis || "",
       ohImplications: apiData.oh_implications || "",
-      keyStats: extractKeyStats(apiData.what_is_analysis || "", config),
+      keyStats,
       status: apiData.status as InsightData["status"],
       generatedAt: apiData.generated_at || undefined,
       isFromApi: true,
     };
   };
 
-  // Extract key stats from analysis text (simple extraction)
+  // Extract key stats from analysis text (fallback when no structured stats)
   const extractKeyStats = (text: string, config: CategoryConfig | null): KeyStat[] => {
     const stats: KeyStat[] = [];
     const color = config?.color || "text-cyan-400";
@@ -634,7 +663,7 @@ export function CentralInsightModal({
       stats.push({ label: "Analysis", value: "AI-Generated", icon: Sparkles, color: "text-cyan-400" });
     }
     
-    return stats.slice(0, 4);
+    return stats.slice(0, 6);
   };
 
   // Load data when modal opens
@@ -1006,28 +1035,32 @@ export function CentralInsightModal({
                   </div>
                 </div>
               ) : isCountryInsightCategory && insightData ? (
-                // COUNTRY INSIGHT LAYOUT
-                <div className="h-full flex flex-col lg:flex-row gap-4 p-5 overflow-y-auto">
+                // COUNTRY INSIGHT LAYOUT - Fully responsive
+                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5 overflow-y-auto">
+                  {/* Left side: Images + Stats */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-2/5 flex flex-col gap-4"
+                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0"
                   >
+                    {/* Image Slideshow */}
                     {insightData.images.length > 0 ? (
-                      <div className="h-48 lg:h-56">
+                      <div className="h-40 sm:h-48 lg:h-56">
                         <ImageSlideshow images={insightData.images} category={config.title} />
                       </div>
                     ) : (
-                      <div className="h-48 lg:h-56 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
+                      <div className="h-40 sm:h-48 lg:h-56 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
                         <div className="text-center">
-                          <Icon className={cn("w-12 h-12 mx-auto mb-2", config.color)} />
-                          <p className="text-sm text-white/40">{config.title}</p>
+                          <Icon className={cn("w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2", config.color)} />
+                          <p className="text-xs sm:text-sm text-white/40">{config.title}</p>
                         </div>
                       </div>
                     )}
+                    
+                    {/* Key Stats Grid - 6 tiles in 2x3 or 3x2 */}
                     {insightData.keyStats.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {insightData.keyStats.map((stat, i) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-1.5 sm:gap-2">
+                        {insightData.keyStats.slice(0, 6).map((stat, i) => (
                           <KeyStatTile key={stat.label} stat={stat} index={i} />
                         ))}
                       </div>
@@ -1039,34 +1072,36 @@ export function CentralInsightModal({
                     animate={{ opacity: 1, x: 0 }}
                     className="lg:w-3/5 flex flex-col overflow-hidden"
                   >
-                    <div className="flex-1 overflow-y-auto pr-2 space-y-5">
-                      <section>
-                        <h3 className={cn("text-sm font-semibold mb-3 flex items-center gap-2", config.color)}>
-                          <span className={cn("w-1 h-4 rounded-full", config.bgColor.replace("/20", ""))} />
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                      {/* Section 1: What is X? */}
+                      <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                        <h3 className={cn("text-sm sm:text-base font-semibold mb-3 flex items-center gap-2", config.color)}>
+                          <span className={cn("w-1 h-5 rounded-full", config.bgColor.replace("/20", ""))} />
                           What is {countryName}'s {config.title}?
                         </h3>
-                        <div className="text-[13px] text-white/75 leading-relaxed space-y-3">
+                        <div className="text-sm sm:text-[15px] text-white/85 leading-relaxed sm:leading-loose space-y-4">
                           {insightData.whatIsAnalysis.split("\n\n").map((p, i) => (
-                            <p key={i}>{p}</p>
+                            <p key={i} className="text-justify">{p}</p>
                           ))}
                         </div>
                       </section>
 
-                      <section>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-cyan-400">
-                          <span className="w-1 h-4 rounded-full bg-cyan-500" />
+                      {/* Section 2: OH Perspective */}
+                      <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                        <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2 text-cyan-400">
+                          <span className="w-1 h-5 rounded-full bg-cyan-500" />
                           Occupational Health Perspective
                         </h3>
-                        <div className="text-[13px] text-white/75 leading-relaxed space-y-3">
+                        <div className="text-sm sm:text-[15px] text-white/85 leading-relaxed sm:leading-loose space-y-4">
                           {insightData.ohImplications.split("\n\n").map((p, i) => (
-                            <p key={i}>{p}</p>
+                            <p key={i} className="text-justify">{p}</p>
                           ))}
                         </div>
                       </section>
                     </div>
 
                     {insightData.generatedAt && insightData.isFromApi && (
-                      <div className="pt-3 mt-3 border-t border-white/10 text-[10px] text-white/30 flex items-center gap-2">
+                      <div className="pt-3 mt-3 border-t border-white/10 text-[10px] sm:text-xs text-white/40 flex items-center gap-2">
                         <Sparkles className="w-3 h-3" />
                         AI-generated: {new Date(insightData.generatedAt).toLocaleDateString()}
                       </div>

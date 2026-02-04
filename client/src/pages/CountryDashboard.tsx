@@ -11,12 +11,12 @@
  * ALL tiles (Economic, Pillars, Country Insights) open the CentralInsightModal.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { apiClient } from "../services/api";
+import { apiClient, aiApiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
 import { getEffectiveOHIScore } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
@@ -150,6 +150,28 @@ export function CountryDashboard() {
       currentCountry.pillar3_score
     );
   }, [currentCountry]);
+
+  // Auto-initialize country insights when admin visits (generates all 6 tiles)
+  const [isInitializing, setIsInitializing] = useState(false);
+  useEffect(() => {
+    if (!iso || !isAdmin || !currentCountry) return;
+    
+    const initializeInsights = async () => {
+      try {
+        setIsInitializing(true);
+        // Call initialize endpoint - uses extended timeout for AI generation
+        await aiApiClient.post(`/api/v1/insights/${iso}/initialize`);
+        console.log(`[CountryDashboard] Initialized insights for ${iso}`);
+      } catch (error) {
+        // Silent fail - content can still be generated on-demand
+        console.warn(`[CountryDashboard] Auto-init failed for ${iso}:`, error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    initializeInsights();
+  }, [iso, isAdmin, currentCountry]);
 
   // Loading state
   if (geoLoading || intelLoading) {
