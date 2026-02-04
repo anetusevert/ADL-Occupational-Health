@@ -3263,79 +3263,98 @@ function GlobalIntelVisual() {
 }
 
 // ============================================================================
-// SLIDE 3: THE CURRENT LANDSCAPE - Fragmented Data, Accelerating Risks
+// SLIDE 3: THE CURRENT LANDSCAPE - Saudi Arabia's Rapid Transformation
 // ============================================================================
 
-// Challenge data with detailed information
-const landscapeChallenges = {
-  dataSilos: {
-    id: "data-silos",
-    title: "Data Silos & Fragmentation",
-    icon: "Database",
-    description: "Critical disconnects between occupational exposure, clinical records, and productivity data. Prevents longitudinal analysis.",
-    detailedDescription: "Healthcare systems, insurers, and employers maintain separate databases with incompatible formats. This fragmentation makes it impossible to track a worker's health journey across employers or link occupational exposures to long-term health outcomes.",
-    implications: [
-      "Cannot correlate workplace exposures with disease onset",
-      "No unified view of worker health across employers",
-      "Duplicate assessments waste resources",
-      "Delayed identification of emerging hazards",
-      "Policy decisions based on incomplete data"
+// Saudi-specific landscape challenges
+const saudiLandscapePillars = {
+  gigaProject: {
+    id: "giga-project",
+    title: "The \"Giga-Project\" Reality",
+    icon: Building2,
+    color: "cyan",
+    description: "Massive scale construction introduces high-volume, high-velocity occupational risks.",
+    points: [
+      "Massive scale construction introduces high-volume, high-velocity occupational risks.",
+      "Rapid economic diversification (tourism, tech) creating new, data-poor industries."
     ],
-    statistics: [
-      { metric: "73%", description: "of occupational health data sits in incompatible silos" },
-      { metric: "5-10 years", description: "average delay in linking exposure to disease" },
-      { metric: "$2.3B", description: "annual cost of duplicate assessments globally" }
-    ],
-    sources: [
-      { name: "EU-OSHA Data Integration Study", url: "https://osha.europa.eu/" },
-      { name: "WHO Digital Health Strategy", url: "https://www.who.int/health-topics/digital-health" }
-    ]
+    detailedContent: {
+      overview: "Saudi Arabia's Vision 2030 has launched unprecedented mega-projects including NEOM ($500B), The Line, Red Sea Project, and AMAALA. These giga-projects employ millions of workers in high-risk construction environments.",
+      keyProjects: [
+        { name: "NEOM", investment: "$500B", workers: "200,000+" },
+        { name: "The Line", investment: "$200B", workers: "100,000+" },
+        { name: "Red Sea Project", investment: "$28B", workers: "50,000+" },
+        { name: "Qiddiya", investment: "$8B", workers: "30,000+" }
+      ],
+      challenges: [
+        "24/7 construction cycles with rotating international workforce",
+        "Extreme heat conditions (45°C+) increasing heat stress incidents",
+        "Complex multi-contractor environments fragmenting safety responsibility",
+        "Rapid scaling outpacing safety infrastructure development"
+      ],
+      sources: [
+        { name: "Vision 2030 Official Portal", url: "https://www.vision2030.gov.sa/" },
+        { name: "NEOM Official", url: "https://www.neom.com/" }
+      ]
+    }
   },
-  evolvingRisk: {
-    id: "evolving-risk",
-    title: "The Evolving Risk Profile",
-    icon: "TrendingUp",
-    description: "Rapid shift in work modalities (gig economy, remote, platform) outpacing regulatory frameworks. Automation risks.",
-    detailedDescription: "The nature of work is transforming faster than regulatory systems can adapt. Gig workers lack coverage, remote work creates new ergonomic and psychosocial risks, and automation introduces novel hazards that traditional frameworks never anticipated.",
-    implications: [
-      "40% of workforce in non-traditional arrangements",
-      "Remote work ergonomic injuries up 300% since 2020",
-      "AI/automation creating unregulated human-machine interfaces",
-      "Platform workers excluded from most OH protections",
-      "Regulatory lag of 5-15 years behind work reality"
+  systemicGaps: {
+    id: "systemic-gaps",
+    title: "Systemic Gaps & Fragmentation",
+    icon: Database,
+    color: "amber",
+    description: "Disconnect between private site data, MoH clinical records, and GOSI compensation claims.",
+    points: [
+      "Disconnect between private site data, MoH clinical records, and GOSI compensation claims.",
+      "Complex long-term health tracking for a transient workforce."
     ],
-    statistics: [
-      { metric: "4x", description: "increase in gig economy workers since 2015" },
-      { metric: "68%", description: "of countries lack remote work OH regulations" },
-      { metric: "23%", description: "of automation injuries go unreported" }
-    ],
-    sources: [
-      { name: "ILO Future of Work Report", url: "https://www.ilo.org/global/topics/future-of-work/" },
-      { name: "McKinsey Gig Economy Analysis", url: "https://www.mckinsey.com/featured-insights/future-of-work" }
-    ]
+    detailedContent: {
+      overview: "Saudi Arabia's occupational health data exists in three disconnected silos: employer-held workplace data, Ministry of Health clinical records, and GOSI insurance claims. This fragmentation prevents longitudinal tracking of worker health.",
+      systems: [
+        { name: "Private Employers", data: "Workplace incidents, exposure logs", gap: "No standardized reporting format" },
+        { name: "Ministry of Health", data: "Clinical diagnoses, treatments", gap: "Not linked to workplace history" },
+        { name: "GOSI Claims", data: "Compensation, disability ratings", gap: "Reactive, not preventive" }
+      ],
+      challenges: [
+        "No unified worker health ID across systems",
+        "Expat workers leave before long-latency diseases manifest",
+        "Private hospital data often not shared with regulators",
+        "Language barriers in multi-national workforce"
+      ],
+      sources: [
+        { name: "GOSI Official", url: "https://www.gosi.gov.sa/" },
+        { name: "Saudi MoH", url: "https://www.moh.gov.sa/" }
+      ]
+    }
   },
-  psychosocial: {
-    id: "psychosocial",
-    title: "The Psychosocial Deficit",
-    icon: "Brain",
-    description: "Mental health hazards poorly integrated into standard physical risk models. Lack of standardized global metrics.",
-    detailedDescription: "While physical hazards have well-established measurement protocols, psychosocial risks—stress, burnout, workplace harassment, job insecurity—lack standardized assessment tools. Most countries don't require psychosocial risk assessment, despite mental health being the fastest-growing cause of work disability.",
-    implications: [
-      "Mental health now #1 cause of work disability in OECD",
-      "No ILO convention specifically on psychosocial risks",
-      "Stigma prevents reporting of mental health issues",
-      "Economic cost exceeds physical injury costs in many sectors",
-      "Burnout recognized by WHO but not legally as occupational disease"
+  economicImpact: {
+    id: "economic-impact",
+    title: "Economic & Social Impact",
+    icon: TrendingUp,
+    color: "red",
+    description: "Preventable occupational disease is a direct leak on the social insurance fund.",
+    points: [
+      "Preventable occupational disease is a direct leak on the social insurance fund.",
+      "Reduced national productivity and sustainability."
     ],
-    statistics: [
-      { metric: "85%", description: "of psychosocial risks remain unmeasured" },
-      { metric: "$1T", description: "annual global cost of workplace depression/anxiety" },
-      { metric: "12%", description: "of countries mandate psychosocial risk assessment" }
-    ],
-    sources: [
-      { name: "WHO Mental Health at Work", url: "https://www.who.int/news-room/fact-sheets/detail/mental-health-at-work" },
-      { name: "OECD Mental Health and Work", url: "https://www.oecd.org/employment/mental-health-and-work.htm" }
-    ]
+    detailedContent: {
+      overview: "The economic cost of occupational injuries and diseases in Saudi Arabia directly threatens Vision 2030 goals. Every SAR spent on reactive compensation is a SAR not invested in sustainable development.",
+      impacts: [
+        { metric: "4%", label: "GDP Lost Annually", description: "~$44B in direct and indirect costs" },
+        { metric: "SAR 15B", label: "GOSI Annual Claims", description: "Growing 8% year-over-year" },
+        { metric: "12%", label: "Workforce Capacity Loss", description: "Due to preventable conditions" }
+      ],
+      vision2030Alignment: [
+        "Thriving Economy pillar requires healthy, productive workforce",
+        "Saudization goals need sustainable career paths, not injury-shortened careers",
+        "Quality of Life program undermined by occupational disease burden",
+        "International investment depends on regulatory reputation"
+      ],
+      sources: [
+        { name: "Vision 2030 Progress Reports", url: "https://www.vision2030.gov.sa/progress/" },
+        { name: "GOSI Annual Statistics", url: "https://www.gosi.gov.sa/GOSIOnline/Statistics" }
+      ]
+    }
   }
 };
 

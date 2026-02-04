@@ -807,23 +807,23 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "amber"
   },
-  // Slide 3: The Current Landscape - Fragmented Data, Accelerating Risks
+  // Slide 3: The Current Landscape - Saudi Arabia's Rapid Transformation
   {
     id: "adl-solution",
     type: "solution",
     title: "The Current Landscape",
-    actionTitle: "Fragmented Data, Accelerating Risks",
-    subtitle: "Why Traditional Approaches Are Failing",
-    content: "Occupational health systems worldwide face a perfect storm: data fragmentation prevents longitudinal analysis, emerging work modalities outpace regulation, and psychosocial risks remain largely unmeasured.",
+    actionTitle: "Rapid Transformation, Emerging Risks",
+    subtitle: "Saudi Arabia's Unique Challenge",
+    content: "Saudi Arabia's unprecedented development creates unique occupational health challenges. Giga-projects, economic diversification, and a transient workforce demand integrated health intelligence.",
     highlights: [
-      "Data Silos & Fragmentation",
-      "The Evolving Risk Profile",
-      "The Psychosocial Deficit"
+      "The Giga-Project Reality",
+      "Systemic Gaps & Fragmentation",
+      "Economic & Social Impact"
     ],
     stats: [
-      { value: "73%", label: "Data Fragmentation", color: "red" },
-      { value: "4x", label: "Risk Acceleration", color: "amber" },
-      { value: "85%", label: "Unmeasured Psych Risks", color: "purple" }
+      { value: "$1.5T", label: "Giga-Project Investment", color: "cyan" },
+      { value: "3", label: "Disconnected Systems", color: "amber" },
+      { value: "4%", label: "GDP at Risk", color: "red" }
     ],
     color: "blue"
   },
