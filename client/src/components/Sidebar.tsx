@@ -59,11 +59,10 @@ const frameworkItem: NavItem = { path: "/framework", label: "Framework", icon: L
 const analyticsSuiteItems: NavItem[] = [
   { path: "/home", label: "Global", icon: Map },
   { path: "/focus-ksa", label: "Focus: KSA", icon: Target },
-  { path: "/personas", label: "Personas", icon: Users2 },
-  { path: "/country-data", label: "Country Data", icon: Table2 },
+  { path: "/personas", label: "KSA Personas", icon: Users2 },
   { path: "/deep-dive", label: "Best Practices", icon: Brain },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { path: "/compare", label: "Compare", icon: GitCompare },
+  { path: "/country-data", label: "Data", icon: Database },
 ];
 
 // Tool Suite - Interactive tools for users
