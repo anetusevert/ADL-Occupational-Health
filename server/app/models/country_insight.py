@@ -26,7 +26,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, deferred
 
 from app.core.database import Base
 
@@ -116,11 +116,13 @@ class CountryInsight(Base):
     )
     
     # Structured Key Stats (6 stats per category for tile display)
-    key_stats = Column(
+    # NOTE: Using deferred() to prevent "column does not exist" errors if migration hasn't run
+    # The column will only be loaded when explicitly accessed
+    key_stats = deferred(Column(
         JSONB,
         nullable=True,
         comment="Array of key stats: [{label, value, description}] - 6 stats per category"
-    )
+    ))
     
     # Generation Status
     status = Column(
@@ -196,6 +198,12 @@ class CountryInsight(Base):
     
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
+        # Safely access key_stats (column may not exist in older databases)
+        try:
+            key_stats_value = self.key_stats or []
+        except Exception:
+            key_stats_value = []
+        
         return {
             "id": self.id,
             "country_iso": self.country_iso,
@@ -203,7 +211,7 @@ class CountryInsight(Base):
             "images": self.images or [],
             "what_is_analysis": self.what_is_analysis,
             "oh_implications": self.oh_implications,
-            "key_stats": self.key_stats or [],
+            "key_stats": key_stats_value,
             "status": self.status.value if self.status else None,
             "error_message": self.error_message,
             "generated_at": self.generated_at.isoformat() if self.generated_at else None,

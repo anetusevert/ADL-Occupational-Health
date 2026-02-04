@@ -77,6 +77,52 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
+# Global exception handler to ensure CORS headers are sent even for unhandled errors
+# This prevents CORS errors in the browser when the backend crashes with 500
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler that ensures proper error responses with CORS headers.
+    
+    When an unhandled exception occurs, FastAPI may not add CORS headers,
+    causing the browser to report a CORS error instead of the actual error.
+    This handler ensures a proper JSON error response is returned.
+    """
+    # Log the full exception for debugging
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(traceback.format_exc())
+    
+    # Get the origin from the request to return proper CORS header
+    origin = request.headers.get("origin", "*")
+    
+    # Check if origin matches our allowed patterns
+    if origin not in CORS_ORIGINS and not origin.endswith(".up.railway.app"):
+        origin = "*"
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "type": type(exc).__name__,
+        },
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
+
+
 # Mount static files directory for serving flag images
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

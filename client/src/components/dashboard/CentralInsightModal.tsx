@@ -698,47 +698,8 @@ export function CentralInsightModal({
     loadData();
   }, [category, countryIso, countryName, isOpen, isAdmin, fetchInsightFromApi]);
 
-  // Handle regenerate via API
-  const handleRegenerate = async () => {
-    if (!category || !countryIso) return;
-    
-    setIsRegenerating(true);
-    setRegenerateError(null);
-    
-    try {
-      // Use aiApiClient with 6-minute timeout for AI generation
-      const response = await aiApiClient.post<{
-        success: boolean;
-        message: string;
-        insight?: ApiInsightData;
-      }>(`/api/v1/insights/${countryIso}/${category}/regenerate`);
-      
-      if (response.data.success && response.data.insight) {
-        setInsightData(convertApiToInsightData(response.data.insight));
-      } else {
-        setRegenerateError(response.data.message || "Failed to regenerate");
-      }
-      
-      onRegenerate?.();
-    } catch (error: unknown) {
-      console.error("Regenerate failed:", error);
-      // Better error message extraction
-      let errorMessage = "Failed to regenerate. Check AI configuration.";
-      if (error && typeof error === 'object') {
-        const axiosError = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
-        if (axiosError.response?.data?.detail) {
-          errorMessage = axiosError.response.data.detail;
-        } else if (axiosError.response?.data?.message) {
-          errorMessage = axiosError.response.data.message;
-        } else if (axiosError.message) {
-          errorMessage = axiosError.message;
-        }
-      }
-      setRegenerateError(errorMessage);
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
+  // NOTE: Individual regenerate removed - regeneration now happens via "Regenerate All" on CountryDashboard
+  // The modal just displays cached content
 
   if (!category) return null;
 
@@ -800,43 +761,11 @@ export function CentralInsightModal({
               </div>
 
               <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={handleRegenerate}
-                    disabled={isRegenerating}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                      "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating with AI...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Regenerate with AI</span>
-                      </>
-                    )}
-                  </motion.button>
-                )}
                 <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                   <X className="w-5 h-5 text-white/60 hover:text-white" />
                 </button>
               </div>
             </motion.div>
-
-            {/* Error message */}
-            {regenerateError && (
-              <div className="mx-5 mt-3 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
-                {regenerateError}
-              </div>
-            )}
 
             {/* Content */}
             <div className="relative flex-1 overflow-hidden">
