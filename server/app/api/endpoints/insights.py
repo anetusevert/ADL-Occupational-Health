@@ -462,7 +462,14 @@ async def generate_insight_content(
     - oh_implications: str (3-4 paragraphs)
     - key_stats: list of 6 stat objects [{label, value, description}]
     """
+    logger.info(f"[InsightGen] Starting for {country.name} - {category.value}")
+    
     ai_config = get_ai_config(db)
+    if ai_config:
+        logger.info(f"[InsightGen] AI config: provider={ai_config.provider.value}, model={ai_config.model_name}, has_key={bool(ai_config.api_key_encrypted)}")
+    else:
+        logger.warning("[InsightGen] No AI config found!")
+    
     if not ai_config:
         # Check if there's an active but unconfigured config
         unconfigured = db.query(AIConfig).filter(AIConfig.is_active == True).first()
@@ -1266,12 +1273,23 @@ async def regenerate_all_insights(
             
             results["successful"] += 1
             
-        except Exception as e:
-            logger.error(f"Failed to generate {category.value}: {e}")
+        except HTTPException as e:
+            error_msg = e.detail if hasattr(e, 'detail') else str(e)
+            logger.error(f"[RegenerateAll] HTTPException for {category.value}: {error_msg}")
             results["failed"] += 1
             results["errors"].append({
                 "category": category.value,
-                "error": str(e),
+                "error": error_msg,
+            })
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            full_traceback = traceback.format_exc()
+            logger.error(f"[RegenerateAll] Failed to generate {category.value}: {error_msg}\n{full_traceback}")
+            results["failed"] += 1
+            results["errors"].append({
+                "category": category.value,
+                "error": f"{type(e).__name__}: {error_msg}",
             })
     
     return results
