@@ -341,11 +341,31 @@ def get_curated_images(country_iso: str, category: str) -> List[Dict]:
 
 
 def get_ai_config(db: Session) -> Optional[AIConfig]:
-    """Get active AND configured AI configuration."""
-    return db.query(AIConfig).filter(
+    """
+    Get active AI configuration that's ready to use.
+    
+    Checks for is_active=True and either:
+    - is_configured=True, OR
+    - api_key_encrypted is set (for backward compatibility)
+    """
+    # First try to find a fully configured one
+    config = db.query(AIConfig).filter(
         AIConfig.is_active == True,
         AIConfig.is_configured == True
     ).first()
+    
+    if config:
+        return config
+    
+    # Fall back to any active config with an API key set
+    # (for backward compatibility with existing setups)
+    config = db.query(AIConfig).filter(
+        AIConfig.is_active == True,
+        AIConfig.api_key_encrypted.isnot(None),
+        AIConfig.api_key_encrypted != ""
+    ).first()
+    
+    return config
 
 
 def get_country_data(db: Session, iso_code: str) -> Optional[Country]:
