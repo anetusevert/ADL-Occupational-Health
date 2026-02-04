@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Sparkles, Target, Award, BookOpen, TrendingUp, 
   Lightbulb, CheckCircle2, ArrowRight, Loader2, Globe2,
-  AlertTriangle, ChevronRight, Zap, Flag
+  AlertTriangle, ChevronRight, ChevronDown, Zap, Flag
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { PILLAR_DEFINITIONS, type PillarId, getQuestionById } from "../../lib/strategicQuestions";
@@ -652,6 +652,7 @@ export function KSADeepAnalysisModal({
   const [leaders, setLeaders] = useState<TopCountry[]>([]);
   const [isLoadingLeaders, setIsLoadingLeaders] = useState(false);
   const [selectedLeader, setSelectedLeader] = useState<TopCountry | null>(null);
+  const [isPositioningExpanded, setIsPositioningExpanded] = useState(true);
 
   const pillarDef = PILLAR_DEFINITIONS[pillarId];
   const question = getQuestionById(pillarId, questionId);
@@ -812,35 +813,66 @@ export function KSADeepAnalysisModal({
               </div>
             </div>
 
-            {/* Fixed Section - Strategic Question & Positioning Scale */}
-            <div className="flex-shrink-0 px-6 pt-4 pb-2 border-b border-white/5">
+            {/* Fixed Section - Question & Collapsible Positioning Scale */}
+            <div className="flex-shrink-0 px-6 pt-4 pb-3">
               <div className="max-w-5xl mx-auto">
-                {/* Strategic Question - Compact */}
-                <motion.div
+                {/* Question - Large, Clean */}
+                <motion.p
                   variants={questionVariants}
                   initial="hidden"
                   animate="visible"
-                  className="p-4 rounded-xl bg-slate-800/50 border border-white/10 mb-4"
+                  className="text-white text-xl font-medium leading-relaxed mb-4"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className={cn("w-4 h-4", pillarDef.color)} />
-                    <h3 className="text-sm font-semibold text-white">Strategic Question</h3>
-                  </div>
-                  <p className="text-white/90 text-base leading-relaxed">
-                    {question.question}
-                  </p>
-                </motion.div>
+                  {question.question}
+                </motion.p>
 
-                {/* POSITIONING SCALE - Always Visible */}
+                {/* Collapsible Global Positioning */}
                 {!isLoadingLeaders && leaders.length > 0 && (
-                  <PositioningScale
-                    ksaScore={ksaScore}
-                    leaders={leaders}
-                    pillarColor={pillarDef.color}
-                    pillarBgColor={pillarDef.bgColor}
-                    questionTitle={question.title}
-                    onLeaderClick={handleLeaderClick}
-                  />
+                  <div className="border-t border-white/10 pt-3">
+                    {/* Toggle Header */}
+                    <button
+                      onClick={() => setIsPositioningExpanded(!isPositioningExpanded)}
+                      className="w-full flex items-center justify-between mb-3 group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Zap className={cn("w-4 h-4", pillarDef.color)} />
+                        <span className="text-sm font-semibold text-white/80">Global Positioning</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80">
+                          <span className={cn("text-sm font-bold", pillarDef.color)}>KSA: {ksaScore}%</span>
+                        </div>
+                        <motion.div
+                          animate={{ rotate: isPositioningExpanded ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors" />
+                        </motion.div>
+                      </div>
+                    </button>
+
+                    {/* Collapsible Content */}
+                    <AnimatePresence>
+                      {isPositioningExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <PositioningScale
+                            ksaScore={ksaScore}
+                            leaders={leaders}
+                            pillarColor={pillarDef.color}
+                            pillarBgColor={pillarDef.bgColor}
+                            questionTitle={question.title}
+                            onLeaderClick={handleLeaderClick}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
               </div>
             </div>
