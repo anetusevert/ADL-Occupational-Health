@@ -52,6 +52,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
+import { personas, getCoverageStatus, type Persona } from "../../data/personas";
 import { cn } from "../../lib/utils";
 import { 
   CinematicLoader, 
@@ -2064,109 +2065,43 @@ function ADLSolutionVisual() {
 // ============================================================================
 
 function WorkforceLensVisual() {
-  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
+  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   
-  // Worker personas based on KSA labor force composition
-  const personas = [
-    {
-      id: "saudi-male",
-      name: "Saudi Male Professional",
-      tagline: "The Backbone of Saudization",
-      avatar: "👨‍💼",
-      coverage: "full",
-      coverageLabel: "Full GOSI Coverage",
-      participation: "64%",
-      laborForce: "24%",
-      color: "emerald",
-      icon: Building2,
-      highlights: [
-        "Office & corporate sectors",
-        "Full medical coverage",
-        "Pension benefits",
-        "Disability insurance"
-      ]
-    },
-    {
-      id: "saudi-female",
-      name: "Saudi Female Professional",
-      tagline: "Vision 2030's Rising Force",
-      avatar: "👩‍💼",
-      coverage: "full",
-      coverageLabel: "Full GOSI Coverage",
-      participation: "34.5%",
-      laborForce: "12%",
-      color: "emerald",
-      icon: Users,
-      highlights: [
-        "Fastest growing segment",
-        "Equal coverage rights",
-        "Maternity provisions",
-        "Career protection"
-      ]
-    },
-    {
-      id: "migrant-construction",
-      name: "Migrant Construction Worker",
-      tagline: "Building the Kingdom",
-      avatar: "👷",
-      coverage: "partial",
-      coverageLabel: "Partial Coverage",
-      participation: "95%",
-      laborForce: "45%",
-      color: "amber",
-      icon: HardHat,
-      highlights: [
-        "High-risk industries",
-        "Basic medical only",
-        "Limited benefits",
-        "Coverage gaps"
-      ]
-    },
-    {
-      id: "domestic-worker",
-      name: "Domestic Worker",
-      tagline: "The Invisible Workforce",
-      avatar: "🏠",
-      coverage: "none",
-      coverageLabel: "No GOSI Coverage",
-      participation: "98%",
-      laborForce: "15%",
-      color: "red",
-      icon: Heart,
-      highlights: [
-        "Outside formal system",
-        "No injury protection",
-        "No pension access",
-        "Regulatory blind spot"
-      ]
-    },
-    {
-      id: "young-saudi",
-      name: "Young Saudi Worker",
-      tagline: "Tomorrow's Workforce",
-      avatar: "🧑‍🎓",
-      coverage: "full",
-      coverageLabel: "Full GOSI Coverage",
-      participation: "31.6%",
-      laborForce: "8%",
-      color: "emerald",
-      icon: TrendingUp,
-      highlights: [
-        "Entry-level positions",
-        "Training emphasis",
-        "Career development",
-        "Future contributors"
-      ]
+  const getCoverageColor = (status: 'full' | 'partial' | 'none') => {
+    switch (status) {
+      case "full": return { 
+        bg: "bg-emerald-500/20", 
+        border: "border-emerald-500/50", 
+        text: "text-emerald-400", 
+        badge: "bg-emerald-500",
+        glow: "shadow-emerald-500/30"
+      };
+      case "partial": return { 
+        bg: "bg-amber-500/20", 
+        border: "border-amber-500/50", 
+        text: "text-amber-400", 
+        badge: "bg-amber-500",
+        glow: "shadow-amber-500/30"
+      };
+      case "none": return { 
+        bg: "bg-red-500/20", 
+        border: "border-red-500/50", 
+        text: "text-red-400", 
+        badge: "bg-red-500",
+        glow: "shadow-red-500/30"
+      };
     }
-  ];
+  };
 
-  const getCoverageColor = (coverage: string) => {
-    switch (coverage) {
-      case "full": return { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", badge: "bg-emerald-500" };
-      case "partial": return { bg: "bg-amber-500/20", border: "border-amber-500/50", text: "text-amber-400", badge: "bg-amber-500" };
-      case "none": return { bg: "bg-red-500/20", border: "border-red-500/50", text: "text-red-400", badge: "bg-red-500" };
-      default: return { bg: "bg-slate-500/20", border: "border-slate-500/50", text: "text-slate-400", badge: "bg-slate-500" };
-    }
+  const getPersonaColor = (color: string) => {
+    const colors: Record<string, { bg: string; border: string; text: string; gradient: string }> = {
+      purple: { bg: "bg-purple-500/20", border: "border-purple-500/50", text: "text-purple-400", gradient: "from-purple-500 to-violet-600" },
+      cyan: { bg: "bg-cyan-500/20", border: "border-cyan-500/50", text: "text-cyan-400", gradient: "from-cyan-500 to-teal-600" },
+      amber: { bg: "bg-amber-500/20", border: "border-amber-500/50", text: "text-amber-400", gradient: "from-amber-500 to-orange-600" },
+      rose: { bg: "bg-rose-500/20", border: "border-rose-500/50", text: "text-rose-400", gradient: "from-rose-500 to-pink-600" },
+      emerald: { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", gradient: "from-emerald-500 to-green-600" },
+    };
+    return colors[color] || colors.cyan;
   };
 
   return (
@@ -2195,23 +2130,25 @@ function WorkforceLensVisual() {
       <div className="flex-1 min-h-0 flex items-center justify-center px-3 sm:px-6 pb-4">
         <div className="w-full max-w-6xl grid grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
           {personas.map((persona, index) => {
-            const coverageColors = getCoverageColor(persona.coverage);
+            const coverageStatus = getCoverageStatus(persona);
+            const coverageColors = getCoverageColor(coverageStatus);
+            const personaColors = getPersonaColor(persona.color);
             const Icon = persona.icon;
-            const isHovered = hoveredPersona === persona.id;
             
             return (
-              <motion.div
+              <motion.button
                 key={persona.id}
                 initial={{ opacity: 0, y: 30, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.2 + index * 0.1, duration: 0.5, type: "spring" }}
-                onMouseEnter={() => setHoveredPersona(persona.id)}
-                onMouseLeave={() => setHoveredPersona(null)}
+                whileHover={{ scale: 1.05, y: -5 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedPersona(persona)}
                 className={cn(
-                  "relative flex flex-col rounded-xl border backdrop-blur-md transition-all duration-300 cursor-pointer overflow-hidden",
-                  coverageColors.bg,
-                  coverageColors.border,
-                  isHovered ? "scale-105 shadow-xl z-10" : "scale-100"
+                  "relative flex flex-col rounded-xl border backdrop-blur-md transition-all duration-300 cursor-pointer overflow-hidden group",
+                  personaColors.bg,
+                  personaColors.border,
+                  "hover:shadow-xl hover:shadow-white/10"
                 )}
               >
                 {/* Coverage Badge */}
@@ -2225,21 +2162,30 @@ function WorkforceLensVisual() {
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.4 + index * 0.1 }}
                   >
-                    {persona.coverage === "full" ? "Full Coverage" : 
-                     persona.coverage === "partial" ? "Partial" : "No Coverage"}
+                    {coverageStatus === "full" ? "Full Coverage" : 
+                     coverageStatus === "partial" ? "Partial" : "No Coverage"}
                   </motion.span>
-                  <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", coverageColors.text)} />
+                  <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", personaColors.text)} />
                 </div>
 
-                {/* Avatar & Name */}
+                {/* Avatar Image */}
                 <div className="pt-10 pb-2 px-2 sm:px-3 text-center">
                   <motion.div 
-                    className="text-3xl sm:text-4xl lg:text-5xl mb-2"
-                    animate={isHovered ? { scale: 1.1, y: -5 } : { scale: 1, y: 0 }}
+                    className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-2 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-white/40 transition-all"
+                    whileHover={{ scale: 1.05 }}
                   >
-                    {persona.avatar}
+                    <img 
+                      src={persona.avatarUrl} 
+                      alt={persona.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Gradient overlay on hover */}
+                    <div className={cn(
+                      "absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-gradient-to-t",
+                      personaColors.gradient
+                    )} />
                   </motion.div>
-                  <h3 className={cn("text-[10px] sm:text-xs lg:text-sm font-bold leading-tight", coverageColors.text)}>
+                  <h3 className={cn("text-[10px] sm:text-xs lg:text-sm font-bold leading-tight", personaColors.text)}>
                     {persona.name}
                   </h3>
                   <p className="text-[8px] sm:text-[10px] text-white/50 mt-0.5 italic">
@@ -2251,45 +2197,25 @@ function WorkforceLensVisual() {
                 <div className="px-2 sm:px-3 py-2 border-t border-white/10 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[8px] sm:text-[10px] text-white/50">Participation</span>
-                    <span className={cn("text-[10px] sm:text-xs font-bold", coverageColors.text)}>
-                      {persona.participation}
+                    <span className={cn("text-[10px] sm:text-xs font-bold", personaColors.text)}>
+                      {persona.demographics.participationRate}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[8px] sm:text-[10px] text-white/50">Labor Force</span>
                     <span className="text-[10px] sm:text-xs font-semibold text-white/70">
-                      {persona.laborForce}
+                      {persona.demographics.populationShare}%
                     </span>
                   </div>
                 </div>
 
-                {/* Expanded Details on Hover */}
-                <AnimatePresence>
-                  {isHovered && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden border-t border-white/10"
-                    >
-                      <div className="px-2 sm:px-3 py-2 space-y-1">
-                        {persona.highlights.map((highlight, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="flex items-center gap-1"
-                          >
-                            <div className={cn("w-1 h-1 rounded-full flex-shrink-0", coverageColors.badge)} />
-                            <span className="text-[8px] sm:text-[9px] text-white/70">{highlight}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                {/* Click hint */}
+                <div className="px-2 sm:px-3 py-1.5 bg-white/5 border-t border-white/10">
+                  <span className="text-[8px] sm:text-[9px] text-white/40 flex items-center justify-center gap-1">
+                    <ArrowRight className="w-3 h-3" /> Explore Journey
+                  </span>
+                </div>
+              </motion.button>
             );
           })}
         </div>
@@ -2325,17 +2251,360 @@ function WorkforceLensVisual() {
           {/* Key Insight */}
           <motion.div 
             className="flex items-center gap-2 bg-purple-900/30 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-purple-500/30"
-            animate={{ boxShadow: ["0 0 0 0 rgba(139,92,246,0)", "0 0 15px 3px rgba(139,92,246,0.3)", "0 0 0 0 rgba(139,92,246,0)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
           >
             <Lightbulb className="w-4 h-4 text-purple-400" />
             <span className="text-[10px] sm:text-xs text-white/80">
-              <strong className="text-purple-400">40%</strong> of workforce faces coverage gaps or exclusions
+              <strong className="text-purple-400">Click any persona</strong> to explore their journey
             </span>
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Persona Detail Modal */}
+      <AnimatePresence>
+        {selectedPersona && (
+          <WorkforcePersonaModal 
+            persona={selectedPersona} 
+            onClose={() => setSelectedPersona(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// Persona Detail Modal Component
+function WorkforcePersonaModal({ persona, onClose }: { persona: Persona; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'journey' | 'risks' | 'coverage'>('journey');
+  
+  const coverageStatus = getCoverageStatus(persona);
+  
+  const getColor = (color: string) => {
+    const colors: Record<string, { text: string; bg: string; border: string; gradient: string }> = {
+      purple: { text: "text-purple-400", bg: "bg-purple-500/20", border: "border-purple-500/50", gradient: "from-purple-600 to-violet-600" },
+      cyan: { text: "text-cyan-400", bg: "bg-cyan-500/20", border: "border-cyan-500/50", gradient: "from-cyan-600 to-teal-600" },
+      amber: { text: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/50", gradient: "from-amber-600 to-orange-600" },
+      rose: { text: "text-rose-400", bg: "bg-rose-500/20", border: "border-rose-500/50", gradient: "from-rose-600 to-pink-600" },
+      emerald: { text: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/50", gradient: "from-emerald-600 to-green-600" },
+    };
+    return colors[color] || colors.cyan;
+  };
+  
+  const colors = getColor(persona.color);
+  const Icon = persona.icon;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+      />
+      
+      {/* Modal */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="fixed inset-4 sm:inset-8 lg:inset-12 z-50 flex items-center justify-center pointer-events-none"
+      >
+        <div className="w-full max-w-4xl max-h-full overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-white/10 shadow-2xl pointer-events-auto flex flex-col">
+          
+          {/* Header */}
+          <div className={cn("relative p-4 sm:p-6 border-b border-white/10", colors.bg)}>
+            {/* Close button */}
+            <motion.button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <X className="w-5 h-5 text-white/70" />
+            </motion.button>
+            
+            <div className="flex items-center gap-4 sm:gap-6">
+              {/* Avatar */}
+              <motion.div 
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", delay: 0.1 }}
+                className={cn("w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4", colors.border)}
+              >
+                <img 
+                  src={persona.avatarUrl} 
+                  alt={persona.name}
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+              
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className={cn("w-5 h-5 sm:w-6 sm:h-6", colors.text)} />
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold text-white uppercase",
+                    coverageStatus === 'full' ? 'bg-emerald-500' : 
+                    coverageStatus === 'partial' ? 'bg-amber-500' : 'bg-red-500'
+                  )}>
+                    {coverageStatus === 'full' ? 'Full Coverage' : 
+                     coverageStatus === 'partial' ? 'Partial Coverage' : 'No Coverage'}
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{persona.name}</h2>
+                <p className={cn("text-sm sm:text-base italic", colors.text)}>{persona.tagline}</p>
+                <p className="text-xs sm:text-sm text-white/60 mt-1 line-clamp-2">{persona.description}</p>
+              </div>
+            </div>
+            
+            {/* Stats Bar */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-4">
+              {[
+                { label: "Population Share", value: `${persona.demographics.populationShare}%` },
+                { label: "Participation Rate", value: `${persona.demographics.participationRate}%` },
+                { label: "Unemployment", value: `${persona.demographics.unemploymentRate}%` },
+                { label: "Key Age Group", value: persona.demographics.keyAgeGroup },
+              ].map((stat, i) => (
+                <motion.div 
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.05 }}
+                  className="text-center p-2 rounded-lg bg-white/5 border border-white/10"
+                >
+                  <div className={cn("text-lg sm:text-xl font-bold", colors.text)}>{stat.value}</div>
+                  <div className="text-[10px] sm:text-xs text-white/50">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Tabs */}
+          <div className="flex border-b border-white/10">
+            {[
+              { id: 'journey', label: 'OH Journey', icon: ArrowRight },
+              { id: 'risks', label: 'Key Risks', icon: AlertTriangle },
+              { id: 'coverage', label: 'Coverage Details', icon: Shield },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all",
+                  activeTab === tab.id 
+                    ? cn(colors.bg, colors.text, "border-b-2", colors.border)
+                    : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                )}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <AnimatePresence mode="wait">
+              {activeTab === 'journey' && (
+                <motion.div
+                  key="journey"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white">Occupational Health Journey</h3>
+                    <span className="text-xs text-white/50 bg-white/10 px-2 py-1 rounded">
+                      {persona.ohJourney.totalDuration}
+                    </span>
+                  </div>
+                  {persona.ohJourney.steps.map((step, i) => (
+                    <motion.div
+                      key={step.title}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className={cn("p-3 sm:p-4 rounded-xl border", colors.bg, colors.border)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm", `bg-gradient-to-br ${colors.gradient}`)}>
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white">{step.title}</h4>
+                            <span className="text-[10px] text-white/40 bg-white/10 px-1.5 py-0.5 rounded">{step.duration}</span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-white/70 leading-relaxed">{step.description}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  <div className={cn("mt-4 p-4 rounded-xl border-2", colors.border, colors.bg)}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className={cn("w-5 h-5", colors.text)} />
+                      <span className="font-bold text-white">Outcome</span>
+                    </div>
+                    <p className="text-sm text-white/80">{persona.ohJourney.outcome}</p>
+                  </div>
+                </motion.div>
+              )}
+              
+              {activeTab === 'risks' && (
+                <motion.div
+                  key="risks"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-red-400" />
+                      Key Occupational Risks
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {persona.research.keyRisks.map((risk, i) => (
+                        <motion.div
+                          key={risk}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+                        >
+                          <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                          <span className="text-sm text-white/80">{risk}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-amber-400" />
+                      Challenges
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {persona.research.challenges.map((challenge, i) => (
+                        <motion.div
+                          key={challenge}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
+                        >
+                          <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                          <span className="text-sm text-white/80">{challenge}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      Recent Improvements
+                    </h3>
+                    <div className="space-y-2">
+                      {persona.research.recentChanges.map((change, i) => (
+                        <motion.div
+                          key={change}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
+                        >
+                          <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          <span className="text-sm text-white/80">{change}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
+              {activeTab === 'coverage' && (
+                <motion.div
+                  key="coverage"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className={cn("p-4 rounded-xl border text-center", persona.coverage.annuities ? "bg-emerald-500/20 border-emerald-500/50" : "bg-red-500/20 border-red-500/50")}>
+                      <div className={cn("text-2xl mb-1", persona.coverage.annuities ? "text-emerald-400" : "text-red-400")}>
+                        {persona.coverage.annuities ? "✓" : "✗"}
+                      </div>
+                      <div className="text-xs text-white/70">Pension/Annuities</div>
+                    </div>
+                    <div className={cn("p-4 rounded-xl border text-center", persona.coverage.occupationalHazards ? "bg-emerald-500/20 border-emerald-500/50" : "bg-red-500/20 border-red-500/50")}>
+                      <div className={cn("text-2xl mb-1", persona.coverage.occupationalHazards ? "text-emerald-400" : "text-red-400")}>
+                        {persona.coverage.occupationalHazards ? "✓" : "✗"}
+                      </div>
+                      <div className="text-xs text-white/70">OH Coverage</div>
+                    </div>
+                    <div className="p-4 rounded-xl border bg-white/5 border-white/20 text-center">
+                      <div className={cn("text-lg font-bold mb-1", colors.text)}>{persona.coverage.contributionRate}</div>
+                      <div className="text-xs text-white/70">Contribution</div>
+                    </div>
+                    <div className="p-4 rounded-xl border bg-white/5 border-white/20 text-center">
+                      <div className={cn("text-lg font-bold mb-1 capitalize", colors.text)}>{persona.coverage.payer}</div>
+                      <div className="text-xs text-white/70">Payer</div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-400" />
+                      Coverage Gaps
+                    </h3>
+                    <div className="space-y-2">
+                      {persona.coverage.gaps.map((gap, i) => (
+                        <motion.div
+                          key={gap}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
+                        >
+                          <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 mt-1.5" />
+                          <span className="text-sm text-white/80">{gap}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-cyan-400" />
+                      Primary Sectors
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {persona.demographics.primarySectors.map((sector, i) => (
+                        <motion.span
+                          key={sector}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.05 }}
+                          className={cn("px-3 py-1.5 rounded-full text-sm font-medium", colors.bg, colors.border, colors.text)}
+                        >
+                          {sector}
+                        </motion.span>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </motion.div>
+    </>
   );
 }
 
