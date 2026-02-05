@@ -134,29 +134,41 @@ app.include_router(api_router)
 @app.on_event("startup")
 async def startup_event():
     """Create missing database tables and run migrations on startup."""
+    import sys
+    
+    # Force flush prints immediately
+    print("=" * 60, flush=True)
+    print("GOHIP Platform starting up...", flush=True)
+    print(f"Python version: {sys.version}", flush=True)
+    print(f"Database URL: {settings.DATABASE_URL[:50]}...", flush=True)
+    print("=" * 60, flush=True)
+    
     from sqlalchemy import text, inspect
     
     # Import all models to ensure they're registered with Base
+    print("Importing models...", flush=True)
     from app.models import metric_config  # noqa: F401
     from app.models import country  # noqa: F401 - includes CountryDeepDive
     from app.models import user  # noqa: F401
     from app.models import agent  # noqa: F401 - AI Agent Registry
-    
-    print("GOHIP Platform starting up...")
-    print(f"Database URL: {settings.DATABASE_URL[:50]}...")
+    print("Models imported successfully", flush=True)
     
     # Create tables that don't exist yet
+    print("Creating database tables...", flush=True)
     try:
         Base.metadata.create_all(bind=engine)
-        print("Database tables created/verified successfully")
+        print("Database tables created/verified successfully", flush=True)
     except Exception as e:
-        print(f"ERROR creating database tables: {e}")
+        print(f"ERROR creating database tables: {e}", flush=True)
     
     # Run schema migrations for missing columns - OPTIMIZED: single transaction
+    print("Starting schema migrations...", flush=True)
     try:
         with engine.connect() as conn:
+            print("Database connection established", flush=True)
             inspector = inspect(engine)
             table_names = inspector.get_table_names()
+            print(f"Found {len(table_names)} tables", flush=True)
             migrations_needed = []
             
             # Check country_deep_dives table
@@ -190,32 +202,32 @@ async def startup_event():
                     if col not in columns:
                         migrations_needed.append(f"ALTER TABLE agents ADD COLUMN {col} {col_type}")
             else:
-                # Agents table doesn't exist - will be created by Base.metadata.create_all
-                print("Agents table will be created")
+                print("Agents table will be created", flush=True)
             
             # Execute all migrations in single transaction
             if migrations_needed:
-                print(f"Running {len(migrations_needed)} schema migrations...")
+                print(f"Running {len(migrations_needed)} schema migrations...", flush=True)
                 for sql in migrations_needed:
                     try:
                         conn.execute(text(sql))
                     except Exception as e:
-                        print(f"Migration skipped (already applied?): {sql[:50]}...")
+                        print(f"Migration skipped: {sql[:40]}...", flush=True)
                 conn.commit()
-                print("Schema migrations complete")
+                print("Schema migrations complete", flush=True)
             else:
-                print("No schema migrations needed")
+                print("No schema migrations needed", flush=True)
                 
     except Exception as e:
-        print(f"Migration error (non-fatal): {e}")
+        print(f"Migration error (non-fatal): {e}", flush=True)
     
     # Seed default agents on startup using RAW SQL to avoid ORM/schema mismatches
     # OPTIMIZED: Single transaction, upsert pattern, minimal commits
+    print("Starting agent sync...", flush=True)
     try:
         from app.models.agent import DEFAULT_AGENTS
         import json
         
-        print("Syncing agents with DEFAULT_AGENTS...")
+        print(f"Syncing {len(DEFAULT_AGENTS)} agents...", flush=True)
         with engine.connect() as conn:
             # Make legacy columns nullable in one transaction
             for col in ['category', 'workflow', 'input_schema', 'output_schema']:
@@ -259,10 +271,14 @@ async def startup_event():
             
             # Single commit for all operations
             conn.commit()
-            print(f"Synced {len(DEFAULT_AGENTS)} agents successfully")
+            print(f"Synced {len(DEFAULT_AGENTS)} agents successfully", flush=True)
                 
     except Exception as e:
-        print(f"Agent seeding error (non-fatal): {e}")
+        print(f"Agent seeding error (non-fatal): {e}", flush=True)
+    
+    print("=" * 60, flush=True)
+    print("STARTUP COMPLETE - Application ready!", flush=True)
+    print("=" * 60, flush=True)
 
 
 @app.get("/health", tags=["System"])
