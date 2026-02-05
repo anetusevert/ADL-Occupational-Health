@@ -11,6 +11,7 @@ import { Menu, Activity } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { NavigationLoader } from "./NavigationLoader";
 import { InteractionGuideModal } from "./framework";
+import { GenerationStatusBar } from "./GenerationStatusBar";
 import { useAuth } from "../contexts/AuthContext";
 
 // Storage key for tracking first visit
@@ -117,6 +118,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-adl-gradient">
+      {/* Global AI Generation Status Bar */}
+      <GenerationStatusBar />
+      
       {/* Navigation Loader Overlay */}
       <NavigationLoader isLoading={isNavigating} targetPath={targetPath} />
       

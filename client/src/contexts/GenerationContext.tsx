@@ -2,11 +2,16 @@
  * Arthur D. Little - Global Health Platform
  * Generation Context
  * 
- * Tracks batch report generation status across the app.
- * Persists to localStorage so status survives page refresh.
+ * Tracks batch report and insight generation status across the app.
+ * Supports:
+ * - Multiple parallel generations for different countries
+ * - Persistent status across navigation (localStorage)
+ * - Real-time polling updates from backend
+ * - Background generation that continues when user navigates away
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { apiClient } from "../services/api";
 
 // Generation status for a single country
 export interface GenerationStatus {
@@ -15,16 +20,22 @@ export interface GenerationStatus {
   startedAt: string; // ISO date string for localStorage compatibility
   completed: number;
   total: number;
-  inProgress: string; // Current pillar being generated
-  results: Record<string, string>; // pillar_id -> status
+  inProgress: string; // Current category being generated
+  results: Record<string, string>; // category -> status
   message: string;
+  type: "insights" | "reports"; // Type of generation
+  failed: number;
+  errors: Array<{ category: string; error: string }>;
 }
 
 interface GenerationContextType {
   // Active generations map (isoCode -> status)
   activeGenerations: Record<string, GenerationStatus>;
   
-  // Start tracking a generation
+  // Start insight generation for a country (calls backend and starts polling)
+  startInsightGeneration: (isoCode: string, countryName: string) => Promise<void>;
+  
+  // Start tracking a generation (legacy - for reports)
   startGeneration: (isoCode: string, countryName: string) => void;
   
   // Update generation progress
@@ -38,6 +49,12 @@ interface GenerationContextType {
   
   // Get generation status for a country
   getGenerationStatus: (isoCode: string) => GenerationStatus | null;
+  
+  // Resume polling for a country (when returning to page)
+  resumePolling: (isoCode: string) => void;
+  
+  // Check if any generation is active
+  hasActiveGenerations: boolean;
 }
 
 const STORAGE_KEY = "gohip_active_generations";
@@ -46,6 +63,7 @@ const GenerationContext = createContext<GenerationContextType | undefined>(undef
 
 export function GenerationProvider({ children }: { children: React.ReactNode }) {
   const [activeGenerations, setActiveGenerations] = useState<Record<string, GenerationStatus>>({});
+  const pollingRefs = useRef<Record<string, NodeJS.Timeout | null>>({});
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -64,6 +82,13 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           }
         });
         setActiveGenerations(filtered);
+        
+        // Resume polling for any that were in progress
+        Object.keys(filtered).forEach(isoCode => {
+          if (filtered[isoCode].type === "insights") {
+            // Will start polling when component mounts
+          }
+        });
       }
     } catch (e) {
       console.error("Failed to load generation status from localStorage:", e);
@@ -83,6 +108,182 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     }
   }, [activeGenerations]);
 
+  // Poll backend for generation status
+  const pollInsightStatus = useCallback(async (isoCode: string) => {
+    // Clear existing polling interval if any
+    if (pollingRefs.current[isoCode]) {
+      clearInterval(pollingRefs.current[isoCode]!);
+    }
+
+    const poll = async () => {
+      try {
+        const response = await apiClient.get<{
+          is_generating: boolean;
+          status: string;
+          total: number;
+          completed: number;
+          failed: number;
+          current_category: string | null;
+          errors: Array<{ category: string; error: string }>;
+        }>(`/api/v1/insights/${isoCode}/generation-status`);
+
+        const data = response.data;
+
+        setActiveGenerations(prev => {
+          if (!prev[isoCode]) return prev;
+          return {
+            ...prev,
+            [isoCode]: {
+              ...prev[isoCode],
+              completed: data.completed,
+              total: data.total,
+              failed: data.failed,
+              inProgress: data.current_category || "",
+              errors: data.errors || [],
+              message: data.is_generating 
+                ? `Generating ${data.current_category || "..."}` 
+                : data.status === "completed" 
+                  ? "Generation complete" 
+                  : `Completed with ${data.failed} errors`,
+            },
+          };
+        });
+
+        // Stop polling if generation is complete
+        if (!data.is_generating) {
+          if (pollingRefs.current[isoCode]) {
+            clearInterval(pollingRefs.current[isoCode]!);
+            pollingRefs.current[isoCode] = null;
+          }
+          
+          // Auto-remove completed generations after 8 seconds
+          if (data.status === "completed") {
+            setTimeout(() => {
+              setActiveGenerations(prev => {
+                const updated = { ...prev };
+                if (updated[isoCode]?.message === "Generation complete") {
+                  delete updated[isoCode];
+                }
+                return updated;
+              });
+            }, 8000);
+          }
+        }
+      } catch (error) {
+        console.error(`[GenerationContext] Poll error for ${isoCode}:`, error);
+      }
+    };
+
+    // Initial poll
+    await poll();
+    
+    // Continue polling every 3 seconds if still in activeGenerations
+    pollingRefs.current[isoCode] = setInterval(poll, 3000);
+  }, []);
+
+  // Start insight generation for a country
+  const startInsightGeneration = useCallback(async (isoCode: string, countryName: string) => {
+    // Check if already generating
+    if (activeGenerations[isoCode]) {
+      console.log(`[GenerationContext] Already tracking ${isoCode}`);
+      // Resume polling if needed
+      if (!pollingRefs.current[isoCode] && activeGenerations[isoCode].type === "insights") {
+        pollInsightStatus(isoCode);
+      }
+      return;
+    }
+
+    // Initialize status
+    setActiveGenerations(prev => ({
+      ...prev,
+      [isoCode]: {
+        isoCode,
+        countryName,
+        startedAt: new Date().toISOString(),
+        completed: 0,
+        total: 6,
+        inProgress: "initializing",
+        results: {},
+        message: "Starting AI generation...",
+        type: "insights",
+        failed: 0,
+        errors: [],
+      },
+    }));
+
+    try {
+      // Call initialize endpoint
+      const response = await apiClient.post<{
+        status: string;
+        existing: number;
+        missing: number;
+        total_categories: number;
+        categories_to_generate: string[];
+      }>(`/api/v1/insights/${isoCode}/initialize`);
+
+      console.log(`[GenerationContext] Started generation for ${isoCode}:`, response.data);
+
+      if (response.data.status === "already_complete") {
+        setActiveGenerations(prev => ({
+          ...prev,
+          [isoCode]: {
+            ...prev[isoCode],
+            completed: response.data.existing,
+            total: response.data.total_categories,
+            message: "All insights ready",
+          },
+        }));
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          setActiveGenerations(prev => {
+            const updated = { ...prev };
+            delete updated[isoCode];
+            return updated;
+          });
+        }, 3000);
+      } else if (response.data.status === "started" || response.data.status === "generating") {
+        // Start polling
+        setActiveGenerations(prev => ({
+          ...prev,
+          [isoCode]: {
+            ...prev[isoCode],
+            total: response.data.missing,
+            message: `Generating ${response.data.missing} insights...`,
+          },
+        }));
+        pollInsightStatus(isoCode);
+      } else if (response.data.status === "missing_content") {
+        // Non-admin - remove status
+        setActiveGenerations(prev => {
+          const updated = { ...prev };
+          delete updated[isoCode];
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error(`[GenerationContext] Failed to start generation for ${isoCode}:`, error);
+      setActiveGenerations(prev => ({
+        ...prev,
+        [isoCode]: {
+          ...prev[isoCode],
+          message: "Generation failed to start",
+          failed: 1,
+          errors: [{ category: "init", error: String(error) }],
+        },
+      }));
+    }
+  }, [activeGenerations, pollInsightStatus]);
+
+  // Resume polling for a country (when returning to page)
+  const resumePolling = useCallback((isoCode: string) => {
+    const status = activeGenerations[isoCode];
+    if (status && status.type === "insights" && !pollingRefs.current[isoCode]) {
+      pollInsightStatus(isoCode);
+    }
+  }, [activeGenerations, pollInsightStatus]);
+
+  // Legacy start generation (for reports)
   const startGeneration = useCallback((isoCode: string, countryName: string) => {
     setActiveGenerations(prev => ({
       ...prev,
@@ -95,6 +296,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         inProgress: "",
         results: {},
         message: "Starting generation...",
+        type: "reports",
+        failed: 0,
+        errors: [],
       },
     }));
   }, []);
@@ -113,6 +317,11 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const completeGeneration = useCallback((isoCode: string) => {
+    // Clear polling
+    if (pollingRefs.current[isoCode]) {
+      clearInterval(pollingRefs.current[isoCode]!);
+      pollingRefs.current[isoCode] = null;
+    }
     setActiveGenerations(prev => {
       const { [isoCode]: removed, ...rest } = prev;
       return rest;
@@ -127,15 +336,29 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     return activeGenerations[isoCode] || null;
   }, [activeGenerations]);
 
+  const hasActiveGenerations = Object.keys(activeGenerations).length > 0;
+
+  // Cleanup polling intervals on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pollingRefs.current).forEach(interval => {
+        if (interval) clearInterval(interval);
+      });
+    };
+  }, []);
+
   return (
     <GenerationContext.Provider
       value={{
         activeGenerations,
+        startInsightGeneration,
         startGeneration,
         updateGeneration,
         completeGeneration,
         isGenerating,
         getGenerationStatus,
+        resumePolling,
+        hasActiveGenerations,
       }}
     >
       {children}

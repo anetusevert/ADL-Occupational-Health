@@ -11,7 +11,7 @@
  * ALL tiles (Economic, Pillars, Country Insights) open the CentralInsightModal.
  */
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,7 @@ import { apiClient, aiApiClient } from "../services/api";
 import { CountryFlag } from "../components/CountryFlag";
 import { getEffectiveOHIScore } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
+import { useGeneration } from "../contexts/GenerationContext";
 import { EconomicQuadrant } from "../components/dashboard/EconomicQuadrant";
 import { PillarQuadrant } from "../components/dashboard/PillarQuadrant";
 import { SlideshowQuadrant } from "../components/dashboard/SlideshowQuadrant";
@@ -153,163 +154,72 @@ export function CountryDashboard() {
 
   const queryClient = useQueryClient();
   
+  // Use global generation context for persistent status across navigation
+  const { 
+    startInsightGeneration, 
+    getGenerationStatus, 
+    isGenerating: isCountryGenerating,
+    resumePolling,
+    completeGeneration,
+  } = useGeneration();
+  
+  // Get current generation status for this country
+  const generationStatus = iso ? getGenerationStatus(iso) : null;
+  const isInitializing = generationStatus !== null;
+  const initStatus = generationStatus?.message?.includes("complete") || generationStatus?.message?.includes("ready") 
+    ? "complete" 
+    : generationStatus?.failed && generationStatus.failed > 0 
+      ? "error" 
+      : generationStatus 
+        ? "generating" 
+        : "idle";
+  const generationProgress = generationStatus?.message || "";
+  
   // Auto-initialize country insights when admin visits (generates all 6 tiles)
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [initStatus, setInitStatus] = useState<"idle" | "generating" | "complete" | "error">("idle");
-  const [generationProgress, setGenerationProgress] = useState<string>("");
-  
-  // Poll for generation status
-  const pollGenerationStatus = useCallback(async (countryIso: string) => {
-    let attempts = 0;
-    const maxAttempts = 60; // 5 minutes max (5s intervals)
-    
-    const checkStatus = async (): Promise<boolean> => {
-      try {
-        const response = await apiClient.get<{
-          is_generating: boolean;
-          status: string;
-          total: number;
-          completed: number;
-          failed: number;
-          current_category: string | null;
-          errors: Array<{ category: string; error: string }>;
-        }>(`/api/v1/insights/${countryIso}/generation-status`);
-        
-        const data = response.data;
-        
-        if (data.is_generating) {
-          const progress = data.current_category 
-            ? `Generating ${data.current_category}... (${data.completed}/${data.total})`
-            : `Generating... (${data.completed}/${data.total})`;
-          setGenerationProgress(progress);
-          return false; // Keep polling
-        }
-        
-        // Generation complete
-        if (data.status === "completed" || data.status === "partial") {
-          setInitStatus("complete");
-          const hasErrors = data.failed > 0;
-          setGenerationProgress(
-            hasErrors 
-              ? `Generated ${data.completed}/${data.total} (${data.failed} failed)`
-              : `All ${data.completed} insights ready`
-          );
-          queryClient.invalidateQueries({ queryKey: ["insights", countryIso] });
-          return true; // Stop polling
-        }
-        
-        if (data.status === "failed") {
-          setInitStatus("error");
-          setGenerationProgress("Generation failed");
-          return true; // Stop polling
-        }
-        
-        return data.status === "idle"; // Stop if idle
-      } catch (error) {
-        console.warn("[CountryDashboard] Status poll error:", error);
-        return false;
-      }
-    };
-    
-    while (attempts < maxAttempts) {
-      const done = await checkStatus();
-      if (done) break;
-      await new Promise(resolve => setTimeout(resolve, 5000)); // 5s interval
-      attempts++;
-    }
-    
-    // Clear status after 3 seconds
-    setTimeout(() => {
-      setInitStatus("idle");
-      setGenerationProgress("");
-      setIsInitializing(false);
-    }, 3000);
-  }, [queryClient]);
-  
   useEffect(() => {
     if (!iso || !isAdmin || !currentCountry) return;
     
-    const initializeInsights = async () => {
-      try {
-        setIsInitializing(true);
-        setInitStatus("generating");
-        setGenerationProgress("Initializing insights...");
-        
-        // Call initialize endpoint - now returns immediately for background generation
-        const response = await apiClient.post<{
-          status: string;
-          existing: number;
-          missing: number;
-          total_categories: number;
-          categories_to_generate: string[];
-          errors?: Array<{ category: string; error: string }>;
-        }>(`/api/v1/insights/${iso}/initialize`);
-        
-        console.log(`[CountryDashboard] Initialized insights for ${iso}:`, response.data);
-        
-        if (response.data.status === "already_complete") {
-          setInitStatus("complete");
-          setGenerationProgress("All insights ready");
-          setTimeout(() => {
-            setInitStatus("idle");
-            setGenerationProgress("");
-            setIsInitializing(false);
-          }, 2000);
-        } else if (response.data.status === "started" || response.data.status === "generating") {
-          // Background generation started - poll for progress
-          setGenerationProgress(`Starting generation of ${response.data.missing} insights...`);
-          pollGenerationStatus(iso);
-        } else if (response.data.status === "missing_content") {
-          // Non-admin or content missing
-          setInitStatus("idle");
-          setGenerationProgress("");
-          setIsInitializing(false);
-        } else {
-          // Other status (partial, generated with errors)
-          if (response.data.errors && response.data.errors.length > 0) {
-            console.error(`[CountryDashboard] AI Generation Errors for ${iso}:`, response.data.errors);
-          }
-          setInitStatus("complete");
-          setGenerationProgress(`Generated ${response.data.existing}/${response.data.total_categories} insights`);
-          queryClient.invalidateQueries({ queryKey: ["insights", iso] });
-          setTimeout(() => {
-            setInitStatus("idle");
-            setGenerationProgress("");
-            setIsInitializing(false);
-          }, 3000);
-        }
-        
-      } catch (error) {
-        console.warn(`[CountryDashboard] Auto-init failed for ${iso}:`, error);
-        setInitStatus("error");
-        setGenerationProgress("Generation unavailable");
-        setTimeout(() => {
-          setInitStatus("idle");
-          setGenerationProgress("");
-          setIsInitializing(false);
-        }, 3000);
-      }
-    };
+    // If already tracking this country, just resume polling
+    if (isCountryGenerating(iso)) {
+      resumePolling(iso);
+      return;
+    }
     
-    initializeInsights();
-  }, [iso, isAdmin, currentCountry, queryClient, pollGenerationStatus]);
+    // Start generation for this country
+    startInsightGeneration(iso, currentCountry.name);
+  }, [iso, isAdmin, currentCountry, startInsightGeneration, isCountryGenerating, resumePolling]);
+  
+  // Invalidate queries when generation completes
+  useEffect(() => {
+    if (generationStatus?.message === "Generation complete" || generationStatus?.message === "All insights ready") {
+      queryClient.invalidateQueries({ queryKey: ["insights", iso] });
+    }
+  }, [generationStatus?.message, iso, queryClient]);
 
   // Regenerate all insights (admin only)
   const handleRegenerateAll = async () => {
+    if (!iso || !isAdmin || isInitializing || !currentCountry) return;
+    
+    // Clear existing status and start fresh
+    completeGeneration(iso);
+    
+    // Start new generation via context
+    await startInsightGeneration(iso, currentCountry.name);
+  };
+  
+  // Legacy regenerate-all handler (for backwards compatibility with explicit regenerate)
+  const handleForceRegenerateAll = async () => {
     if (!iso || !isAdmin || isInitializing) return;
     
     try {
-      setIsInitializing(true);
-      setInitStatus("generating");
-      setGenerationProgress("Regenerating all insights...");
-      
       const response = await aiApiClient.post<{
         successful: number;
         failed: number;
         total_categories: number;
+        errors?: Array<{ category: string; error: string }>;
       }>(`/api/v1/insights/${iso}/regenerate-all`);
       
-      console.log(`[CountryDashboard] Regenerated all insights for ${iso}:`, response.data);
+      console.log(`[CountryDashboard] Force regenerated all insights for ${iso}:`, response.data);
       
       // Log detailed errors if any
       if (response.data.errors && response.data.errors.length > 0) {
@@ -318,27 +228,11 @@ export function CountryDashboard() {
         );
       }
       
-      setInitStatus("complete");
-      setGenerationProgress(`Regenerated ${response.data.successful}/${response.data.total_categories} insights`);
-      
       // Invalidate cached data
       queryClient.invalidateQueries({ queryKey: ["insights", iso] });
       
-      setTimeout(() => {
-        setInitStatus("idle");
-        setGenerationProgress("");
-      }, 3000);
-      
     } catch (error) {
-      console.error(`[CountryDashboard] Regenerate-all failed:`, error);
-      setInitStatus("error");
-      setGenerationProgress("Regeneration failed");
-      setTimeout(() => {
-        setInitStatus("idle");
-        setGenerationProgress("");
-      }, 3000);
-    } finally {
-      setIsInitializing(false);
+      console.error(`[CountryDashboard] Force regenerate-all failed:`, error);
     }
   };
 
