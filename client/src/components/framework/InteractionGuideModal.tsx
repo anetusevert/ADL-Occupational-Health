@@ -5086,109 +5086,6 @@ function UnifiedFrameworkVisual() {
 
       {/* Main Visualization Area - CENTERED */}
       <div className="flex-1 relative min-h-0 flex items-center justify-center">
-        {/* SVG Layer for Flow Animations */}
-        <svg 
-          className="absolute inset-0 w-full h-full pointer-events-none" 
-          viewBox="0 0 100 100" 
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            {/* Enhanced gradients with glow */}
-            {['Purple', 'Blue', 'Emerald', 'Amber', 'Rose', 'Orange', 'Indigo', 'Teal'].map((color) => (
-              <linearGradient key={color} id={`flowGradient${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={getColorRgba(color.toLowerCase(), 0.9)} />
-                <stop offset="50%" stopColor={getColorRgba(color.toLowerCase(), 0.6)} />
-                <stop offset="100%" stopColor={getColorRgba(color.toLowerCase(), 0.3)} />
-              </linearGradient>
-            ))}
-            
-            {/* Enhanced glow filter */}
-            <filter id="flowGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="0.8" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            
-            {/* Particle trail filter */}
-            <filter id="particleGlow" x="-200%" y="-200%" width="500%" height="500%">
-              <feGaussianBlur stdDeviation="1.2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Flow lines from sources to framework blocks - showing data points */}
-          {frameworkDataSources.map((source, sourceIndex) => {
-            const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
-            const showFlow = isFlowActive(sourceIndex);
-            
-            // Get pillar color for the flow line based on target
-            const getPillarColor = (targetId: string) => {
-              const pillarColors: Record<string, string> = {
-                governance: 'purple',
-                pillar1: 'blue',
-                pillar2: 'emerald',
-                pillar3: 'amber'
-              };
-              return pillarColors[targetId] || 'cyan';
-            };
-            
-            return source.feedsInto.map((targetId, flowIndex) => {
-              const targetPos = getBlockPosition(targetId);
-              const path = calculateFlowPath(sourcePos, targetPos);
-              const pillarColor = getPillarColor(targetId);
-              const gradientId = `flowGradient${pillarColor.charAt(0).toUpperCase() + pillarColor.slice(1)}`;
-              
-              // Flow animation timing
-              const flowDelay = 0.3 + flowIndex * 0.15;
-              
-              return (
-                <g key={`${source.id}-${targetId}`}>
-                  {/* Subtle flow line - not glowing constantly */}
-                  <motion.path
-                    d={path}
-                    stroke={getColorRgba(pillarColor, 0.15)}
-                    strokeWidth="1.5"
-                    fill="none"
-                    strokeDasharray="4 4"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={showFlow ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                    transition={{ 
-                      duration: 0.6, 
-                      delay: flowDelay,
-                      ease: "easeOut" 
-                    }}
-                  />
-                  
-                  {/* Active flow line when data is traveling */}
-                  <motion.path
-                    d={path}
-                    stroke={getColorRgba(pillarColor, 0.6)}
-                    strokeWidth="2"
-                    fill="none"
-                    filter="url(#flowGlow)"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={showFlow ? { 
-                      pathLength: [0, 1],
-                      opacity: [0, 0.8, 0.4]
-                    } : { pathLength: 0, opacity: 0 }}
-                    transition={{ 
-                      duration: 1.2, 
-                      delay: flowDelay + 0.4,
-                      ease: "easeOut" 
-                    }}
-                  />
-                </g>
-              );
-            });
-          })}
-        </svg>
 
         {/* Data Source Badges - Neutral styling with accent indicators */}
         <div className="absolute inset-0">
@@ -5257,13 +5154,13 @@ function UnifiedFrameworkVisual() {
           })}
         </div>
         
-        {/* Data Point Chips - Flying into framework pillars */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* Data Point Chips - Flying from source to framework pillars */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {frameworkDataSources.map((source, sourceIndex) => {
             const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
             const isActive = isFlowActive(sourceIndex);
             
-            // Get pillar color
+            // Get pillar color for styling
             const getPillarColor = (targetId: string) => {
               const pillarColors: Record<string, string> = {
                 governance: 'purple',
@@ -5274,44 +5171,62 @@ function UnifiedFrameworkVisual() {
               return pillarColors[targetId] || 'cyan';
             };
             
+            // Get target position adjusted for the framework layout
+            const getTargetDisplayPos = (targetId: string) => {
+              // These match the visual positions of the framework blocks on screen
+              const positions: Record<string, { x: number; y: number }> = {
+                governance: { x: 50, y: 45 },  // Center top - governance block
+                pillar1: { x: 30, y: 68 },     // Left - Hazard Prevention
+                pillar2: { x: 50, y: 68 },     // Center - Surveillance
+                pillar3: { x: 70, y: 68 },     // Right - Restoration
+              };
+              return positions[targetId] || { x: 50, y: 50 };
+            };
+            
             return source.dataPoints.map((dataPoint, dpIndex) => {
-              const targetPos = getBlockPosition(dataPoint.target);
+              const targetPos = getTargetDisplayPos(dataPoint.target);
               const pillarColor = getPillarColor(dataPoint.target);
-              const path = calculateFlowPath(sourcePos, targetPos);
-              const chipDelay = 0.5 + dpIndex * 0.25;
+              const chipDelay = 0.4 + dpIndex * 0.3;
               
               return (
                 <AnimatePresence key={`${source.id}-${dataPoint.label}`}>
                   {isActive && (
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.6 }}
+                      initial={{ 
+                        left: `${sourcePos.x}%`,
+                        top: `${sourcePos.y}%`,
+                        opacity: 0, 
+                        scale: 0.5,
+                        x: '-50%',
+                        y: '-50%'
+                      }}
                       animate={{ 
-                        opacity: [0, 1, 1, 0.8, 0],
-                        scale: [0.6, 1, 1, 0.9, 0.7],
-                        offsetDistance: ["0%", "100%"]
+                        left: [`${sourcePos.x}%`, `${sourcePos.x}%`, `${targetPos.x}%`],
+                        top: [`${sourcePos.y}%`, `${sourcePos.y + 5}%`, `${targetPos.y}%`],
+                        opacity: [0, 1, 1, 1, 0],
+                        scale: [0.5, 1, 1, 0.9, 0.6],
                       }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
                       transition={{ 
-                        duration: 1.6,
+                        duration: 2,
                         delay: chipDelay,
-                        ease: "easeInOut"
+                        ease: [0.4, 0, 0.2, 1],
+                        times: [0, 0.15, 0.8, 0.95, 1]
                       }}
-                      style={{ 
-                        position: 'absolute',
-                        offsetPath: `path("${path}")`,
-                        offsetRotate: '0deg'
+                      className="absolute flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-500/70 shadow-2xl z-30"
+                      style={{
+                        boxShadow: `0 0 20px 4px ${getColorRgba(pillarColor, 0.4)}`
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/95 border border-slate-600/60 shadow-xl"
                     >
-                      {/* Pillar color indicator dot - larger and brighter */}
+                      {/* Pillar color indicator dot */}
                       <div 
-                        className="w-2 h-2 rounded-full flex-shrink-0 shadow-sm"
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ 
                           backgroundColor: getColorRgba(pillarColor, 1),
-                          boxShadow: `0 0 6px 1px ${getColorRgba(pillarColor, 0.6)}`
+                          boxShadow: `0 0 8px 2px ${getColorRgba(pillarColor, 0.7)}`
                         }}
                       />
-                      <span className="text-[10px] sm:text-xs font-semibold text-white whitespace-nowrap">
+                      <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
                         {dataPoint.label}
                       </span>
                     </motion.div>
