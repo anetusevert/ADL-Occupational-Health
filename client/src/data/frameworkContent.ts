@@ -844,7 +844,28 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "cyan"
   },
-  // Slide 5: PILLAR I - GOVERNANCE (The Control Tower)
+  // Slide 5: THE WORKFORCE - Labor Force Lens (Worker Personas)
+  {
+    id: "workforce-lens",
+    type: "overview",
+    title: "The Labor Force Lens",
+    actionTitle: "Five Journeys. Five Realities. One System.",
+    subtitle: "Understanding Who We Protect",
+    content: "Saudi Arabia's workforce is not monolithic. Each segment—from Saudi professionals to migrant workers—faces distinct occupational health realities. Understanding these journeys is the first step to equitable protection.",
+    highlights: [
+      "13M+ workers across diverse segments",
+      "Coverage gaps create invisible risk pools",
+      "Journey-specific interventions needed",
+      "GOSI as the equalizer"
+    ],
+    stats: [
+      { value: "5", label: "Distinct Personas", color: "cyan" },
+      { value: "60%", label: "Full Coverage", color: "emerald" },
+      { value: "40%", label: "Coverage Gaps", color: "amber" }
+    ],
+    color: "purple"
+  },
+  // Slide 6: PILLAR I - GOVERNANCE (The Control Tower)
   {
     id: "governance",
     type: "component",

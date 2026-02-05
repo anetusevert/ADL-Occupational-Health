@@ -2060,6 +2060,286 @@ function ADLSolutionVisual() {
 }
 
 // ============================================================================
+// WORKFORCE LENS VISUAL - Labor Force Personas & Journeys
+// ============================================================================
+
+function WorkforceLensVisual() {
+  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
+  
+  // Worker personas based on KSA labor force composition
+  const personas = [
+    {
+      id: "saudi-male",
+      name: "Saudi Male Professional",
+      tagline: "The Backbone of Saudization",
+      avatar: "👨‍💼",
+      coverage: "full",
+      coverageLabel: "Full GOSI Coverage",
+      participation: "64%",
+      laborForce: "24%",
+      color: "emerald",
+      icon: Building2,
+      highlights: [
+        "Office & corporate sectors",
+        "Full medical coverage",
+        "Pension benefits",
+        "Disability insurance"
+      ]
+    },
+    {
+      id: "saudi-female",
+      name: "Saudi Female Professional",
+      tagline: "Vision 2030's Rising Force",
+      avatar: "👩‍💼",
+      coverage: "full",
+      coverageLabel: "Full GOSI Coverage",
+      participation: "34.5%",
+      laborForce: "12%",
+      color: "emerald",
+      icon: Users,
+      highlights: [
+        "Fastest growing segment",
+        "Equal coverage rights",
+        "Maternity provisions",
+        "Career protection"
+      ]
+    },
+    {
+      id: "migrant-construction",
+      name: "Migrant Construction Worker",
+      tagline: "Building the Kingdom",
+      avatar: "👷",
+      coverage: "partial",
+      coverageLabel: "Partial Coverage",
+      participation: "95%",
+      laborForce: "45%",
+      color: "amber",
+      icon: HardHat,
+      highlights: [
+        "High-risk industries",
+        "Basic medical only",
+        "Limited benefits",
+        "Coverage gaps"
+      ]
+    },
+    {
+      id: "domestic-worker",
+      name: "Domestic Worker",
+      tagline: "The Invisible Workforce",
+      avatar: "🏠",
+      coverage: "none",
+      coverageLabel: "No GOSI Coverage",
+      participation: "98%",
+      laborForce: "15%",
+      color: "red",
+      icon: Heart,
+      highlights: [
+        "Outside formal system",
+        "No injury protection",
+        "No pension access",
+        "Regulatory blind spot"
+      ]
+    },
+    {
+      id: "young-saudi",
+      name: "Young Saudi Worker",
+      tagline: "Tomorrow's Workforce",
+      avatar: "🧑‍🎓",
+      coverage: "full",
+      coverageLabel: "Full GOSI Coverage",
+      participation: "31.6%",
+      laborForce: "8%",
+      color: "emerald",
+      icon: TrendingUp,
+      highlights: [
+        "Entry-level positions",
+        "Training emphasis",
+        "Career development",
+        "Future contributors"
+      ]
+    }
+  ];
+
+  const getCoverageColor = (coverage: string) => {
+    switch (coverage) {
+      case "full": return { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", badge: "bg-emerald-500" };
+      case "partial": return { bg: "bg-amber-500/20", border: "border-amber-500/50", text: "text-amber-400", badge: "bg-amber-500" };
+      case "none": return { bg: "bg-red-500/20", border: "border-red-500/50", text: "text-red-400", badge: "bg-red-500" };
+      default: return { bg: "bg-slate-500/20", border: "border-slate-500/50", text: "text-slate-400", badge: "bg-slate-500" };
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
+      <ParticleField count={40} color="purple" speed="slow" />
+      
+      <FloatingGlowOrb color="purple" size="lg" position="top-left" delay={0} />
+      <FloatingGlowOrb color="cyan" size="md" position="bottom-right" delay={0.3} />
+
+      {/* Title Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center pt-3 pb-2 px-4 flex-shrink-0"
+      >
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1">
+          THE WORKFORCE: <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">UNDERSTANDING WHO WE PROTECT</span>
+        </h1>
+        <p className="text-white/60 text-xs sm:text-sm">
+          Five Distinct Journeys Through Saudi Arabia's Occupational Health System
+        </p>
+      </motion.div>
+
+      {/* Main Content - Persona Cards */}
+      <div className="flex-1 min-h-0 flex items-center justify-center px-3 sm:px-6 pb-4">
+        <div className="w-full max-w-6xl grid grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+          {personas.map((persona, index) => {
+            const coverageColors = getCoverageColor(persona.coverage);
+            const Icon = persona.icon;
+            const isHovered = hoveredPersona === persona.id;
+            
+            return (
+              <motion.div
+                key={persona.id}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.2 + index * 0.1, duration: 0.5, type: "spring" }}
+                onMouseEnter={() => setHoveredPersona(persona.id)}
+                onMouseLeave={() => setHoveredPersona(null)}
+                className={cn(
+                  "relative flex flex-col rounded-xl border backdrop-blur-md transition-all duration-300 cursor-pointer overflow-hidden",
+                  coverageColors.bg,
+                  coverageColors.border,
+                  isHovered ? "scale-105 shadow-xl z-10" : "scale-100"
+                )}
+              >
+                {/* Coverage Badge */}
+                <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-10">
+                  <motion.span 
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-wide",
+                      coverageColors.badge
+                    )}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                  >
+                    {persona.coverage === "full" ? "Full Coverage" : 
+                     persona.coverage === "partial" ? "Partial" : "No Coverage"}
+                  </motion.span>
+                  <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", coverageColors.text)} />
+                </div>
+
+                {/* Avatar & Name */}
+                <div className="pt-10 pb-2 px-2 sm:px-3 text-center">
+                  <motion.div 
+                    className="text-3xl sm:text-4xl lg:text-5xl mb-2"
+                    animate={isHovered ? { scale: 1.1, y: -5 } : { scale: 1, y: 0 }}
+                  >
+                    {persona.avatar}
+                  </motion.div>
+                  <h3 className={cn("text-[10px] sm:text-xs lg:text-sm font-bold leading-tight", coverageColors.text)}>
+                    {persona.name}
+                  </h3>
+                  <p className="text-[8px] sm:text-[10px] text-white/50 mt-0.5 italic">
+                    {persona.tagline}
+                  </p>
+                </div>
+
+                {/* Stats */}
+                <div className="px-2 sm:px-3 py-2 border-t border-white/10 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] sm:text-[10px] text-white/50">Participation</span>
+                    <span className={cn("text-[10px] sm:text-xs font-bold", coverageColors.text)}>
+                      {persona.participation}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] sm:text-[10px] text-white/50">Labor Force</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-white/70">
+                      {persona.laborForce}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Expanded Details on Hover */}
+                <AnimatePresence>
+                  {isHovered && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden border-t border-white/10"
+                    >
+                      <div className="px-2 sm:px-3 py-2 space-y-1">
+                        {persona.highlights.map((highlight, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="flex items-center gap-1"
+                          >
+                            <div className={cn("w-1 h-1 rounded-full flex-shrink-0", coverageColors.badge)} />
+                            <span className="text-[8px] sm:text-[9px] text-white/70">{highlight}</span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom Legend & Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1 }}
+        className="px-4 pb-3 flex-shrink-0"
+      >
+        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+          {/* Coverage Legend */}
+          <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-slate-700/50">
+            <span className="text-[10px] sm:text-xs text-white/50">GOSI Coverage:</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[10px] sm:text-xs text-emerald-400">Full</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-[10px] sm:text-xs text-amber-400">Partial</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-[10px] sm:text-xs text-red-400">None</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Key Insight */}
+          <motion.div 
+            className="flex items-center gap-2 bg-purple-900/30 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-purple-500/30"
+            animate={{ boxShadow: ["0 0 0 0 rgba(139,92,246,0)", "0 0 15px 3px rgba(139,92,246,0.3)", "0 0 0 0 rgba(139,92,246,0)"] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Lightbulb className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] sm:text-xs text-white/80">
+              <strong className="text-purple-400">40%</strong> of workforce faces coverage gaps or exclusions
+            </span>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================================
 // SUCCESS STORIES VISUAL - Premium detailed country case studies
 // ============================================================================
 
@@ -2538,6 +2818,7 @@ function getVisualForSlide(slideId: string, options: GetVisualOptions = {}) {
     case "global-challenge": return <GlobalChallengeVisual />;
     case "adl-solution": return <ADLSolutionVisual />;
     case "overview": return <TempleOverviewVisual />;
+    case "workforce-lens": return <WorkforceLensVisual />;
     case "governance": return <GovernanceVisual onInsightClick={onInsightClick} />;
     case "pillar-1": return <HazardPreventionVisual onInsightClick={onInsightClick} />;
     case "pillar-2": return <SurveillanceVisual onInsightClick={onInsightClick} />;
@@ -7260,6 +7541,7 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
     "global-challenge": 10,
     "adl-solution": 10,
     "overview": 12,
+    "workforce-lens": 12,
     "governance": 12,
     "pillar-1": 10,
     "pillar-2": 10,
