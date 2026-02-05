@@ -46,7 +46,7 @@ const pageVariants = {
 };
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
   const [isNavigating, setIsNavigating] = useState(false);
   const [targetPath, setTargetPath] = useState(location.pathname);
@@ -118,8 +118,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-adl-gradient">
-      {/* Global AI Generation Status Bar */}
-      <GenerationStatusBar />
+      {/* Global AI Generation Status Bar - Admin only */}
+      {isAdmin && <GenerationStatusBar />}
       
       {/* Navigation Loader Overlay */}
       <NavigationLoader isLoading={isNavigating} targetPath={targetPath} />
