@@ -5234,19 +5234,19 @@ function UnifiedFrameworkVisual() {
         </div>
 
         {/* Framework Temple Structure - CENTERED */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pt-16 sm:pt-20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pt-12 sm:pt-16">
           {/* Governance - Roof with dramatic entrance */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: -50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, type: "spring", stiffness: 100, damping: 15 }}
-            className="w-full max-w-md px-4 mb-3"
+            className="w-full max-w-lg lg:max-w-xl px-4 mb-4"
           >
             <motion.button
               onClick={() => setSelectedBlock(frameworkBlocks[0])}
               whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.97 }}
-              className={`w-full relative p-3 sm:p-4 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
+              className={`w-full relative p-4 sm:p-5 lg:p-6 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
               style={{ perspective: '1000px' }}
             >
               {/* Roof decorative top beam */}
@@ -5257,13 +5257,13 @@ function UnifiedFrameworkVisual() {
                 className="absolute -top-2 left-1/2 -translate-x-1/2 w-4/5 h-2 bg-gradient-to-r from-transparent via-purple-400/60 to-transparent rounded-full" 
               />
               
-              <div className="flex items-center justify-center gap-3 relative z-10">
-                <div className="p-2.5 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30">
-                  <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-purple-300" />
+              <div className="flex items-center justify-center gap-4 relative z-10">
+                <div className="p-3 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30">
+                  <Crown className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 text-purple-300" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-sm sm:text-lg font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
-                  <p className="text-[10px] sm:text-xs text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
+                  <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
+                  <p className="text-xs sm:text-sm text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
                 </div>
               </div>
               
@@ -5282,7 +5282,7 @@ function UnifiedFrameworkVisual() {
           </motion.div>
 
           {/* Pillars Row - Rise from bottom */}
-          <div className="w-full max-w-xl px-3 sm:px-4 grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="w-full max-w-2xl lg:max-w-3xl px-4 sm:px-6 grid grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {frameworkBlocks.slice(1).map((block, index) => {
               const Icon = block.icon;
               const pillarDelay = 0.6 + index * 0.2;
@@ -5295,7 +5295,7 @@ function UnifiedFrameworkVisual() {
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedBlock(block)}
-                  className={`relative p-3 sm:p-4 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
+                  className={`relative p-4 sm:p-5 lg:p-6 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
                 >
                   {/* Pillar top decoration with draw-in */}
                   <motion.div 
@@ -5309,15 +5309,15 @@ function UnifiedFrameworkVisual() {
                     }`} 
                   />
                   
-                  <div className="flex flex-col items-center gap-2 relative z-10">
-                    <div className={`p-2 sm:p-2.5 rounded-xl ${block.bgColor} border ${block.borderColor}`}>
-                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${block.textColor}`} />
+                  <div className="flex flex-col items-center gap-3 relative z-10">
+                    <div className={`p-2.5 sm:p-3 rounded-xl ${block.bgColor} border ${block.borderColor}`}>
+                      <Icon className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${block.textColor}`} />
                     </div>
                     <div className="text-center">
-                      <h3 className={`text-[11px] sm:text-sm font-bold ${block.textColor} leading-tight`}>
+                      <h3 className={`text-xs sm:text-base lg:text-lg font-bold ${block.textColor} leading-tight`}>
                         {block.title}
                       </h3>
-                      <p className="text-[8px] sm:text-[10px] text-white/50 mt-0.5">
+                      <p className="text-[9px] sm:text-xs text-white/50 mt-1">
                         {block.subtitle}
                       </p>
                     </div>
