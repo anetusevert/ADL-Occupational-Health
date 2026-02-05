@@ -161,102 +161,14 @@ async def startup_event():
     except Exception as e:
         print(f"ERROR creating database tables: {e}", flush=True)
     
-    # Run schema migrations - SIMPLIFIED: just try each migration, skip on error
-    # This avoids the inspector.get_columns() call which can hang
-    print("Running schema migrations (fire-and-forget)...", flush=True)
-    try:
-        with engine.connect() as conn:
-            # List of all potential migrations - just try them all, errors are OK
-            potential_migrations = [
-                # country_deep_dives
-                "ALTER TABLE country_deep_dives ADD COLUMN IF NOT EXISTS queue_position INTEGER",
-                # agents - make legacy columns nullable
-                "ALTER TABLE agents ALTER COLUMN category DROP NOT NULL",
-                "ALTER TABLE agents ALTER COLUMN workflow DROP NOT NULL",
-                "ALTER TABLE agents ALTER COLUMN input_schema DROP NOT NULL",
-                "ALTER TABLE agents ALTER COLUMN output_schema DROP NOT NULL",
-                # agents - add columns if missing (PostgreSQL 9.6+ supports IF NOT EXISTS)
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS position_x FLOAT DEFAULT 100",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS position_y FLOAT DEFAULT 100",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50)",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS llm_model_name VARCHAR(100)",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS workflow_id VARCHAR(50)",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS execution_count INTEGER DEFAULT 0",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
-                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
-            ]
-            
-            success = 0
-            for sql in potential_migrations:
-                try:
-                    conn.execute(text(sql))
-                    success += 1
-                except Exception:
-                    pass  # Column exists or other expected error
-            
-            conn.commit()
-            print(f"Schema migrations: {success}/{len(potential_migrations)} applied", flush=True)
-                
-    except Exception as e:
-        print(f"Migration error (non-fatal): {e}", flush=True)
+    # SKIP schema migrations - they cause connection hangs
+    # Base.metadata.create_all() already handles table creation
+    # Alembic migrations handle schema changes
+    print("Skipping schema migrations (handled by Alembic)", flush=True)
     
-    # Seed default agents on startup using RAW SQL to avoid ORM/schema mismatches
-    # OPTIMIZED: Single transaction, upsert pattern, minimal commits
-    print("Starting agent sync...", flush=True)
-    try:
-        from app.models.agent import DEFAULT_AGENTS
-        import json
-        
-        print(f"Syncing {len(DEFAULT_AGENTS)} agents...", flush=True)
-        with engine.connect() as conn:
-            # Make legacy columns nullable in one transaction
-            for col in ['category', 'workflow', 'input_schema', 'output_schema']:
-                try:
-                    conn.execute(text(f"ALTER TABLE agents ALTER COLUMN {col} DROP NOT NULL"))
-                except Exception:
-                    pass  # Column doesn't exist or already nullable
-            
-            # Use PostgreSQL UPSERT (ON CONFLICT) for efficient agent sync
-            upsert_sql = text("""
-                INSERT INTO agents (
-                    id, name, description, system_prompt, user_prompt_template,
-                    template_variables, icon, color, is_active, execution_count,
-                    created_at, updated_at
-                ) VALUES (
-                    :id, :name, :description, :system_prompt, :user_prompt_template,
-                    :template_variables, :icon, :color, TRUE, 0, NOW(), NOW()
-                )
-                ON CONFLICT (id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    description = EXCLUDED.description,
-                    system_prompt = EXCLUDED.system_prompt,
-                    user_prompt_template = EXCLUDED.user_prompt_template,
-                    template_variables = EXCLUDED.template_variables,
-                    icon = EXCLUDED.icon,
-                    color = EXCLUDED.color,
-                    updated_at = NOW()
-            """)
-            
-            for agent_data in DEFAULT_AGENTS:
-                conn.execute(upsert_sql, {
-                    "id": agent_data["id"],
-                    "name": agent_data["name"],
-                    "description": agent_data["description"],
-                    "system_prompt": agent_data["system_prompt"],
-                    "user_prompt_template": agent_data["user_prompt_template"],
-                    "template_variables": json.dumps(agent_data["template_variables"]),
-                    "icon": agent_data["icon"],
-                    "color": agent_data["color"],
-                })
-            
-            # Single commit for all operations
-            conn.commit()
-            print(f"Synced {len(DEFAULT_AGENTS)} agents successfully", flush=True)
-                
-    except Exception as e:
-        print(f"Agent seeding error (non-fatal): {e}", flush=True)
+    # SKIP agent seeding during startup - it causes connection hangs
+    # Agents will be seeded on first API request if needed
+    print("Skipping agent seeding during startup (will sync on first request)", flush=True)
     
     print("=" * 60, flush=True)
     print("STARTUP COMPLETE - Application ready!", flush=True)
