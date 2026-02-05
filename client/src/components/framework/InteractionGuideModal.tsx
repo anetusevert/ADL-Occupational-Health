@@ -5213,17 +5213,13 @@ function UnifiedFrameworkVisual() {
                         ease: [0.4, 0, 0.2, 1],
                         times: [0, 0.15, 0.8, 0.95, 1]
                       }}
-                      className="absolute flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-500/70 shadow-2xl z-30"
-                      style={{
-                        boxShadow: `0 0 20px 4px ${getColorRgba(pillarColor, 0.4)}`
-                      }}
+                      className="absolute flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-500/70 shadow-lg z-30"
                     >
                       {/* Pillar color indicator dot */}
                       <div 
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ 
-                          backgroundColor: getColorRgba(pillarColor, 1),
-                          boxShadow: `0 0 8px 2px ${getColorRgba(pillarColor, 0.7)}`
+                          backgroundColor: getColorRgba(pillarColor, 1)
                         }}
                       />
                       <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
@@ -5248,32 +5244,11 @@ function UnifiedFrameworkVisual() {
           >
             <motion.button
               onClick={() => setSelectedBlock(frameworkBlocks[0])}
-              whileHover={{ scale: 1.03, y: -4, boxShadow: `0 0 30px 8px ${getColorRgba('purple', 0.4)}` }}
+              whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.97 }}
               className={`w-full relative p-3 sm:p-4 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
               style={{ perspective: '1000px' }}
             >
-              {/* Glow effect - ONLY when receiving data */}
-              <AnimatePresence>
-                {isBlockReceiving('governance') && (
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl"
-                    initial={{ opacity: 0 }}
-                    animate={{ 
-                      opacity: 1,
-                      boxShadow: [
-                        `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
-                        `0 0 45px 12px ${getColorRgba('purple', 0.7)}`,
-                        `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
-                      ],
-                      scale: [1, 1.02, 1],
-                    }}
-                    exit={{ opacity: 0, scale: 1 }}
-                    transition={{ duration: 0.4, repeat: Infinity }}
-                  />
-                )}
-              </AnimatePresence>
-              
               {/* Roof decorative top beam */}
               <motion.div 
                 initial={{ scaleX: 0 }}
@@ -5317,32 +5292,11 @@ function UnifiedFrameworkVisual() {
                   initial={{ opacity: 0, y: 60, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ delay: pillarDelay, duration: 0.6, type: "spring", stiffness: 120, damping: 15 }}
-                  whileHover={{ scale: 1.05, y: -5, boxShadow: `0 0 25px 6px ${getColorRgba(block.color, 0.4)}` }}
+                  whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedBlock(block)}
                   className={`relative p-3 sm:p-4 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
                 >
-                  {/* Glow effect - ONLY when receiving data */}
-                  <AnimatePresence>
-                    {isBlockReceiving(block.id) && (
-                      <motion.div
-                        className="absolute inset-0 rounded-2xl"
-                        initial={{ opacity: 0 }}
-                        animate={{ 
-                          opacity: 1,
-                          boxShadow: [
-                            `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
-                            `0 0 45px 12px ${getColorRgba(block.color, 0.7)}`,
-                            `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
-                          ],
-                          scale: [1, 1.03, 1],
-                        }}
-                        exit={{ opacity: 0, scale: 1 }}
-                        transition={{ duration: 0.4, repeat: Infinity }}
-                      />
-                    )}
-                  </AnimatePresence>
-                  
                   {/* Pillar top decoration with draw-in */}
                   <motion.div 
                     initial={{ scaleX: 0 }}
