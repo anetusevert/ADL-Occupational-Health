@@ -514,7 +514,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
   };
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4 p-4 sm:p-5">
+    <div className="h-full flex flex-col lg:flex-row gap-4 p-4 sm:p-5 overflow-hidden">
       {/* Left side: Image only (no stats) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, x: -30 }}
@@ -524,7 +524,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
       >
         {insightData.images.length > 0 ? (
           <motion.div 
-            className="h-44 sm:h-52 lg:h-full lg:min-h-[280px] rounded-xl overflow-hidden relative"
+            className="h-44 sm:h-52 lg:h-full lg:max-h-[400px] rounded-xl overflow-hidden relative"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.3 }}
           >
@@ -540,7 +540,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
             </motion.div>
           </motion.div>
         ) : (
-          <div className="h-44 sm:h-52 lg:h-full lg:min-h-[280px] bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
+          <div className="h-44 sm:h-52 lg:h-full lg:max-h-[400px] bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
             <motion.div 
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -559,10 +559,10 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="flex-1 flex flex-col min-h-0 lg:min-h-[400px]"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
       >
         {/* Tab Navigation */}
-        <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4 relative">
+        <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4 relative flex-shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -587,7 +587,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
         </div>
 
         {/* Tab Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-4" style={{ minHeight: 0 }}>
           <AnimatePresence mode="wait">
             {activeTab === 'overview' ? (
               <motion.div
@@ -596,7 +596,6 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.25, ease: "easeInOut" }}
-                className="h-full"
               >
                 {/* Section Header */}
                 <motion.div 
@@ -644,7 +643,6 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.25, ease: "easeInOut" }}
-                className="h-full"
               >
                 {/* Section Header */}
                 <motion.div 
@@ -1087,7 +1085,7 @@ export function CentralInsightModal({
             </motion.div>
 
             {/* Content */}
-            <div className="relative flex-1 overflow-hidden">
+            <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
               {isLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
