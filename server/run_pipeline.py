@@ -168,7 +168,7 @@ def run_full_pipeline(
     fetch_flags: bool = True,
 ) -> Dict[str, Any]:
     """
-    Execute the full 5-Point Dragnet ETL pipeline.
+    Execute the full 9-Source Data Engine ETL pipeline.
     
     This is the canonical pipeline function called by both:
     - CLI: python run_pipeline.py
@@ -183,13 +183,20 @@ def run_full_pipeline(
     Returns:
         Summary dict with counts and statistics
     
-    The 5-Point Dragnet:
-    ====================
-    1. [DIRECT]   ILO Fatal Rate → Pillar 1: Fatal Accident Rate
-    2. [PROXY]    WHO Road Safety / 10 → Fallback for missing ILO data
-    3. [CONTEXT]  WB Governance → Strategic Capacity Score
-    4. [CONTEXT]  WB Vulnerable Employment → Pillar 2 Vulnerability
-    5. [CONTEXT]  WB Health Expenditure → Pillar 3 Rehab Proxy
+    The 9-Source Data Engine:
+    =========================
+    1. [CORE]    ILO Fatal Rate → Pillar 1: Fatal Accident Rate
+    2. [CORE]    WHO UHC Index → Pillar 2: Health Coverage
+    3. [CORE]    WHO Road Safety → Fallback for missing ILO data
+    4. [CORE]    World Bank Core → Governance, Vulnerable Emp, Health Exp
+    5. [INTEL]   World Bank Extended → GDP, Labor, Demographics
+    6. [INTEL]   TI Corruption Perceptions Index (CPI)
+    7. [INTEL]   UNDP Human Development Index (HDI)
+    8. [INTEL]   Yale Environmental Performance Index (EPI)
+    9. [INTEL]   IHME Global Burden of Disease (Occupational DALYs)
+    10. [INTEL]  World Justice Project Rule of Law Index
+    11. [INTEL]  OECD Work-Life Balance (OECD countries only)
+    12. [FLAGS]  Wikipedia → Country flag images
     """
     start_time = time.time()
     
@@ -204,8 +211,20 @@ def run_full_pipeline(
     # Initialize pipeline logger
     if use_pipeline_logger:
         pipeline_logger.start(total_countries)
-        pipeline_logger.phase("5-Point Dragnet ETL Pipeline")
+        pipeline_logger.phase("9-Source Data Engine ETL Pipeline")
         pipeline_logger.log(f"Processing {total_countries} countries")
+        pipeline_logger.log("=" * 50)
+        pipeline_logger.log("DATA SOURCES TO FETCH:")
+        pipeline_logger.log("  [1] ILO ILOSTAT - Fatal Occupational Injury Rates")
+        pipeline_logger.log("  [2] WHO GHO - UHC Index & Road Safety")
+        pipeline_logger.log("  [3] World Bank - Governance & Health Expenditure")
+        pipeline_logger.log("  [4] TI CPI - Corruption Perceptions Index")
+        pipeline_logger.log("  [5] UNDP HDI - Human Development Index")
+        pipeline_logger.log("  [6] Yale EPI - Environmental Performance Index")
+        pipeline_logger.log("  [7] IHME GBD - Occupational Disease Burden (DALYs)")
+        pipeline_logger.log("  [8] WJP - Rule of Law Index")
+        pipeline_logger.log("  [9] OECD - Work-Life Balance (OECD countries)")
+        pipeline_logger.log("=" * 50)
         pipeline_logger.log(f"Flags: {'Enabled' if fetch_flags else 'Disabled'}")
     
     # Initialize ETL clients
@@ -302,8 +321,96 @@ def run_full_pipeline(
                         pipeline_logger.warning(f"  Using WHO proxy fatal rate: {fatal_rate}")
                 
                 # =====================================================================
-                # STEP 4: Calculate Pillar Scores
+                # STEP 4: Fetch Intelligence Data (6 Additional Sources)
                 # =====================================================================
+                intel_sources_fetched = []
+                
+                # SOURCE 4: Transparency International CPI
+                cpi_data = get_cpi_data(iso_code)
+                if cpi_data:
+                    cpi_score = cpi_data.get("score")
+                    cpi_rank = cpi_data.get("rank")
+                    intel_sources_fetched.append("CPI")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  TI CPI: Score={cpi_score}, Rank={cpi_rank}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  TI CPI: No data")
+                
+                # SOURCE 5: UNDP Human Development Index
+                hdi_data = get_hdi_data(iso_code)
+                if hdi_data:
+                    hdi_score = hdi_data.get("score")
+                    hdi_rank = hdi_data.get("rank")
+                    intel_sources_fetched.append("HDI")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  UNDP HDI: Score={hdi_score:.3f}, Rank={hdi_rank}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  UNDP HDI: No data")
+                
+                # SOURCE 6: Yale Environmental Performance Index
+                epi_data = get_epi_data(iso_code)
+                if epi_data:
+                    epi_score = epi_data.get("score")
+                    epi_rank = epi_data.get("rank")
+                    epi_air = epi_data.get("air_quality")
+                    intel_sources_fetched.append("EPI")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  Yale EPI: Score={epi_score:.1f}, Rank={epi_rank}, Air={epi_air}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  Yale EPI: No data")
+                
+                # SOURCE 7: IHME Global Burden of Disease
+                gbd_data = get_ihme_gbd_data(iso_code)
+                if gbd_data:
+                    daly_total = gbd_data.get("daly_occupational_total")
+                    deaths_total = gbd_data.get("deaths_occupational_total")
+                    intel_sources_fetched.append("IHME_GBD")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  IHME GBD: DALYs={daly_total}, Deaths={deaths_total}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  IHME GBD: No data")
+                
+                # SOURCE 8: World Justice Project Rule of Law
+                wjp_data = get_wjp_data(iso_code)
+                if wjp_data:
+                    rol_index = wjp_data.get("rule_of_law_index")
+                    reg_enforcement = wjp_data.get("regulatory_enforcement")
+                    intel_sources_fetched.append("WJP")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  WJP Rule of Law: Index={rol_index:.2f}, Enforcement={reg_enforcement:.2f}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  WJP Rule of Law: No data")
+                
+                # SOURCE 9: OECD Work-Life Balance (OECD countries only)
+                oecd_data = get_oecd_data(iso_code)
+                if oecd_data:
+                    work_life = oecd_data.get("work_life_balance")
+                    hours_annual = oecd_data.get("hours_worked_annual")
+                    intel_sources_fetched.append("OECD")
+                    if use_pipeline_logger:
+                        pipeline_logger.success(f"  OECD Work-Life: Balance={work_life:.1f}, Hours/yr={hours_annual}")
+                else:
+                    if use_pipeline_logger:
+                        pipeline_logger.log(f"  OECD Work-Life: No data (non-OECD)")
+                
+                # Log intelligence summary
+                if use_pipeline_logger:
+                    if intel_sources_fetched:
+                        pipeline_logger.log(f"  Intelligence Sources: {', '.join(intel_sources_fetched)} ({len(intel_sources_fetched)}/6)")
+                    else:
+                        pipeline_logger.log(f"  Intelligence Sources: None available")
+                
+                # =====================================================================
+                # STEP 5: Calculate Pillar Scores
+                # =====================================================================
+                if use_pipeline_logger:
+                    pipeline_logger.log(f"  Calculating pillar scores...")
+                    
                 scores = calculate_pillar_scores(
                     fatal_rate=fatal_rate,
                     gov_effectiveness=gov_effectiveness,
@@ -316,7 +423,7 @@ def run_full_pipeline(
                     pipeline_logger.log(f"  Scores: Gov={scores['governance_score']}, P1={scores['pillar1_score']}, P2={scores['pillar2_score']}, P3={scores['pillar3_score']}")
                 
                 # =====================================================================
-                # STEP 5: Upsert to Database
+                # STEP 6: Upsert Core Data to Database
                 # =====================================================================
                 
                 # Get or create Country record
@@ -429,7 +536,26 @@ def run_full_pipeline(
                     logger.warning(f"Could not calculate maturity for {iso_code}: {e}")
                 
                 # =====================================================================
-                # STEP 6: Fetch Flag (if enabled)
+                # STEP 7: Save Intelligence Data (via IntelligencePipeline)
+                # =====================================================================
+                try:
+                    intel_pipeline = IntelligencePipeline(db)
+                    intel_result = intel_pipeline.process_country(iso_code)
+                    
+                    if intel_result["success"]:
+                        sources_saved = intel_result.get("sources_used", [])
+                        if use_pipeline_logger and sources_saved:
+                            pipeline_logger.success(f"  Intelligence saved: {', '.join(sources_saved)}")
+                    else:
+                        if use_pipeline_logger and intel_result.get("error"):
+                            pipeline_logger.warning(f"  Intelligence save warning: {intel_result['error']}")
+                except Exception as e:
+                    logger.warning(f"Intelligence pipeline failed for {iso_code}: {e}")
+                    if use_pipeline_logger:
+                        pipeline_logger.warning(f"  Intelligence pipeline error: {e}")
+                
+                # =====================================================================
+                # STEP 8: Fetch Flag (if enabled)
                 # =====================================================================
                 if fetch_flags:
                     # Check if flag already exists
@@ -451,9 +577,20 @@ def run_full_pipeline(
                 
                 # Mark country as complete
                 success_count += 1
+                
+                # Compile list of all data sources fetched for this country
+                all_sources = []
+                if fatal_rate is not None:
+                    all_sources.append("ILO")
+                if uhc_index is not None or road_safety is not None:
+                    all_sources.append("WHO")
+                if gov_effectiveness is not None or health_expenditure is not None:
+                    all_sources.append("WorldBank")
+                all_sources.extend(intel_sources_fetched)
+                
                 if use_pipeline_logger:
                     pipeline_logger.complete_country(iso_code, fatal_rate)
-                    pipeline_logger.success(f"  Saved {country_name} to database")
+                    pipeline_logger.success(f"  COMPLETE: {country_name} | Sources: {', '.join(all_sources) if all_sources else 'None'} ({len(all_sources)} sources)")
                 
             except Exception as e:
                 failed_count += 1
@@ -474,9 +611,24 @@ def run_full_pipeline(
         
         if use_pipeline_logger:
             pipeline_logger.phase("Pipeline Complete")
-            pipeline_logger.log(f"Processed: {success_count}/{total_countries} countries")
-            pipeline_logger.log(f"Failed: {failed_count} countries")
+            pipeline_logger.log("=" * 50)
+            pipeline_logger.log("9-SOURCE DATA ENGINE SUMMARY")
+            pipeline_logger.log("=" * 50)
+            pipeline_logger.log(f"Countries Processed: {success_count}/{total_countries}")
+            pipeline_logger.log(f"Countries Failed: {failed_count}")
             pipeline_logger.log(f"Duration: {elapsed:.1f}s")
+            pipeline_logger.log("=" * 50)
+            pipeline_logger.log("DATA SOURCES AVAILABLE:")
+            pipeline_logger.log("  [1] ILO ILOSTAT - Fetched via API")
+            pipeline_logger.log("  [2] WHO GHO - Fetched via API")
+            pipeline_logger.log("  [3] World Bank - Fetched via API")
+            pipeline_logger.log("  [4] TI CPI - Reference data")
+            pipeline_logger.log("  [5] UNDP HDI - Reference data")
+            pipeline_logger.log("  [6] Yale EPI - Reference data")
+            pipeline_logger.log("  [7] IHME GBD - Reference data")
+            pipeline_logger.log("  [8] WJP Rule of Law - Reference data")
+            pipeline_logger.log("  [9] OECD Work-Life - Reference data (OECD only)")
+            pipeline_logger.log("=" * 50)
             pipeline_logger.finish(success=failed_count == 0)
         
         return {
@@ -485,6 +637,17 @@ def run_full_pipeline(
             "processed": success_count,
             "failed": failed_count,
             "duration_seconds": round(elapsed, 1),
+            "data_sources": [
+                "ILO_ILOSTAT",
+                "WHO_GHO", 
+                "WORLD_BANK",
+                "TI_CPI",
+                "UNDP_HDI",
+                "YALE_EPI",
+                "IHME_GBD",
+                "WJP_ROL",
+                "OECD"
+            ],
         }
         
     except Exception as e:
@@ -532,7 +695,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     print("=" * 60)
-    print("GOHIP Platform - 5-Point Dragnet ETL Pipeline")
+    print("GOHIP Platform - 9-Source Data Engine ETL Pipeline")
+    print("=" * 60)
+    print("Data Sources:")
+    print("  [1] ILO ILOSTAT    [4] TI CPI     [7] IHME GBD")
+    print("  [2] WHO GHO        [5] UNDP HDI   [8] WJP Rule of Law")
+    print("  [3] World Bank     [6] Yale EPI   [9] OECD Work-Life")
     print("=" * 60)
     print()
     
