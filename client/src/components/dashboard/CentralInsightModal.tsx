@@ -469,6 +469,243 @@ function ImageSlideshow({ images, category }: { images: { url: string; alt: stri
   );
 }
 
+// ============================================================================
+// COUNTRY INSIGHT CONTENT - Premium Tabbed Layout with Enhanced Animations
+// ============================================================================
+
+interface CountryInsightContentProps {
+  insightData: InsightData;
+  config: CategoryConfig;
+  countryName: string;
+  Icon: React.ElementType;
+}
+
+function CountryInsightContent({ insightData, config, countryName, Icon }: CountryInsightContentProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'implications'>('overview');
+  
+  const tabs = [
+    { id: 'overview' as const, label: 'Overview', icon: Info },
+    { id: 'implications' as const, label: 'OH Implications', icon: HeartPulse },
+  ];
+
+  // Split content into paragraphs for staggered animation
+  const overviewParagraphs = insightData.whatIsAnalysis.split("\n\n").filter(p => p.trim());
+  const implicationsParagraphs = insightData.ohImplications.split("\n\n").filter(p => p.trim());
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const paragraphVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+    },
+  };
+
+  return (
+    <div className="h-full flex flex-col lg:flex-row gap-4 p-4 sm:p-5">
+      {/* Left side: Image only (no stats) */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, x: -30 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="lg:w-[30%] lg:max-w-[220px] flex-shrink-0"
+      >
+        {insightData.images.length > 0 ? (
+          <motion.div 
+            className="h-44 sm:h-52 lg:h-full lg:min-h-[280px] rounded-xl overflow-hidden relative"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ImageSlideshow images={insightData.images} category={config.title} />
+            {/* Decorative corner accent */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+              className={cn("absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center", config.bgColor, "backdrop-blur-sm")}
+            >
+              <Icon className={cn("w-4 h-4", config.color)} />
+            </motion.div>
+          </motion.div>
+        ) : (
+          <div className="h-44 sm:h-52 lg:h-full lg:min-h-[280px] bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
+            <motion.div 
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="text-center"
+            >
+              <Icon className={cn("w-12 h-12 mx-auto mb-2", config.color)} />
+              <p className="text-sm text-white/40">{config.title}</p>
+            </motion.div>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Right side: Tabbed content */}
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="flex-1 flex flex-col min-h-0 lg:min-h-[400px]"
+      >
+        {/* Tab Navigation */}
+        <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4 relative">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors z-10",
+                activeTab === tab.id ? "text-white" : "text-white/50 hover:text-white/70"
+              )}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTabBg"
+                  className={cn("absolute inset-0 rounded-lg", config.bgColor.replace("/20", "/30"))}
+                  style={{ zIndex: -1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+          <AnimatePresence mode="wait">
+            {activeTab === 'overview' ? (
+              <motion.div
+                key="overview"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="h-full"
+              >
+                {/* Section Header */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3 mb-5"
+                >
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                    className={cn("w-1.5 h-8 rounded-full", config.bgColor.replace("/20", ""))}
+                  />
+                  <div>
+                    <h3 className={cn("text-lg font-semibold", config.color)}>
+                      What is {countryName}'s {config.title}?
+                    </h3>
+                    <p className="text-xs text-white/40 mt-0.5">Country-specific analysis</p>
+                  </div>
+                </motion.div>
+
+                {/* Staggered Paragraphs */}
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-4"
+                >
+                  {overviewParagraphs.map((paragraph, i) => (
+                    <motion.p
+                      key={i}
+                      variants={paragraphVariants}
+                      className="text-[15px] text-white/85 leading-relaxed text-justify"
+                    >
+                      {paragraph}
+                    </motion.p>
+                  ))}
+                </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="implications"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="h-full"
+              >
+                {/* Section Header */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3 mb-5"
+                >
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                    className="w-1.5 h-8 rounded-full bg-cyan-500"
+                  />
+                  <div>
+                    <h3 className="text-lg font-semibold text-cyan-400">
+                      Occupational Health Perspective
+                    </h3>
+                    <p className="text-xs text-white/40 mt-0.5">Impact on worker safety and health</p>
+                  </div>
+                </motion.div>
+
+                {/* Staggered Paragraphs */}
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-4"
+                >
+                  {implicationsParagraphs.map((paragraph, i) => (
+                    <motion.p
+                      key={i}
+                      variants={paragraphVariants}
+                      className="text-[15px] text-white/85 leading-relaxed text-justify"
+                    >
+                      {paragraph}
+                    </motion.p>
+                  ))}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Footer with generation info */}
+        {insightData.generatedAt && insightData.isFromApi && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="pt-3 mt-3 border-t border-white/10 text-[10px] sm:text-xs text-white/40 flex items-center gap-2"
+          >
+            <Sparkles className="w-3 h-3" />
+            AI-generated: {new Date(insightData.generatedAt).toLocaleDateString()}
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
 function EconomicComparisonChart({ 
   countryValue, 
   countryName,
@@ -742,61 +979,111 @@ export function CentralInsightModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop with animated blur */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50"
+            className="fixed inset-0 bg-black/80 z-50"
           />
 
-          {/* Modal */}
+          {/* Modal with enhanced spring animation */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ type: "spring", damping: 30, stiffness: 400, mass: 0.8 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[85vh] bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
+            initial={{ opacity: 0, scale: 0.85, y: 60, rotateX: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ 
+              type: "spring", 
+              damping: 25, 
+              stiffness: 300, 
+              mass: 0.8,
+              opacity: { duration: 0.2 }
+            }}
+            style={{ perspective: 1000 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[85vh] bg-gradient-to-br from-slate-800 via-slate-850 to-slate-900 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
-            {/* Decorative gradient */}
-            <div className={cn("absolute top-0 left-0 right-0 h-32 bg-gradient-to-b opacity-50 pointer-events-none", config.gradient)} />
+            {/* Animated glow effect */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.5, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className={cn("absolute top-0 left-0 right-0 h-40 bg-gradient-to-b pointer-events-none", config.gradient)} 
+            />
+            
+            {/* Decorative corner accents */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 0.3, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className={cn("absolute top-0 left-0 w-32 h-32 bg-gradient-to-br rounded-br-full opacity-20 pointer-events-none", config.gradient)}
+            />
 
-            {/* Header */}
+            {/* Header with staggered animations */}
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
               className="relative flex items-center justify-between px-5 py-4 border-b border-white/10"
             >
               <div className="flex items-center gap-3">
                 <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", delay: 0.2 }}
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
                   className={cn("p-2.5 rounded-xl", config.bgColor, config.borderColor, "border")}
                 >
                   <Icon className={cn("w-5 h-5", config.color)} />
                 </motion.div>
-                <div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25, duration: 0.3 }}
+                >
                   {isCountryInsightCategory ? (
                     <>
                       <h2 className="text-lg font-bold text-white">{countryName} {config.title}</h2>
-                      <p className="text-xs text-cyan-400 font-medium">Occupational Health Perspective</p>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.35 }}
+                        className="text-xs text-cyan-400 font-medium"
+                      >
+                        Occupational Health Perspective
+                      </motion.p>
                     </>
                   ) : (
                     <>
                       <h2 className="text-lg font-bold text-white">{config.title}</h2>
-                      <p className="text-xs text-white/50">{countryName} • Global Comparison</p>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.35 }}
+                        className="text-xs text-white/50"
+                      >
+                        {countryName} • Global Comparison
+                      </motion.p>
                     </>
                   )}
-                </div>
+                </motion.div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                className="flex items-center gap-2"
+              >
+                <motion.button 
+                  onClick={onClose} 
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   <X className="w-5 h-5 text-white/60 hover:text-white" />
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </motion.div>
 
             {/* Content */}
@@ -1001,79 +1288,13 @@ export function CentralInsightModal({
                   </div>
                 </div>
               ) : isCountryInsightCategory && insightData ? (
-                // COUNTRY INSIGHT LAYOUT - Fully responsive
-                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5">
-                  {/* Left side: Images + Stats */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0"
-                  >
-                    {/* Image Slideshow */}
-                    {insightData.images.length > 0 ? (
-                      <div className="h-40 sm:h-48 lg:h-56">
-                        <ImageSlideshow images={insightData.images} category={config.title} />
-                      </div>
-                    ) : (
-                      <div className="h-40 sm:h-48 lg:h-56 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl flex items-center justify-center">
-                        <div className="text-center">
-                          <Icon className={cn("w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2", config.color)} />
-                          <p className="text-xs sm:text-sm text-white/40">{config.title}</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Key Stats Grid - 6 tiles in 2x3 or 3x2 */}
-                    {insightData.keyStats.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-1.5 sm:gap-2">
-                        {insightData.keyStats.slice(0, 6).map((stat, i) => (
-                          <KeyStatTile key={stat.label} stat={stat} index={i} />
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-3/5 flex-1 overflow-y-auto custom-scrollbar pr-1"
-                  >
-                    <div className="space-y-6">
-                      {/* Section 1: What is X? */}
-                      <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
-                        <h3 className={cn("text-sm sm:text-base font-semibold mb-3 flex items-center gap-2", config.color)}>
-                          <span className={cn("w-1 h-5 rounded-full", config.bgColor.replace("/20", ""))} />
-                          What is {countryName}'s {config.title}?
-                        </h3>
-                        <div className="text-sm sm:text-[15px] text-white/85 leading-relaxed sm:leading-loose space-y-4">
-                          {insightData.whatIsAnalysis.split("\n\n").map((p, i) => (
-                            <p key={i} className="text-justify">{p}</p>
-                          ))}
-                        </div>
-                      </section>
-
-                      {/* Section 2: OH Perspective */}
-                      <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
-                        <h3 className="text-sm sm:text-base font-semibold mb-3 flex items-center gap-2 text-cyan-400">
-                          <span className="w-1 h-5 rounded-full bg-cyan-500" />
-                          Occupational Health Perspective
-                        </h3>
-                        <div className="text-sm sm:text-[15px] text-white/85 leading-relaxed sm:leading-loose space-y-4">
-                          {insightData.ohImplications.split("\n\n").map((p, i) => (
-                            <p key={i} className="text-justify">{p}</p>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-
-                    {insightData.generatedAt && insightData.isFromApi && (
-                      <div className="pt-3 mt-3 border-t border-white/10 text-[10px] sm:text-xs text-white/40 flex items-center gap-2">
-                        <Sparkles className="w-3 h-3" />
-                        AI-generated: {new Date(insightData.generatedAt).toLocaleDateString()}
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
+                // COUNTRY INSIGHT LAYOUT - Premium tabbed design with enhanced animations
+                <CountryInsightContent
+                  insightData={insightData}
+                  config={config}
+                  countryName={countryName}
+                  Icon={Icon}
+                />
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <p className="text-white/40">No data available</p>
