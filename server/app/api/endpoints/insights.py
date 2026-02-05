@@ -403,24 +403,9 @@ def format_insight_response(insight: CountryInsight) -> InsightResponse:
                 photographer=img.get("photographer"),
             ))
     
-    # Parse key_stats (handle case where column doesn't exist yet in production)
-    # The column is defined with deferred() so it won't be in initial query
-    # But accessing it may fail if the column truly doesn't exist in DB
+    # key_stats column is not in the model to avoid query errors when column doesn't exist
+    # Once migration runs, we could query it separately, but for now we skip it
     key_stats = []
-    try:
-        # Use getattr to safely access potentially missing/deferred column
-        stats_data = getattr(insight, 'key_stats', None)
-        if stats_data and isinstance(stats_data, list):
-            for stat in stats_data:
-                if isinstance(stat, dict):
-                    key_stats.append(KeyStatData(
-                        label=stat.get("label", ""),
-                        value=stat.get("value", ""),
-                        description=stat.get("description"),
-                    ))
-    except Exception as e:
-        # Column may not exist in production yet - log for debugging
-        logger.debug(f"[Insights] Could not load key_stats: {e}")
     
     return InsightResponse(
         id=insight.id,

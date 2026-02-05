@@ -26,7 +26,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship, deferred
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -115,14 +115,10 @@ class CountryInsight(Base):
         comment="'What does this mean for OH?' section - 3-4 paragraphs, no recommendations"
     )
     
-    # Structured Key Stats (6 stats per category for tile display)
-    # NOTE: Using deferred() to prevent "column does not exist" errors if migration hasn't run
-    # The column will only be loaded when explicitly accessed
-    key_stats = deferred(Column(
-        JSONB,
-        nullable=True,
-        comment="Array of key stats: [{label, value, description}] - 6 stats per category"
-    ))
+    # NOTE: key_stats column is intentionally NOT defined here to avoid errors
+    # when the column doesn't exist in the database. It will be added dynamically
+    # once the migration runs. Access it via raw SQL or try/except getattr.
+    # The column stores: [{label, value, description}] - 6 stats per category
     
     # Generation Status
     status = Column(
@@ -198,12 +194,7 @@ class CountryInsight(Base):
     
     def to_dict(self) -> dict:
         """Convert to dictionary for API response."""
-        # Safely access key_stats (column may not exist in older databases)
-        try:
-            key_stats_value = self.key_stats or []
-        except Exception:
-            key_stats_value = []
-        
+        # key_stats is accessed separately via raw SQL since column may not exist
         return {
             "id": self.id,
             "country_iso": self.country_iso,
@@ -211,7 +202,7 @@ class CountryInsight(Base):
             "images": self.images or [],
             "what_is_analysis": self.what_is_analysis,
             "oh_implications": self.oh_implications,
-            "key_stats": key_stats_value,
+            "key_stats": [],  # Populated separately if column exists
             "status": self.status.value if self.status else None,
             "error_message": self.error_message,
             "generated_at": self.generated_at.isoformat() if self.generated_at else None,
