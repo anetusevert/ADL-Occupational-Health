@@ -5301,14 +5301,17 @@ function UnifiedFrameworkVisual() {
                         offsetPath: `path("${path}")`,
                         offsetRotate: '0deg'
                       }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900/95 border shadow-lg"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/95 border border-slate-600/60 shadow-xl"
                     >
-                      {/* Pillar color indicator dot */}
+                      {/* Pillar color indicator dot - larger and brighter */}
                       <div 
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: getColorRgba(pillarColor, 1) }}
+                        className="w-2 h-2 rounded-full flex-shrink-0 shadow-sm"
+                        style={{ 
+                          backgroundColor: getColorRgba(pillarColor, 1),
+                          boxShadow: `0 0 6px 1px ${getColorRgba(pillarColor, 0.6)}`
+                        }}
                       />
-                      <span className="text-[9px] sm:text-[10px] font-medium text-white/90 whitespace-nowrap">
+                      <span className="text-[10px] sm:text-xs font-semibold text-white whitespace-nowrap">
                         {dataPoint.label}
                       </span>
                     </motion.div>
