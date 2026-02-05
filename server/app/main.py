@@ -172,14 +172,20 @@ async def startup_event():
             migrations_needed = []
             
             # Check country_deep_dives table
+            print("Checking country_deep_dives table...", flush=True)
             if 'country_deep_dives' in table_names:
                 columns = [col['name'] for col in inspector.get_columns('country_deep_dives')]
+                print(f"  country_deep_dives has {len(columns)} columns", flush=True)
                 if 'queue_position' not in columns:
                     migrations_needed.append("ALTER TABLE country_deep_dives ADD COLUMN queue_position INTEGER")
+            else:
+                print("  country_deep_dives table not found", flush=True)
             
             # Check agents table
+            print("Checking agents table...", flush=True)
             if 'agents' in table_names:
                 columns = [col['name'] for col in inspector.get_columns('agents')]
+                print(f"  agents table has {len(columns)} columns", flush=True)
                 
                 # Make legacy columns nullable
                 if 'category' in columns:
@@ -202,16 +208,19 @@ async def startup_event():
                     if col not in columns:
                         migrations_needed.append(f"ALTER TABLE agents ADD COLUMN {col} {col_type}")
             else:
-                print("Agents table will be created", flush=True)
+                print("  Agents table will be created", flush=True)
             
             # Execute all migrations in single transaction
+            print(f"Migrations needed: {len(migrations_needed)}", flush=True)
             if migrations_needed:
-                print(f"Running {len(migrations_needed)} schema migrations...", flush=True)
-                for sql in migrations_needed:
+                for i, sql in enumerate(migrations_needed):
+                    print(f"  Executing migration {i+1}/{len(migrations_needed)}...", flush=True)
                     try:
                         conn.execute(text(sql))
+                        print(f"    OK", flush=True)
                     except Exception as e:
-                        print(f"Migration skipped: {sql[:40]}...", flush=True)
+                        print(f"    Skipped (already applied)", flush=True)
+                print("Committing migrations...", flush=True)
                 conn.commit()
                 print("Schema migrations complete", flush=True)
             else:
@@ -219,6 +228,8 @@ async def startup_event():
                 
     except Exception as e:
         print(f"Migration error (non-fatal): {e}", flush=True)
+    
+    print("Schema migration phase complete", flush=True)
     
     # Seed default agents on startup using RAW SQL to avoid ORM/schema mismatches
     # OPTIMIZED: Single transaction, upsert pattern, minimal commits
