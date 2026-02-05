@@ -167,22 +167,20 @@ export function LandingPage() {
                   {/* Divider */}
                   <div className="h-12 sm:h-16 lg:h-20 w-px bg-white/20" />
                   
-                  {/* GOSI Logo - White, cropped */}
-                  <div className="h-12 sm:h-16 lg:h-20 w-24 sm:w-32 lg:w-40 overflow-hidden">
-                    <motion.img
-                      src="/gosi-logo.png"
-                      alt="GOSI"
-                      className="brightness-0 invert object-cover object-top w-full scale-[1.8] origin-top"
-                      animate={{
-                        filter: [
-                          "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
-                          "brightness(0) invert(1) drop-shadow(0 0 16px rgba(255,255,255,0.3))",
-                          "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
-                        ],
-                      }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                    />
-                  </div>
+                  {/* GOSI Logo - White, full visibility */}
+                  <motion.img
+                    src="/gosi-logo.png"
+                    alt="GOSI"
+                    className="h-12 sm:h-16 lg:h-20 object-contain brightness-0 invert"
+                    animate={{
+                      filter: [
+                        "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+                        "brightness(0) invert(1) drop-shadow(0 0 16px rgba(255,255,255,0.3))",
+                        "brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+                      ],
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  />
                 </motion.div>
 
                 {/* Title */}
