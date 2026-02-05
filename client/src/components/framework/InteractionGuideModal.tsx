@@ -4744,17 +4744,19 @@ function IcebergVisual() {
 // ============================================================================
 
 // Data sources that feed into the framework
+interface DataPoint {
+  label: string;
+  target: 'governance' | 'pillar1' | 'pillar2' | 'pillar3';
+}
+
 interface FrameworkDataSource {
   id: string;
   name: string;
   shortName: string;
-  color: string;
-  textColor: string;
-  bgColor: string;
-  borderColor: string;
+  accentColor: string; // Color for small indicator only
   feedsInto: ('governance' | 'pillar1' | 'pillar2' | 'pillar3')[];
   description: string;
-  metrics: string[];
+  dataPoints: DataPoint[]; // Specific metrics that fly into pillars
   url: string;
 }
 
@@ -4763,104 +4765,109 @@ const frameworkDataSources: FrameworkDataSource[] = [
     id: "ilo",
     name: "International Labour Organization (ILOSTAT)",
     shortName: "ILO",
-    color: "blue",
-    textColor: "text-blue-400",
-    bgColor: "bg-blue-500/20",
-    borderColor: "border-blue-500/40",
+    accentColor: "blue",
     feedsInto: ["governance", "pillar1"],
     description: "Official global labor statistics including fatal and non-fatal occupational injury rates, inspector density, and social security coverage.",
-    metrics: ["Fatal Accident Rate", "Inspector Density", "ILO C187/C155 Status"],
+    dataPoints: [
+      { label: "C187 Status", target: "governance" },
+      { label: "C155 Status", target: "governance" },
+      { label: "Inspector Density", target: "governance" },
+      { label: "Fatal Accident Rate", target: "pillar1" },
+    ],
     url: "https://ilostat.ilo.org/data/"
   },
   {
     id: "who",
     name: "World Health Organization (GHO)",
     shortName: "WHO",
-    color: "purple",
-    textColor: "text-purple-400",
-    bgColor: "bg-purple-500/20",
-    borderColor: "border-purple-500/40",
+    accentColor: "cyan",
     feedsInto: ["pillar2"],
     description: "Global Health Observatory data including UHC Service Coverage Index, health workforce density, and mortality metrics.",
-    metrics: ["UHC Coverage Index", "Health Workers Density", "Life Expectancy"],
+    dataPoints: [
+      { label: "UHC Coverage", target: "pillar2" },
+      { label: "Health Workers", target: "pillar2" },
+    ],
     url: "https://www.who.int/data/gho"
   },
   {
     id: "worldbank",
     name: "World Bank Open Data (WDI)",
     shortName: "World Bank",
-    color: "amber",
-    textColor: "text-amber-400",
-    bgColor: "bg-amber-500/20",
-    borderColor: "border-amber-500/40",
+    accentColor: "amber",
     feedsInto: ["governance", "pillar3"],
     description: "World Development Indicators including governance effectiveness, regulatory quality, health expenditure, and labor market statistics.",
-    metrics: ["Government Effectiveness", "Regulatory Quality", "Health Expenditure"],
+    dataPoints: [
+      { label: "Gov Effectiveness", target: "governance" },
+      { label: "Regulatory Quality", target: "governance" },
+      { label: "Health Expenditure", target: "pillar3" },
+      { label: "Social Protection", target: "pillar3" },
+    ],
     url: "https://data.worldbank.org/"
   },
   {
     id: "ti",
     name: "Transparency International (CPI)",
     shortName: "CPI",
-    color: "rose",
-    textColor: "text-rose-400",
-    bgColor: "bg-rose-500/20",
-    borderColor: "border-rose-500/40",
+    accentColor: "rose",
     feedsInto: ["governance"],
     description: "Corruption Perception Index measuring perceived levels of public sector corruption. Critical for assessing inspector integrity.",
-    metrics: ["Corruption Perception Index", "CPI Rank"],
+    dataPoints: [
+      { label: "CPI Score", target: "governance" },
+      { label: "Inspector Integrity", target: "governance" },
+    ],
     url: "https://www.transparency.org/cpi"
   },
   {
     id: "undp",
     name: "UNDP Human Development Report",
     shortName: "HDI",
-    color: "emerald",
-    textColor: "text-emerald-400",
-    bgColor: "bg-emerald-500/20",
-    borderColor: "border-emerald-500/40",
+    accentColor: "emerald",
     feedsInto: ["pillar3"],
     description: "Human Development Index combining life expectancy, education, and income indicators for rehabilitation capacity.",
-    metrics: ["HDI Score", "Education Index", "Income Index"],
+    dataPoints: [
+      { label: "HDI Score", target: "pillar3" },
+      { label: "Rehab Capacity", target: "pillar3" },
+    ],
     url: "https://hdr.undp.org/data-center"
   },
   {
     id: "ihme",
     name: "IHME Global Burden of Disease",
     shortName: "IHME GBD",
-    color: "orange",
-    textColor: "text-orange-400",
-    bgColor: "bg-orange-500/20",
-    borderColor: "border-orange-500/40",
+    accentColor: "orange",
     feedsInto: ["pillar1", "pillar2"],
     description: "Comprehensive disease burden data including DALYs from occupational carcinogens, noise, ergonomic factors, and injuries.",
-    metrics: ["Occupational DALYs", "Carcinogen Exposure", "Occupational Deaths"],
+    dataPoints: [
+      { label: "Carcinogen Exposure", target: "pillar1" },
+      { label: "Occupational DALYs", target: "pillar1" },
+      { label: "Disease Detection", target: "pillar2" },
+    ],
     url: "https://www.healthdata.org/gbd"
   },
   {
     id: "wjp",
     name: "World Justice Project",
     shortName: "WJP",
-    color: "indigo",
-    textColor: "text-indigo-400",
-    bgColor: "bg-indigo-500/20",
-    borderColor: "border-indigo-500/40",
+    accentColor: "indigo",
     feedsInto: ["governance"],
     description: "Rule of law measurements including regulatory enforcement capacity and civil justice effectiveness.",
-    metrics: ["Rule of Law Index", "Regulatory Enforcement", "Civil Justice"],
+    dataPoints: [
+      { label: "Rule of Law", target: "governance" },
+      { label: "Enforcement", target: "governance" },
+    ],
     url: "https://worldjusticeproject.org/"
   },
   {
     id: "epi",
     name: "Yale Environmental Performance Index",
     shortName: "EPI",
-    color: "teal",
-    textColor: "text-teal-400",
-    bgColor: "bg-teal-500/20",
-    borderColor: "border-teal-500/40",
+    accentColor: "teal",
     feedsInto: ["pillar1"],
     description: "Environmental performance rankings including air quality, heavy metals exposure, and environmental health scores.",
-    metrics: ["EPI Score", "Air Quality", "Environmental Health"],
+    dataPoints: [
+      { label: "Air Quality", target: "pillar1" },
+      { label: "Env Health", target: "pillar1" },
+    ],
     url: "https://epi.yale.edu/"
   },
 ];
@@ -4954,9 +4961,7 @@ function UnifiedFrameworkVisual() {
 
   // Animation: Framework builds, then continuously cycle through sources one at a time
   useEffect(() => {
-    const FRAMEWORK_BUILD_TIME = 1800;
-    const SPOTLIGHT_DURATION = 2800; // Time each source is visible: appear (0.4s) + flow (1.4s) + linger (0.6s) + fade (0.4s)
-    const TOTAL_SOURCES = frameworkDataSources.length;
+    const FRAMEWORK_BUILD_TIME = 2000;
     
     // Start cycling phase after framework builds
     const startCycling = setTimeout(() => {
@@ -4969,11 +4974,12 @@ function UnifiedFrameworkVisual() {
     };
   }, []);
 
-  // Continuous cycling through sources
+  // Continuous cycling through sources - extended duration for data point animations
   useEffect(() => {
     if (animationPhase !== 'cycling' || isPaused) return;
     
-    const SPOTLIGHT_DURATION = 2800;
+    // Longer cycle: source appears (0.4s) + data points spawn & fly (2.5s) + linger (0.8s) + fade (0.3s)
+    const SPOTLIGHT_DURATION = 4000;
     const TOTAL_SOURCES = frameworkDataSources.length;
     
     const cycleTimer = setInterval(() => {
@@ -4994,6 +5000,7 @@ function UnifiedFrameworkVisual() {
       orange: `rgba(249,115,22,${alpha})`,
       indigo: `rgba(99,102,241,${alpha})`,
       teal: `rgba(20,184,166,${alpha})`,
+      cyan: `rgba(6,182,212,${alpha})`,
     };
     return colors[color] || `rgba(6,182,212,${alpha})`;
   };
@@ -5116,102 +5123,74 @@ function UnifiedFrameworkVisual() {
             </filter>
           </defs>
 
-          {/* Flow lines from sources to framework blocks - Sequential spotlight */}
+          {/* Flow lines from sources to framework blocks - showing data points */}
           {frameworkDataSources.map((source, sourceIndex) => {
             const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
             const showFlow = isFlowActive(sourceIndex);
             
+            // Get pillar color for the flow line based on target
+            const getPillarColor = (targetId: string) => {
+              const pillarColors: Record<string, string> = {
+                governance: 'purple',
+                pillar1: 'blue',
+                pillar2: 'emerald',
+                pillar3: 'amber'
+              };
+              return pillarColors[targetId] || 'cyan';
+            };
+            
             return source.feedsInto.map((targetId, flowIndex) => {
               const targetPos = getBlockPosition(targetId);
               const path = calculateFlowPath(sourcePos, targetPos);
-              const gradientId = `flowGradient${source.color.charAt(0).toUpperCase() + source.color.slice(1)}`;
-              const particleColor = getColorRgba(source.color, 1).replace(/,[^,]+\)$/, ',1)');
+              const pillarColor = getPillarColor(targetId);
+              const gradientId = `flowGradient${pillarColor.charAt(0).toUpperCase() + pillarColor.slice(1)}`;
               
-              // Flow animation timing - quick appear, flow, then fade for cycling mode
-              const flowDelay = 0.2 + flowIndex * 0.12;
+              // Flow animation timing
+              const flowDelay = 0.3 + flowIndex * 0.15;
               
               return (
                 <g key={`${source.id}-${targetId}`}>
-                  {/* Background glow line */}
+                  {/* Subtle flow line - not glowing constantly */}
                   <motion.path
                     d={path}
-                    stroke={getColorRgba(source.color, 0.25)}
-                    strokeWidth="2.5"
+                    stroke={getColorRgba(pillarColor, 0.15)}
+                    strokeWidth="1.5"
                     fill="none"
+                    strokeDasharray="4 4"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={showFlow ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     transition={{ 
-                      duration: 0.7, 
+                      duration: 0.6, 
                       delay: flowDelay,
                       ease: "easeOut" 
                     }}
                   />
                   
-                  {/* Main flow line */}
+                  {/* Active flow line when data is traveling */}
                   <motion.path
                     d={path}
-                    stroke={`url(#${gradientId})`}
-                    strokeWidth="1"
+                    stroke={getColorRgba(pillarColor, 0.6)}
+                    strokeWidth="2"
                     fill="none"
                     filter="url(#flowGlow)"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={showFlow ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+                    animate={showFlow ? { 
+                      pathLength: [0, 1],
+                      opacity: [0, 0.8, 0.4]
+                    } : { pathLength: 0, opacity: 0 }}
                     transition={{ 
-                      duration: 0.7, 
-                      delay: flowDelay,
+                      duration: 1.2, 
+                      delay: flowDelay + 0.4,
                       ease: "easeOut" 
                     }}
                   />
-                  
-                  {/* Data particle traveling along path - single run per cycle */}
-                  {showFlow && (
-                    <>
-                      {/* Main particle with dramatic glow */}
-                      <motion.circle
-                        r="1.4"
-                        fill={particleColor}
-                        filter="url(#particleGlow)"
-                        initial={{ opacity: 0 }}
-                        animate={{
-                          opacity: [0, 1, 1, 0.9, 0.5, 0],
-                          offsetDistance: ["0%", "100%"],
-                        }}
-                        transition={{
-                          delay: flowDelay + 0.4,
-                          duration: 1.4,
-                          ease: "easeInOut",
-                        }}
-                        style={{ offsetPath: `path("${path}")` }}
-                      />
-                      
-                      {/* Trail particles for motion blur effect */}
-                      {[0.06, 0.12, 0.18].map((offset, i) => (
-                        <motion.circle
-                          key={i}
-                          r={1.0 - i * 0.25}
-                          fill={getColorRgba(source.color, 0.6 - i * 0.18)}
-                          initial={{ opacity: 0 }}
-                          animate={{
-                            opacity: [0, 0.8, 0.6, 0],
-                            offsetDistance: ["0%", "100%"],
-                          }}
-                          transition={{
-                            delay: flowDelay + 0.4 + offset,
-                            duration: 1.4,
-                            ease: "easeInOut",
-                          }}
-                          style={{ offsetPath: `path("${path}")` }}
-                        />
-                      ))}
-                    </>
-                  )}
                 </g>
               );
             });
           })}
         </svg>
 
-        {/* Data Source Badges - Sequential Spotlight or All Visible */}
+        {/* Data Source Badges - Neutral styling with accent indicators */}
         <div className="absolute inset-0">
           {frameworkDataSources.map((source, index) => {
             const pos = getSourcePosition(index, frameworkDataSources.length);
@@ -5221,55 +5200,53 @@ function UnifiedFrameworkVisual() {
             return (
               <motion.button
                 key={source.id}
-                initial={{ opacity: 0, scale: 0.3, y: -20 }}
+                initial={{ opacity: 0, scale: 0.5, y: -15 }}
                 animate={isVisible ? { 
                   opacity: 1, 
-                  scale: 1.1, 
+                  scale: 1, 
                   y: 0 
                 } : { 
                   opacity: 0, 
-                  scale: 0.5, 
-                  y: -15 
+                  scale: 0.6, 
+                  y: -10 
                 }}
                 transition={{ 
-                  duration: 0.5, 
+                  duration: 0.4, 
                   type: "spring", 
-                  stiffness: 280, 
-                  damping: 20 
+                  stiffness: 300, 
+                  damping: 22 
                 }}
-                whileHover={isVisible ? { scale: 1.25, zIndex: 50 } : {}}
-                whileTap={isVisible ? { scale: 1.0 } : {}}
+                whileHover={isVisible ? { scale: 1.08, zIndex: 50 } : {}}
+                whileTap={isVisible ? { scale: 0.98 } : {}}
                 onClick={() => isVisible && setSelectedSource(source)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 ${isVisible ? 'cursor-pointer' : 'cursor-default pointer-events-none'}`}
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-20 ${isVisible ? 'cursor-pointer' : 'cursor-default pointer-events-none'}`}
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               >
+                {/* Neutral source badge with small accent dot */}
                 <motion.div
-                  className={`relative px-4 py-2 sm:px-5 sm:py-2.5 rounded-full ${source.bgColor} ${source.borderColor} border-2 backdrop-blur-md shadow-xl`}
-                  animate={isSpotlit ? {
-                    boxShadow: [
-                      `0 0 20px 6px ${getColorRgba(source.color, 0.5)}`,
-                      `0 0 40px 12px ${getColorRgba(source.color, 0.75)}`,
-                      `0 0 20px 6px ${getColorRgba(source.color, 0.5)}`,
-                    ],
-                  } : {}}
-                  transition={{ duration: 0.7, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-slate-800/90 border border-slate-600/60 backdrop-blur-md shadow-lg"
                 >
-                  <span className={`font-bold text-sm sm:text-base ${source.textColor} whitespace-nowrap`}>
+                  {/* Small colored accent dot */}
+                  <div 
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: getColorRgba(source.accentColor, 1) }}
+                  />
+                  <span className="font-semibold text-sm sm:text-base text-white/90 whitespace-nowrap">
                     {source.shortName}
                   </span>
                 </motion.div>
                 
-                {/* Source name label - always visible when spotlit */}
+                {/* Source full name label */}
                 <AnimatePresence>
                   {isSpotlit && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 whitespace-nowrap"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.25, delay: 0.1 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap"
                     >
-                      <span className="text-xs sm:text-sm text-white/90 bg-slate-900/90 px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
+                      <span className="text-[10px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700/50">
                         {source.name.split('(')[0].trim()}
                       </span>
                     </motion.div>
@@ -5277,6 +5254,68 @@ function UnifiedFrameworkVisual() {
                 </AnimatePresence>
               </motion.button>
             );
+          })}
+        </div>
+        
+        {/* Data Point Chips - Flying into framework pillars */}
+        <div className="absolute inset-0 pointer-events-none">
+          {frameworkDataSources.map((source, sourceIndex) => {
+            const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
+            const isActive = isFlowActive(sourceIndex);
+            
+            // Get pillar color
+            const getPillarColor = (targetId: string) => {
+              const pillarColors: Record<string, string> = {
+                governance: 'purple',
+                pillar1: 'blue',
+                pillar2: 'emerald',
+                pillar3: 'amber'
+              };
+              return pillarColors[targetId] || 'cyan';
+            };
+            
+            return source.dataPoints.map((dataPoint, dpIndex) => {
+              const targetPos = getBlockPosition(dataPoint.target);
+              const pillarColor = getPillarColor(dataPoint.target);
+              const path = calculateFlowPath(sourcePos, targetPos);
+              const chipDelay = 0.5 + dpIndex * 0.25;
+              
+              return (
+                <AnimatePresence key={`${source.id}-${dataPoint.label}`}>
+                  {isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.6 }}
+                      animate={{ 
+                        opacity: [0, 1, 1, 0.8, 0],
+                        scale: [0.6, 1, 1, 0.9, 0.7],
+                        offsetDistance: ["0%", "100%"]
+                      }}
+                      exit={{ opacity: 0 }}
+                      transition={{ 
+                        duration: 1.6,
+                        delay: chipDelay,
+                        ease: "easeInOut"
+                      }}
+                      style={{ 
+                        position: 'absolute',
+                        offsetPath: `path("${path}")`,
+                        offsetRotate: '0deg'
+                      }}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900/95 border shadow-lg"
+                    >
+                      {/* Pillar color indicator dot */}
+                      <div 
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: getColorRgba(pillarColor, 1) }}
+                      />
+                      <span className="text-[9px] sm:text-[10px] font-medium text-white/90 whitespace-nowrap">
+                        {dataPoint.label}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              );
+            });
           })}
         </div>
 
@@ -5296,25 +5335,26 @@ function UnifiedFrameworkVisual() {
               className={`w-full relative p-3 sm:p-4 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
               style={{ perspective: '1000px' }}
             >
-              {/* Animated roof glow - highlights when receiving data */}
-              <motion.div
-                className="absolute inset-0 rounded-2xl"
-                animate={isBlockReceiving('governance') ? {
-                  boxShadow: [
-                    `0 0 30px 8px ${getColorRgba('purple', 0.6)}`,
-                    `0 0 50px 15px ${getColorRgba('purple', 0.8)}`,
-                    `0 0 30px 8px ${getColorRgba('purple', 0.6)}`,
-                  ],
-                  scale: [1, 1.03, 1],
-                } : {
-                  boxShadow: [
-                    `0 0 10px 2px ${getColorRgba('purple', 0.15)}`,
-                    `0 0 18px 4px ${getColorRgba('purple', 0.25)}`,
-                    `0 0 10px 2px ${getColorRgba('purple', 0.15)}`,
-                  ]
-                }}
-                transition={{ duration: isBlockReceiving('governance') ? 0.5 : 3.5, repeat: Infinity }}
-              />
+              {/* Glow effect - ONLY when receiving data */}
+              <AnimatePresence>
+                {isBlockReceiving('governance') && (
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl"
+                    initial={{ opacity: 0 }}
+                    animate={{ 
+                      opacity: 1,
+                      boxShadow: [
+                        `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
+                        `0 0 45px 12px ${getColorRgba('purple', 0.7)}`,
+                        `0 0 25px 6px ${getColorRgba('purple', 0.5)}`,
+                      ],
+                      scale: [1, 1.02, 1],
+                    }}
+                    exit={{ opacity: 0, scale: 1 }}
+                    transition={{ duration: 0.4, repeat: Infinity }}
+                  />
+                )}
+              </AnimatePresence>
               
               {/* Roof decorative top beam */}
               <motion.div 
@@ -5325,16 +5365,9 @@ function UnifiedFrameworkVisual() {
               />
               
               <div className="flex items-center justify-center gap-3 relative z-10">
-                <motion.div
-                  animate={{ 
-                    rotate: [0, 5, -5, 0],
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className="p-2.5 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30"
-                >
+                <div className="p-2.5 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30">
                   <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-purple-300" />
-                </motion.div>
+                </div>
                 <div className="text-center">
                   <h3 className="text-sm sm:text-lg font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
                   <p className="text-[10px] sm:text-xs text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
@@ -5371,25 +5404,26 @@ function UnifiedFrameworkVisual() {
                   onClick={() => setSelectedBlock(block)}
                   className={`relative p-3 sm:p-4 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
                 >
-                  {/* Breathing glow effect - highlights when receiving data */}
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl"
-                    animate={isBlockReceiving(block.id) ? {
-                      boxShadow: [
-                        `0 0 30px 8px ${getColorRgba(block.color, 0.6)}`,
-                        `0 0 50px 15px ${getColorRgba(block.color, 0.8)}`,
-                        `0 0 30px 8px ${getColorRgba(block.color, 0.6)}`,
-                      ],
-                      scale: [1, 1.04, 1],
-                    } : {
-                      boxShadow: [
-                        `0 0 8px 2px ${getColorRgba(block.color, 0.12)}`,
-                        `0 0 15px 4px ${getColorRgba(block.color, 0.22)}`,
-                        `0 0 8px 2px ${getColorRgba(block.color, 0.12)}`,
-                      ]
-                    }}
-                    transition={{ duration: isBlockReceiving(block.id) ? 0.5 : 3, repeat: Infinity, delay: index * 0.4 }}
-                  />
+                  {/* Glow effect - ONLY when receiving data */}
+                  <AnimatePresence>
+                    {isBlockReceiving(block.id) && (
+                      <motion.div
+                        className="absolute inset-0 rounded-2xl"
+                        initial={{ opacity: 0 }}
+                        animate={{ 
+                          opacity: 1,
+                          boxShadow: [
+                            `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
+                            `0 0 45px 12px ${getColorRgba(block.color, 0.7)}`,
+                            `0 0 25px 6px ${getColorRgba(block.color, 0.5)}`,
+                          ],
+                          scale: [1, 1.03, 1],
+                        }}
+                        exit={{ opacity: 0, scale: 1 }}
+                        transition={{ duration: 0.4, repeat: Infinity }}
+                      />
+                    )}
+                  </AnimatePresence>
                   
                   {/* Pillar top decoration with draw-in */}
                   <motion.div 
@@ -5404,16 +5438,9 @@ function UnifiedFrameworkVisual() {
                   />
                   
                   <div className="flex flex-col items-center gap-2 relative z-10">
-                    <motion.div
-                      animate={{ 
-                        scale: [1, 1.06, 1],
-                        rotate: [0, 2, -2, 0]
-                      }}
-                      transition={{ duration: 4, repeat: Infinity, delay: index * 0.5 }}
-                      className={`p-2 sm:p-2.5 rounded-xl ${block.bgColor} border ${block.borderColor}`}
-                    >
+                    <div className={`p-2 sm:p-2.5 rounded-xl ${block.bgColor} border ${block.borderColor}`}>
                       <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${block.textColor}`} />
-                    </motion.div>
+                    </div>
                     <div className="text-center">
                       <h3 className={`text-[11px] sm:text-sm font-bold ${block.textColor} leading-tight`}>
                         {block.title}
@@ -5429,7 +5456,37 @@ function UnifiedFrameworkVisual() {
           </div>
         </div>
 
-        {/* Legend / Progress indicator */}
+        {/* Legend with pillar color mapping */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3"
+        >
+          <div className="bg-slate-900/80 backdrop-blur-md rounded-lg p-2 border border-slate-700/50">
+            <p className="text-[8px] sm:text-[10px] text-white/50 mb-1.5">Data flows to:</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                <span className="text-[8px] sm:text-[10px] text-white/70">Governance</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-[8px] sm:text-[10px] text-white/70">Hazard Prevention</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[8px] sm:text-[10px] text-white/70">Surveillance</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-[8px] sm:text-[10px] text-white/70">Restoration</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Current source indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -5443,17 +5500,12 @@ function UnifiedFrameworkVisual() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-1"
             >
-              <span className="text-[9px] sm:text-xs text-white/60 bg-slate-900/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
-                {frameworkDataSources[spotlightIndex]?.shortName} → Framework
+              <span className="text-[9px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-1 rounded border border-slate-700/50">
+                {frameworkDataSources[spotlightIndex]?.shortName}: {frameworkDataSources[spotlightIndex]?.dataPoints.length} metrics
               </span>
             </motion.div>
           )}
-          {animationPhase === 'cycling' && (
-            <>
-              <p className="text-[8px] sm:text-[10px] text-white/50">Click data sources or pillars for details</p>
-              <p className="text-[8px] sm:text-[10px] text-white/40">{frameworkDataSources.length} global sources • 4 framework pillars</p>
-            </>
-          )}
+          <p className="text-[8px] sm:text-[10px] text-white/40">Click any element for details</p>
         </motion.div>
       </div>
 
@@ -5489,26 +5541,26 @@ function UnifiedFrameworkVisual() {
               style={{ perspective: '1200px' }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[75vh] overflow-hidden rounded-3xl shadow-2xl"
             >
-              {/* Animated border glow */}
+              {/* Subtle border glow */}
               <motion.div
                 className="absolute inset-0 rounded-3xl"
                 animate={{
                   boxShadow: [
-                    `0 0 20px 5px ${getColorRgba(selectedSource.color, 0.3)}`,
-                    `0 0 40px 10px ${getColorRgba(selectedSource.color, 0.5)}`,
-                    `0 0 20px 5px ${getColorRgba(selectedSource.color, 0.3)}`,
+                    `0 0 15px 3px ${getColorRgba(selectedSource.accentColor, 0.2)}`,
+                    `0 0 25px 6px ${getColorRgba(selectedSource.accentColor, 0.3)}`,
+                    `0 0 15px 3px ${getColorRgba(selectedSource.accentColor, 0.2)}`,
                   ]
                 }}
-                transition={{ duration: 2, repeat: Infinity }}
+                transition={{ duration: 3, repeat: Infinity }}
               />
               
-              <div className="relative bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-3xl overflow-hidden">
-                {/* Modal Header */}
+              <div className="relative bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-slate-700/50 rounded-3xl overflow-hidden">
+                {/* Modal Header - Neutral with accent */}
                 <motion.div 
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className={`p-5 ${selectedSource.bgColor} border-b border-white/10`}
+                  className="p-5 bg-slate-800/50 border-b border-slate-700/50"
                 >
                   <motion.button
                     whileHover={{ scale: 1.1, rotate: 90 }}
@@ -5525,15 +5577,15 @@ function UnifiedFrameworkVisual() {
                     transition={{ delay: 0.15, type: "spring", stiffness: 400 }}
                     className="flex items-center gap-4"
                   >
-                    <motion.div 
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className={`p-3 rounded-2xl ${selectedSource.bgColor} ${selectedSource.borderColor} border-2`}
-                    >
-                      <Database className={`w-7 h-7 ${selectedSource.textColor}`} />
-                    </motion.div>
+                    <div className="p-3 rounded-2xl bg-slate-700/50 border border-slate-600/50">
+                      <div 
+                        className="w-2 h-2 rounded-full mb-2 mx-auto"
+                        style={{ backgroundColor: getColorRgba(selectedSource.accentColor, 1) }}
+                      />
+                      <Database className="w-7 h-7 text-white/80" />
+                    </div>
                     <div>
-                      <h3 className={`text-lg sm:text-xl font-bold ${selectedSource.textColor}`}>
+                      <h3 className="text-lg sm:text-xl font-bold text-white">
                         {selectedSource.shortName}
                       </h3>
                       <p className="text-white/60 text-sm">{selectedSource.name}</p>
@@ -5556,19 +5608,25 @@ function UnifiedFrameworkVisual() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3, type: "spring" }}
                   >
-                    <h4 className="text-white/90 text-sm font-semibold mb-3">Key Metrics Provided</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSource.metrics.map((metric, i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.35 + i * 0.05 }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium ${selectedSource.bgColor} ${selectedSource.textColor} ${selectedSource.borderColor} border`}
-                        >
-                          {metric}
-                        </motion.span>
-                      ))}
+                    <h4 className="text-white/90 text-sm font-semibold mb-3">Data Points Provided</h4>
+                    <div className="space-y-2">
+                      {selectedSource.dataPoints.map((dp, i) => {
+                        const targetBlock = frameworkBlocks.find(b => b.id === dp.target);
+                        return (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.35 + i * 0.05 }}
+                            className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50"
+                          >
+                            <span className="text-sm text-white/80">{dp.label}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${targetBlock?.bgColor || 'bg-slate-700'} ${targetBlock?.textColor || 'text-white/70'}`}>
+                              → {targetBlock?.title.split(' ')[0] || dp.target}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </motion.div>
 
@@ -5605,11 +5663,11 @@ function UnifiedFrameworkVisual() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, type: "spring" }}
                     whileHover={{ scale: 1.02, x: 5 }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl ${selectedSource.bgColor} ${selectedSource.borderColor} border-2 hover:bg-white/10 transition-all`}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-all"
                   >
-                    <ExternalLink className={`w-5 h-5 ${selectedSource.textColor}`} />
-                    <span className={`text-sm font-medium ${selectedSource.textColor}`}>Visit Official Source</span>
-                    <ArrowRight className={`w-5 h-5 ${selectedSource.textColor} ml-auto`} />
+                    <ExternalLink className="w-5 h-5 text-white/70" />
+                    <span className="text-sm font-medium text-white/80">Visit Official Source</span>
+                    <ArrowRight className="w-5 h-5 text-white/70 ml-auto" />
                   </motion.a>
                 </div>
               </div>
