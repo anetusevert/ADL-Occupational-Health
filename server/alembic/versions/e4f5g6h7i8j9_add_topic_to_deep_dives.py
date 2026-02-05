@@ -20,6 +20,13 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    return table_name in inspector.get_table_names()
+
+
 def column_exists(table_name: str, column_name: str) -> bool:
     """Check if a column exists in a table."""
     conn = op.get_bind()
@@ -30,18 +37,31 @@ def column_exists(table_name: str, column_name: str) -> bool:
     return column_name in columns
 
 
-def constraint_exists(table_name: str, constraint_name: str) -> bool:
-    """Check if a constraint exists on a table."""
+def index_exists(table_name: str, index_name: str) -> bool:
+    """Check if an index exists on a table."""
     conn = op.get_bind()
     inspector = sa.inspect(conn)
-    try:
-        constraints = inspector.get_unique_constraints(table_name)
-        return any(c['name'] == constraint_name for c in constraints)
-    except Exception:
+    if table_name not in inspector.get_table_names():
         return False
+    indexes = inspector.get_indexes(table_name)
+    return any(idx['name'] == index_name for idx in indexes)
+
+
+def constraint_exists(table_name: str, constraint_name: str) -> bool:
+    """Check if a unique constraint exists on a table."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if table_name not in inspector.get_table_names():
+        return False
+    constraints = inspector.get_unique_constraints(table_name)
+    return any(c['name'] == constraint_name for c in constraints)
 
 
 def upgrade() -> None:
+    # Skip if table doesn't exist
+    if not table_exists('country_deep_dives'):
+        return
+    
     # 1. Add the topic column with a default value for existing records (idempotent)
     if not column_exists('country_deep_dives', 'topic'):
         op.add_column(
@@ -56,28 +76,20 @@ def upgrade() -> None:
         )
     
     # 2. Create index on topic for efficient queries (idempotent)
-    try:
+    if not index_exists('country_deep_dives', 'ix_country_deep_dives_topic'):
         op.create_index('ix_country_deep_dives_topic', 'country_deep_dives', ['topic'])
-    except Exception:
-        pass  # Index might already exist
     
-    # 3. Drop the old unique constraint on country_iso_code
-    # The constraint name might vary, try different names
-    try:
+    # 3. Drop the old unique constraint on country_iso_code (idempotent)
+    if constraint_exists('country_deep_dives', 'country_deep_dives_country_iso_code_key'):
         op.drop_constraint('country_deep_dives_country_iso_code_key', 'country_deep_dives', type_='unique')
-    except Exception:
-        pass  # Constraint might have different name or not exist
     
     # 4. Add composite unique constraint on (country_iso_code, topic) (idempotent)
     if not constraint_exists('country_deep_dives', 'uq_country_topic'):
-        try:
-            op.create_unique_constraint(
-                'uq_country_topic', 
-                'country_deep_dives', 
-                ['country_iso_code', 'topic']
-            )
-        except Exception:
-            pass  # Constraint might already exist
+        op.create_unique_constraint(
+            'uq_country_topic', 
+            'country_deep_dives', 
+            ['country_iso_code', 'topic']
+        )
 
 
 def downgrade() -> None:
