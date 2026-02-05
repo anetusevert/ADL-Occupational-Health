@@ -20,8 +20,18 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade() -> None:
-    # Create comparison_reports table
+    # Create comparison_reports table (idempotent)
+    if table_exists('comparison_reports'):
+        return  # Already exists
+    
     op.create_table(
         'comparison_reports',
         sa.Column('id', sa.String(10), primary_key=True, 

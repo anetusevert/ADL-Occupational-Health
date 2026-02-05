@@ -29,15 +29,24 @@ def upgrade() -> None:
         op.drop_table('agent_connections')
         print("Dropped 'agent_connections' table")
     
+    # Check if agents table has workflow_id column (old schema)
+    needs_recreate = False
     if 'agents' in existing_tables:
-        op.drop_table('agents')
-        print("Dropped old 'agents' table")
+        cols = [c['name'] for c in inspector.get_columns('agents')]
+        if 'workflow_id' in cols:
+            needs_recreate = True
+            op.drop_table('agents')
+            print("Dropped old 'agents' table")
     
     if 'workflows' in existing_tables:
         op.drop_table('workflows')
         print("Dropped 'workflows' table")
     
-    # Create new simplified agents table
+    # Create new simplified agents table (only if we dropped it or it doesn't exist)
+    existing_tables = inspector.get_table_names()  # Refresh
+    if 'agents' in existing_tables:
+        return  # Already exists with new schema
+    
     op.create_table(
         'agents',
         sa.Column('id', sa.String(50), primary_key=True),

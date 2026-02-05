@@ -20,6 +20,13 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade() -> None:
     # Create enum type for deep dive status
     deep_dive_status = postgresql.ENUM(
@@ -29,7 +36,10 @@ def upgrade() -> None:
     )
     deep_dive_status.create(op.get_bind(), checkfirst=True)
     
-    # Create country_deep_dives table
+    # Create country_deep_dives table (idempotent)
+    if table_exists('country_deep_dives'):
+        return  # Already exists
+    
     op.create_table(
         'country_deep_dives',
         sa.Column('id', sa.String(36), primary_key=True),
