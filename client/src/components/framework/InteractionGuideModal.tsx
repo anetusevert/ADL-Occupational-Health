@@ -2932,6 +2932,14 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         </div>
       );
 
+    // SLIDE 5: THE WORKFORCE - Labor Force Lens (Personas)
+    case "workforce":
+      return (
+        <div className="h-full flex flex-col overflow-hidden">
+          <WorkforceLensVisual />
+        </div>
+      );
+
     // SLIDE 9: THE ENGINE - Spinning Cube with Data Particles
     case "integration":
       return (

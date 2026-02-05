@@ -756,7 +756,7 @@ export const statCardContent: Record<string, StatCardContent> = {
 
 export interface GuideSlide {
   id: string;
-  type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta';
+  type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta' | 'workforce';
   title: string;
   actionTitle: string; // McKinsey-style action title stating the key insight
   subtitle?: string;
@@ -847,7 +847,7 @@ export const guideSlides: GuideSlide[] = [
   // Slide 5: THE WORKFORCE - Labor Force Lens (Worker Personas)
   {
     id: "workforce-lens",
-    type: "overview",
+    type: "workforce",
     title: "The Labor Force Lens",
     actionTitle: "Five Journeys. Five Realities. One System.",
     subtitle: "Understanding Who We Protect",
