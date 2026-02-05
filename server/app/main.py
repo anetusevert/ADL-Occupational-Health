@@ -161,75 +161,46 @@ async def startup_event():
     except Exception as e:
         print(f"ERROR creating database tables: {e}", flush=True)
     
-    # Run schema migrations for missing columns - OPTIMIZED: single transaction
-    print("Starting schema migrations...", flush=True)
+    # Run schema migrations - SIMPLIFIED: just try each migration, skip on error
+    # This avoids the inspector.get_columns() call which can hang
+    print("Running schema migrations (fire-and-forget)...", flush=True)
     try:
         with engine.connect() as conn:
-            print("Database connection established", flush=True)
-            inspector = inspect(engine)
-            table_names = inspector.get_table_names()
-            print(f"Found {len(table_names)} tables", flush=True)
-            migrations_needed = []
+            # List of all potential migrations - just try them all, errors are OK
+            potential_migrations = [
+                # country_deep_dives
+                "ALTER TABLE country_deep_dives ADD COLUMN IF NOT EXISTS queue_position INTEGER",
+                # agents - make legacy columns nullable
+                "ALTER TABLE agents ALTER COLUMN category DROP NOT NULL",
+                "ALTER TABLE agents ALTER COLUMN workflow DROP NOT NULL",
+                "ALTER TABLE agents ALTER COLUMN input_schema DROP NOT NULL",
+                "ALTER TABLE agents ALTER COLUMN output_schema DROP NOT NULL",
+                # agents - add columns if missing (PostgreSQL 9.6+ supports IF NOT EXISTS)
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS position_x FLOAT DEFAULT 100",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS position_y FLOAT DEFAULT 100",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50)",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS llm_model_name VARCHAR(100)",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS workflow_id VARCHAR(50)",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS execution_count INTEGER DEFAULT 0",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
+                "ALTER TABLE agents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
+            ]
             
-            # Check country_deep_dives table
-            print("Checking country_deep_dives table...", flush=True)
-            if 'country_deep_dives' in table_names:
-                columns = [col['name'] for col in inspector.get_columns('country_deep_dives')]
-                print(f"  country_deep_dives has {len(columns)} columns", flush=True)
-                if 'queue_position' not in columns:
-                    migrations_needed.append("ALTER TABLE country_deep_dives ADD COLUMN queue_position INTEGER")
-            else:
-                print("  country_deep_dives table not found", flush=True)
+            success = 0
+            for sql in potential_migrations:
+                try:
+                    conn.execute(text(sql))
+                    success += 1
+                except Exception:
+                    pass  # Column exists or other expected error
             
-            # Check agents table
-            print("Checking agents table...", flush=True)
-            if 'agents' in table_names:
-                columns = [col['name'] for col in inspector.get_columns('agents')]
-                print(f"  agents table has {len(columns)} columns", flush=True)
-                
-                # Make legacy columns nullable
-                if 'category' in columns:
-                    migrations_needed.append("ALTER TABLE agents ALTER COLUMN category DROP NOT NULL")
-                
-                # Add missing columns
-                agent_columns = {
-                    'position_x': 'FLOAT DEFAULT 100',
-                    'position_y': 'FLOAT DEFAULT 100',
-                    'llm_provider': 'VARCHAR(50)',
-                    'llm_model_name': 'VARCHAR(100)',
-                    'workflow_id': 'VARCHAR(50)',
-                    'execution_count': 'INTEGER DEFAULT 0 NOT NULL',
-                    'last_run_at': 'TIMESTAMP',
-                    'is_active': 'BOOLEAN DEFAULT TRUE NOT NULL',
-                    'created_at': 'TIMESTAMP DEFAULT NOW() NOT NULL',
-                    'updated_at': 'TIMESTAMP DEFAULT NOW() NOT NULL',
-                }
-                for col, col_type in agent_columns.items():
-                    if col not in columns:
-                        migrations_needed.append(f"ALTER TABLE agents ADD COLUMN {col} {col_type}")
-            else:
-                print("  Agents table will be created", flush=True)
-            
-            # Execute all migrations in single transaction
-            print(f"Migrations needed: {len(migrations_needed)}", flush=True)
-            if migrations_needed:
-                for i, sql in enumerate(migrations_needed):
-                    print(f"  Executing migration {i+1}/{len(migrations_needed)}...", flush=True)
-                    try:
-                        conn.execute(text(sql))
-                        print(f"    OK", flush=True)
-                    except Exception as e:
-                        print(f"    Skipped (already applied)", flush=True)
-                print("Committing migrations...", flush=True)
-                conn.commit()
-                print("Schema migrations complete", flush=True)
-            else:
-                print("No schema migrations needed", flush=True)
+            conn.commit()
+            print(f"Schema migrations: {success}/{len(potential_migrations)} applied", flush=True)
                 
     except Exception as e:
         print(f"Migration error (non-fatal): {e}", flush=True)
-    
-    print("Schema migration phase complete", flush=True)
     
     # Seed default agents on startup using RAW SQL to avoid ORM/schema mismatches
     # OPTIMIZED: Single transaction, upsert pattern, minimal commits
