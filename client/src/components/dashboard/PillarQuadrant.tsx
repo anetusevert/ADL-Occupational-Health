@@ -208,8 +208,16 @@ function PillarTile({ pillar, score, onClick, delay }: PillarTileProps) {
           </div>
         )}
         
-        {/* Status label - compact */}
-        <p className={cn("text-[9px] sm:text-[10px] md:text-xs mt-1 font-medium", status.color)}>
+        {/* Status label - improved visibility */}
+        <p className={cn(
+          "text-[10px] sm:text-xs md:text-sm mt-1.5 sm:mt-2 font-semibold",
+          "px-2 py-0.5 rounded-full",
+          status.color,
+          status.color.includes("emerald") ? "bg-emerald-500/15" :
+          status.color.includes("amber") ? "bg-amber-500/15" :
+          status.color.includes("orange") ? "bg-orange-500/15" :
+          status.color.includes("red") ? "bg-red-500/15" : "bg-white/5"
+        )}>
           {status.label}
         </p>
       </div>

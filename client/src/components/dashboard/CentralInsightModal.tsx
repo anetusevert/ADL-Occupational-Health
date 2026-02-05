@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import { cn } from "../../lib/utils";
 import { apiClient, aiApiClient } from "../../services/api";
+import { CountryFlag } from "../CountryFlag";
 
 // Define InsightCategory locally to avoid circular dependency with CountryDashboard
 export type InsightCategory = 
@@ -53,6 +54,7 @@ interface CentralInsightModalProps {
   category: InsightCategory | null;
   countryIso: string;
   countryName: string;
+  flagUrl?: string | null;
   isAdmin: boolean;
   economicData?: {
     laborForce?: number | null;
@@ -78,6 +80,8 @@ interface KeyStat {
   label: string;
   value: string;
   description?: string;
+  source?: string;
+  sourceUrl?: string;
   icon: React.ElementType;
   color: string;
 }
@@ -86,6 +90,8 @@ interface ApiKeyStatData {
   label: string;
   value: string;
   description?: string;
+  source?: string;
+  source_url?: string;
 }
 
 interface ApiInsightData {
@@ -102,7 +108,7 @@ interface ApiInsightData {
 }
 
 interface InsightData {
-  images: { url: string; alt: string }[];
+  images: { url: string; alt: string; photographer?: string }[];
   whatIsAnalysis: string;
   ohImplications: string;
   keyStats: KeyStat[];
@@ -347,6 +353,14 @@ function getPositionLabel(percentile: number): { label: string; color: string; b
 
 function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
   const Icon = stat.icon;
+  
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (stat.sourceUrl) {
+      window.open(stat.sourceUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -363,11 +377,27 @@ function KeyStatTile({ stat, index }: { stat: KeyStat; index: number }) {
       {stat.description && (
         <p className="text-[9px] sm:text-[10px] text-white/40 mt-0.5 line-clamp-2 hidden sm:block">{stat.description}</p>
       )}
+      {/* Source Attribution */}
+      {stat.source && (
+        <button
+          onClick={handleSourceClick}
+          className={cn(
+            "text-[8px] sm:text-[9px] mt-1 flex items-center gap-1 transition-colors",
+            stat.sourceUrl 
+              ? "text-white/30 hover:text-cyan-400 cursor-pointer" 
+              : "text-white/25 cursor-default"
+          )}
+          title={stat.sourceUrl ? `View source: ${stat.source}` : stat.source}
+        >
+          <Info className="w-2.5 h-2.5" />
+          <span className="truncate">{stat.source}</span>
+        </button>
+      )}
     </motion.div>
   );
 }
 
-function ImageSlideshow({ images, category }: { images: { url: string; alt: string }[]; category: string }) {
+function ImageSlideshow({ images, category }: { images: { url: string; alt: string; photographer?: string }[]; category: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageError, setImageError] = useState<Record<number, boolean>>({});
 
@@ -378,6 +408,8 @@ function ImageSlideshow({ images, category }: { images: { url: string; alt: stri
       </div>
     );
   }
+
+  const currentImage = images[currentIndex];
 
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden group">
@@ -397,8 +429,8 @@ function ImageSlideshow({ images, category }: { images: { url: string; alt: stri
           ) : (
             <>
               <img
-                src={images[currentIndex].url}
-                alt={images[currentIndex].alt}
+                src={currentImage.url}
+                alt={currentImage.alt}
                 className="w-full h-full object-cover"
                 onError={() => setImageError(prev => ({ ...prev, [currentIndex]: true }))}
               />
@@ -407,6 +439,18 @@ function ImageSlideshow({ images, category }: { images: { url: string; alt: stri
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* Photographer Attribution */}
+      {currentImage.photographer && !imageError[currentIndex] && (
+        <a
+          href={`https://unsplash.com/?utm_source=gohip&utm_medium=referral`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute bottom-2 left-2 text-[9px] text-white/60 hover:text-white/90 transition-colors bg-black/40 px-1.5 py-0.5 rounded"
+        >
+          Photo: {currentImage.photographer} / Unsplash
+        </a>
+      )}
 
       {images.length > 1 && (
         <>
@@ -546,6 +590,7 @@ export function CentralInsightModal({
   category,
   countryIso,
   countryName,
+  flagUrl,
   isAdmin,
   economicData,
   pillarScores,
@@ -612,6 +657,8 @@ export function CentralInsightModal({
         label: stat.label,
         value: stat.value,
         description: stat.description,
+        source: stat.source,
+        sourceUrl: stat.source_url,
         icon: icons[i % icons.length],
         color: colors[i % colors.length],
       }));
@@ -623,6 +670,7 @@ export function CentralInsightModal({
       images: apiData.images?.map(img => ({
         url: img.url,
         alt: img.alt || `${category} image`,
+        photographer: img.photographer,
       })) || [],
       whatIsAnalysis: apiData.what_is_analysis || "",
       ohImplications: apiData.oh_implications || "",
@@ -777,6 +825,22 @@ export function CentralInsightModal({
                 <div className="h-full p-5 overflow-y-auto">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      {/* Country Flag Display */}
+                      <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                          <CountryFlag 
+                            isoCode={countryIso} 
+                            flagUrl={flagUrl || undefined} 
+                            size="lg" 
+                            className="rounded-md shadow-lg"
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-white">{countryName}</h4>
+                          <p className="text-xs text-white/50">{config.title} Analysis</p>
+                        </div>
+                      </div>
+                      
                       <PositionIndicator
                         percentile={economicMetricData.percentile}
                         benchmark={economicMetricData.benchmark}
@@ -950,12 +1014,12 @@ export function CentralInsightModal({
                 </div>
               ) : isCountryInsightCategory && insightData ? (
                 // COUNTRY INSIGHT LAYOUT - Fully responsive
-                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5 overflow-y-auto">
+                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5 overflow-hidden">
                   {/* Left side: Images + Stats */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0"
+                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0 overflow-y-auto lg:overflow-visible custom-scrollbar"
                   >
                     {/* Image Slideshow */}
                     {insightData.images.length > 0 ? (
@@ -984,9 +1048,9 @@ export function CentralInsightModal({
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-3/5 flex flex-col overflow-hidden"
+                    className="lg:w-3/5 flex flex-col min-h-0"
                   >
-                    <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar min-h-0 max-h-full">
                       {/* Section 1: What is X? */}
                       <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
                         <h3 className={cn("text-sm sm:text-base font-semibold mb-3 flex items-center gap-2", config.color)}>

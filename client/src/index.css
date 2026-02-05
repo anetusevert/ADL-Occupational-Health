@@ -69,6 +69,29 @@ body {
   background: rgba(74, 107, 181, 0.5);
 }
 
+/* Custom scrollbar for modals - more visible */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 150, 255, 0.4) rgba(255, 255, 255, 0.05);
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 150, 255, 0.4);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 150, 255, 0.6);
+}
+
 /* Text utilities */
 .text-balance {
   text-wrap: balance;

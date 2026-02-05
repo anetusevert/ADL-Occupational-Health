@@ -11,7 +11,7 @@
  * ALL tiles (Economic, Pillars, Country Insights) open the CentralInsightModal.
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -158,6 +158,74 @@ export function CountryDashboard() {
   const [initStatus, setInitStatus] = useState<"idle" | "generating" | "complete" | "error">("idle");
   const [generationProgress, setGenerationProgress] = useState<string>("");
   
+  // Poll for generation status
+  const pollGenerationStatus = useCallback(async (countryIso: string) => {
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes max (5s intervals)
+    
+    const checkStatus = async (): Promise<boolean> => {
+      try {
+        const response = await apiClient.get<{
+          is_generating: boolean;
+          status: string;
+          total: number;
+          completed: number;
+          failed: number;
+          current_category: string | null;
+          errors: Array<{ category: string; error: string }>;
+        }>(`/api/v1/insights/${countryIso}/generation-status`);
+        
+        const data = response.data;
+        
+        if (data.is_generating) {
+          const progress = data.current_category 
+            ? `Generating ${data.current_category}... (${data.completed}/${data.total})`
+            : `Generating... (${data.completed}/${data.total})`;
+          setGenerationProgress(progress);
+          return false; // Keep polling
+        }
+        
+        // Generation complete
+        if (data.status === "completed" || data.status === "partial") {
+          setInitStatus("complete");
+          const hasErrors = data.failed > 0;
+          setGenerationProgress(
+            hasErrors 
+              ? `Generated ${data.completed}/${data.total} (${data.failed} failed)`
+              : `All ${data.completed} insights ready`
+          );
+          queryClient.invalidateQueries({ queryKey: ["insights", countryIso] });
+          return true; // Stop polling
+        }
+        
+        if (data.status === "failed") {
+          setInitStatus("error");
+          setGenerationProgress("Generation failed");
+          return true; // Stop polling
+        }
+        
+        return data.status === "idle"; // Stop if idle
+      } catch (error) {
+        console.warn("[CountryDashboard] Status poll error:", error);
+        return false;
+      }
+    };
+    
+    while (attempts < maxAttempts) {
+      const done = await checkStatus();
+      if (done) break;
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 5s interval
+      attempts++;
+    }
+    
+    // Clear status after 3 seconds
+    setTimeout(() => {
+      setInitStatus("idle");
+      setGenerationProgress("");
+      setIsInitializing(false);
+    }, 3000);
+  }, [queryClient]);
+  
   useEffect(() => {
     if (!iso || !isAdmin || !currentCountry) return;
     
@@ -167,45 +235,49 @@ export function CountryDashboard() {
         setInitStatus("generating");
         setGenerationProgress("Initializing insights...");
         
-        // Call initialize endpoint - uses extended timeout for AI generation
-        const response = await aiApiClient.post<{
+        // Call initialize endpoint - now returns immediately for background generation
+        const response = await apiClient.post<{
           status: string;
           existing: number;
           missing: number;
           total_categories: number;
+          categories_to_generate: string[];
           errors?: Array<{ category: string; error: string }>;
         }>(`/api/v1/insights/${iso}/initialize`);
         
         console.log(`[CountryDashboard] Initialized insights for ${iso}:`, response.data);
         
-        // Log detailed errors if any
-        if (response.data.errors && response.data.errors.length > 0) {
-          console.error(`[CountryDashboard] AI Generation Errors for ${iso}:`);
-          response.data.errors.forEach((err) => {
-            console.error(`  - ${err.category}: ${err.error}`);
-          });
-        }
-        
         if (response.data.status === "already_complete") {
           setInitStatus("complete");
           setGenerationProgress("All insights ready");
-        } else if (response.data.status === "generated" || response.data.status === "partial") {
-          setInitStatus("complete");
-          const hasErrors = response.data.errors && response.data.errors.length > 0;
-          setGenerationProgress(
-            hasErrors 
-              ? `Generated ${response.data.existing}/${response.data.total_categories} (${response.data.errors.length} failed)`
-              : `Generated ${response.data.existing}/${response.data.total_categories} insights`
-          );
-          // Invalidate any cached insight data
-          queryClient.invalidateQueries({ queryKey: ["insights", iso] });
-        }
-        
-        // Clear status after 3 seconds
-        setTimeout(() => {
+          setTimeout(() => {
+            setInitStatus("idle");
+            setGenerationProgress("");
+            setIsInitializing(false);
+          }, 2000);
+        } else if (response.data.status === "started" || response.data.status === "generating") {
+          // Background generation started - poll for progress
+          setGenerationProgress(`Starting generation of ${response.data.missing} insights...`);
+          pollGenerationStatus(iso);
+        } else if (response.data.status === "missing_content") {
+          // Non-admin or content missing
           setInitStatus("idle");
           setGenerationProgress("");
-        }, 3000);
+          setIsInitializing(false);
+        } else {
+          // Other status (partial, generated with errors)
+          if (response.data.errors && response.data.errors.length > 0) {
+            console.error(`[CountryDashboard] AI Generation Errors for ${iso}:`, response.data.errors);
+          }
+          setInitStatus("complete");
+          setGenerationProgress(`Generated ${response.data.existing}/${response.data.total_categories} insights`);
+          queryClient.invalidateQueries({ queryKey: ["insights", iso] });
+          setTimeout(() => {
+            setInitStatus("idle");
+            setGenerationProgress("");
+            setIsInitializing(false);
+          }, 3000);
+        }
         
       } catch (error) {
         console.warn(`[CountryDashboard] Auto-init failed for ${iso}:`, error);
@@ -214,14 +286,13 @@ export function CountryDashboard() {
         setTimeout(() => {
           setInitStatus("idle");
           setGenerationProgress("");
+          setIsInitializing(false);
         }, 3000);
-      } finally {
-        setIsInitializing(false);
       }
     };
     
     initializeInsights();
-  }, [iso, isAdmin, currentCountry, queryClient]);
+  }, [iso, isAdmin, currentCountry, queryClient, pollGenerationStatus]);
 
   // Regenerate all insights (admin only)
   const handleRegenerateAll = async () => {
@@ -489,6 +560,7 @@ export function CountryDashboard() {
         category={selectedInsightCategory}
         countryIso={currentCountry.iso_code}
         countryName={currentCountry.name}
+        flagUrl={currentCountry.flag_url}
         isAdmin={isAdmin}
         economicData={intelligence ? {
           laborForce: intelligence.labor_force_participation,

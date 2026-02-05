@@ -18,7 +18,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -55,10 +55,12 @@ class ImageData(BaseModel):
 
 
 class KeyStatData(BaseModel):
-    """Key stat for tile display."""
+    """Key stat for tile display with source attribution."""
     label: str
     value: str
     description: Optional[str] = None
+    source: Optional[str] = None  # e.g., "World Bank", "ILO"
+    source_url: Optional[str] = None  # URL to the source
 
 
 class InsightResponse(BaseModel):
@@ -555,10 +557,12 @@ Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications
 
 **SECTION 3: Key Statistics**
 Provide exactly 6 key statistics that highlight the most important data points about {category_title} in {country.name}.
-Each stat should have:
+Each stat MUST have:
 - label: Short label (2-4 words, e.g., "GDP Growth", "Labor Force")
 - value: The actual value with unit (e.g., "$71,565", "4.0%", "33.7M")
 - description: Brief context (10-15 words explaining significance)
+- source: Data source name (e.g., "World Bank", "ILO", "WHO", "National Statistics")
+- source_url: Direct URL to the data source (use real, working URLs)
 
 ## OUTPUT FORMAT:
 Respond with valid JSON only:
@@ -566,12 +570,12 @@ Respond with valid JSON only:
   "what_is_analysis": "Full 3-4 paragraph analysis here...",
   "oh_implications": "Full 3-4 paragraph OH analysis here...",
   "key_stats": [
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}},
-    {{"label": "Stat Name", "value": "Value", "description": "Brief context"}}
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "World Bank", "source_url": "https://data.worldbank.org/..."}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "ILO", "source_url": "https://ilostat.ilo.org/..."}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "WHO", "source_url": "https://www.who.int/..."}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "World Bank", "source_url": "https://data.worldbank.org/..."}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "ILO", "source_url": "https://ilostat.ilo.org/..."}},
+    {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "National Statistics", "source_url": "https://..."}}
   ]
 }}"""
 
@@ -864,6 +868,145 @@ COUNTRY_INSIGHT_CATEGORIES = [
 ]
 
 
+# =============================================================================
+# BACKGROUND GENERATION STATUS TRACKING
+# =============================================================================
+# In-memory store for tracking generation progress per country
+# Format: { "SAU": {"status": "generating", "total": 6, "completed": 3, "failed": 0, "current": "industry", "errors": [], "started_at": datetime} }
+_generation_status: Dict[str, Dict[str, Any]] = {}
+
+
+class GenerationStatusResponse(BaseModel):
+    """Status of background generation for a country."""
+    country_iso: str
+    is_generating: bool
+    status: str  # "idle", "generating", "completed", "failed"
+    total: int
+    completed: int
+    failed: int
+    current_category: Optional[str] = None
+    errors: List[Dict[str, str]] = []
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+async def run_background_generation(
+    country_iso: str,
+    country_name: str,
+    missing_categories: List[InsightCategory],
+    user_id: int,
+    db_url: str,
+):
+    """
+    Background task to generate all missing insights for a country.
+    Uses a separate DB session since this runs after the request completes.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    
+    # Create a new DB session for background task
+    engine = create_engine(db_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+    
+    try:
+        # Update status
+        _generation_status[country_iso] = {
+            "status": "generating",
+            "total": len(missing_categories),
+            "completed": 0,
+            "failed": 0,
+            "current": missing_categories[0].value if missing_categories else None,
+            "errors": [],
+            "started_at": datetime.utcnow().isoformat(),
+            "completed_at": None,
+        }
+        
+        # Get country and intelligence data
+        country = get_country_data(db, country_iso)
+        intelligence = get_intelligence_data(db, country_iso)
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        for category in missing_categories:
+            _generation_status[country_iso]["current"] = category.value
+            
+            try:
+                # Find or create insight record
+                insight = db.query(CountryInsight).filter(
+                    CountryInsight.country_iso == country_iso,
+                    CountryInsight.category == category,
+                ).first()
+                
+                if not insight:
+                    insight = CountryInsight(
+                        country_iso=country_iso,
+                        category=category,
+                        status=InsightStatus.generating,
+                    )
+                    db.add(insight)
+                    db.commit()
+                    db.refresh(insight)
+                else:
+                    insight.status = InsightStatus.generating
+                    db.commit()
+                
+                # Generate content
+                content = await generate_insight_content(
+                    db, country, intelligence, category, user
+                )
+                
+                # Fetch dynamic images from Unsplash
+                images = await fetch_country_images(
+                    country_name=country.name,
+                    country_iso=country_iso,
+                    category=category.value,
+                    count=3
+                )
+                
+                # Update insight
+                insight.what_is_analysis = content.get("what_is_analysis")
+                insight.oh_implications = content.get("oh_implications")
+                try:
+                    setattr(insight, 'key_stats', content.get("key_stats", []))
+                except Exception:
+                    pass
+                insight.images = images
+                insight.status = InsightStatus.completed
+                insight.generated_at = datetime.utcnow()
+                insight.generated_by = user_id
+                insight.ai_provider = content.get("ai_provider")
+                insight.ai_model = content.get("ai_model")
+                db.commit()
+                
+                _generation_status[country_iso]["completed"] += 1
+                logger.info(f"[Background] Generated {category.value} for {country_iso}")
+                
+            except Exception as e:
+                logger.error(f"[Background] Failed {category.value} for {country_iso}: {e}")
+                _generation_status[country_iso]["failed"] += 1
+                _generation_status[country_iso]["errors"].append({
+                    "category": category.value,
+                    "error": str(e)
+                })
+        
+        # Mark generation complete
+        status_info = _generation_status[country_iso]
+        status_info["status"] = "completed" if status_info["failed"] == 0 else "partial"
+        status_info["current"] = None
+        status_info["completed_at"] = datetime.utcnow().isoformat()
+        
+        logger.info(f"[Background] Completed generation for {country_iso}: {status_info['completed']}/{status_info['total']}")
+        
+    except Exception as e:
+        logger.error(f"[Background] Fatal error for {country_iso}: {e}", exc_info=True)
+        if country_iso in _generation_status:
+            _generation_status[country_iso]["status"] = "failed"
+            _generation_status[country_iso]["current"] = None
+            _generation_status[country_iso]["completed_at"] = datetime.utcnow().isoformat()
+    finally:
+        db.close()
+
+
 class InitializeError(BaseModel):
     """Error detail for failed category."""
     category: str
@@ -885,6 +1028,7 @@ class InitializeResponse(BaseModel):
 @router.post("/{country_iso}/initialize", response_model=InitializeResponse)
 async def initialize_country_insights(
     country_iso: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -893,14 +1037,31 @@ async def initialize_country_insights(
     
     This endpoint:
     1. Checks which of the 6 Country Insight categories are missing content
-    2. If admin, triggers generation for all missing categories
-    3. Returns status immediately (generation happens in background for large batches)
+    2. If admin, triggers BACKGROUND generation for all missing categories
+    3. Returns status immediately - use /generation-status endpoint to poll progress
     
     Only admins can trigger generation. Regular users get status only.
+    Generation continues in the background even if user navigates away.
     """
+    from app.core.config import settings
+    import asyncio
+    
     try:
         country_iso = country_iso.upper()
         logger.info(f"[Initialize] Starting initialization for {country_iso} by user {current_user.email}")
+        
+        # Check if generation is already in progress
+        if country_iso in _generation_status and _generation_status[country_iso].get("status") == "generating":
+            status_info = _generation_status[country_iso]
+            return InitializeResponse(
+                country_iso=country_iso,
+                country_name="",  # Don't fetch if already generating
+                status="generating",
+                total_categories=status_info["total"],
+                existing=status_info["completed"],
+                missing=status_info["total"] - status_info["completed"],
+                categories_to_generate=[],
+            )
         
         # Get country data
         country = get_country_data(db, country_iso)
@@ -945,98 +1106,160 @@ async def initialize_country_insights(
                 categories_to_generate=[c.value for c in missing_categories],
             )
         
-        # Admin: Generate all missing categories
-        intelligence = get_intelligence_data(db, country_iso)
+        # Admin: Start BACKGROUND generation for all missing categories
+        # Initialize status tracking
+        _generation_status[country_iso] = {
+            "status": "generating",
+            "total": len(missing_categories),
+            "completed": 0,
+            "failed": 0,
+            "current": missing_categories[0].value if missing_categories else None,
+            "errors": [],
+            "started_at": datetime.utcnow().isoformat(),
+            "completed_at": None,
+        }
         
-        generated = 0
-        errors = []
+        # Schedule background task
+        # Note: BackgroundTasks doesn't work well with async functions, so we use asyncio.create_task
+        asyncio.create_task(
+            run_background_generation(
+                country_iso=country_iso,
+                country_name=country.name,
+                missing_categories=missing_categories,
+                user_id=current_user.id,
+                db_url=settings.DATABASE_URL,
+            )
+        )
         
-        for category in missing_categories:
-            try:
-                # Find or create insight record
-                insight = db.query(CountryInsight).filter(
-                    CountryInsight.country_iso == country_iso,
-                    CountryInsight.category == category,
-                ).first()
-                
-                if not insight:
-                    insight = CountryInsight(
-                        country_iso=country_iso,
-                        category=category,
-                        status=InsightStatus.generating,
-                    )
-                    db.add(insight)
-                    db.commit()
-                    db.refresh(insight)
-                else:
-                    insight.status = InsightStatus.generating
-                    db.commit()
-                
-                # Generate content
-                content = await generate_insight_content(
-                    db, country, intelligence, category, current_user
-                )
-                
-                # Fetch dynamic images from Unsplash (with fallback)
-                images = await fetch_country_images(
-                    country_name=country.name,
-                    country_iso=country_iso,
-                    category=category.value,
-                    count=3
-                )
-                
-                # Update insight
-                insight.what_is_analysis = content.get("what_is_analysis")
-                insight.oh_implications = content.get("oh_implications")
-                # Safely set key_stats (column may not exist in production yet)
-                try:
-                    setattr(insight, 'key_stats', content.get("key_stats", []))
-                except Exception as e:
-                    logger.debug(f"[Insights] Could not set key_stats: {e}")
-                insight.images = images
-                insight.status = InsightStatus.completed
-                insight.generated_at = datetime.utcnow()
-                insight.generated_by = current_user.id
-                insight.ai_provider = content.get("ai_provider")
-                insight.ai_model = content.get("ai_model")
-                db.commit()
-                
-                generated += 1
-                logger.info(f"Generated {category.value} insight for {country_iso}")
-                
-            except Exception as e:
-                error_msg = str(e)
-                # Extract more specific error message if available
-                if hasattr(e, 'detail'):
-                    error_msg = e.detail
-                logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
-                errors.append({"category": category.value, "error": error_msg})
-        
-        # Convert errors to response format
-        error_details = [InitializeError(category=e["category"], error=e["error"]) for e in errors] if errors else None
+        logger.info(f"[Initialize] Background generation started for {country_iso} - {len(missing_categories)} categories")
         
         return InitializeResponse(
             country_iso=country_iso,
             country_name=country.name,
-            status="generated" if generated == len(missing_categories) else "partial",
+            status="started",
             total_categories=len(COUNTRY_INSIGHT_CATEGORIES),
-            existing=len(existing_categories) + generated,
-            missing=len(missing_categories) - generated,
-            categories_to_generate=[],
-            errors=error_details,
+            existing=len(existing_categories),
+            missing=len(missing_categories),
+            categories_to_generate=[c.value for c in missing_categories],
         )
     
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        # Catch any unhandled exceptions and return a proper error response
-        # Note: country_iso comes from function parameter, so it's always defined
-        logger.error(f"[Initialize] Unhandled error for {country_iso}: {e}", exc_info=True)
+        logger.error(f"[Initialize] Error for {country_iso}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error during initialization: {str(e)}"
+            detail=f"Failed to start generation: {str(e)}"
         )
+
+
+# Helper function for synchronous/foreground generation (used by regenerate-all)
+async def _generate_single_insight(
+    country_iso: str,
+    country: Country,
+    intelligence: Optional[CountryIntelligence],
+    category: InsightCategory,
+    current_user: User,
+    db: Session
+) -> Dict[str, Any]:
+    """Generate a single insight synchronously. Returns dict with success status."""
+    try:
+        # Find or create insight record
+        insight = db.query(CountryInsight).filter(
+            CountryInsight.country_iso == country_iso,
+            CountryInsight.category == category,
+        ).first()
+        
+        if not insight:
+            insight = CountryInsight(
+                country_iso=country_iso,
+                category=category,
+                status=InsightStatus.generating,
+            )
+            db.add(insight)
+            db.commit()
+            db.refresh(insight)
+        else:
+            insight.status = InsightStatus.generating
+            db.commit()
+        
+        # Generate content
+        content = await generate_insight_content(
+            db, country, intelligence, category, current_user
+        )
+        
+        # Fetch dynamic images from Unsplash (with fallback)
+        images = await fetch_country_images(
+            country_name=country.name,
+            country_iso=country_iso,
+            category=category.value,
+            count=3
+        )
+        
+        # Update insight
+        insight.what_is_analysis = content.get("what_is_analysis")
+        insight.oh_implications = content.get("oh_implications")
+        try:
+            setattr(insight, 'key_stats', content.get("key_stats", []))
+        except Exception:
+            pass
+        insight.images = images
+        insight.status = InsightStatus.completed
+        insight.generated_at = datetime.utcnow()
+        insight.generated_by = current_user.id
+        insight.ai_provider = content.get("ai_provider")
+        insight.ai_model = content.get("ai_model")
+        db.commit()
+        
+        logger.info(f"Generated {category.value} insight for {country_iso}")
+        return {"success": True, "category": category.value}
+        
+    except Exception as e:
+        error_msg = str(e)
+        if hasattr(e, 'detail'):
+            error_msg = e.detail
+        logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
+        return {"success": False, "category": category.value, "error": error_msg}
+
+
+@router.get("/{country_iso}/generation-status", response_model=GenerationStatusResponse)
+async def get_generation_status(
+    country_iso: str,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get the current status of background insight generation for a country.
+    
+    Used by the frontend to poll for generation progress when user navigates
+    to a country page and generation is in progress.
+    """
+    country_iso = country_iso.upper()
+    
+    if country_iso in _generation_status:
+        status_info = _generation_status[country_iso]
+        return GenerationStatusResponse(
+            country_iso=country_iso,
+            is_generating=status_info["status"] == "generating",
+            status=status_info["status"],
+            total=status_info["total"],
+            completed=status_info["completed"],
+            failed=status_info["failed"],
+            current_category=status_info.get("current"),
+            errors=status_info.get("errors", []),
+            started_at=status_info.get("started_at"),
+            completed_at=status_info.get("completed_at"),
+        )
+    
+    # No generation in progress
+    return GenerationStatusResponse(
+        country_iso=country_iso,
+        is_generating=False,
+        status="idle",
+        total=0,
+        completed=0,
+        failed=0,
+        errors=[],
+    )
 
 
 @router.get("/{country_iso}/{category}", response_model=Optional[InsightResponse])

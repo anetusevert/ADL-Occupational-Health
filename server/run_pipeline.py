@@ -2,23 +2,32 @@
 GOHIP Platform - Full ETL Pipeline
 ===================================
 
-Phase 23: Unified 5-Point Dragnet Pipeline
+Phase 23+: Unified 9-Source Data Engine Pipeline
 
 This module orchestrates the complete ETL pipeline for fetching
 occupational health data from multiple international sources:
 
-Data Sources (5-Point Dragnet):
+Data Sources (9-Source Data Engine):
 1. ILO ILOSTAT: Fatal occupational injury rates (SDG 8.8.1)
 2. WHO GHO: UHC Index, Road Safety (proxy for safety culture)
-3. World Bank: Governance, Vulnerable Employment, Health Expenditure
-4. Wikipedia: Country flag images
+3. World Bank Core: Governance, Vulnerable Employment, Health Expenditure
+4. World Bank Extended: GDP, Labor, Health (via IntelligencePipeline)
+5. Transparency International: Corruption Perceptions Index (CPI)
+6. UNDP: Human Development Index (HDI)
+7. Yale: Environmental Performance Index (EPI)
+8. IHME: Global Burden of Disease (GBD) - Occupational DALYs
+9. World Justice Project: Rule of Law Index
+10. OECD: Work-Life Balance (OECD countries only)
+11. Wikipedia: Country flag images
 
 Pipeline Features:
 - Per-country resilient processing (failures don't stop pipeline)
 - Real-time status tracking via pipeline_logger
+- Comprehensive logging of all data sources fetched
 - Rate limiting between API calls
 - Maturity score calculation
 - Pillar score calculation
+- Intelligence score calculation
 
 Usage:
     # From CLI
@@ -54,6 +63,11 @@ from app.models.country import (
 from app.services.etl.ilo_client import ILOClient
 from app.services.etl.wb_client import WorldBankClient
 from app.services.etl.who_client import WHOClient, calculate_proxy_fatal_rate
+
+# Intelligence Pipeline and Reference Data (Additional 6 Sources)
+from app.services.etl.intelligence_pipeline import IntelligencePipeline
+from app.services.etl.intelligence_client import get_cpi_data, get_hdi_data, get_epi_data
+from app.data.intelligence_reference import get_ihme_gbd_data, get_wjp_data, get_oecd_data
 
 # Pipeline Logger for Live Ops Center
 from app.services.pipeline_logger import pipeline_logger, LogLevel
