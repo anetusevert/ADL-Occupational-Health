@@ -20,15 +20,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add strategic_summary_text column to countries table."""
-    op.add_column(
-        'countries',
-        sa.Column(
-            'strategic_summary_text',
-            sa.Text(),
-            nullable=True,
-            comment='AI-generated qualitative strategic assessment from the Consultant Agent'
+    # Check if column already exists to make migration idempotent
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('countries')]
+    
+    if 'strategic_summary_text' not in columns:
+        op.add_column(
+            'countries',
+            sa.Column(
+                'strategic_summary_text',
+                sa.Text(),
+                nullable=True,
+                comment='AI-generated qualitative strategic assessment from the Consultant Agent'
+            )
         )
-    )
 
 
 def downgrade() -> None:
