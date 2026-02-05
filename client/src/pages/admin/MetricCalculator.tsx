@@ -34,9 +34,11 @@ import {
   FileText,
   Play,
   Workflow,
+  Lock,
 } from "lucide-react";
 import { apiClient } from "../../services/api";
 import { cn } from "../../lib/utils";
+import { useAuth } from "../../contexts/AuthContext";
 
 // Import new scoring components
 import {
@@ -290,6 +292,7 @@ const fadeInUp: Variants = {
 
 export function MetricCalculator() {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   
   // State
   const [activeView, setActiveView] = useState<ViewType>("overview");
@@ -486,67 +489,77 @@ export function MetricCalculator() {
           </div>
           
           <div className="flex items-center gap-3">
-            {needsInit && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => initMutation.mutate()}
-                disabled={initMutation.isPending}
-                className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2"
-              >
-                {initMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Zap className="w-4 h-4" />
+            {/* Admin-only actions */}
+            {isAdmin ? (
+              <>
+                {needsInit && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => initMutation.mutate()}
+                    disabled={initMutation.isPending}
+                    className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2"
+                  >
+                    {initMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    Initialize Configuration
+                  </motion.button>
                 )}
-                Initialize Configuration
-              </motion.button>
-            )}
-            
-            {hasUnsavedChanges && (
-              <motion.button
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => saveAllWeightsMutation.mutate()}
-                disabled={saveAllWeightsMutation.isPending}
-                className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors flex items-center gap-2"
-              >
-                {saveAllWeightsMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
+                
+                {hasUnsavedChanges && (
+                  <motion.button
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => saveAllWeightsMutation.mutate()}
+                    disabled={saveAllWeightsMutation.isPending}
+                    className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors flex items-center gap-2"
+                  >
+                    {saveAllWeightsMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Changes
+                  </motion.button>
                 )}
-                Save Changes
-              </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    if (hasUnsavedChanges) {
+                      saveAllWeightsMutation.mutate();
+                      return;
+                    }
+                    recalcMutation.mutate();
+                  }}
+                  disabled={recalcMutation.isPending || saveAllWeightsMutation.isPending || !overview}
+                  className={cn(
+                    "px-4 py-2 rounded-lg flex items-center gap-2 transition-colors",
+                    recalcMutation.isPending || saveAllWeightsMutation.isPending
+                      ? "bg-white/5 text-white/40 cursor-not-allowed"
+                      : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                  )}
+                >
+                  {recalcMutation.isPending || saveAllWeightsMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {hasUnsavedChanges ? "Save & Recalculate" : "Recalculate All"}
+                </motion.button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg text-white/40 text-sm">
+                <Lock className="w-4 h-4" />
+                View Only
+              </div>
             )}
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                if (hasUnsavedChanges) {
-                  saveAllWeightsMutation.mutate();
-                  return;
-                }
-                recalcMutation.mutate();
-              }}
-              disabled={recalcMutation.isPending || saveAllWeightsMutation.isPending || !overview}
-              className={cn(
-                "px-4 py-2 rounded-lg flex items-center gap-2 transition-colors",
-                recalcMutation.isPending || saveAllWeightsMutation.isPending
-                  ? "bg-white/5 text-white/40 cursor-not-allowed"
-                  : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-              )}
-            >
-              {recalcMutation.isPending || saveAllWeightsMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {hasUnsavedChanges ? "Save & Recalculate" : "Recalculate All"}
-            </motion.button>
           </div>
         </motion.div>
 
@@ -716,27 +729,32 @@ export function MetricCalculator() {
                       <div>
                         <h2 className="text-white font-semibold text-lg">Scoring Tree</h2>
                         <p className="text-white/50 text-sm">
-                          Click any node to adjust weights in the calculation tree
+                          {isAdmin 
+                            ? "Click any node to adjust weights in the calculation tree"
+                            : "View the scoring calculation structure"
+                          }
                         </p>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          if (window.confirm("Reset all pillar weights to WHO/ILO defaults?")) {
-                            initMutation.mutate();
-                          }
-                        }}
-                        disabled={initMutation.isPending}
-                        className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2"
-                      >
-                        {initMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Zap className="w-4 h-4" />
-                        )}
-                        Reset to Defaults
-                      </motion.button>
+                      {isAdmin && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            if (window.confirm("Reset all pillar weights to WHO/ILO defaults?")) {
+                              initMutation.mutate();
+                            }
+                          }}
+                          disabled={initMutation.isPending}
+                          className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors flex items-center gap-2"
+                        >
+                          {initMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Zap className="w-4 h-4" />
+                          )}
+                          Reset to Defaults
+                        </motion.button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -772,6 +790,7 @@ export function MetricCalculator() {
                               } as ScoreTreeNode;
                             })}
                           onNodeClick={(node) => {
+                            if (!isAdmin) return; // View only for non-admins
                             setSelectedNode(node);
                             if (node.type === "metric") {
                               setIsEditModalOpen(true);

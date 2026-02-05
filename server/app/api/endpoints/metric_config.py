@@ -17,7 +17,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_admin_user
+from app.core.dependencies import get_current_admin_user, get_current_user
 from app.models.user import User
 from app.models.metric_config import (
     MetricDefinition,
@@ -246,18 +246,18 @@ async def initialize_metric_config(
 
 
 # =============================================================================
-# OVERVIEW ENDPOINT
+# OVERVIEW ENDPOINT (User-accessible, read-only)
 # =============================================================================
 
 @router.get(
     "/overview",
     response_model=MetricConfigOverview,
     summary="Get Complete Metric Configuration",
-    description="Returns all metric definitions, scoring rules, and pillar summaries."
+    description="Returns all metric definitions, scoring rules, and pillar summaries. Available to all authenticated users."
 )
 async def get_metric_overview(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get complete overview of metric configuration."""
     # #region agent log
