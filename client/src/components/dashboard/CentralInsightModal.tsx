@@ -440,18 +440,6 @@ function ImageSlideshow({ images, category }: { images: { url: string; alt: stri
         </motion.div>
       </AnimatePresence>
 
-      {/* Photographer Attribution */}
-      {currentImage.photographer && !imageError[currentIndex] && (
-        <a
-          href={`https://unsplash.com/?utm_source=gohip&utm_medium=referral`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute bottom-2 left-2 text-[9px] text-white/60 hover:text-white/90 transition-colors bg-black/40 px-1.5 py-0.5 rounded"
-        >
-          Photo: {currentImage.photographer} / Unsplash
-        </a>
-      )}
-
       {images.length > 1 && (
         <>
           <button
@@ -1014,12 +1002,12 @@ export function CentralInsightModal({
                 </div>
               ) : isCountryInsightCategory && insightData ? (
                 // COUNTRY INSIGHT LAYOUT - Fully responsive
-                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5 overflow-hidden">
+                <div className="h-full flex flex-col lg:flex-row gap-3 sm:gap-4 p-3 sm:p-5">
                   {/* Left side: Images + Stats */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0 overflow-y-auto lg:overflow-visible custom-scrollbar"
+                    className="lg:w-2/5 flex flex-col gap-3 sm:gap-4 flex-shrink-0"
                   >
                     {/* Image Slideshow */}
                     {insightData.images.length > 0 ? (
@@ -1048,9 +1036,9 @@ export function CentralInsightModal({
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:w-3/5 flex flex-col min-h-0"
+                    className="lg:w-3/5 flex-1 overflow-y-auto custom-scrollbar pr-1"
                   >
-                    <div className="flex-1 overflow-y-auto pr-3 space-y-6 custom-scrollbar min-h-0 max-h-full">
+                    <div className="space-y-6">
                       {/* Section 1: What is X? */}
                       <section className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
                         <h3 className={cn("text-sm sm:text-base font-semibold mb-3 flex items-center gap-2", config.color)}>

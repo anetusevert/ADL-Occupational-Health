@@ -555,12 +555,21 @@ Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications
 - Describe how OH systems are affected
 - Be purely informative - NO strategic recommendations
 
-**SECTION 3: Key Statistics**
-Provide exactly 6 key statistics that highlight the most important data points about {category_title} in {country.name}.
+**SECTION 3: Key Statistics (TOPIC-SPECIFIC)**
+Provide exactly 6 key statistics that are DIRECTLY and SPECIFICALLY relevant to {category_title} in {country.name}.
+
+CRITICAL: Statistics MUST be directly about {category_title}, NOT generic country stats.
+- For "Urban Development": urbanization rate, city population, housing stock, metro ridership, urban infrastructure spending
+- For "Industry & Economy": sector GDP breakdown, manufacturing output, export values, industrial employment
+- For "Workforce Demographics": labor force size, age distribution, education levels, participation rates
+- For "OH Infrastructure": number of OH professionals, hospital beds, occupational clinics, workplace inspections
+- For "Cultural Factors": work hours, union membership, safety culture surveys, training participation
+- For "Political Capacity": OH legislation count, enforcement budget, regulatory staff, inspection rates
+
 Each stat MUST have:
-- label: Short label (2-4 words, e.g., "GDP Growth", "Labor Force")
-- value: The actual value with unit (e.g., "$71,565", "4.0%", "33.7M")
-- description: Brief context (10-15 words explaining significance)
+- label: Short label (2-4 words) SPECIFIC to {category_title}
+- value: The actual value with unit (e.g., "74.98%", "143.8M", "112 sq.m")
+- description: Brief context (10-15 words explaining significance for {category_title})
 - source: Data source name (e.g., "World Bank", "ILO", "WHO", "National Statistics")
 - source_url: Direct URL to the data source (use real, working URLs)
 
