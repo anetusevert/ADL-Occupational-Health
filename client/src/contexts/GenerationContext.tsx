@@ -64,6 +64,7 @@ const GenerationContext = createContext<GenerationContextType | undefined>(undef
 export function GenerationProvider({ children }: { children: React.ReactNode }) {
   const [activeGenerations, setActiveGenerations] = useState<Record<string, GenerationStatus>>({});
   const pollingRefs = useRef<Record<string, NodeJS.Timeout | null>>({});
+  const pollFailureCounts = useRef<Record<string, number>>({});
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -128,6 +129,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }>(`/api/v1/insights/${isoCode}/generation-status`);
 
         const data = response.data;
+        pollFailureCounts.current[isoCode] = 0;
 
         setActiveGenerations(prev => {
           if (!prev[isoCode]) return prev;
@@ -171,6 +173,30 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }
       } catch (error) {
         console.error(`[GenerationContext] Poll error for ${isoCode}:`, error);
+        pollFailureCounts.current[isoCode] = (pollFailureCounts.current[isoCode] || 0) + 1;
+        const failures = pollFailureCounts.current[isoCode];
+
+        setActiveGenerations(prev => {
+          if (!prev[isoCode]) return prev;
+          return {
+            ...prev,
+            [isoCode]: {
+              ...prev[isoCode],
+              message: failures >= 5
+                ? "Generation status unavailable (connection issue)"
+                : "Retrying status check...",
+              failed: failures >= 5 ? Math.max(prev[isoCode].failed, 1) : prev[isoCode].failed,
+              errors: failures >= 5
+                ? [...prev[isoCode].errors, { category: "poll", error: "Failed to reach generation-status endpoint repeatedly" }]
+                : prev[isoCode].errors,
+            },
+          };
+        });
+
+        if (failures >= 5 && pollingRefs.current[isoCode]) {
+          clearInterval(pollingRefs.current[isoCode]!);
+          pollingRefs.current[isoCode] = null;
+        }
       }
     };
 
@@ -322,6 +348,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
       clearInterval(pollingRefs.current[isoCode]!);
       pollingRefs.current[isoCode] = null;
     }
+    delete pollFailureCounts.current[isoCode];
     setActiveGenerations(prev => {
       const { [isoCode]: removed, ...rest } = prev;
       return rest;

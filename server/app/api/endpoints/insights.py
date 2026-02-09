@@ -13,6 +13,7 @@ Endpoints:
 
 import logging
 import time
+import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -24,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_user_optional
-from app.models.user import User, UserRole, AIConfig
+from app.models.user import User, UserRole, AIConfig, AIProvider
 from app.models.country import Country, CountryIntelligence
 from app.models.country_insight import (
     CountryInsight,
@@ -476,8 +477,8 @@ async def generate_insight_content(
             detail="No AI configuration found. Please configure AI settings in Admin > AI Settings."
         )
     
-    # Validate API key exists
-    if not ai_config.api_key_encrypted:
+    # Validate API key for providers that require one
+    if ai_config.provider not in [AIProvider.local, AIProvider.ollama] and not ai_config.api_key_encrypted:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"AI API key not set for provider {ai_config.provider.value}. Please add your API key in Admin > AI Settings."
@@ -884,6 +885,10 @@ COUNTRY_INSIGHT_CATEGORIES = [
 # Format: { "SAU": {"status": "generating", "total": 6, "completed": 3, "failed": 0, "current": "industry", "errors": [], "started_at": datetime} }
 _generation_status: Dict[str, Dict[str, Any]] = {}
 
+# Guardrails to avoid category jobs hanging indefinitely.
+INSIGHT_GENERATION_TIMEOUT_SECONDS = 240
+INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS = 30
+
 
 class GenerationStatusResponse(BaseModel):
     """Status of background generation for a country."""
@@ -938,7 +943,8 @@ async def run_background_generation(
         
         for category in missing_categories:
             _generation_status[country_iso]["current"] = category.value
-            
+            insight = None
+
             try:
                 # Find or create insight record
                 insight = db.query(CountryInsight).filter(
@@ -957,19 +963,24 @@ async def run_background_generation(
                     db.refresh(insight)
                 else:
                     insight.status = InsightStatus.generating
+                    insight.error_message = None
                     db.commit()
                 
                 # Generate content
-                content = await generate_insight_content(
-                    db, country, intelligence, category, user
+                content = await asyncio.wait_for(
+                    generate_insight_content(db, country, intelligence, category, user),
+                    timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
                 )
                 
                 # Fetch dynamic images from Unsplash
-                images = await fetch_country_images(
-                    country_name=country.name,
-                    country_iso=country_iso,
-                    category=category.value,
-                    count=3
+                images = await asyncio.wait_for(
+                    fetch_country_images(
+                        country_name=country.name,
+                        country_iso=country_iso,
+                        category=category.value,
+                        count=3
+                    ),
+                    timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
                 )
                 
                 # Update insight
@@ -991,12 +1002,28 @@ async def run_background_generation(
                 logger.info(f"[Background] Generated {category.value} for {country_iso}")
                 
             except Exception as e:
-                logger.error(f"[Background] Failed {category.value} for {country_iso}: {e}")
+                error_msg = e.detail if hasattr(e, "detail") else str(e)
+                logger.error(f"[Background] Failed {category.value} for {country_iso}: {error_msg}")
                 _generation_status[country_iso]["failed"] += 1
                 _generation_status[country_iso]["errors"].append({
                     "category": category.value,
-                    "error": str(e)
+                    "error": error_msg
                 })
+                try:
+                    if insight is None:
+                        insight = db.query(CountryInsight).filter(
+                            CountryInsight.country_iso == country_iso,
+                            CountryInsight.category == category,
+                        ).first()
+                    if insight:
+                        insight.status = InsightStatus.error
+                        insight.error_message = error_msg
+                        db.commit()
+                except Exception as persist_err:
+                    db.rollback()
+                    logger.error(
+                        f"[Background] Could not persist error state for {country_iso}/{category.value}: {persist_err}"
+                    )
         
         # Mark generation complete
         status_info = _generation_status[country_iso]
@@ -1172,6 +1199,7 @@ async def _generate_single_insight(
     db: Session
 ) -> Dict[str, Any]:
     """Generate a single insight synchronously. Returns dict with success status."""
+    insight = None
     try:
         # Find or create insight record
         insight = db.query(CountryInsight).filter(
@@ -1190,19 +1218,24 @@ async def _generate_single_insight(
             db.refresh(insight)
         else:
             insight.status = InsightStatus.generating
+            insight.error_message = None
             db.commit()
         
         # Generate content
-        content = await generate_insight_content(
-            db, country, intelligence, category, current_user
+        content = await asyncio.wait_for(
+            generate_insight_content(db, country, intelligence, category, current_user),
+            timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
         )
         
         # Fetch dynamic images from Unsplash (with fallback)
-        images = await fetch_country_images(
-            country_name=country.name,
-            country_iso=country_iso,
-            category=category.value,
-            count=3
+        images = await asyncio.wait_for(
+            fetch_country_images(
+                country_name=country.name,
+                country_iso=country_iso,
+                category=category.value,
+                count=3
+            ),
+            timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
         )
         
         # Update insight
@@ -1227,6 +1260,16 @@ async def _generate_single_insight(
         error_msg = str(e)
         if hasattr(e, 'detail'):
             error_msg = e.detail
+        try:
+            if insight:
+                insight.status = InsightStatus.error
+                insight.error_message = error_msg
+                db.commit()
+        except Exception as persist_err:
+            db.rollback()
+            logger.error(
+                f"Could not persist insight error for {country_iso}/{category.value}: {persist_err}"
+            )
         logger.error(f"Failed to generate {category.value} for {country_iso}: {error_msg}")
         return {"success": False, "category": category.value, "error": error_msg}
 
@@ -1353,16 +1396,20 @@ async def regenerate_insight(
         start_time = time.time()
         
         # Generate AI content
-        content = await generate_insight_content(
-            db, country, intelligence, cat_enum, current_user
+        content = await asyncio.wait_for(
+            generate_insight_content(db, country, intelligence, cat_enum, current_user),
+            timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
         )
         
         # Fetch dynamic images from Unsplash (with fallback)
-        images = await fetch_country_images(
-            country_name=country.name,
-            country_iso=country_iso,
-            category=cat_enum.value,
-            count=3
+        images = await asyncio.wait_for(
+            fetch_country_images(
+                country_name=country.name,
+                country_iso=country_iso,
+                category=cat_enum.value,
+                count=3
+            ),
+            timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
         )
         
         # Update insight
@@ -1445,6 +1492,7 @@ async def regenerate_all_insights(
     intelligence = get_intelligence_data(db, country_iso)
     
     for category in InsightCategory:
+        insight = None
         try:
             # Find or create insight record
             insight = db.query(CountryInsight).filter(
@@ -1463,19 +1511,24 @@ async def regenerate_all_insights(
                 db.refresh(insight)
             else:
                 insight.status = InsightStatus.generating
+                insight.error_message = None
                 db.commit()
             
             # Generate content
-            content = await generate_insight_content(
-                db, country, intelligence, category, current_user
+            content = await asyncio.wait_for(
+                generate_insight_content(db, country, intelligence, category, current_user),
+                timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
             )
             
             # Fetch dynamic images from Unsplash (with fallback)
-            images = await fetch_country_images(
-                country_name=country.name,
-                country_iso=country_iso,
-                category=category.value,
-                count=3
+            images = await asyncio.wait_for(
+                fetch_country_images(
+                    country_name=country.name,
+                    country_iso=country_iso,
+                    category=category.value,
+                    count=3
+                ),
+                timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
             )
             
             # Update insight
@@ -1499,6 +1552,12 @@ async def regenerate_all_insights(
         except HTTPException as e:
             error_msg = e.detail if hasattr(e, 'detail') else str(e)
             logger.error(f"[RegenerateAll] HTTPException for {category.value}: {error_msg}")
+            try:
+                insight.status = InsightStatus.error
+                insight.error_message = error_msg
+                db.commit()
+            except Exception:
+                db.rollback()
             results["failed"] += 1
             results["errors"].append({
                 "category": category.value,
@@ -1509,6 +1568,12 @@ async def regenerate_all_insights(
             error_msg = str(e)
             full_traceback = traceback.format_exc()
             logger.error(f"[RegenerateAll] Failed to generate {category.value}: {error_msg}\n{full_traceback}")
+            try:
+                insight.status = InsightStatus.error
+                insight.error_message = error_msg
+                db.commit()
+            except Exception:
+                db.rollback()
             results["failed"] += 1
             results["errors"].append({
                 "category": category.value,
