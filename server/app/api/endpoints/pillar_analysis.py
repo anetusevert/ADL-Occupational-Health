@@ -16,6 +16,7 @@ import logging
 import json
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from sqlalchemy import func, desc, asc
 
 logger = logging.getLogger(__name__)
 
@@ -286,6 +287,78 @@ def get_cached_summary_report(db: Session, iso_code: str) -> Optional[CachedSumm
     ).first()
 
 
+def normalize_comparison_country(comparison_country: Optional[str]) -> str:
+    """Normalize comparison country input for cache compatibility checks."""
+    if not comparison_country or comparison_country.lower() == "global":
+        return "global"
+    return comparison_country.upper()
+
+
+def get_country_database_context(db: Session, iso_code: str) -> str:
+    """Get database context text for a single country ISO code."""
+    provider = CountryDataProvider(db)
+    context = provider.get_country_context(iso_code)
+    if not context:
+        return f"No comparison context available for {iso_code.upper()}."
+    return context.get("DATABASE_CONTEXT", f"No comparison context available for {iso_code.upper()}.")
+
+
+def build_global_comparison_context(db: Session, top_n: int = 5) -> str:
+    """Build a concise global benchmark context for AI prompts."""
+    total_countries = db.query(func.count(Country.iso_code)).scalar() or 0
+
+    avg_maturity = db.query(func.avg(Country.maturity_score)).scalar()
+    avg_governance = db.query(func.avg(Country.governance_score)).scalar()
+    avg_hazard = db.query(func.avg(Country.pillar1_score)).scalar()
+    avg_vigilance = db.query(func.avg(Country.pillar2_score)).scalar()
+    avg_restoration = db.query(func.avg(Country.pillar3_score)).scalar()
+
+    top_countries = (
+        db.query(Country)
+        .filter(Country.maturity_score.isnot(None))
+        .order_by(desc(Country.maturity_score))
+        .limit(top_n)
+        .all()
+    )
+    lowest_countries = (
+        db.query(Country)
+        .filter(Country.maturity_score.isnot(None))
+        .order_by(asc(Country.maturity_score))
+        .limit(top_n)
+        .all()
+    )
+
+    lines = [
+        "GLOBAL BENCHMARK CONTEXT",
+        f"- Total countries in benchmark set: {int(total_countries)}",
+        "",
+        "Global average scores:",
+        f"- Overall maturity: {avg_maturity:.1f}" if avg_maturity is not None else "- Overall maturity: N/A",
+        f"- Governance: {avg_governance:.1f}" if avg_governance is not None else "- Governance: N/A",
+        f"- Hazard Control: {avg_hazard:.1f}" if avg_hazard is not None else "- Hazard Control: N/A",
+        f"- Vigilance: {avg_vigilance:.1f}" if avg_vigilance is not None else "- Vigilance: N/A",
+        f"- Restoration: {avg_restoration:.1f}" if avg_restoration is not None else "- Restoration: N/A",
+        "",
+        f"Top {top_n} countries by maturity score:",
+    ]
+
+    for idx, country in enumerate(top_countries, start=1):
+        lines.append(f"- #{idx} {country.name} ({country.iso_code}): {country.maturity_score:.1f}")
+
+    lines.append("")
+    lines.append(f"Bottom {top_n} countries by maturity score:")
+    for idx, country in enumerate(lowest_countries, start=1):
+        lines.append(f"- #{idx} {country.name} ({country.iso_code}): {country.maturity_score:.1f}")
+
+    return "\n".join(lines)
+
+
+def is_cache_compatible(report_dict: Dict[str, Any], comparison_country: str) -> bool:
+    """Validate whether a cached report matches the requested comparison context."""
+    cached_comparison = normalize_comparison_country(report_dict.get("_comparison_country"))
+    return cached_comparison == comparison_country
+
+
 def store_pillar_report(db: Session, iso_code: str, pillar_id: str, report_dict: dict, user_id: Optional[int]) -> None:
     """Store pillar report in database."""
     # Delete existing if any
@@ -458,15 +531,23 @@ async def generate_pillar_analysis(
     if not country:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Country not found: {iso_code}")
     
+    normalized_comparison_country = normalize_comparison_country(request.comparison_country)
+
     # 1. Check for cached report
     cached = get_cached_pillar_report(db, iso_code, pillar_id)
     
     # 2. If cached and not force_regenerate, return cached
     if cached and not request.force_regenerate:
-        logger.info(f"Returning cached pillar report: {iso_code}/{pillar_id}")
         report_dict = json.loads(cached.report_json)
-        report_dict["cached"] = True
-        return PillarAnalysisResponse(**report_dict)
+        if is_cache_compatible(report_dict, normalized_comparison_country):
+            logger.info(f"Returning cached pillar report: {iso_code}/{pillar_id} ({normalized_comparison_country})")
+            report_dict["cached"] = True
+            return PillarAnalysisResponse(**report_dict)
+        logger.info(
+            f"Cached pillar report context mismatch for {iso_code}/{pillar_id}. "
+            f"Requested={normalized_comparison_country}, cached={report_dict.get('_comparison_country')}"
+        )
+        cached = None
     
     # 3. If force_regenerate requested, must be admin
     if request.force_regenerate and not is_admin(current_user):
@@ -486,12 +567,11 @@ async def generate_pillar_analysis(
     logger.info(f"Generating new pillar report: {iso_code}/{pillar_id} by user {current_user.id if current_user else 'unknown'}")
     
     # Get comparison data
-    comparison_context = "No comparison country selected."
-    if request.comparison_country and request.comparison_country != "global":
-        comparison_country = get_country_data(db, request.comparison_country)
+    comparison_context = build_global_comparison_context(db)
+    if normalized_comparison_country != "global":
+        comparison_country = get_country_data(db, normalized_comparison_country)
         if comparison_country:
-            data_provider = CountryDataProvider(db)
-            comparison_context = data_provider.get_database_context(request.comparison_country)
+            comparison_context = get_country_database_context(db, normalized_comparison_country)
     
     # Get best practice leaders from database
     best_practice_data = get_pillar_best_practices(db, pillar_id)
@@ -553,6 +633,7 @@ async def generate_pillar_analysis(
             "generated_at": datetime.utcnow().isoformat(),
             "cached": False,
             "sources_used": parsed.get("sources_used"),
+            "_comparison_country": normalized_comparison_country,
         }
         
         # Store in database
@@ -755,15 +836,23 @@ async def generate_summary_report(
     if not country:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Country not found: {iso_code}")
     
+    normalized_comparison_country = normalize_comparison_country(request.comparison_country)
+
     # 1. Check for cached report
     cached = get_cached_summary_report(db, iso_code)
     
     # 2. If cached and not force_regenerate, return cached
     if cached and not request.force_regenerate:
-        logger.info(f"Returning cached summary report: {iso_code}")
         report_dict = json.loads(cached.report_json)
-        report_dict["cached"] = True
-        return SummaryReportResponse(**report_dict)
+        if is_cache_compatible(report_dict, normalized_comparison_country):
+            logger.info(f"Returning cached summary report: {iso_code} ({normalized_comparison_country})")
+            report_dict["cached"] = True
+            return SummaryReportResponse(**report_dict)
+        logger.info(
+            f"Cached summary report context mismatch for {iso_code}. "
+            f"Requested={normalized_comparison_country}, cached={report_dict.get('_comparison_country')}"
+        )
+        cached = None
     
     # 3. If force_regenerate requested, must be admin
     if request.force_regenerate and not is_admin(current_user):
@@ -783,12 +872,11 @@ async def generate_summary_report(
     logger.info(f"Generating new summary report: {iso_code} by user {current_user.id if current_user else 'unknown'}")
     
     # Get comparison data
-    comparison_context = "No comparison country selected."
-    if request.comparison_country and request.comparison_country != "global":
-        comparison_country = get_country_data(db, request.comparison_country)
+    comparison_context = build_global_comparison_context(db)
+    if normalized_comparison_country != "global":
+        comparison_country = get_country_data(db, normalized_comparison_country)
         if comparison_country:
-            data_provider = CountryDataProvider(db)
-            comparison_context = data_provider.get_database_context(request.comparison_country)
+            comparison_context = get_country_database_context(db, normalized_comparison_country)
     
     ai_config = get_ai_config(db)
     if not ai_config:
@@ -823,6 +911,7 @@ async def generate_summary_report(
             "overall_assessment": parsed.get("overall_assessment", ""),
             "generated_at": datetime.utcnow().isoformat(),
             "cached": False,
+            "_comparison_country": normalized_comparison_country,
         }
         
         # Store in database

@@ -255,9 +255,14 @@ async def generate_comparison_report(
     # Run agent
     runner = AgentRunner(db, ai_config)
     result = await runner.run("comparison-research-analyst", variables)
-    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI generation failed: {result.get('error', 'Unknown error')}",
+        )
+
     # Parse response
-    parsed = parse_ai_response(result)
+    parsed = parse_ai_response(result.get("output", "") or "")
     
     generation_time = time.time() - start_time
     
