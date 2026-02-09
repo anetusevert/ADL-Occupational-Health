@@ -1499,4 +1499,101 @@ Respond with valid JSON only:
   "oh_implications": "Full 3-4 paragraph OH analysis here..."
 }}""",
     },
+
+    # =========================================================================
+    # 15. DATABASE FILL AGENT - Structured Pillar Data Enrichment
+    # =========================================================================
+    {
+        "id": "database-fill-agent",
+        "name": "Database Fill Agent",
+        "description": "Fills NULL structured pillar fields for a country using web search. Returns strict JSON with source citations for every value.",
+        "icon": "database",
+        "color": "green",
+        "template_variables": ["COUNTRY_NAME", "COUNTRY_ISO", "EXISTING_DATA", "NULL_FIELDS"],
+        "system_prompt": """You are a Senior Occupational Health Data Analyst with access to web search. Your job is to find accurate, up-to-date structured data for a country's occupational health database fields.
+
+## YOUR MISSION:
+Fill in specific NULL database fields for a country with accurate, sourced data. You MUST use web search to find the most current information (prefer 2024-2025 data, fallback to most recent available).
+
+## CRITICAL RULES:
+1. **ONLY return values for the fields listed in NULL_FIELDS** - do not invent extra fields
+2. **Every value MUST have a source_url** - no unsourced data
+3. **Use exact field names** as provided - they map directly to database columns
+4. **Be conservative** - if you cannot find reliable data, set the value to null
+5. **Numeric ranges must be respected** (provided per field)
+6. **Return ONLY valid JSON** - no markdown, no explanation
+
+## FIELD DEFINITIONS AND VALID RANGES:
+
+### Governance Fields:
+- `ilo_c187_status` (boolean): Has the country ratified ILO Convention C187 (Promotional Framework for OH&S)? true/false
+- `ilo_c155_status` (boolean): Has the country ratified ILO Convention C155 (Occupational Safety and Health)? true/false
+- `inspector_density` (float, 0.0-5.0): Labor inspectors per 10,000 workers. ILO recommends 1.0 for developing, 1.5 for transitional, 2.0+ for developed.
+- `mental_health_policy` (boolean): Does the country have a national workplace mental health policy? true/false
+
+### Pillar 1 - Hazard Control Fields:
+- `carcinogen_exposure_pct` (float, 0.0-100.0): Percentage of workforce with occupational exposure to carcinogens
+- `heat_stress_reg_type` (string, one of: "Comprehensive", "Partial", "Basic", "None"): Type of heat stress regulation
+- `oel_compliance_pct` (float, 0.0-100.0): Occupational Exposure Limit compliance percentage
+- `noise_induced_hearing_loss_rate` (float, 0.0-500.0): NIHL rate per 100,000 workers
+- `safety_training_hours_avg` (float, 0.0-100.0): Average annual safety training hours per worker
+
+### Pillar 2 - Vigilance Fields:
+- `surveillance_logic` (string, one of: "Risk-Based", "Event-Based", "Sentinel", "Passive", "None"): Type of OH surveillance system
+- `migrant_worker_pct` (float, 0.0-100.0): Migrant workforce as percentage of total workforce
+- `lead_exposure_screening_rate` (float, 0.0-100.0): Lead exposure screening rate per 100,000 workers
+- `occupational_disease_reporting_rate` (float, 0.0-100.0): Disease reporting compliance rate (%)
+
+### Pillar 3 - Restoration Fields:
+- `payer_mechanism` (string, one of: "No-Fault", "Employer-Liability", "Social-Insurance", "Hybrid", "None"): Workers' compensation payer mechanism type
+- `reintegration_law` (boolean): Does the country have mandatory return-to-work legislation? true/false
+- `sickness_absence_days` (float, 0.0-365.0): Average sickness absence days per worker per year
+- `return_to_work_success_pct` (float, 0.0-100.0): Return-to-work program success rate (%)
+- `avg_claim_settlement_days` (float, 0.0-1000.0): Average days to settle a workers' compensation claim
+- `rehab_participation_rate` (float, 0.0-100.0): Rehabilitation program participation rate (%)
+
+## OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "country_iso": "XXX",
+  "country_name": "Country Name",
+  "filled_fields": {
+    "field_name": {
+      "value": <actual_value>,
+      "source_url": "https://...",
+      "source_name": "Organization or publication name",
+      "data_year": 2024,
+      "confidence": "high|medium|low",
+      "notes": "Optional brief note on data quality or methodology"
+    }
+  },
+  "unfilled_fields": ["field1", "field2"],
+  "unfilled_reasons": {
+    "field1": "No reliable data found for this metric"
+  }
+}
+
+## QUALITY STANDARDS:
+- Prefer official sources: ILO, WHO, national labor ministries, EU-OSHA, OECD
+- For boolean fields (convention ratification), check ILO NORMLEX database
+- For inspector density, check ILO inspection statistics or national labor inspection reports
+- For compensation mechanisms, check ISSA (International Social Security Association) country profiles
+- Cross-reference multiple sources when possible
+- If a value seems anomalous, note it in the "notes" field""",
+        "user_prompt_template": """Fill the missing database fields for {COUNTRY_NAME} ({COUNTRY_ISO}).
+
+## EXISTING DATA (Do NOT overwrite these):
+{EXISTING_DATA}
+
+## FIELDS THAT NEED VALUES (currently NULL):
+{NULL_FIELDS}
+
+## INSTRUCTIONS:
+1. Use web search to find accurate, current data for each NULL field
+2. Check ILO NORMLEX for convention ratification status
+3. Check national labor ministry websites for inspection and regulation data
+4. Check ISSA/ILO for compensation and rehabilitation data
+5. Return strict JSON with source URLs for every value
+
+RESPOND WITH VALID JSON ONLY.""",
+    },
 ]

@@ -28,9 +28,17 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db, SessionLocal
+from app.core.dependencies import get_current_admin_user
 from app.models.country import Country, Pillar1Hazard, GovernanceLayer
+from app.models.user import User
 from app.services.pipeline_logger import pipeline_logger, LogLevel
-from app.data.targets import GLOBAL_ECONOMIES_50, get_country_name
+from app.services.database_fill_agent import (
+    get_fill_status,
+    reset_fill_status,
+    run_batch_fill,
+    _fill_status,
+)
+from app.data.targets import GLOBAL_ECONOMIES_50, UN_MEMBER_STATES, get_country_name
 
 # =============================================================================
 # REGISTRY CACHE (5-minute TTL)
@@ -232,7 +240,7 @@ async def run_pipeline(
     
     # Validate country codes if provided
     if countries:
-        valid_codes = set(GLOBAL_ECONOMIES_50)
+        valid_codes = set(UN_MEMBER_STATES)
         invalid = [c for c in countries if c not in valid_codes]
         if invalid:
             return JSONResponse(
@@ -246,7 +254,7 @@ async def run_pipeline(
             )
     
     # Determine count
-    count = len(countries) if countries else len(GLOBAL_ECONOMIES_50)
+    count = len(countries) if countries else len(UN_MEMBER_STATES)
     
     # Add pipeline to background tasks - returns immediately
     background_tasks.add_task(run_etl_pipeline_task, countries, fetch_flags)
@@ -780,3 +788,141 @@ async def get_source_registry(db: Session = Depends(get_db)):
     _registry_cache_time = datetime.now()
     
     return response
+
+
+# =============================================================================
+# DATABASE FILL - AI-Enriched Pillar Metrics (Phase 2)
+# =============================================================================
+
+class DatabaseFillRequest(BaseModel):
+    """Request body for the database fill endpoint."""
+    country_filter: Optional[List[str]] = None  # List of ISOs, or None for all 193
+    delay_between: float = 2.0  # Seconds between countries (rate limiting)
+
+
+class DatabaseFillResponse(BaseModel):
+    """Response when fill is started."""
+    success: bool
+    message: str
+    total_countries: int
+    status: str  # "accepted", "already_running", "error"
+
+
+class DatabaseFillStatusResponse(BaseModel):
+    """Current status of the batch fill operation."""
+    status: str  # "idle", "running", "completed"
+    total: int = 0
+    completed: int = 0
+    failed: int = 0
+    skipped: int = 0
+    current_country: Optional[str] = None
+    fields_written: int = 0
+    errors: List[Dict[str, Any]] = []
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+@router.post(
+    "/fill-database",
+    response_model=DatabaseFillResponse,
+    summary="Fill Database with AI (Phase 2)",
+    description="""
+    Start the AI-driven database fill process.
+    
+    Uses GPT-4o with web search to fill NULL structured pillar fields
+    for all countries (or a filtered subset). Processes countries sequentially
+    with rate limiting. Admin only.
+    
+    Poll /fill-status for progress updates.
+    """,
+)
+async def fill_database(
+    request: Optional[DatabaseFillRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Start the AI database fill process as a background task."""
+    import asyncio
+    from app.core.config import settings
+
+    # Check if already running
+    current_status = get_fill_status()
+    if current_status.get("status") == "running":
+        return DatabaseFillResponse(
+            success=False,
+            message="Database fill is already running",
+            total_countries=current_status.get("total", 0),
+            status="already_running",
+        )
+
+    # Determine target countries
+    delay_between = 2.0
+    if request:
+        delay_between = request.delay_between
+        if request.country_filter:
+            valid_codes = set(UN_MEMBER_STATES)
+            invalid = [c for c in request.country_filter if c.upper() not in valid_codes]
+            if invalid:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid country codes: {', '.join(invalid)}",
+                )
+            target_countries = [c.upper() for c in request.country_filter]
+        else:
+            # All countries currently in the database
+            db_countries = db.query(Country.iso_code).all()
+            target_countries = [c.iso_code for c in db_countries]
+    else:
+        db_countries = db.query(Country.iso_code).all()
+        target_countries = [c.iso_code for c in db_countries]
+
+    if not target_countries:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No countries found in database. Run ETL pipeline first.",
+        )
+
+    # Reset and start
+    reset_fill_status()
+
+    asyncio.create_task(
+        run_batch_fill(
+            country_isos=target_countries,
+            db_url=settings.DATABASE_URL,
+            delay_between=delay_between,
+        )
+    )
+
+    return DatabaseFillResponse(
+        success=True,
+        message=f"Database fill started for {len(target_countries)} countries",
+        total_countries=len(target_countries),
+        status="accepted",
+    )
+
+
+@router.get(
+    "/fill-status",
+    response_model=DatabaseFillStatusResponse,
+    summary="Get Database Fill Status",
+    description="Poll this endpoint to track the progress of the AI database fill operation.",
+)
+async def get_database_fill_status():
+    """Get the current status of the batch database fill."""
+    current = get_fill_status()
+
+    if not current:
+        return DatabaseFillStatusResponse(status="idle")
+
+    return DatabaseFillStatusResponse(
+        status=current.get("status", "idle"),
+        total=current.get("total", 0),
+        completed=current.get("completed", 0),
+        failed=current.get("failed", 0),
+        skipped=current.get("skipped", 0),
+        current_country=current.get("current_country"),
+        fields_written=current.get("fields_written", 0),
+        errors=current.get("errors", []),
+        started_at=current.get("started_at"),
+        completed_at=current.get("completed_at"),
+    )

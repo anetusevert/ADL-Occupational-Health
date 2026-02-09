@@ -79,7 +79,7 @@ from app.services.scoring import calculate_maturity_score
 from app.services.flag_fetcher import fetch_flag_from_wikipedia, get_flag_url, get_existing_flag_url
 
 # Target countries
-from app.data.targets import GLOBAL_ECONOMIES_50, get_country_name
+from app.data.targets import UN_MEMBER_STATES, GLOBAL_ECONOMIES_50, get_country_name
 
 
 # =============================================================================
@@ -202,9 +202,9 @@ def run_full_pipeline(
     
     # Determine countries to process
     if country_filter:
-        target_countries = [c for c in country_filter if c in GLOBAL_ECONOMIES_50]
+        target_countries = [c for c in country_filter if c in UN_MEMBER_STATES]
     else:
-        target_countries = GLOBAL_ECONOMIES_50[:batch_size]
+        target_countries = UN_MEMBER_STATES[:batch_size]
     
     total_countries = len(target_countries)
     
