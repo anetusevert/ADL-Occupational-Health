@@ -489,8 +489,8 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
   ];
 
   // Split content into paragraphs for staggered animation
-  const overviewParagraphs = insightData.whatIsAnalysis.split("\n\n").filter(p => p.trim());
-  const implicationsParagraphs = insightData.ohImplications.split("\n\n").filter(p => p.trim());
+  const overviewParagraphs = (insightData.whatIsAnalysis || "").split("\n\n").filter(p => p.trim());
+  const implicationsParagraphs = (insightData.ohImplications || "").split("\n\n").filter(p => p.trim());
 
   // Animation variants
   const containerVariants = {
@@ -522,7 +522,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="lg:w-[30%] lg:max-w-[220px] flex-shrink-0"
       >
-        {insightData.images.length > 0 ? (
+        {(insightData.images?.length ?? 0) > 0 ? (
           <motion.div 
             className="h-44 sm:h-52 lg:h-full lg:max-h-[400px] rounded-xl overflow-hidden relative"
             whileHover={{ scale: 1.02 }}

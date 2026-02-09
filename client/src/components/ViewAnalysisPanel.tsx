@@ -255,7 +255,7 @@ export function ViewAnalysisPanel({
 
               {/* Analysis Paragraphs - Limited to 2 */}
               <div className="space-y-2">
-                {analysis.analysis_paragraphs.slice(0, 2).map((para, idx) => (
+                {(analysis.analysis_paragraphs || []).slice(0, 2).map((para, idx) => (
                   <p key={idx} className="text-xs text-white/70 leading-relaxed line-clamp-3">
                     {para}
                   </p>
@@ -263,7 +263,7 @@ export function ViewAnalysisPanel({
               </div>
 
               {/* Key Insights - Limited to 2 */}
-              {analysis.key_insights.length > 0 && (
+              {(analysis.key_insights?.length ?? 0) > 0 && (
                 <div className="pt-2 border-t border-slate-700/50">
                   <h5 className="text-[10px] font-semibold text-white/60 uppercase tracking-wider mb-1.5">
                     Key Insights
@@ -286,7 +286,7 @@ export function ViewAnalysisPanel({
               )}
 
               {/* Single Recommendation */}
-              {analysis.recommendations.length > 0 && (
+              {(analysis.recommendations?.length ?? 0) > 0 && (
                 <div className="pt-2 border-t border-slate-700/50">
                   <div className="flex items-start gap-1.5 p-1.5 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                     <ArrowRight className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
