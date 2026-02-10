@@ -817,7 +817,141 @@ async def test_ai_call(
 
 
 # =============================================================================
-# ENDPOINTS (dynamic routes must come AFTER static routes like /diagnostic)
+# BATCH ENDPOINTS (must come BEFORE /{country_iso} wildcard routes)
+# =============================================================================
+
+@router.post("/batch-generate-all", response_model=BatchGenerateResponse)
+async def batch_generate_all_insights(
+    request: Optional[BatchGenerateRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Start batch insight generation for all countries (or a filtered subset).
+    
+    Admin only. Processes countries sequentially with rate limiting.
+    Each country generates 6 insight categories (culture, infrastructure,
+    industry, urban, workforce, political).
+    
+    Poll /batch-generate-status for progress updates.
+    """
+    from app.core.config import settings
+
+    # Ensure the insight agent exists (lazy seed)
+    ensure_insight_agent_exists(db)
+
+    # Verify AI configuration exists
+    ai_config = get_ai_config(db)
+    if not ai_config:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings first.",
+        )
+    if not ai_config.api_key_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}. Please add your API key in Admin > AI Settings.",
+        )
+
+    # Check if already running
+    if _batch_generation_status.get("status") == "running":
+        return BatchGenerateResponse(
+            success=False,
+            message="Batch generation is already running",
+            total_countries=_batch_generation_status.get("total_countries", 0),
+            status="already_running",
+        )
+
+    # Determine target countries
+    force_regenerate = False
+    delay_between = BATCH_DELAY_BETWEEN_COUNTRIES
+
+    if request:
+        force_regenerate = request.force_regenerate
+        delay_between = request.delay_between
+        if request.country_filter:
+            target_countries = [c.upper() for c in request.country_filter]
+        else:
+            db_countries = db.query(Country.iso_code).order_by(Country.iso_code).all()
+            target_countries = [c.iso_code for c in db_countries]
+    else:
+        db_countries = db.query(Country.iso_code).order_by(Country.iso_code).all()
+        target_countries = [c.iso_code for c in db_countries]
+
+    if not target_countries:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No countries found in database. Run ETL pipeline first.",
+        )
+
+    # Start background task
+    asyncio.create_task(
+        run_batch_insight_generation(
+            country_isos=target_countries,
+            user_id=current_user.id,
+            db_url=settings.DATABASE_URL,
+            force_regenerate=force_regenerate,
+            delay_between=delay_between,
+        )
+    )
+
+    return BatchGenerateResponse(
+        success=True,
+        message=f"Batch insight generation started for {len(target_countries)} countries",
+        total_countries=len(target_countries),
+        status="accepted",
+    )
+
+
+@router.get("/batch-generate-status", response_model=BatchGenerateStatusResponse)
+async def get_batch_generate_status():
+    """
+    Get the current status of the batch insight generation.
+    
+    Poll this endpoint to track progress of the background batch generation.
+    """
+    if not _batch_generation_status:
+        return BatchGenerateStatusResponse(status="idle")
+
+    return BatchGenerateStatusResponse(
+        status=_batch_generation_status.get("status", "idle"),
+        total_countries=_batch_generation_status.get("total_countries", 0),
+        countries_completed=_batch_generation_status.get("countries_completed", 0),
+        countries_failed=_batch_generation_status.get("countries_failed", 0),
+        countries_skipped=_batch_generation_status.get("countries_skipped", 0),
+        current_country=_batch_generation_status.get("current_country"),
+        current_country_name=_batch_generation_status.get("current_country_name"),
+        total_insights_generated=_batch_generation_status.get("total_insights_generated", 0),
+        total_insights_failed=_batch_generation_status.get("total_insights_failed", 0),
+        errors=_batch_generation_status.get("errors", []),
+        started_at=_batch_generation_status.get("started_at"),
+        completed_at=_batch_generation_status.get("completed_at"),
+    )
+
+
+@router.post("/batch-generate-reset")
+async def reset_batch_generate_status(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Reset the batch insight generation status.
+    Useful for clearing stale data from previous runs.
+    Cannot reset while a batch is actively running.
+    """
+    global _batch_generation_status
+    
+    if _batch_generation_status.get("status") == "running":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot reset while batch generation is running",
+        )
+    
+    _batch_generation_status = {}
+    return {"status": "reset", "message": "Batch generation status cleared"}
+
+
+# =============================================================================
+# DYNAMIC ROUTES (must come AFTER static routes like /diagnostic, /batch-*)
 # =============================================================================
 
 @router.get("/{country_iso}", response_model=InsightListResponse)
@@ -1842,131 +1976,4 @@ async def run_batch_insight_generation(
     )
 
 
-@router.post("/batch-generate-all", response_model=BatchGenerateResponse)
-async def batch_generate_all_insights(
-    request: Optional[BatchGenerateRequest] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
-):
-    """
-    Start batch insight generation for all countries (or a filtered subset).
-    
-    Admin only. Processes countries sequentially with rate limiting.
-    Each country generates 6 insight categories (culture, infrastructure,
-    industry, urban, workforce, political).
-    
-    Poll /batch-generate-status for progress updates.
-    """
-    from app.core.config import settings
-
-    # Ensure the insight agent exists (lazy seed)
-    ensure_insight_agent_exists(db)
-
-    # Verify AI configuration exists
-    ai_config = get_ai_config(db)
-    if not ai_config:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings first.",
-        )
-    if not ai_config.api_key_encrypted:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}. Please add your API key in Admin > AI Settings.",
-        )
-
-    # Check if already running
-    if _batch_generation_status.get("status") == "running":
-        return BatchGenerateResponse(
-            success=False,
-            message="Batch generation is already running",
-            total_countries=_batch_generation_status.get("total_countries", 0),
-            status="already_running",
-        )
-
-    # Determine target countries
-    force_regenerate = False
-    delay_between = BATCH_DELAY_BETWEEN_COUNTRIES
-
-    if request:
-        force_regenerate = request.force_regenerate
-        delay_between = request.delay_between
-        if request.country_filter:
-            target_countries = [c.upper() for c in request.country_filter]
-        else:
-            db_countries = db.query(Country.iso_code).order_by(Country.iso_code).all()
-            target_countries = [c.iso_code for c in db_countries]
-    else:
-        db_countries = db.query(Country.iso_code).order_by(Country.iso_code).all()
-        target_countries = [c.iso_code for c in db_countries]
-
-    if not target_countries:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No countries found in database. Run ETL pipeline first.",
-        )
-
-    # Start background task
-    asyncio.create_task(
-        run_batch_insight_generation(
-            country_isos=target_countries,
-            user_id=current_user.id,
-            db_url=settings.DATABASE_URL,
-            force_regenerate=force_regenerate,
-            delay_between=delay_between,
-        )
-    )
-
-    return BatchGenerateResponse(
-        success=True,
-        message=f"Batch insight generation started for {len(target_countries)} countries",
-        total_countries=len(target_countries),
-        status="accepted",
-    )
-
-
-@router.get("/batch-generate-status", response_model=BatchGenerateStatusResponse)
-async def get_batch_generate_status():
-    """
-    Get the current status of the batch insight generation.
-    
-    Poll this endpoint to track progress of the background batch generation.
-    """
-    if not _batch_generation_status:
-        return BatchGenerateStatusResponse(status="idle")
-
-    return BatchGenerateStatusResponse(
-        status=_batch_generation_status.get("status", "idle"),
-        total_countries=_batch_generation_status.get("total_countries", 0),
-        countries_completed=_batch_generation_status.get("countries_completed", 0),
-        countries_failed=_batch_generation_status.get("countries_failed", 0),
-        countries_skipped=_batch_generation_status.get("countries_skipped", 0),
-        current_country=_batch_generation_status.get("current_country"),
-        current_country_name=_batch_generation_status.get("current_country_name"),
-        total_insights_generated=_batch_generation_status.get("total_insights_generated", 0),
-        total_insights_failed=_batch_generation_status.get("total_insights_failed", 0),
-        errors=_batch_generation_status.get("errors", []),
-        started_at=_batch_generation_status.get("started_at"),
-        completed_at=_batch_generation_status.get("completed_at"),
-    )
-
-
-@router.post("/batch-generate-reset")
-async def reset_batch_generate_status(
-    current_user: User = Depends(get_current_admin_user),
-):
-    """
-    Reset the batch insight generation status.
-    Useful for clearing stale data from previous runs.
-    Cannot reset while a batch is actively running.
-    """
-    global _batch_generation_status
-    
-    if _batch_generation_status.get("status") == "running":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot reset while batch generation is running",
-        )
-    
-    _batch_generation_status = {}
-    return {"status": "reset", "message": "Batch generation status cleared"}
+# (batch endpoints moved before /{country_iso} wildcard routes)
