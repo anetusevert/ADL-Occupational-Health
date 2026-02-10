@@ -1,5 +1,5 @@
 # GOHIP Backend - Production Dockerfile
-# Build trigger: v4
+# Build trigger: v5 - route ordering fix for batch insight endpoints
 FROM python:3.11-slim
 
 # Set working directory
