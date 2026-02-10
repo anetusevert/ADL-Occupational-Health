@@ -37,8 +37,11 @@ from app.services.agent_runner import AgentRunner
 from app.services.image_service import fetch_country_images
 
 
-# Create router
+# Create routers
 router = APIRouter(prefix="/insights", tags=["Country Insights"])
+
+# Separate router for batch operations to avoid /{country_iso} wildcard conflict
+batch_router = APIRouter(prefix="/insight-batch", tags=["Batch Insight Generation"])
 
 logger.info("Country Insights router initialized")
 
@@ -820,7 +823,7 @@ async def test_ai_call(
 # BATCH ENDPOINTS (must come BEFORE /{country_iso} wildcard routes)
 # =============================================================================
 
-@router.post("/batch-generate-all", response_model=BatchGenerateResponse)
+@batch_router.post("/generate-all", response_model=BatchGenerateResponse)
 async def batch_generate_all_insights(
     request: Optional[BatchGenerateRequest] = None,
     db: Session = Depends(get_db),
@@ -903,7 +906,7 @@ async def batch_generate_all_insights(
     )
 
 
-@router.get("/batch-generate-status", response_model=BatchGenerateStatusResponse)
+@batch_router.get("/generate-status", response_model=BatchGenerateStatusResponse)
 async def get_batch_generate_status():
     """
     Get the current status of the batch insight generation.
@@ -929,7 +932,7 @@ async def get_batch_generate_status():
     )
 
 
-@router.post("/batch-generate-reset")
+@batch_router.post("/generate-reset")
 async def reset_batch_generate_status(
     current_user: User = Depends(get_current_admin_user),
 ):

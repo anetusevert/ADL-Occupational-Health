@@ -291,7 +291,7 @@ export function DatabaseFill() {
   // ── Poll Phase 3 Status ──
   const pollInsights = useCallback(async () => {
     try {
-      const res = await apiClient.get('/api/v1/insights/batch-generate-status');
+      const res = await apiClient.get('/api/v1/insight-batch/generate-status');
       setInsightStatus(res.data);
       setInsightRunning(res.data.status === 'running');
     } catch (err: any) {
@@ -305,7 +305,7 @@ export function DatabaseFill() {
       const endpoints = [
         { name: 'ETL status', url: '/api/v1/etl/status' },
         { name: 'Fill status', url: '/api/v1/etl/fill-status' },
-        { name: 'Insights status', url: '/api/v1/insights/batch-generate-status' },
+        { name: 'Insights status', url: '/api/v1/insight-batch/generate-status' },
       ];
       const failures: string[] = [];
       for (const ep of endpoints) {
@@ -383,7 +383,7 @@ export function DatabaseFill() {
     setError(null);
     console.log('[DBFill] Starting Phase 3: Batch insights (force_regenerate:', forceRegenInsights, ')...');
     try {
-      const res = await apiClient.post('/api/v1/insights/batch-generate-all', {
+      const res = await apiClient.post('/api/v1/insight-batch/generate-all', {
         delay_between: 3.0,
         force_regenerate: forceRegenInsights,
       });
@@ -399,7 +399,7 @@ export function DatabaseFill() {
   // ── Reset Phase 3 Status ──
   const resetInsightStatus = async () => {
     try {
-      await apiClient.post('/api/v1/insights/batch-generate-reset');
+      await apiClient.post('/api/v1/insight-batch/generate-reset');
       setInsightStatus(null);
       setInsightRunning(false);
     } catch (err: any) {

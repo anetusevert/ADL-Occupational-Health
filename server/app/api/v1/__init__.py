@@ -67,10 +67,12 @@ except Exception as e:
 # Import insights router with error handling
 try:
     from app.api.endpoints.insights import router as insights_router
+    from app.api.endpoints.insights import batch_router as insight_batch_router
     logger.info("Insights router imported successfully")
 except Exception as e:
     logger.error(f"Failed to import insights router: {e}")
     insights_router = None
+    insight_batch_router = None
 
 # Import personas router with error handling
 try:
@@ -143,6 +145,13 @@ if comparison_reports_router:
     logger.info("Comparison reports router registered at /api/v1/comparison")
 else:
     logger.warning("Comparison reports router not available")
+
+# Include insight batch router BEFORE insights router (avoid wildcard conflict)
+if insight_batch_router:
+    api_router.include_router(insight_batch_router)
+    logger.info("Insight batch router registered at /api/v1/insight-batch")
+else:
+    logger.warning("Insight batch router not available")
 
 # Include insights router if it loaded successfully
 if insights_router:
