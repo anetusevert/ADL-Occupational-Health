@@ -193,28 +193,28 @@ class Pillar3RestorationNested(Pillar3RestorationBase):
 
 def get_maturity_label_from_score(score: Optional[float]) -> Optional[str]:
     """
-    Get the maturity stage label based on the score (0-100 scale).
+    Get the maturity stage label based on the score (1.0-4.0 scale).
     
     Returns:
-        Stage label string (e.g., "Stage 3 Proactive")
+        Stage label string (e.g., "Stage 3 Advancing")
     
-    Score ranges (0-100 scale):
-    - 0-25: Stage 1 Reactive (Red)
-    - 25-50: Stage 2 Compliant (Orange)
-    - 50-75: Stage 3 Proactive (Yellow)
-    - 75-100: Stage 4 Resilient (Green)
+    Score ranges (1.0-4.0 scale, canonical definitions):
+    - 1.0-1.9: Stage 1 Critical (Red)
+    - 2.0-2.4: Stage 2 Developing (Orange)
+    - 2.5-3.4: Stage 3 Advancing (Yellow)
+    - 3.5-4.0: Stage 4 Leading (Green)
     """
     if score is None:
         return None
     
-    if score < 25:
-        return "Stage 1 Reactive"
-    elif score < 50:
-        return "Stage 2 Compliant"
-    elif score < 75:
-        return "Stage 3 Proactive"
+    if score >= 3.5:
+        return "Stage 4 Leading"
+    elif score >= 2.5:
+        return "Stage 3 Advancing"
+    elif score >= 2.0:
+        return "Stage 2 Developing"
     else:
-        return "Stage 4 Resilient"
+        return "Stage 1 Critical"
 
 
 class CountryBase(BaseModel):
@@ -262,11 +262,11 @@ class CountryResponse(CountryBase):
     @property
     def maturity_label(self) -> Optional[str]:
         """
-        Computed maturity label based on score.
-        - 1.0-1.9: Stage 1 Reactive (Red)
-        - 2.0-2.9: Stage 2 Compliant (Orange)
-        - 3.0-3.5: Stage 3 Proactive (Yellow)
-        - 3.6-4.0: Stage 4 Resilient (Green)
+        Computed maturity label based on score (canonical definitions).
+        - 1.0-1.9: Stage 1 Critical (Red)
+        - 2.0-2.4: Stage 2 Developing (Orange)
+        - 2.5-3.4: Stage 3 Advancing (Yellow)
+        - 3.5-4.0: Stage 4 Leading (Green)
         """
         return get_maturity_label_from_score(self.maturity_score)
 

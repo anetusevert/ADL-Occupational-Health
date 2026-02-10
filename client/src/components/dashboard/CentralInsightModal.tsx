@@ -687,7 +687,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
           </AnimatePresence>
         </div>
 
-        {/* Footer with generation info */}
+        {/* Footer with last updated info */}
         {insightData.generatedAt && insightData.isFromApi && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -695,8 +695,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
             transition={{ delay: 0.5 }}
             className="pt-3 mt-3 border-t border-white/10 text-[10px] sm:text-xs text-white/40 flex items-center gap-2"
           >
-            <Sparkles className="w-3 h-3" />
-            AI-generated: {new Date(insightData.generatedAt).toLocaleDateString()}
+            Last updated: {new Date(insightData.generatedAt).toLocaleDateString()}
           </motion.div>
         )}
       </motion.div>
@@ -927,7 +926,7 @@ export function CentralInsightModal({
     
     // Always add some default stats if we don't have enough
     if (stats.length < 2) {
-      stats.push({ label: "Analysis", value: "AI-Generated", icon: Sparkles, color: "text-cyan-400" });
+      stats.push({ label: "Analysis", value: "Expert Review", icon: Activity, color: "text-cyan-400" });
     }
     
     return stats.slice(0, 6);
@@ -951,8 +950,8 @@ export function CentralInsightModal({
         // Admins can manually generate content using "Regenerate All" button
         setInsightData({
           images: [],
-          whatIsAnalysis: `AI-generated analysis for ${countryName}'s ${CATEGORY_CONFIGS[category]?.title || category} is not available yet.\n\n${isAdmin ? 'Use "Regenerate All" in the header to generate insights for this country.' : 'Please contact an administrator to generate content for this country.'}`,
-          ohImplications: isAdmin ? "AI analysis will appear here once you generate content using the Regenerate All button." : "This content will be available once an administrator generates it.",
+          whatIsAnalysis: `Analysis for ${countryName}'s ${CATEGORY_CONFIGS[category]?.title || category} is not available yet.\n\n${isAdmin ? 'Use "Regenerate All" in the header to produce insights for this country.' : 'Please contact an administrator to produce content for this country.'}`,
+          ohImplications: isAdmin ? "Analysis will appear here once you produce content using the Regenerate All button." : "This content will be available once an administrator produces it.",
           keyStats: [],
           status: "pending",
           isFromApi: false,

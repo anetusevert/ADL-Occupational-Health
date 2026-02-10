@@ -152,10 +152,10 @@ export function AIOrchestration() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-white tracking-tight">
-              AI Configuration
+              Configuration
             </h1>
             <p className="text-white/40 text-sm">
-              Configure AI providers for the analysis engine
+              Configure providers for the analysis engine
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export function AIOrchestration() {
           <>
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
             <div>
-              <p className="text-emerald-400 font-medium">AI Configured</p>
+              <p className="text-emerald-400 font-medium">Configured</p>
               <p className="text-sm text-emerald-400/70">
                 Using {config.provider} ({config.model_name})
               </p>
@@ -187,9 +187,9 @@ export function AIOrchestration() {
           <>
             <AlertTriangle className="w-6 h-6 text-amber-400" />
             <div>
-              <p className="text-amber-400 font-medium">AI Not Configured</p>
+              <p className="text-amber-400 font-medium">Not Configured</p>
               <p className="text-sm text-amber-400/70">
-                Please configure an AI provider to enable Deep Dive analysis
+                Please configure a provider to enable Deep Dive analysis
               </p>
             </div>
           </>
@@ -203,7 +203,7 @@ export function AIOrchestration() {
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5 text-cyan-400" />
-              Select AI Provider
+              Select Provider
             </h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -451,7 +451,7 @@ export function AIOrchestration() {
           {/* Info Card */}
           <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl p-4">
             <h3 className="text-sm font-medium text-slate-300 mb-2">
-              About AI Providers
+              About Providers
             </h3>
             <ul className="text-xs text-slate-500 space-y-1">
               <li>• OpenAI: Industry standard, excellent for analysis</li>

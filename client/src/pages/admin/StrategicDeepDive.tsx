@@ -333,7 +333,7 @@ function generatePDF(report: StrategicDeepDiveReport) {
         <div class="subtitle">Strategic Deep Dive Report</div>
         <h1>${report.strategy_name || `${report.country_name} Analysis`}</h1>
         <div class="meta">
-          ${report.country_name} | Generated: ${report.generated_at ? new Date(report.generated_at).toLocaleDateString() : 'N/A'} | ${report.ai_provider || 'AI Analysis'}
+          ${report.country_name} | ${report.generated_at ? new Date(report.generated_at).toLocaleDateString() : 'N/A'} | Strategic Analysis
         </div>
       </div>
 
@@ -761,7 +761,7 @@ function ReportPanel({
             Strategic Deep Dive
           </h3>
           <p className="text-sm text-slate-400">
-            Select a country and analysis topic, then click "Generate Report" to create an AI-powered strategic assessment.
+            Select a country and analysis topic, then click "Generate Report" to create a strategic assessment.
           </p>
         </div>
       </div>

@@ -36,7 +36,7 @@ export function GenerationStatusBar() {
                 <Sparkles className="w-4 h-4 text-cyan-400" />
               </motion.div>
               <span className="text-xs font-medium text-white/70">
-                AI Generation{generations.length > 1 ? "s" : ""}
+                Processing{generations.length > 1 ? "" : ""}
               </span>
             </div>
             
@@ -119,7 +119,7 @@ export function GenerationStatusBar() {
                     className="w-1.5 h-1.5 rounded-full bg-cyan-400"
                   />
                 </div>
-                <span>Processing with GPT-5</span>
+                <span>Processing...</span>
               </div>
             )}
           </div>

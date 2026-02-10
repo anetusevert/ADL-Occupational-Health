@@ -108,12 +108,12 @@ function CountrySelectionModal({
       .sort((a, b) => (b.maturity_score || 0) - (a.maturity_score || 0));
   }, [countries, filters]);
 
-  // Maturity tier labels
+  // Maturity tier labels (pillar-level 0-100 scale)
   const getMaturityTier = (score: number) => {
-    if (score >= 75) return { label: "Advanced", color: "emerald" };
-    if (score >= 50) return { label: "Established", color: "cyan" };
-    if (score >= 25) return { label: "Developing", color: "amber" };
-    return { label: "Nascent", color: "red" };
+    if (score >= 75) return { label: "Leading", color: "emerald" };
+    if (score >= 50) return { label: "Advancing", color: "yellow" };
+    if (score >= 25) return { label: "Developing", color: "orange" };
+    return { label: "Critical", color: "red" };
   };
 
   if (!isOpen) return null;
@@ -186,8 +186,8 @@ function CountrySelectionModal({
             <div className="flex items-center gap-2">
               {[
                 { label: "All", range: [0, 100] as [number, number] },
-                { label: "Advanced", range: [75, 100] as [number, number] },
-                { label: "Established", range: [50, 75] as [number, number] },
+                { label: "Leading", range: [75, 100] as [number, number] },
+                { label: "Advancing", range: [50, 75] as [number, number] },
                 { label: "Developing", range: [25, 50] as [number, number] },
               ].map(({ label, range }) => (
                 <button

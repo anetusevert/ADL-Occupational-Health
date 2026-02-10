@@ -353,13 +353,7 @@ function formatReportAsMarkdown(report: StrategicDeepDiveReport): string {
   sections.push('---');
   const footerParts: string[] = [];
   if (report.generated_at) {
-    footerParts.push(`Generated: ${new Date(report.generated_at).toLocaleString()}`);
-  }
-  if (report.model_used) {
-    const modelDisplay = report.model_used.includes('fallback') 
-      ? `${report.model_used} (faster model used due to timeout)`
-      : report.model_used;
-    footerParts.push(`Model: ${modelDisplay}`);
+    footerParts.push(`Last updated: ${new Date(report.generated_at).toLocaleString()}`);
   }
   if (footerParts.length > 0) {
     sections.push(`*${footerParts.join(' | ')}*`);

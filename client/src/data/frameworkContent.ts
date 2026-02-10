@@ -720,7 +720,7 @@ export const statCardContent: Record<string, StatCardContent> = {
   maturityLevels: {
     title: "ADL OHI Score",
     subtitle: "4 stages of occupational health development",
-    description: "Countries are assessed on the ADL Occupational Health Index (OHI), a four-stage maturity model (1.0-4.0 scale) that reflects their progression from reactive to resilient occupational health systems.",
+    description: "The ADL Occupational Health Index (OHI) is computed as a weighted average of four pillar scores (0-100 each), converted to a 1.0-4.0 scale. Weights: Governance 20%, Hazard Prevention 35%, Health Vigilance 25%, Restoration 20%. Formula: OHI = 1.0 + (weighted average / 100) x 3.0. The resulting score maps to four maturity stages.",
     items: [
       {
         name: "Leading (3.5-4.0)",
@@ -786,7 +786,7 @@ export const guideSlides: GuideSlide[] = [
       "195 nations assessed on a unified framework",
       "25 metrics across 4 structural pillars",
       "9 authoritative global data sources",
-      "AI-powered analysis and strategic recommendations"
+      "Expert analysis and strategic recommendations"
     ],
     stats: [
       { value: "195", label: "Nations", color: "cyan" },
@@ -905,17 +905,17 @@ export const guideSlides: GuideSlide[] = [
     title: "Country Deep Dive",
     actionTitle: "Click Any Nation. Get the Full Intelligence Picture.",
     subtitle: "From Score to Strategy in One Click",
-    content: "Every country has a dedicated intelligence dashboard. Economic context, framework scores, AI-generated strategic insights, and global positioning — all in one view. Drill into any pillar for detailed analysis. Compare against peers. Export to PDF. Each country profile is a complete strategic briefing.",
+    content: "Every country has a dedicated intelligence dashboard. Economic context, framework scores, strategic insights, and global positioning — all in one view. Drill into any pillar for detailed analysis. Compare against peers. Export to PDF. Each country profile is a complete strategic briefing.",
     highlights: [
       "Economic overview: GDP, labor force, demographics at a glance",
       "All 4 pillar scores with visual benchmarking",
-      "6 AI-generated insight categories per country",
+      "6 expert insight categories per country",
       "Pillar deep-dive with strategic questions and best practice leaders"
     ],
     stats: [
       { value: "4", label: "Dashboard Quadrants", color: "cyan" },
       { value: "6", label: "Insight Categories", color: "emerald" },
-      { value: "AI", label: "Powered Analysis", color: "purple" }
+      { value: "195", label: "Nations Covered", color: "purple" }
     ],
     color: "blue"
   },
@@ -929,11 +929,11 @@ export const guideSlides: GuideSlide[] = [
     title: "Focus: KSA",
     actionTitle: "Where the Kingdom Stands — and Where It Can Lead",
     subtitle: "Saudi Arabia Benchmarked Against 195 Nations",
-    content: "A dedicated strategic view for Saudi Arabia. Each pillar is benchmarked against GCC neighbors, G20 peers, and global leaders. Click any strategic question to unlock AI-powered deep analysis — written at McKinsey Partner depth — with specific recommendations, global best practices, and an actionable path to top-quartile performance.",
+    content: "A dedicated strategic view for Saudi Arabia. Each pillar is benchmarked against GCC neighbors, G20 peers, and global leaders. Click any strategic question to unlock deep analysis — written at McKinsey Partner depth — with specific recommendations, global best practices, and an actionable path to top-quartile performance.",
     highlights: [
       "4-quadrant view: one per framework element",
       "Percentile positioning against GCC, G20, and global averages",
-      "Strategic questions with AI-generated deep analysis",
+      "Strategic questions with in-depth expert analysis",
       "Best practice leaders identified for each dimension"
     ],
     stats: [
@@ -980,10 +980,10 @@ export const guideSlides: GuideSlide[] = [
     title: "Best Practices",
     actionTitle: "What the World's Leaders Do Differently — and How KSA Can Apply It",
     subtitle: "Evidence-Based Strategies from Global Champions",
-    content: "For every pillar, this platform identifies the global leaders and documents exactly what they do. Germany's dual insurance system. Singapore's zero-fatality ambition. Sweden's Vision Zero philosophy. These are not case studies — they are operational blueprints with AI-generated analysis showing how each practice could be adapted for Saudi Arabia.",
+    content: "For every pillar, this platform identifies the global leaders and documents exactly what they do. Germany's dual insurance system. Singapore's zero-fatality ambition. Sweden's Vision Zero philosophy. These are not case studies — they are operational blueprints with expert analysis showing how each practice could be adapted for Saudi Arabia.",
     highlights: [
       "Pillar-by-pillar global leader identification",
-      "AI-generated strategic analysis per question",
+      "In-depth strategic analysis per question",
       "Country-specific best practice documentation",
       "Actionable recommendations for KSA adaptation"
     ],
@@ -1030,17 +1030,17 @@ export const guideSlides: GuideSlide[] = [
     type: "app-compare",
     title: "Compare & Analyze",
     actionTitle: "Select Any Nation. Get a Strategic Comparison Against KSA.",
-    subtitle: "AI-Powered Country Intelligence",
-    content: "Pick any country in the world and receive a comprehensive AI-generated comparison against Saudi Arabia. Pillar-by-pillar analysis. Strength and gap identification. Strategic recommendations. Written at consulting depth, delivered in seconds. This is how intelligence becomes strategy.",
+    subtitle: "Strategic Country Intelligence",
+    content: "Pick any country in the world and receive a comprehensive comparison against Saudi Arabia. Pillar-by-pillar analysis. Strength and gap identification. Strategic recommendations. Written at consulting depth, delivered in seconds. This is how intelligence becomes strategy.",
     highlights: [
       "KSA locked as primary — select any nation to compare",
       "Pillar-by-pillar strategic comparison",
-      "AI-generated consulting-grade analysis",
+      "Consulting-grade expert analysis",
       "Actionable recommendations for each dimension"
     ],
     stats: [
       { value: "2", label: "Nations Compared", color: "cyan" },
-      { value: "AI", label: "Powered", color: "emerald" },
+      { value: "195", label: "Available", color: "emerald" },
       { value: "4", label: "Pillars Analyzed", color: "purple" }
     ],
     navTarget: "/compare",
@@ -1056,7 +1056,7 @@ export const guideSlides: GuideSlide[] = [
     title: "Begin Exploring",
     actionTitle: "The Intelligence Is Ready. The Platform Is Yours.",
     subtitle: "Arthur D. Little + GOSI",
-    content: "195 nations assessed. 25 metrics scored. 5 workforce personas mapped. AI-powered analysis at every level. This platform is a living intelligence system — continuously updated, always evolving. The data is here. The insights are waiting. Start exploring.",
+    content: "195 nations assessed. 25 metrics scored. 5 workforce personas mapped. Expert analysis at every level. This platform is a living intelligence system — continuously updated, always evolving. The data is here. The insights are waiting. Start exploring.",
     highlights: [
       "Navigate the global map to explore any nation",
       "Deep-dive into KSA's strategic positioning",
@@ -1245,7 +1245,7 @@ export const elementInsights: Record<string, ElementInsight> = {
   "early-warning": {
     id: "early-warning",
     label: "Early Warning Systems",
-    dataPoint: "AI-powered predictive analytics can identify high-risk workplaces with 85% accuracy",
+    dataPoint: "Predictive analytics can identify high-risk workplaces with 85% accuracy",
     perspective: "Modern surveillance uses machine learning to spot patterns humans miss. Combining incident data, exposure records, and health outcomes creates predictive models that flag problems before incidents occur.",
     quote: "The best time to prevent an accident is before it happens. Predictive analytics makes that possible.",
     example: "Netherlands' Inspectorate uses algorithmic risk scoring to prioritize inspections, increasing violation detection rates by 40%.",

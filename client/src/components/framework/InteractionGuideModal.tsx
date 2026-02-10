@@ -4099,11 +4099,11 @@ function CountryDashboardVisual() {
       details: "All 4 pillar scores with radar chart visualization and percentile rankings."
     },
     { 
-      label: "AI Insights", 
-      icon: "🤖", 
+      label: "Expert Insights", 
+      icon: "💡", 
       items: ["6 intelligence categories", "Strategic analysis", "Recommendations"], 
       color: "purple" as const,
-      details: "AI-generated strategic analysis across 6 categories: economic context, workforce, health infrastructure, regulatory environment, industry profile, and risk assessment."
+      details: "Strategic analysis across 6 categories: economic context, workforce, health infrastructure, regulatory environment, industry profile, and risk assessment."
     },
     { 
       label: "Global Position", 
@@ -4369,7 +4369,7 @@ function BestPracticesVisual({ countries }: { countries?: { code: string; name: 
           ))}
         </div>
 
-        {/* AI analysis hint */}
+        {/* Analysis hint */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -4697,7 +4697,7 @@ function CompareVisual() {
           })}
         </div>
 
-        {/* AI analysis badge */}
+        {/* Analysis badge */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -4705,7 +4705,7 @@ function CompareVisual() {
           className="text-center p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-white/10"
         >
           <p className="text-xs text-white/50">
-            <span className="text-purple-300 font-semibold">AI-Powered</span> — Click any dimension for detailed gap analysis and strategic recommendations.
+            <span className="text-purple-300 font-semibold">Interactive</span> — Click any dimension for detailed gap analysis and strategic recommendations.
           </p>
         </motion.div>
       </div>
@@ -4797,7 +4797,7 @@ const globalIntelCapabilities = {
       "Longitudinal tracking across 195+ countries",
       "Real-time incident reporting integration",
       "Harmonized metrics across different regulatory frameworks",
-      "AI-powered data quality assurance",
+      "Automated data quality assurance",
       "Secure, GDPR-compliant infrastructure"
     ],
     dataSources: [

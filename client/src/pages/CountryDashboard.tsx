@@ -274,7 +274,7 @@ export function CountryDashboard() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* AI Generation Progress Banner - Fixed at top when generating */}
+      {/* Generation Progress Banner - Fixed at top when generating */}
       <AnimatePresence>
         {isAdmin && initStatus === "generating" && (
           <motion.div
@@ -295,10 +295,10 @@ export function CountryDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">
-                    AI is generating insights for {currentCountry?.name}
+                    Generating insights for {currentCountry?.name}
                   </p>
                   <p className="text-xs text-white/70">
-                    {generationProgress || "Initializing AI agents..."}
+                    {generationProgress || "Initializing analysis..."}
                   </p>
                 </div>
               </div>
@@ -306,7 +306,7 @@ export function CountryDashboard() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-white animate-spin" />
-                  <span className="text-xs text-white/80">Processing with GPT-5</span>
+                  <span className="text-xs text-white/80">Processing...</span>
                 </div>
                 
                 {/* Progress indicator */}
@@ -387,7 +387,7 @@ export function CountryDashboard() {
                 onClick={handleRegenerateAll}
                 disabled={isInitializing}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-purple-500/30 rounded-lg text-purple-400 text-xs font-medium transition-colors whitespace-nowrap"
-                title="Regenerate all insights with AI"
+                title="Regenerate all insights"
               >
                 {isInitializing ? (
                   <Loader2 className="w-3 h-3 animate-spin" />

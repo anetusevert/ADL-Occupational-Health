@@ -26,6 +26,10 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
+  Square,
+  RotateCcw,
+  Timer,
+  Activity,
 } from 'lucide-react';
 import { apiClient } from '../../services/api';
 
@@ -54,11 +58,16 @@ interface BatchInsightStatus {
   countries_skipped: number;
   current_country: string | null;
   current_country_name: string | null;
+  current_category: string | null;
   total_insights_generated: number;
   total_insights_failed: number;
   errors: Array<{ country_iso: string; error: string }>;
   started_at: string | null;
   completed_at: string | null;
+  elapsed_seconds: number | null;
+  estimated_remaining_seconds: number | null;
+  avg_seconds_per_country: number | null;
+  last_completed_country: string | null;
 }
 
 interface PipelineStatus {
@@ -243,6 +252,26 @@ function StatBadge({ icon: Icon, label, value, color = 'white' }: {
 }
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return '--';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function formatSpeed(avgSeconds: number | null | undefined): string {
+  if (!avgSeconds || avgSeconds <= 0) return '--';
+  if (avgSeconds < 60) return `~${Math.round(avgSeconds)}s/country`;
+  return `~${(avgSeconds / 60).toFixed(1)}min/country`;
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -259,6 +288,7 @@ export function DatabaseFill() {
   // Phase 3 - Batch Insights
   const [insightStatus, setInsightStatus] = useState<BatchInsightStatus | null>(null);
   const [insightRunning, setInsightRunning] = useState(false);
+  const [insightStopping, setInsightStopping] = useState(false);
 
   // Error display
   const [error, setError] = useState<string | null>(null);
@@ -296,7 +326,9 @@ export function DatabaseFill() {
       const res = await apiClient.get('/api/v1/insight-batch/generate-status');
       if (res.data && typeof res.data.status === 'string' && !res.data.country_iso) {
         setInsightStatus(res.data);
-        setInsightRunning(res.data.status === 'running');
+        const running = res.data.status === 'running';
+        setInsightRunning(running);
+        if (!running) setInsightStopping(false);
         return;
       }
     } catch {
@@ -314,7 +346,9 @@ export function DatabaseFill() {
       }
       if (res.data && typeof res.data.status === 'string') {
         setInsightStatus(res.data);
-        setInsightRunning(res.data.status === 'running');
+        const running = res.data.status === 'running';
+        setInsightRunning(running);
+        if (!running) setInsightStopping(false);
         return;
       }
     } catch (err: any) {
@@ -422,7 +456,7 @@ export function DatabaseFill() {
   // Try new URL first, fall back to legacy
   const startInsights = async () => {
     setError(null);
-    const body = { delay_between: 3.0, force_regenerate: forceRegenInsights };
+    const body = { delay_between: 1.0, force_regenerate: forceRegenInsights };
     console.log('[DBFill] Starting Phase 3: Batch insights (force_regenerate:', forceRegenInsights, ')...');
 
     // Try new router first
@@ -433,7 +467,6 @@ export function DatabaseFill() {
       return;
     } catch (err: any) {
       if (err?.response?.status !== 404) {
-        // Real error (not just missing endpoint)
         const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start batch insight generation';
         console.error('[DBFill] Phase 3 start failed:', err?.response?.status, msg);
         setError(`Phase 3 Error: ${msg}`);
@@ -454,6 +487,36 @@ export function DatabaseFill() {
     }
   };
 
+  // ── Stop Phase 3 ──
+  const stopInsights = async () => {
+    setInsightStopping(true);
+    try {
+      await apiClient.post('/api/v1/insight-batch/generate-stop');
+      console.log('[DBFill] Phase 3 stop requested');
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Failed to stop';
+      console.error('[DBFill] Phase 3 stop failed:', msg);
+      setError(`Stop Error: ${msg}`);
+      setInsightStopping(false);
+    }
+  };
+
+  // ── Retry Failed Insights ──
+  const retryFailedInsights = async () => {
+    setError(null);
+    const body = { retry_failed: true, delay_between: 1.0, force_regenerate: false };
+    console.log('[DBFill] Starting Phase 3: Retry failed insights...');
+    try {
+      const res = await apiClient.post('/api/v1/insight-batch/generate-all', body);
+      console.log('[DBFill] Phase 3 retry started:', res.data);
+      setInsightRunning(true);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start retry';
+      console.error('[DBFill] Phase 3 retry failed:', err?.response?.status, msg);
+      setError(`Retry Error: ${msg}`);
+    }
+  };
+
   // ── Reset Phase 3 Status ──
   const resetInsightStatus = async () => {
     // Try new URL first, fall back to legacy
@@ -461,6 +524,7 @@ export function DatabaseFill() {
       await apiClient.post('/api/v1/insight-batch/generate-reset');
       setInsightStatus(null);
       setInsightRunning(false);
+      setInsightStopping(false);
       return;
     } catch {
       // Try legacy
@@ -469,6 +533,7 @@ export function DatabaseFill() {
       await apiClient.post('/api/v1/insights/batch-generate-reset');
       setInsightStatus(null);
       setInsightRunning(false);
+      setInsightStopping(false);
     } catch (err: any) {
       console.warn('[DBFill] Reset failed:', err?.message);
     }
@@ -630,25 +695,56 @@ export function DatabaseFill() {
         <PhaseCard
           phase={3}
           title="AI Country Insights"
-          description="Generate all 6 insight categories for every country (culture, infrastructure, industry, urban, workforce, political). ~1,158 insights total."
+          description="Generate all 6 insight categories for every country (culture, infrastructure, industry, urban, workforce, political). ~1,158 insights total. Categories are generated in parallel for faster processing."
           icon={Sparkles}
           color="cyan"
           isRunning={insightRunning}
           isComplete={insightStatus?.status === 'completed'}
           onStart={startInsights}
         >
-          {/* Controls */}
-          <div className="flex items-center gap-4 mb-3">
+          {/* Controls row */}
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={forceRegenInsights}
                 onChange={(e) => setForceRegenInsights(e.target.checked)}
+                disabled={insightRunning}
                 className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/30"
               />
-              <span className="text-xs text-white/50">Force regenerate (overwrite existing insights)</span>
+              <span className="text-xs text-white/50">Force regenerate (overwrite existing)</span>
             </label>
 
+            {/* Stop button - visible while running */}
+            {insightRunning && (
+              <button
+                onClick={stopInsights}
+                disabled={insightStopping}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                  insightStopping
+                    ? 'bg-red-900/30 text-red-400/60 cursor-not-allowed'
+                    : 'bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-500/30'
+                }`}
+              >
+                {insightStopping ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Stopping...</>
+                ) : (
+                  <><Square className="w-3.5 h-3.5" /> Stop</>
+                )}
+              </button>
+            )}
+
+            {/* Retry Failed button - visible when stopped/completed with failures */}
+            {!insightRunning && (insightStatus?.total_insights_failed ?? 0) > 0 && (
+              <button
+                onClick={retryFailedInsights}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 border border-amber-500/30 transition-all"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Retry Failed ({insightStatus?.countries_failed ?? 0})
+              </button>
+            )}
+
+            {/* Reset button */}
             {insightStatus && insightStatus.status !== 'idle' && !insightRunning && (
               <button
                 onClick={resetInsightStatus}
@@ -658,6 +754,16 @@ export function DatabaseFill() {
               </button>
             )}
           </div>
+
+          {/* Stopped banner */}
+          {insightStatus?.status === 'stopped' && (
+            <div className="mb-3 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
+              <Square className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-300">
+                Generation was stopped. Click "Start" to continue from where it left off (completed insights will be skipped), or "Retry Failed" to retry only the failed ones.
+              </span>
+            </div>
+          )}
 
           {/* Skipped warning */}
           {insightStatus?.status === 'completed' &&
@@ -682,6 +788,7 @@ export function DatabaseFill() {
                 label="Countries processed"
               />
 
+              {/* Real-time metrics row */}
               <div className="flex flex-wrap gap-2">
                 <StatBadge
                   icon={Sparkles}
@@ -689,7 +796,7 @@ export function DatabaseFill() {
                   value={insightStatus.total_insights_generated}
                   color="cyan"
                 />
-                {insightStatus.total_insights_failed > 0 && (
+                {(insightStatus.total_insights_failed ?? 0) > 0 && (
                   <StatBadge
                     icon={XCircle}
                     label="Insights Failed"
@@ -697,16 +804,53 @@ export function DatabaseFill() {
                     color="red"
                   />
                 )}
-                {insightStatus.current_country && (
+                {insightRunning && insightStatus.elapsed_seconds != null && (
                   <StatBadge
-                    icon={Loader2}
-                    label="Current"
-                    value={`${insightStatus.current_country_name || insightStatus.current_country}`}
-                    color="amber"
+                    icon={Timer}
+                    label="Elapsed"
+                    value={formatDuration(insightStatus.elapsed_seconds)}
+                    color="blue"
+                  />
+                )}
+                {insightRunning && insightStatus.estimated_remaining_seconds != null && (
+                  <StatBadge
+                    icon={Clock}
+                    label="ETA"
+                    value={formatDuration(insightStatus.estimated_remaining_seconds)}
+                    color="purple"
+                  />
+                )}
+                {insightRunning && insightStatus.avg_seconds_per_country != null && (
+                  <StatBadge
+                    icon={Activity}
+                    label="Speed"
+                    value={formatSpeed(insightStatus.avg_seconds_per_country)}
+                    color="emerald"
                   />
                 )}
               </div>
 
+              {/* Current processing info */}
+              {insightRunning && insightStatus.current_country && (
+                <div className="bg-slate-700/20 rounded-lg p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                    <span className="text-white/50">Currently processing:</span>
+                    <span className="text-cyan-400 font-semibold animate-pulse">
+                      {insightStatus.current_country_name || insightStatus.current_country}
+                    </span>
+                    <span className="text-white/20 font-mono text-[10px]">({insightStatus.current_country})</span>
+                  </div>
+                  {insightStatus.current_category && (
+                    <div className="flex items-center gap-2 text-xs text-white/30 pl-5">
+                      <Sparkles className="w-3 h-3 text-cyan-400/50" />
+                      Categories: <span className="text-cyan-300/70 font-mono">{insightStatus.current_category}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Error list */}
               {(insightStatus.errors?.length ?? 0) > 0 && (
                 <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-auto">
                   <p className="text-xs text-red-400 font-medium mb-1">Errors ({insightStatus.errors?.length ?? 0})</p>
@@ -721,10 +865,17 @@ export function DatabaseFill() {
                 </div>
               )}
 
-              {insightStatus.completed_at && (
+              {/* Completion / Stop info */}
+              {insightStatus.completed_at && insightStatus.status === 'completed' && (
                 <div className="flex items-center gap-2 text-xs text-emerald-400">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Completed at {new Date(insightStatus.completed_at).toLocaleString()}
+                </div>
+              )}
+              {insightStatus.completed_at && insightStatus.status === 'stopped' && (
+                <div className="flex items-center gap-2 text-xs text-amber-400">
+                  <Square className="w-3.5 h-3.5" />
+                  Stopped at {new Date(insightStatus.completed_at).toLocaleString()}
                 </div>
               )}
             </div>
@@ -736,8 +887,9 @@ export function DatabaseFill() {
           <p className="text-white/50 font-medium mb-2">Execution Notes</p>
           <p>Phase 1: ~15-20 min for 193 countries (API rate limits). Free, no AI cost.</p>
           <p>Phase 2: ~60-90 min for 193 countries. Estimated cost: $6-10 (GPT-4o with web search).</p>
-          <p>Phase 3: ~6-10 hours for 193 countries. Estimated cost: $35-60. Can run overnight.</p>
+          <p>Phase 3: ~3-6 hours for 193 countries (parallel categories + 2 concurrent countries). Estimated cost: $35-60. Can be stopped and resumed at any time.</p>
           <p>Phases are sequential -- run Phase 1 first to ensure all countries exist in the database.</p>
+          <p>Failed insights are auto-retried up to 2 times. Use "Retry Failed" button for remaining failures.</p>
         </div>
       </div>
     </div>

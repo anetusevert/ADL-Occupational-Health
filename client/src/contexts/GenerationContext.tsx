@@ -230,7 +230,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         total: 6,
         inProgress: "initializing",
         results: {},
-        message: "Starting AI generation...",
+        message: "Starting analysis...",
         type: "insights",
         failed: 0,
         errors: [],

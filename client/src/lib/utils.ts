@@ -234,11 +234,11 @@ export function getEffectiveOHIScore(
  * Get maturity stage label and color based on score
  * @param score - Maturity score (1.0-4.0 scale)
  * 
- * ADL OHI Score Stages:
- * - Stage 4 (3.5-4.0): Advanced - Leading maturity
- * - Stage 3 (2.5-3.49): Established - Strong systems in place
- * - Stage 2 (1.5-2.49): Developing - Growing capabilities
- * - Stage 1 (1.0-1.49): Nascent - Early stage
+ * ADL OHI Score Stages (canonical definitions):
+ * - Stage 4 (3.5-4.0): Leading - World-class occupational health
+ * - Stage 3 (2.5-3.4): Advancing - Functional systems with room to grow
+ * - Stage 2 (2.0-2.4): Developing - Basic frameworks emerging
+ * - Stage 1 (1.0-1.9): Critical - Reactive systems with major gaps
  */
 export function getMaturityStage(score: number | null | undefined): {
   stage: number;
@@ -263,7 +263,7 @@ export function getMaturityStage(score: number | null | undefined): {
   if (score >= 3.5) {
     return {
       stage: 4,
-      label: "Advanced",
+      label: "Leading",
       color: "text-emerald-400",
       bgColor: "bg-emerald-500/20",
       borderColor: "border-emerald-500/30",
@@ -272,25 +272,25 @@ export function getMaturityStage(score: number | null | undefined): {
   } else if (score >= 2.5) {
     return {
       stage: 3,
-      label: "Established",
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/20",
-      borderColor: "border-blue-500/30",
-      textColor: "text-blue-400",
+      label: "Advancing",
+      color: "text-yellow-400",
+      bgColor: "bg-yellow-500/20",
+      borderColor: "border-yellow-500/30",
+      textColor: "text-yellow-400",
     };
-  } else if (score >= 1.5) {
+  } else if (score >= 2.0) {
     return {
       stage: 2,
       label: "Developing",
-      color: "text-amber-400",
-      bgColor: "bg-amber-500/20",
-      borderColor: "border-amber-500/30",
-      textColor: "text-amber-400",
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/20",
+      borderColor: "border-orange-500/30",
+      textColor: "text-orange-400",
     };
   } else {
     return {
       stage: 1,
-      label: "Nascent",
+      label: "Critical",
       color: "text-red-400",
       bgColor: "bg-red-500/20",
       borderColor: "border-red-500/30",

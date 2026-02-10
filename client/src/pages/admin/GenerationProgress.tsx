@@ -967,7 +967,7 @@ export function GenerationProgress() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-400">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>AI Analysis in progress...</span>
+                      <span>Analysis in progress...</span>
                     </div>
                   </div>
                 </div>

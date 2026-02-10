@@ -824,14 +824,19 @@ async def test_ai_call(
 # =============================================================================
 
 _batch_generation_status: Dict[str, Any] = {}
+_batch_stop_requested: bool = False
 
-BATCH_DELAY_BETWEEN_COUNTRIES = 3.0  # seconds between countries
+BATCH_DELAY_BETWEEN_COUNTRIES = 1.0  # seconds between countries (reduced for parallel)
+BATCH_MAX_RETRIES = 2  # retry failed categories up to N times
+BATCH_RETRY_DELAY = 5.0  # seconds between retries
+BATCH_CONCURRENCY = 2  # number of countries processed concurrently
 
 
 class BatchGenerateRequest(BaseModel):
     """Request body for batch insight generation."""
     country_filter: Optional[List[str]] = None  # Subset of ISOs, or None for all
     force_regenerate: bool = False  # If True, regenerate even completed insights
+    retry_failed: bool = False  # If True, only retry countries with failed insights
     delay_between: float = BATCH_DELAY_BETWEEN_COUNTRIES
 
 
@@ -845,18 +850,23 @@ class BatchGenerateResponse(BaseModel):
 
 class BatchGenerateStatusResponse(BaseModel):
     """Status of the batch insight generation."""
-    status: str  # "idle", "running", "completed"
+    status: str  # "idle", "running", "completed", "stopped"
     total_countries: int = 0
     countries_completed: int = 0
     countries_failed: int = 0
     countries_skipped: int = 0
     current_country: Optional[str] = None
     current_country_name: Optional[str] = None
+    current_category: Optional[str] = None
     total_insights_generated: int = 0
     total_insights_failed: int = 0
     errors: List[Dict[str, Any]] = []
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    elapsed_seconds: Optional[float] = None
+    estimated_remaining_seconds: Optional[float] = None
+    avg_seconds_per_country: Optional[float] = None
+    last_completed_country: Optional[str] = None
 
 
 # =============================================================================
@@ -896,6 +906,8 @@ async def batch_generate_all_insights(
             detail=f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}. Please add your API key in Admin > AI Settings.",
         )
 
+    global _batch_stop_requested
+
     # Check if already running
     if _batch_generation_status.get("status") == "running":
         return BatchGenerateResponse(
@@ -905,12 +917,17 @@ async def batch_generate_all_insights(
             status="already_running",
         )
 
+    # Reset stop flag
+    _batch_stop_requested = False
+
     # Determine target countries
     force_regenerate = False
+    retry_failed = False
     delay_between = BATCH_DELAY_BETWEEN_COUNTRIES
 
     if request:
         force_regenerate = request.force_regenerate
+        retry_failed = request.retry_failed
         delay_between = request.delay_between
         if request.country_filter:
             target_countries = [c.upper() for c in request.country_filter]
@@ -921,10 +938,19 @@ async def batch_generate_all_insights(
         db_countries = db.query(Country.iso_code).order_by(Country.iso_code).all()
         target_countries = [c.iso_code for c in db_countries]
 
+    # If retry_failed mode, filter to countries that have error-status insights
+    if retry_failed and not force_regenerate:
+        failed_isos = db.query(CountryInsight.country_iso).filter(
+            CountryInsight.country_iso.in_(target_countries),
+            CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
+            CountryInsight.status == InsightStatus.error,
+        ).distinct().all()
+        target_countries = [r[0] for r in failed_isos]
+
     if not target_countries:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No countries found in database. Run ETL pipeline first.",
+            detail="No countries found to process. Run ETL pipeline first, or no failed insights to retry.",
         )
 
     # Start background task
@@ -938,9 +964,10 @@ async def batch_generate_all_insights(
         )
     )
 
+    mode = "retry failed" if retry_failed else ("force regenerate" if force_regenerate else "generate missing")
     return BatchGenerateResponse(
         success=True,
-        message=f"Batch insight generation started for {len(target_countries)} countries",
+        message=f"Batch insight generation started for {len(target_countries)} countries (mode: {mode})",
         total_countries=len(target_countries),
         status="accepted",
     )
@@ -952,9 +979,32 @@ async def get_batch_generate_status():
     Get the current status of the batch insight generation.
     
     Poll this endpoint to track progress of the background batch generation.
+    Includes ETA, speed metrics, and current category.
     """
     if not _batch_generation_status:
         return BatchGenerateStatusResponse(status="idle")
+
+    # Compute live timing metrics
+    elapsed_seconds = None
+    estimated_remaining = None
+    avg_per_country = None
+    started_at = _batch_generation_status.get("started_at")
+    if started_at and _batch_generation_status.get("status") == "running":
+        try:
+            start_dt = datetime.fromisoformat(started_at)
+            elapsed_seconds = (datetime.utcnow() - start_dt).total_seconds()
+            done = (
+                _batch_generation_status.get("countries_completed", 0)
+                + _batch_generation_status.get("countries_failed", 0)
+                + _batch_generation_status.get("countries_skipped", 0)
+            )
+            total = _batch_generation_status.get("total_countries", 0)
+            if done > 0 and total > 0:
+                avg_per_country = elapsed_seconds / done
+                remaining = total - done
+                estimated_remaining = avg_per_country * remaining
+        except Exception:
+            pass
 
     return BatchGenerateStatusResponse(
         status=_batch_generation_status.get("status", "idle"),
@@ -964,12 +1014,37 @@ async def get_batch_generate_status():
         countries_skipped=_batch_generation_status.get("countries_skipped", 0),
         current_country=_batch_generation_status.get("current_country"),
         current_country_name=_batch_generation_status.get("current_country_name"),
+        current_category=_batch_generation_status.get("current_category"),
         total_insights_generated=_batch_generation_status.get("total_insights_generated", 0),
         total_insights_failed=_batch_generation_status.get("total_insights_failed", 0),
         errors=_batch_generation_status.get("errors", []),
-        started_at=_batch_generation_status.get("started_at"),
+        started_at=started_at,
         completed_at=_batch_generation_status.get("completed_at"),
+        elapsed_seconds=round(elapsed_seconds, 1) if elapsed_seconds else None,
+        estimated_remaining_seconds=round(estimated_remaining, 1) if estimated_remaining else None,
+        avg_seconds_per_country=round(avg_per_country, 1) if avg_per_country else None,
+        last_completed_country=_batch_generation_status.get("last_completed_country"),
     )
+
+
+@batch_router.post("/generate-stop")
+async def stop_batch_generate(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Request a graceful stop of the running batch insight generation.
+    The current country will finish, then the batch will stop.
+    """
+    global _batch_stop_requested
+
+    if _batch_generation_status.get("status") != "running":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No batch generation is currently running",
+        )
+
+    _batch_stop_requested = True
+    return {"status": "stopping", "message": "Stop requested. Current country will finish, then batch will stop."}
 
 
 @batch_router.post("/generate-reset")
@@ -1764,6 +1839,247 @@ async def regenerate_all_insights(
 # BATCH GENERATE ALL - Phase 3: Background task
 # =============================================================================
 
+async def _generate_single_category(
+    db_url: str,
+    country_iso: str,
+    country_name: str,
+    category,
+    user_id: int,
+    force_regenerate: bool,
+) -> Dict[str, Any]:
+    """
+    Generate a single insight category for a country.
+    Runs content generation and image fetching in parallel.
+    Includes automatic retry logic.
+    Returns dict with success/failure info.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    engine = create_engine(db_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    last_error = None
+    for attempt in range(1 + BATCH_MAX_RETRIES):
+        db = SessionLocal()
+        try:
+            if attempt > 0:
+                logger.info(f"[BatchInsights] Retry {attempt}/{BATCH_MAX_RETRIES} for {country_iso}/{category.value}")
+                await asyncio.sleep(BATCH_RETRY_DELAY)
+
+            # Ensure/create insight record
+            insight = db.query(CountryInsight).filter(
+                CountryInsight.country_iso == country_iso,
+                CountryInsight.category == category,
+            ).first()
+
+            if not insight:
+                insight = CountryInsight(
+                    country_iso=country_iso,
+                    category=category,
+                    status=InsightStatus.generating,
+                )
+                db.add(insight)
+                db.commit()
+                db.refresh(insight)
+            else:
+                insight.status = InsightStatus.generating
+                insight.error_message = None
+                db.commit()
+
+            # Get supporting data
+            country_data = get_country_data(db, country_iso)
+            intelligence = get_intelligence_data(db, country_iso)
+            user = db.query(User).filter(User.id == user_id).first()
+
+            if not user:
+                return {"success": False, "category": category.value, "error": "User not found"}
+
+            # Run content generation and image fetching in PARALLEL
+            content_task = asyncio.wait_for(
+                generate_insight_content(db, country_data, intelligence, category, user),
+                timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
+            )
+            image_task = asyncio.wait_for(
+                fetch_country_images(
+                    country_name=country_name,
+                    country_iso=country_iso,
+                    category=category.value,
+                    count=3,
+                ),
+                timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
+            )
+
+            # Gather both — if images fail, still use content
+            results = await asyncio.gather(content_task, image_task, return_exceptions=True)
+
+            content = results[0] if not isinstance(results[0], Exception) else None
+            images = results[1] if not isinstance(results[1], Exception) else []
+
+            if content is None:
+                raise results[0]  # Re-raise the content generation error
+
+            if isinstance(results[1], Exception):
+                logger.warning(f"[BatchInsights] Image fetch failed for {country_iso}/{category.value}: {results[1]}")
+
+            # Update insight record
+            insight.what_is_analysis = content.get("what_is_analysis")
+            insight.oh_implications = content.get("oh_implications")
+            try:
+                setattr(insight, "key_stats", content.get("key_stats", []))
+            except Exception:
+                pass
+            insight.images = images if not isinstance(images, Exception) else []
+            insight.status = InsightStatus.completed
+            insight.generated_at = datetime.utcnow()
+            insight.generated_by = user_id
+            insight.ai_provider = content.get("ai_provider")
+            insight.ai_model = content.get("ai_model")
+            db.commit()
+
+            return {"success": True, "category": category.value}
+
+        except Exception as e:
+            last_error = e.detail if hasattr(e, "detail") else str(e)
+            logger.warning(
+                f"[BatchInsights] Attempt {attempt + 1} failed for {country_iso}/{category.value}: {last_error}"
+            )
+            try:
+                db.rollback()
+                insight_rec = db.query(CountryInsight).filter(
+                    CountryInsight.country_iso == country_iso,
+                    CountryInsight.category == category,
+                ).first()
+                if insight_rec and attempt == BATCH_MAX_RETRIES:
+                    insight_rec.status = InsightStatus.error
+                    insight_rec.error_message = last_error
+                    db.commit()
+            except Exception:
+                db.rollback()
+        finally:
+            db.close()
+
+    return {"success": False, "category": category.value, "error": last_error or "Unknown error"}
+
+
+async def _process_single_country(
+    country_iso: str,
+    user_id: int,
+    db_url: str,
+    force_regenerate: bool,
+    idx: int,
+    total: int,
+) -> None:
+    """Process all insight categories for a single country (categories in parallel)."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    global _batch_generation_status
+
+    engine = create_engine(db_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+
+    try:
+        country = db.query(Country).filter(Country.iso_code == country_iso).first()
+        if not country:
+            _batch_generation_status["countries_failed"] += 1
+            _batch_generation_status["errors"].append({
+                "country_iso": country_iso,
+                "error": "Country not found in database",
+            })
+            return
+
+        country_name = country.name
+        _batch_generation_status["current_country"] = country_iso
+        _batch_generation_status["current_country_name"] = country_name
+
+        # Determine which categories need generation
+        if force_regenerate:
+            missing_categories = list(COUNTRY_INSIGHT_CATEGORIES)
+        else:
+            existing_insights = db.query(CountryInsight).filter(
+                CountryInsight.country_iso == country_iso,
+                CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
+                CountryInsight.status == InsightStatus.completed,
+                CountryInsight.what_is_analysis.isnot(None),
+            ).all()
+            existing_cats = {i.category for i in existing_insights}
+            missing_categories = [
+                c for c in COUNTRY_INSIGHT_CATEGORIES if c not in existing_cats
+            ]
+
+        if not missing_categories:
+            _batch_generation_status["countries_skipped"] += 1
+            logger.info(f"[BatchInsights] Skipping {country_iso} - all insights complete")
+            return
+
+        logger.info(
+            f"[BatchInsights] Processing {country_iso} ({country_name}) - "
+            f"{len(missing_categories)} categories ({idx + 1}/{total})"
+        )
+
+        # Update current category for status display
+        cat_names = ", ".join(c.value for c in missing_categories)
+        _batch_generation_status["current_category"] = cat_names
+
+    finally:
+        db.close()
+
+    # Generate ALL categories in PARALLEL using asyncio.gather
+    tasks = [
+        _generate_single_category(
+            db_url=db_url,
+            country_iso=country_iso,
+            country_name=country_name,
+            category=category,
+            user_id=user_id,
+            force_regenerate=force_regenerate,
+        )
+        for category in missing_categories
+    ]
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Tally results
+    country_success = 0
+    country_fail = 0
+    for r in results:
+        if isinstance(r, Exception):
+            country_fail += 1
+            _batch_generation_status["total_insights_failed"] += 1
+        elif r.get("success"):
+            country_success += 1
+            _batch_generation_status["total_insights_generated"] += 1
+        else:
+            country_fail += 1
+            _batch_generation_status["total_insights_failed"] += 1
+
+    # Track country-level result
+    if country_fail == 0:
+        _batch_generation_status["countries_completed"] += 1
+    elif country_success > 0:
+        _batch_generation_status["countries_completed"] += 1
+        _batch_generation_status["errors"].append({
+            "country_iso": country_iso,
+            "error": f"Partial: {country_success} ok, {country_fail} failed",
+        })
+    else:
+        _batch_generation_status["countries_failed"] += 1
+        _batch_generation_status["errors"].append({
+            "country_iso": country_iso,
+            "error": f"All {country_fail} categories failed",
+        })
+
+    _batch_generation_status["last_completed_country"] = country_iso
+    _batch_generation_status["current_category"] = None
+
+    logger.info(
+        f"[BatchInsights] Finished {country_iso}: {country_success} ok, {country_fail} failed "
+        f"({idx + 1}/{total})"
+    )
+
+
 async def run_batch_insight_generation(
     country_isos: List[str],
     user_id: int,
@@ -1773,15 +2089,15 @@ async def run_batch_insight_generation(
 ):
     """
     Background task to generate insights for all countries.
-    Processes one country at a time (6 insight categories each).
+    
+    Performance features:
+    - All 6 categories per country are generated in PARALLEL (asyncio.gather)
+    - 2 countries are processed concurrently (asyncio.Semaphore)
+    - Content and images are fetched in parallel per category
+    - Failed categories are retried up to 2 times with backoff
+    - Graceful stop via _batch_stop_requested flag
     """
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    global _batch_generation_status
-
-    engine = create_engine(db_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    global _batch_generation_status, _batch_stop_requested
 
     total = len(country_isos)
     _batch_generation_status = {
@@ -1792,194 +2108,71 @@ async def run_batch_insight_generation(
         "countries_skipped": 0,
         "current_country": None,
         "current_country_name": None,
+        "current_category": None,
         "total_insights_generated": 0,
         "total_insights_failed": 0,
         "errors": [],
         "started_at": datetime.utcnow().isoformat(),
         "completed_at": None,
+        "last_completed_country": None,
     }
 
-    for idx, country_iso in enumerate(country_isos):
-        db = SessionLocal()
-        try:
-            country = db.query(Country).filter(Country.iso_code == country_iso).first()
-            if not country:
-                _batch_generation_status["countries_failed"] += 1
-                _batch_generation_status["errors"].append({
-                    "country_iso": country_iso,
-                    "error": "Country not found in database",
-                })
-                continue
+    semaphore = asyncio.Semaphore(BATCH_CONCURRENCY)
 
-            country_name = country.name
-            _batch_generation_status["current_country"] = country_iso
-            _batch_generation_status["current_country_name"] = country_name
+    async def process_with_semaphore(country_iso: str, idx: int):
+        """Wrap country processing with semaphore for concurrency control."""
+        # Check stop flag before acquiring semaphore
+        if _batch_stop_requested:
+            return
 
-            # Determine which categories need generation
-            if force_regenerate:
-                missing_categories = list(COUNTRY_INSIGHT_CATEGORIES)
-            else:
-                existing_insights = db.query(CountryInsight).filter(
-                    CountryInsight.country_iso == country_iso,
-                    CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
-                    CountryInsight.status == InsightStatus.completed,
-                    CountryInsight.what_is_analysis.isnot(None),
-                ).all()
-                existing_cats = {i.category for i in existing_insights}
-                missing_categories = [
-                    c for c in COUNTRY_INSIGHT_CATEGORIES if c not in existing_cats
-                ]
+        async with semaphore:
+            # Check stop flag again after acquiring
+            if _batch_stop_requested:
+                return
 
-            if not missing_categories:
-                _batch_generation_status["countries_skipped"] += 1
-                logger.info(f"[BatchInsights] Skipping {country_iso} - all insights complete")
-                continue
+            await _process_single_country(
+                country_iso=country_iso,
+                user_id=user_id,
+                db_url=db_url,
+                force_regenerate=force_regenerate,
+                idx=idx,
+                total=total,
+            )
 
-            # Get supporting data
-            country_data = get_country_data(db, country_iso)
-            intelligence = get_intelligence_data(db, country_iso)
-            user = db.query(User).filter(User.id == user_id).first()
+            # Small delay between countries for rate limiting
+            if not _batch_stop_requested:
+                await asyncio.sleep(delay_between)
 
-            if not user:
-                _batch_generation_status["countries_failed"] += 1
-                _batch_generation_status["errors"].append({
-                    "country_iso": country_iso,
-                    "error": "User not found for AI config",
-                })
-                continue
+    # Process countries with concurrency control
+    # We use a loop with gather in chunks to allow stop checks between batches
+    i = 0
+    while i < total:
+        if _batch_stop_requested:
+            logger.info("[BatchInsights] Stop requested, halting batch generation")
+            break
 
-            # Generate each missing category
-            country_success = 0
-            country_fail = 0
+        # Create a batch of tasks up to BATCH_CONCURRENCY * 2
+        chunk_size = min(BATCH_CONCURRENCY * 2, total - i)
+        tasks = [
+            process_with_semaphore(country_isos[i + j], i + j)
+            for j in range(chunk_size)
+        ]
+        await asyncio.gather(*tasks)
+        i += chunk_size
 
-            for category in missing_categories:
-                insight = None
-                try:
-                    insight = db.query(CountryInsight).filter(
-                        CountryInsight.country_iso == country_iso,
-                        CountryInsight.category == category,
-                    ).first()
-
-                    if not insight:
-                        insight = CountryInsight(
-                            country_iso=country_iso,
-                            category=category,
-                            status=InsightStatus.generating,
-                        )
-                        db.add(insight)
-                        db.commit()
-                        db.refresh(insight)
-                    else:
-                        insight.status = InsightStatus.generating
-                        insight.error_message = None
-                        db.commit()
-
-                    # Generate content with timeout
-                    content = await asyncio.wait_for(
-                        generate_insight_content(db, country_data, intelligence, category, user),
-                        timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
-                    )
-
-                    # Fetch images with timeout
-                    images = await asyncio.wait_for(
-                        fetch_country_images(
-                            country_name=country_name,
-                            country_iso=country_iso,
-                            category=category.value,
-                            count=3,
-                        ),
-                        timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
-                    )
-
-                    # Update insight record
-                    insight.what_is_analysis = content.get("what_is_analysis")
-                    insight.oh_implications = content.get("oh_implications")
-                    try:
-                        setattr(insight, "key_stats", content.get("key_stats", []))
-                    except Exception:
-                        pass
-                    insight.images = images
-                    insight.status = InsightStatus.completed
-                    insight.generated_at = datetime.utcnow()
-                    insight.generated_by = user.id
-                    insight.ai_provider = content.get("ai_provider")
-                    insight.ai_model = content.get("ai_model")
-                    db.commit()
-
-                    country_success += 1
-                    _batch_generation_status["total_insights_generated"] += 1
-                    logger.info(
-                        f"[BatchInsights] Generated {category.value} for {country_iso} "
-                        f"({idx + 1}/{total})"
-                    )
-
-                except Exception as e:
-                    error_msg = e.detail if hasattr(e, "detail") else str(e)
-                    logger.error(
-                        f"[BatchInsights] Failed {category.value} for {country_iso}: {error_msg}"
-                    )
-                    country_fail += 1
-                    _batch_generation_status["total_insights_failed"] += 1
-
-                    try:
-                        if insight is None:
-                            insight = db.query(CountryInsight).filter(
-                                CountryInsight.country_iso == country_iso,
-                                CountryInsight.category == category,
-                            ).first()
-                        if insight:
-                            insight.status = InsightStatus.error
-                            insight.error_message = error_msg
-                            db.commit()
-                    except Exception as persist_err:
-                        db.rollback()
-                        logger.error(
-                            f"[BatchInsights] Could not persist error for "
-                            f"{country_iso}/{category.value}: {persist_err}"
-                        )
-
-            # Track country-level result
-            if country_fail == 0:
-                _batch_generation_status["countries_completed"] += 1
-            elif country_success > 0:
-                _batch_generation_status["countries_completed"] += 1
-                _batch_generation_status["errors"].append({
-                    "country_iso": country_iso,
-                    "error": f"Partial: {country_success} ok, {country_fail} failed",
-                })
-            else:
-                _batch_generation_status["countries_failed"] += 1
-                _batch_generation_status["errors"].append({
-                    "country_iso": country_iso,
-                    "error": f"All {country_fail} categories failed",
-                })
-
-        except Exception as e:
-            logger.error(f"[BatchInsights] Unexpected error for {country_iso}: {e}")
-            _batch_generation_status["countries_failed"] += 1
-            _batch_generation_status["errors"].append({
-                "country_iso": country_iso,
-                "error": str(e),
-            })
-        finally:
-            db.close()
-
-        # Rate limiting delay
-        if idx < total - 1:
-            await asyncio.sleep(delay_between)
-
-    _batch_generation_status["status"] = "completed"
+    # Final status
+    final_status = "stopped" if _batch_stop_requested else "completed"
+    _batch_generation_status["status"] = final_status
     _batch_generation_status["current_country"] = None
     _batch_generation_status["current_country_name"] = None
+    _batch_generation_status["current_category"] = None
     _batch_generation_status["completed_at"] = datetime.utcnow().isoformat()
+    _batch_stop_requested = False
 
     logger.info(
-        f"[BatchInsights] Batch complete: "
+        f"[BatchInsights] Batch {final_status}: "
         f"{_batch_generation_status['countries_completed']} countries done, "
         f"{_batch_generation_status['countries_failed']} failed, "
         f"{_batch_generation_status['countries_skipped']} skipped. "
         f"{_batch_generation_status['total_insights_generated']} insights generated."
     )
-
-
-# (batch endpoints moved before /{country_iso} wildcard routes)

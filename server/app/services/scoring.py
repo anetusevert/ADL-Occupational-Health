@@ -5,11 +5,11 @@ Sovereign OH Integrity Framework v3.0
 Deterministic scoring engine that calculates the Maturity Score (1.0 - 4.0)
 based on the framework's pillar rules.
 
-Maturity Stages:
-- 1.0-1.9: Reactive (Red)
-- 2.0-2.9: Compliant (Orange)
-- 3.0-3.5: Proactive (Yellow)
-- 3.6-4.0: Resilient (Green)
+Maturity Stages (canonical definitions):
+- 1.0-1.9: Critical (Red) - Reactive systems with major gaps
+- 2.0-2.4: Developing (Orange) - Basic frameworks emerging
+- 2.5-3.4: Advancing (Yellow) - Functional systems with room to grow
+- 3.5-4.0: Leading (Green) - World-class occupational health
 """
 
 from typing import Optional, Tuple
@@ -20,12 +20,12 @@ from app.models.country import (
 )
 
 
-# Score thresholds for maturity labels
+# Score thresholds for maturity labels (canonical definitions)
 MATURITY_THRESHOLDS = {
-    "REACTIVE": (1.0, 1.9),
-    "COMPLIANT": (2.0, 2.9),
-    "PROACTIVE": (3.0, 3.5),
-    "RESILIENT": (3.6, 4.0),
+    "CRITICAL": (1.0, 1.9),
+    "DEVELOPING": (2.0, 2.4),
+    "ADVANCING": (2.5, 3.4),
+    "LEADING": (3.5, 4.0),
 }
 
 
@@ -37,19 +37,19 @@ def get_maturity_label(score: float) -> str:
         score: Maturity score (1.0 - 4.0)
         
     Returns:
-        Stage label string (e.g., "Stage 3 Proactive")
+        Stage label string (e.g., "Stage 3 Advancing")
     """
     if score is None:
         return "No Data"
     
-    if score < 2.0:
-        return "Stage 1 Reactive"
-    elif score < 3.0:
-        return "Stage 2 Compliant"
-    elif score <= 3.5:
-        return "Stage 3 Proactive"
+    if score >= 3.5:
+        return "Stage 4 Leading"
+    elif score >= 2.5:
+        return "Stage 3 Advancing"
+    elif score >= 2.0:
+        return "Stage 2 Developing"
     else:
-        return "Stage 4 Resilient"
+        return "Stage 1 Critical"
 
 
 def get_maturity_color(score: float) -> str:
@@ -65,14 +65,14 @@ def get_maturity_color(score: float) -> str:
     if score is None:
         return "Gray"
     
-    if score < 2.0:
-        return "Red"
-    elif score < 3.0:
-        return "Orange"
-    elif score <= 3.5:
-        return "Yellow"
-    else:
+    if score >= 3.5:
         return "Green"
+    elif score >= 2.5:
+        return "Yellow"
+    elif score >= 2.0:
+        return "Orange"
+    else:
+        return "Red"
 
 
 def calculate_maturity_score(country: Country) -> Tuple[float, str]:
@@ -81,7 +81,7 @@ def calculate_maturity_score(country: Country) -> Tuple[float, str]:
     Sovereign OH Integrity Framework rules.
     
     Rules (Hard Logic):
-    - Base Score: Start at 1.0 (Reactive)
+    - Base Score: Start at 1.0 (Critical)
     - Pillar 1 (Hazard) Weighting:
         - If fatal_accident_rate < 1.0 AND inspector_density > 1.0 -> Add +1.0
         - If fatal_accident_rate > 3.0 -> Cap Score at 2.0 (Max)
@@ -97,7 +97,7 @@ def calculate_maturity_score(country: Country) -> Tuple[float, str]:
     Returns:
         Tuple of (score rounded to 1 decimal, maturity label)
     """
-    # Base score - Reactive
+    # Base score - Critical
     score = 1.0
     score_breakdown = ["Base: 1.0"]
     

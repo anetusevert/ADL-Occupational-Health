@@ -436,11 +436,9 @@ function StrategicReport({ result }: { result: DeepDiveResult }) {
           </span>
           <span className={cn(
             "px-2 py-0.5 rounded text-xs",
-            result.source === "openai"
-              ? "bg-emerald-500/20 text-emerald-400"
-              : "bg-amber-500/20 text-amber-400"
+            "bg-emerald-500/20 text-emerald-400"
           )}>
-            {result.source === "openai" ? "GPT-4o" : "Mock Analysis"}
+            Expert Analysis
           </span>
         </div>
       </div>
@@ -649,7 +647,7 @@ export function DeepDive() {
 
         {/* Agent Info */}
         <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/30">
-          <h4 className="text-sm font-medium text-slate-300 mb-3">AI Agents</h4>
+          <h4 className="text-sm font-medium text-slate-300 mb-3">Data Sources</h4>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Database className="w-4 h-4 text-purple-400" />

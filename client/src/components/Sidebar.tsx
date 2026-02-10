@@ -76,9 +76,9 @@ const toolSuiteItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { path: "/admin/database", label: "Data Explorer", icon: Database, adminOnly: true },
   { path: "/admin/database-fill", label: "Database Fill", icon: Zap, adminOnly: true },
-  { path: "/admin/orchestration", label: "AI Orchestration", icon: Workflow, adminOnly: true },
+  { path: "/admin/orchestration", label: "Orchestration", icon: Workflow, adminOnly: true },
   { path: "/admin/users", label: "User Management", icon: Users, adminOnly: true },
-  { path: "/admin/ai-config", label: "AI Configuration", icon: Cpu, adminOnly: true },
+  { path: "/admin/ai-config", label: "Configuration", icon: Cpu, adminOnly: true },
 ];
 
 export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBriefing }: SidebarProps) {

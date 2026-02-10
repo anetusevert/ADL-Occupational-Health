@@ -118,7 +118,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-adl-gradient">
-      {/* Global AI Generation Status Bar - Admin only */}
+      {/* Global Generation Status Bar - Admin only */}
       {isAdmin && <GenerationStatusBar />}
       
       {/* Navigation Loader Overlay */}
