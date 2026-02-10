@@ -950,7 +950,7 @@ export function OverallSummary() {
                       {reportData?.executive_summary[0]}
                     </p>
                     <div className="text-[10px] text-white/40">
-                      {reportData?.executive_summary.length || 0} sections • Scroll to read
+                      {reportData?.executive_summary?.length ?? 0} sections • Scroll to read
                     </div>
                   </div>
                 }
@@ -1002,7 +1002,7 @@ export function OverallSummary() {
                       </div>
                     ))}
                     <div className="text-[10px] text-white/40 pt-1">
-                      {reportData?.strategic_priorities.length || 0} priorities identified
+                      {reportData?.strategic_priorities?.length ?? 0} priorities identified
                     </div>
                   </div>
                 }

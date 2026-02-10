@@ -6158,7 +6158,7 @@ function UnifiedFrameworkVisual() {
               className="mb-1"
             >
               <span className="text-[9px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-1 rounded border border-slate-700/50">
-                {frameworkDataSources[spotlightIndex]?.shortName}: {frameworkDataSources[spotlightIndex]?.dataPoints.length} metrics
+                {frameworkDataSources[spotlightIndex]?.shortName}: {frameworkDataSources[spotlightIndex]?.dataPoints?.length ?? 0} metrics
               </span>
             </motion.div>
           )}

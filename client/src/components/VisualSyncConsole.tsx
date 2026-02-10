@@ -1112,16 +1112,16 @@ export function VisualSyncConsole({ isOpen, onClose }: VisualSyncConsoleProps) {
                 <div className="flex items-center gap-6">
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    <span className="text-green-400 font-medium">{status?.completed_countries.length || 0}</span> Success
+                    <span className="text-green-400 font-medium">{status?.completed_countries?.length ?? 0}</span> Success
                   </span>
                   <span className="flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-red-400" />
-                    <span className="text-red-400 font-medium">{status?.failed_countries.length || 0}</span> Failed
+                    <span className="text-red-400 font-medium">{status?.failed_countries?.length ?? 0}</span> Failed
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Loader2 className="w-4 h-4 text-blue-400" />
                     <span className="text-blue-400 font-medium">
-                      {countriesToProcess.length - (status?.completed_countries.length || 0) - (status?.failed_countries.length || 0)}
+                      {countriesToProcess.length - (status?.completed_countries?.length ?? 0) - (status?.failed_countries?.length ?? 0)}
                     </span> Pending
                   </span>
                 </div>

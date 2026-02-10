@@ -402,7 +402,7 @@ export function AICallLogs() {
                   </td>
                 </tr>
               ))}
-              {tracesData?.traces.length === 0 && (
+              {(tracesData?.traces?.length ?? 0) === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-white/40">
                     No traces found

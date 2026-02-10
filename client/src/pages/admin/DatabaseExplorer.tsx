@@ -113,7 +113,7 @@ export function DatabaseExplorer() {
   }) || [];
 
   const categories = [
-    { id: "all", label: "All Tables", count: data?.tables.length || 0 },
+    { id: "all", label: "All Tables", count: data?.tables?.length ?? 0 },
     { id: "core", label: "Core Framework", count: 5 },
     { id: "intelligence", label: "Intelligence", count: 2 },
     { id: "best_practices", label: "Best Practices", count: 2 },

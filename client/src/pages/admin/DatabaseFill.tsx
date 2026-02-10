@@ -442,16 +442,16 @@ export function DatabaseFill() {
                 )}
               </div>
 
-              {fillStatus.errors.length > 0 && (
+              {(fillStatus.errors?.length ?? 0) > 0 && (
                 <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-auto">
-                  <p className="text-xs text-red-400 font-medium mb-1">Errors ({fillStatus.errors.length})</p>
-                  {fillStatus.errors.slice(0, 5).map((e, i) => (
+                  <p className="text-xs text-red-400 font-medium mb-1">Errors ({fillStatus.errors?.length ?? 0})</p>
+                  {(fillStatus.errors ?? []).slice(0, 5).map((e, i) => (
                     <p key={i} className="text-xs text-red-300/60 truncate">
                       {e.country_iso}: {e.error}
                     </p>
                   ))}
-                  {fillStatus.errors.length > 5 && (
-                    <p className="text-xs text-red-400/40 mt-1">+ {fillStatus.errors.length - 5} more</p>
+                  {(fillStatus.errors?.length ?? 0) > 5 && (
+                    <p className="text-xs text-red-400/40 mt-1">+ {(fillStatus.errors?.length ?? 0) - 5} more</p>
                   )}
                 </div>
               )}
@@ -517,16 +517,16 @@ export function DatabaseFill() {
                 )}
               </div>
 
-              {insightStatus.errors.length > 0 && (
+              {(insightStatus.errors?.length ?? 0) > 0 && (
                 <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-auto">
-                  <p className="text-xs text-red-400 font-medium mb-1">Errors ({insightStatus.errors.length})</p>
-                  {insightStatus.errors.slice(0, 5).map((e, i) => (
+                  <p className="text-xs text-red-400 font-medium mb-1">Errors ({insightStatus.errors?.length ?? 0})</p>
+                  {(insightStatus.errors ?? []).slice(0, 5).map((e, i) => (
                     <p key={i} className="text-xs text-red-300/60 truncate">
                       {e.country_iso}: {e.error}
                     </p>
                   ))}
-                  {insightStatus.errors.length > 5 && (
-                    <p className="text-xs text-red-400/40 mt-1">+ {insightStatus.errors.length - 5} more</p>
+                  {(insightStatus.errors?.length ?? 0) > 5 && (
+                    <p className="text-xs text-red-400/40 mt-1">+ {(insightStatus.errors?.length ?? 0) - 5} more</p>
                   )}
                 </div>
               )}

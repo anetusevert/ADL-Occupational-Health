@@ -213,7 +213,7 @@ export function UserManagement() {
           </tbody>
         </table>
 
-        {data?.users.length === 0 && (
+        {(data?.users?.length ?? 0) === 0 && (
           <div className="py-12 text-center text-slate-400">
             No users found. Add your first user.
           </div>
