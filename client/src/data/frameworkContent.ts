@@ -756,7 +756,7 @@ export const statCardContent: Record<string, StatCardContent> = {
 
 export interface GuideSlide {
   id: string;
-  type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta' | 'workforce';
+  type: 'intro' | 'overview' | 'component' | 'integration' | 'challenge' | 'solution' | 'success' | 'opportunity' | 'cta' | 'workforce' | 'data-sources' | 'ksa-position';
   title: string;
   actionTitle: string; // McKinsey-style action title stating the key insight
   subtitle?: string;
@@ -770,93 +770,256 @@ export interface GuideSlide {
 }
 
 export const guideSlides: GuideSlide[] = [
-  // Slide 1: Global Occupational Health Intelligence
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 1: THE INTELLIGENCE
+  // Sets the stage. What is this platform and why does it exist.
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "intro",
     type: "intro",
-    title: "Global Occupational Health Intelligence",
-    actionTitle: "Synthesizing Evidence. Defining Strategy.",
-    subtitle: "Arthur D. Little's Comprehensive Framework",
-    content: "ADL's Global Occupational Health Intelligence Platform synthesizes worldwide evidence into actionable strategy, enabling nations and organizations to build world-class worker protection systems.",
+    title: "Occupational Health Intelligence",
+    actionTitle: "One Platform. 195 Nations. Zero Blind Spots.",
+    subtitle: "Arthur D. Little for GOSI",
+    content: "The world's most comprehensive occupational health intelligence platform. Built by Arthur D. Little, engineered for GOSI — transforming fragmented global data into the strategic clarity that protects workers and powers national policy.",
     highlights: [
-      "Foundational Data Architecture",
-      "Holistic Synthesis",
-      "Research Depth & Breadth",
-      "Strategic Translation"
+      "195 nations assessed on a unified framework",
+      "25+ metrics across 4 structural pillars",
+      "6 authoritative global data sources synthesized",
+      "From raw evidence to sovereign strategy"
     ],
     color: "cyan"
   },
-  // Slide 2: THE CRISIS - The Iceberg (Saudi Arabia's Silent Hemorrhage)
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 2: THE STAKES
+  // The cost of inaction. The iceberg that justifies everything.
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "global-challenge",
     type: "challenge",
-    title: "The Silent Hemorrhage",
-    actionTitle: "A $68 Billion Economic Leak",
-    subtitle: "The Hidden Cost of Inaction",
-    content: "Inaction is not just a human cost; it is a sovereign economic risk. Saudi Arabia's growth is taxed by preventable workplace incidents—most of which remain invisible beneath the surface.",
+    title: "The Stakes",
+    actionTitle: "The $68 Billion Hemorrhage Hiding in Plain Sight",
+    subtitle: "Why Inaction Is the Most Expensive Option",
+    content: "Every year, preventable occupational injuries and diseases drain $68 billion from the Saudi economy — most of it invisible. Direct claims account for barely a quarter. The rest bleeds silently through lost productivity, workforce attrition, and unreported chronic conditions. This is not a welfare issue. It is a sovereign economic risk.",
     highlights: [
-      "Direct claims costs (visible): ~SAR 56B ($15B)",
-      "Lost GDP and productivity (hidden): ~SAR 199B ($53B)",
-      "2.9 million global deaths annually from occupational causes",
-      "4% of GDP lost to occupational incidents worldwide (ILO)"
+      "Direct claims costs (visible tip): ~$15B annually",
+      "Lost productivity, attrition, chronic disease (hidden mass): ~$53B",
+      "2.9 million global deaths from occupational causes each year",
+      "ILO estimates 4% of world GDP lost to workplace incidents"
     ],
     stats: [
-      { value: "$68B", label: "Total Annual Loss", color: "red" },
-      { value: "4%", label: "GDP Impact", color: "amber" },
-      { value: "78%", label: "Hidden Costs", color: "cyan" }
+      { value: "$68B", label: "Annual Economic Loss", color: "red" },
+      { value: "4%", label: "GDP at Risk", color: "amber" },
+      { value: "78%", label: "Costs Are Hidden", color: "cyan" }
     ],
     color: "amber"
   },
-  // Slide 3: The Current Landscape - Saudi Arabia's Rapid Transformation
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 3: THE LANDSCAPE
+  // KSA's specific context. Why this matters NOW.
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "adl-solution",
     type: "solution",
-    title: "The Current Landscape",
-    actionTitle: "Rapid Transformation, Emerging Risks",
-    subtitle: "Saudi Arabia's Unique Challenge",
-    content: "Saudi Arabia's unprecedented development creates unique occupational health challenges. Giga-projects, economic diversification, and a transient workforce demand integrated health intelligence.",
+    title: "The Landscape",
+    actionTitle: "Rapid Transformation Creates Unprecedented Risk",
+    subtitle: "Saudi Arabia's Unique Inflection Point",
+    content: "Saudi Arabia is building the future at a pace the world has never seen. $1.5 trillion in giga-projects. An economy pivoting from oil dependency to diversified growth. A workforce of 13 million spanning five distinct segments. Yet occupational health systems remain fragmented across three disconnected agencies — creating gaps that grow wider as ambition accelerates.",
     highlights: [
-      "The Giga-Project Reality",
-      "Systemic Gaps & Fragmentation",
-      "Economic & Social Impact"
+      "Giga-projects demand world-class safety at unprecedented scale",
+      "Three disconnected systems create coverage blind spots",
+      "Workforce diversity requires tailored protection strategies",
+      "Vision 2030 demands a health system that matches the ambition"
     ],
     stats: [
       { value: "$1.5T", label: "Giga-Project Investment", color: "cyan" },
-      { value: "3", label: "Disconnected Systems", color: "amber" },
-      { value: "4%", label: "GDP at Risk", color: "red" }
+      { value: "13M+", label: "Workers to Protect", color: "emerald" },
+      { value: "3", label: "Disconnected Systems", color: "amber" }
     ],
     color: "blue"
   },
-  // Slide 4: THE SOLUTION - Unified Global Occupational Health Framework
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 4: THE FRAMEWORK
+  // The ADL solution architecture. The temple.
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "overview",
     type: "overview",
-    title: "The Solution",
-    actionTitle: "A Unified Global Occupational Health Framework",
-    subtitle: "From Fragmented Data to Integrated Intelligence",
-    content: "ADL's Integrated Intelligence Platform transforms siloed data streams into actionable insights, enabling predictive risk modeling and evidence-based policy at national scale.",
+    title: "The Framework",
+    actionTitle: "Four Pillars. One Integrated Architecture.",
+    subtitle: "From Fragmented Data to Strategic Intelligence",
+    content: "ADL's Occupational Health Framework is a structural assessment model — one governance layer overarching three operational pillars. Governance sets the rules. Prevention stops harm before it starts. Surveillance detects what prevention misses. Restoration ensures no worker is left behind. Together, they form the architecture of a world-class occupational health system.",
     highlights: [
-      "Clinical Data Integration",
-      "Exposure Data (IH)",
-      "Psychosocial Metrics",
-      "Predictive Risk Modeling",
-      "Evidence-Based Policy & Strategy"
+      "Governance: The regulatory backbone and enforcement engine",
+      "Prevention: Systematic hazard elimination before harm occurs",
+      "Surveillance: Continuous monitoring and early detection",
+      "Restoration: Rapid compensation, rehabilitation, and return to work"
     ],
     color: "cyan"
   },
-  // Slide 5: THE WORKFORCE - Labor Force Lens (Worker Personas)
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 5: THE GLOBAL LENS (DATA SOURCES)
+  // Where the data comes from. Credibility and rigor.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "data-sources",
+    type: "data-sources",
+    title: "The Global Lens",
+    actionTitle: "Six Authoritative Sources. 195 Nations. Complete Coverage.",
+    subtitle: "The Evidence Base Behind Every Score",
+    content: "Every assessment in this platform is grounded in data from the world's most respected institutions. No opinion. No estimation. Only evidence — harmonized, cross-validated, and continuously updated across 195 sovereign nations.",
+    highlights: [
+      "World Bank: Economic indicators and labor market data",
+      "ILO (ILOSTAT): Convention ratifications, inspector density, incident reporting",
+      "WHO: Occupational disease burden, health system capacity",
+      "OECD: Policy benchmarks, social protection, sickness absence",
+      "UNDP: Human development context, vulnerability indicators",
+      "Transparency International: Governance integrity and enforcement credibility"
+    ],
+    stats: [
+      { value: "6", label: "Global Institutions", color: "cyan" },
+      { value: "195", label: "Nations Covered", color: "emerald" },
+      { value: "25+", label: "OH Metrics", color: "purple" }
+    ],
+    color: "cyan"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 6: GOVERNANCE — The Control Tower
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "governance",
+    type: "component",
+    title: "The Control Tower",
+    actionTitle: "Strong Governance Cuts Fatalities by 47%",
+    subtitle: "The Regulatory Backbone of Worker Protection",
+    content: "Governance is where intent becomes enforcement. Countries with comprehensive legal frameworks, adequate inspector density, and active tripartite oversight don't just regulate better — they reduce workplace deaths by nearly half. This layer scores nations on their capacity to mandate, monitor, and enforce occupational health standards.",
+    highlights: [
+      "AI-targeted inspection replaces random audits",
+      "German DGUV model: prevention + insurance + rehabilitation unified",
+      "ILO benchmark: 1 inspector per 10,000 workers",
+      "Whistleblower protection as enforcement multiplier"
+    ],
+    componentId: "governance",
+    color: "purple",
+    icon: "Crown"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 7: PREVENTION — The Hierarchy
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "pillar-1",
+    type: "component",
+    title: "The Hierarchy",
+    actionTitle: "Every $1 in Prevention Returns $4–6 Downstream",
+    subtitle: "Systematic Hazard Elimination Before Harm Occurs",
+    content: "The Hierarchy of Controls is the operating system of prevention. Elimination at the top — the gold standard. PPE at the bottom — the last resort. Nations that invest in upstream control don't just save lives; they generate exponential economic returns through avoided claims, sustained productivity, and workforce retention.",
+    highlights: [
+      "Elimination > Substitution > Engineering > Administrative > PPE",
+      "Engineering controls are 10x more effective than PPE alone",
+      "Comprehensive OELs aligned with international standards",
+      "Risk assessment as a living process, not a compliance checkbox"
+    ],
+    componentId: "pillar-1",
+    color: "blue",
+    icon: "Shield"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 8: SURVEILLANCE — The Digital Twin
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "pillar-2",
+    type: "component",
+    title: "The Digital Twin",
+    actionTitle: "Early Detection Reduces Treatment Costs by 60%",
+    subtitle: "Rendering the Invisible, Visible",
+    content: "Surveillance is the early warning system that never sleeps. Biomarker monitoring, mandatory health examinations, and occupational disease registries catch what prevention misses — before chronic conditions become permanent disabilities. The difference between a 7-day diagnosis and a 7-year one is the difference between treatment and tragedy.",
+    highlights: [
+      "Mandatory biomarker programs detect diseases 3–5 years earlier",
+      "National disease registries enable pattern recognition at scale",
+      "Predictive analytics flag high-risk workplaces with 85% accuracy",
+      "Vulnerability mapping for migrant and informal sector workers"
+    ],
+    componentId: "pillar-2",
+    color: "emerald",
+    icon: "Eye"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 9: RESTORATION — The Fast Track
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "pillar-3",
+    type: "component",
+    title: "The Fast Track",
+    actionTitle: "No-Fault Systems Process Claims 70% Faster",
+    subtitle: "When Prevention Fails, Speed Saves Lives",
+    content: "Two paths. One traps injured workers in years of litigation. The other delivers first payment within 45 days and rehabilitation within weeks. No-fault systems don't just process claims faster — they achieve 80% return-to-work rates because they replace blame-assignment with recovery focus. The measure of a system is how it treats those who have been harmed in its service.",
+    highlights: [
+      "No-fault: 45 days to first payment vs 2+ years in litigation",
+      "80% return-to-work success in no-fault systems",
+      "Each week of absence after 4 weeks reduces RTW probability by 10%",
+      "Comprehensive rehabilitation: medical + vocational + psychological"
+    ],
+    componentId: "pillar-3",
+    color: "amber",
+    icon: "Heart"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 10: THE ENGINE — Integration
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "integration",
+    type: "integration",
+    title: "The Engine",
+    actionTitle: "Connected Systems Reduce Fatalities by 40%",
+    subtitle: "When Data Flows, Outcomes Improve",
+    content: "The framework is not four silos. It is one engine. An incident detected by Surveillance triggers a Prevention review. A pattern in claims data reshapes Governance priorities. A gap in Restoration informs workforce policy. Countries with integrated occupational health systems achieve 40% lower fatality rates than those operating in disconnected fragments.",
+    highlights: [
+      "Incident data feeds back into prevention protocols in real-time",
+      "Claims patterns identify systemic governance failures",
+      "Surveillance trends shape targeted training programs",
+      "Continuous improvement through closed-loop intelligence"
+    ],
+    color: "cyan"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 11: KSA POSITIONING
+  // Where KSA stands relative to the world.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "ksa-position",
+    type: "ksa-position",
+    title: "The KSA Position",
+    actionTitle: "Where the Kingdom Stands — and Where It Can Lead",
+    subtitle: "Benchmarked Against 195 Nations",
+    content: "This platform doesn't just assess countries — it positions them. KSA's occupational health performance is benchmarked against GCC neighbors, G20 peers, and global leaders across every pillar. The data reveals clear strengths to build on, critical gaps to close, and a precise roadmap for reaching the top quartile by 2030.",
+    highlights: [
+      "Pillar-by-pillar comparison against GCC, G20, and global averages",
+      "Percentile positioning across all 25+ metrics",
+      "Strength identification: where KSA already leads the region",
+      "Gap analysis: targeted interventions for maximum improvement"
+    ],
+    stats: [
+      { value: "4", label: "Pillars Assessed", color: "cyan" },
+      { value: "GCC", label: "Regional Benchmark", color: "emerald" },
+      { value: "G20", label: "Peer Benchmark", color: "purple" }
+    ],
+    color: "emerald"
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 12: THE WORKFORCE — Personas
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "workforce-lens",
     type: "workforce",
-    title: "The Labor Force Lens",
-    actionTitle: "Five Journeys. Five Realities. One System.",
-    subtitle: "Understanding Who We Protect",
-    content: "Saudi Arabia's workforce is not monolithic. Each segment—from Saudi professionals to migrant workers—faces distinct occupational health realities. Understanding these journeys is the first step to equitable protection.",
+    title: "The Workforce",
+    actionTitle: "Five Personas. Five Realities. One System to Unite Them.",
+    subtitle: "Understanding Exactly Who We Protect",
+    content: "Saudi Arabia's 13 million workers are not a monolith. A Saudi female professional in Riyadh faces different occupational health realities than a migrant construction worker in NEOM. This platform maps five distinct workforce personas — their hazard exposure, coverage status, and journey through the system — so policy can be as specific as the risk.",
     highlights: [
-      "13M+ workers across diverse segments",
-      "Coverage gaps create invisible risk pools",
-      "Journey-specific interventions needed",
-      "GOSI as the equalizer"
+      "Saudi male professional: Full GOSI coverage, office-based risks",
+      "Saudi female professional: Emerging workforce, specific health needs",
+      "Young Saudi worker: Entry-level, high-risk sector exposure",
+      "Migrant construction worker: Coverage gaps, extreme heat exposure",
+      "Domestic worker: Outside formal protection frameworks"
     ],
     stats: [
       { value: "5", label: "Distinct Personas", color: "cyan" },
@@ -865,129 +1028,45 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "purple"
   },
-  // Slide 6: PILLAR I - GOVERNANCE (The Control Tower)
-  {
-    id: "governance",
-    type: "component",
-    title: "The Control Tower",
-    actionTitle: "Governance: Reducing Fatalities by 47%",
-    subtitle: "Mission Control for Worker Safety",
-    content: "A stylized mission control interface monitoring every corner of the industrial ecosystem. AI-targeted inspection replaces random audits, transforming enforcement from reactive to predictive.",
-    highlights: [
-      "AI-powered risk targeting vs random inspection",
-      "German DGUV benchmark integration",
-      "Real-time compliance dashboards",
-      "Predictive violation modeling"
-    ],
-    componentId: "governance",
-    color: "purple",
-    icon: "Crown"
-  },
-  // Slide 6: PILLAR II - PREVENTION (The Hierarchy)
-  {
-    id: "pillar-1",
-    type: "component",
-    title: "The Hierarchy",
-    actionTitle: "Prevention: The $1 to $6 Multiplier",
-    subtitle: "The Inverted Pyramid of Control",
-    content: "The Hierarchy of Controls visualized as an inverted pyramid. Elimination sits at the apex, glowing brightest—the gold standard. PPE dims at the base—the last resort, not the first response.",
-    highlights: [
-      "Elimination → Substitution → Engineering",
-      "Administrative Controls → PPE (last resort)",
-      "Every $1 invested returns $4-6",
-      "ROI funnel visualization"
-    ],
-    componentId: "pillar-1",
-    color: "blue",
-    icon: "Shield"
-  },
-  // Slide 7: PILLAR III - SURVEILLANCE (The Digital Twin)
-  {
-    id: "pillar-2",
-    type: "component",
-    title: "The Digital Twin",
-    actionTitle: "Surveillance: Rendering the Invisible, Visible",
-    subtitle: "Holographic Worker Health Monitoring",
-    content: "A holographic human body scan reveals what the naked eye cannot see. Heatmap zones illuminate stress points on lungs and joints. The invisible threat becomes visible—and actionable.",
-    highlights: [
-      "Real-time biomarker monitoring",
-      "Diagnosis time: 30 days → <7 days",
-      "Predictive health deterioration alerts",
-      "Occupational disease early detection"
-    ],
-    componentId: "pillar-2",
-    color: "emerald",
-    icon: "Eye"
-  },
-  // Slide 8: PILLAR IV - RESTORATION (The Fast Track)
-  {
-    id: "pillar-3",
-    type: "component",
-    title: "The Fast Track",
-    actionTitle: "Restoration: Decoupling Liability from Care",
-    subtitle: "No-Fault vs Litigation Pathways",
-    content: "Two paths diverge: the tangled red knot of litigation versus the laser-straight green line of no-fault resolution. One traps workers in years of legal limbo; the other delivers care in days.",
-    highlights: [
-      "70% faster claims processing",
-      "Litigation: 2+ years average resolution",
-      "No-Fault: 45 days to first payment",
-      "80% return-to-work success rate"
-    ],
-    componentId: "pillar-3",
-    color: "amber",
-    icon: "Heart"
-  },
-  // Slide 9: THE ENGINE - Integration & Data Flow
-  {
-    id: "integration",
-    type: "integration",
-    title: "The Engine",
-    actionTitle: "The Power of Connected Systems",
-    subtitle: "Data Particles in Motion",
-    content: "The 3D Cube now spins. Particles of light—representing live data—stream between quadrants in real-time. Incident triggers Surveillance, Surveillance informs Prevention, Prevention shapes Governance.",
-    highlights: [
-      "Live data feedback loops",
-      "Cross-component intelligence sharing",
-      "40% lower fatality rates in integrated systems",
-      "Continuous improvement engine"
-    ],
-    color: "cyan"
-  },
-  // Slide 10: GLOBAL BENCHMARKS (The World Map)
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 13: THE LEADERS — Best Practices + Leaderboard
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "success-stories",
     type: "success",
-    title: "The World Map",
-    actionTitle: "Validated by Global Leaders",
-    subtitle: "Shields of Excellence",
-    content: "A dark vector world map illuminates with pulsing shields over nations that have mastered occupational health. Germany's blue shield. Singapore's green shield. New Zealand's orange shield. Each a beacon of proven success.",
+    title: "The Leaders",
+    actionTitle: "What the Best in the World Do Differently",
+    subtitle: "Global Benchmarks and Proven Approaches",
+    content: "The platform ranks 195 nations and identifies what separates world leaders from the rest. Germany's dual insurance system. Singapore's zero-fatality ambition. New Zealand's universal no-fault coverage. Sweden's Vision Zero philosophy. These are not aspirational targets — they are operational blueprints, studied and scored within this framework.",
     highlights: [
-      "Germany: 75% fatality reduction (Blue Shield)",
-      "Singapore: Zero fatality goal achieved (Green Shield)",
-      "New Zealand: Universal no-fault coverage (Orange Shield)",
-      "Sweden: Vision Zero pioneer"
+      "Germany: Berufsgenossenschaften — 75% fatality reduction over 30 years",
+      "Singapore: Escalating penalties + public registry drove zero-fatality sectors",
+      "New Zealand: ACC eliminates litigation entirely — universal no-fault since 1974",
+      "Sweden: Vision Zero — the radical premise that no death is acceptable"
     ],
     countries: [
       { code: "DEU", name: "Germany", achievement: "75% fatality reduction" },
-      { code: "SGP", name: "Singapore", achievement: "Zero fatality goal" },
-      { code: "NZL", name: "New Zealand", achievement: "Universal no-fault" },
+      { code: "SGP", name: "Singapore", achievement: "Zero fatality sectors" },
+      { code: "NZL", name: "New Zealand", achievement: "Universal no-fault since 1974" },
       { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" }
     ],
     color: "emerald"
   },
-  // Slide 11: THE ROADMAP (The Ascent)
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 14: THE ASCENT — Roadmap
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "gosi-opportunity",
     type: "opportunity",
     title: "The Ascent",
-    actionTitle: "The 3-Year Strategic Transformation",
-    subtitle: "Climbing to Vision 2030",
-    content: "A futuristic staircase rises toward a glowing Vision 2030 star. Three distinct plateaus mark the journey: Foundation, Optimization, Global Excellence. GOSI stands at the base, ready to climb.",
+    actionTitle: "A Three-Year Path from Baseline to Global Excellence",
+    subtitle: "The Strategic Transformation Roadmap",
+    content: "This is not a report that ends on a shelf. It is a transformation engine. Year one establishes the national baseline and identifies critical gaps. Year two integrates disconnected systems and captures quick wins. Year three positions KSA as a regional leader in occupational health — aligned with Vision 2030 and benchmarked against the world's best.",
     highlights: [
-      "Year 1: Foundation — Baseline assessment & gap analysis",
-      "Year 2: Optimization — System integration & quick wins",
-      "Year 3: Global Excellence — Regional leadership position",
-      "Vision 2030 alignment at every step"
+      "Year 1 — Foundation: National baseline assessment and gap analysis",
+      "Year 2 — Optimization: System integration, policy reform, quick wins",
+      "Year 3 — Excellence: Regional leadership and global top-quartile positioning",
+      "Continuous measurement against 195-nation benchmark"
     ],
     stats: [
       { value: "Y1", label: "Foundation", color: "blue" },
@@ -996,19 +1075,21 @@ export const guideSlides: GuideSlide[] = [
     ],
     color: "cyan"
   },
-  // Slide 12: THE HANDSHAKE - Call to Action
+  // ──────────────────────────────────────────────────────────────────────────
+  // SLIDE 15: THE PARTNERSHIP — Call to Action
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "conclusion",
     type: "cta",
-    title: "Defining the Future",
-    actionTitle: "Next Step: The National Baseline Assessment",
-    subtitle: "ADL + GOSI: A Strategic Partnership",
-    content: "Two logos. One mission. A thin, glowing data line connects ADL and GOSI—symbolizing the partnership that will define the future of work in Saudi Arabia and beyond.",
+    title: "The Partnership",
+    actionTitle: "Arthur D. Little + GOSI: Defining the Future of Work",
+    subtitle: "The Next Step Begins Now",
+    content: "Two institutions. One shared conviction: that the future of work in Saudi Arabia will be defined by how well it protects those who build it. This platform is the beginning — a living intelligence system that grows with the Kingdom's ambition. The next step is the national baseline assessment.",
     highlights: [
-      "Comprehensive baseline assessment",
-      "Gap analysis against global leaders",
-      "Custom transformation roadmap",
-      "Ongoing strategic partnership"
+      "Comprehensive national baseline assessment across all 4 pillars",
+      "Gap analysis benchmarked against GCC, G20, and global leaders",
+      "Custom transformation roadmap aligned with Vision 2030",
+      "Ongoing strategic partnership with continuous intelligence updates"
     ],
     color: "cyan"
   }

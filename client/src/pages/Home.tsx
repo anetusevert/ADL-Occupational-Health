@@ -253,10 +253,10 @@ export function Home() {
       <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight">
-            Global Intelligence Overview
+            Global Intelligence
           </h1>
-          <p className="text-white/50 text-sm mt-0.5">
-            Sovereign occupational health status across nations
+          <p className="text-white/45 text-sm mt-0.5">
+            Occupational health performance across 195 nations — scored, ranked, and mapped in real-time.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ export function Home() {
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
             <Globe2 className="w-3.5 h-3.5 text-white/60" />
             <span className="text-xs text-white/60 font-medium">
-              {totalCountries} Countries
+              {totalCountries} Nations Assessed
             </span>
           </div>
         </div>
@@ -675,9 +675,9 @@ function StatsModal({
   const navigate = useNavigate();
   
   const titles: Record<NonNullable<ModalType>, string> = {
-    countries: "Countries Tracked",
-    maturity: "ADL OHI Score Distribution",
-    data: "Data Coverage Analysis",
+    countries: "Nations Assessed",
+    maturity: "OHI Score Distribution",
+    data: "Data Coverage & Confidence",
   };
 
   return (

@@ -3296,6 +3296,38 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         </div>
       );
 
+    // SLIDE 5: THE GLOBAL LENS - Data Sources and Evidence Base
+    case "data-sources":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Database className="w-5 h-5 text-cyan-400" />}
+            color="cyan"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
+            <DataSourcesVisual stats={slide.stats} highlights={slide.highlights} />
+          </div>
+        </div>
+      );
+
+    // SLIDE 11: KSA POSITIONING - Benchmarks and Gap Analysis
+    case "ksa-position":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Target className="w-5 h-5 text-emerald-400" />}
+            color="emerald"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
+            <KSAPositionVisual stats={slide.stats} highlights={slide.highlights} />
+          </div>
+        </div>
+      );
+
     default:
       return (
         <FrameworkLayout
@@ -3363,6 +3395,201 @@ function FrameworkNavigator({ activeComponent }: FrameworkNavigatorProps) {
         );
       })}
     </motion.div>
+  );
+}
+
+// ============================================================================
+// DATA SOURCES VISUAL - Global evidence base visualization
+// ============================================================================
+
+const dataSources = [
+  { name: "World Bank", abbr: "WB", color: "cyan", desc: "Economic & labor market indicators" },
+  { name: "ILO", abbr: "ILO", color: "blue", desc: "Conventions, inspections, incidents" },
+  { name: "WHO", abbr: "WHO", color: "emerald", desc: "Disease burden & health capacity" },
+  { name: "OECD", abbr: "OECD", color: "purple", desc: "Policy benchmarks & social protection" },
+  { name: "UNDP", abbr: "UNDP", color: "teal", desc: "Development & vulnerability context" },
+  { name: "Transparency Intl", abbr: "TI", color: "amber", desc: "Governance integrity & enforcement" },
+];
+
+function DataSourcesVisual({ stats }: { stats?: { value: string; label: string; color?: string }[]; highlights?: string[] }) {
+  return (
+    <div className="w-full max-w-3xl mx-auto">
+      {/* Central convergence point */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="text-center mb-8"
+      >
+        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-emerald-500/10 border border-white/10">
+          <Database className="w-5 h-5 text-cyan-400" />
+          <span className="text-sm font-semibold text-white">ADL Intelligence Engine</span>
+        </div>
+      </motion.div>
+
+      {/* Data source grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        {dataSources.map((source, i) => {
+          const c = getColor(source.color);
+          return (
+            <motion.div
+              key={source.abbr}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className={cn("relative p-4 rounded-xl border backdrop-blur-sm", c.bg, c.border)}
+            >
+              {/* Connection line to center */}
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "8px" }}
+                transition={{ delay: 0.8 + i * 0.1, duration: 0.3 }}
+                className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-[1px]", c.bgSolid, "opacity-30")}
+              />
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold", c.bg, c.text)}>
+                  {source.abbr}
+                </div>
+                <span className="text-xs font-semibold text-white">{source.name}</span>
+              </div>
+              <p className="text-[10px] text-white/40 leading-relaxed">{source.desc}</p>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Stats row */}
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="flex justify-center gap-6"
+        >
+          {stats.map((stat, i) => {
+            const c = getColor(stat.color);
+            return (
+              <div key={i} className="text-center">
+                <p className={cn("text-2xl font-bold", c.text)}>{stat.value}</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider">{stat.label}</p>
+              </div>
+            );
+          })}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// KSA POSITION VISUAL - Benchmarking and gap analysis
+// ============================================================================
+
+const benchmarkPillars = [
+  { id: "governance", label: "Governance", icon: Crown, color: "purple" as const },
+  { id: "prevention", label: "Prevention", icon: Shield, color: "blue" as const },
+  { id: "surveillance", label: "Surveillance", icon: Eye, color: "emerald" as const },
+  { id: "restoration", label: "Restoration", icon: Heart, color: "amber" as const },
+];
+
+const benchmarkGroups = [
+  { label: "KSA", color: "emerald" as const },
+  { label: "GCC Avg", color: "cyan" as const },
+  { label: "G20 Avg", color: "purple" as const },
+  { label: "Global Leader", color: "amber" as const },
+];
+
+function KSAPositionVisual(_props: { stats?: { value: string; label: string; color?: string }[]; highlights?: string[] }) {
+  return (
+    <div className="w-full max-w-3xl mx-auto">
+      {/* KSA header badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.6 }}
+        className="flex items-center justify-center gap-3 mb-8"
+      >
+        <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 to-cyan-500/15 border border-emerald-500/30">
+          <div className="flex items-center gap-3">
+            <Target className="w-5 h-5 text-emerald-400" />
+            <div>
+              <span className="text-sm font-semibold text-white">Kingdom of Saudi Arabia</span>
+              <span className="block text-[10px] text-emerald-400/80">Benchmarked across 195 nations</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Pillar comparison grid */}
+      <div className="space-y-4 mb-8">
+        {benchmarkPillars.map((pillar, pi) => {
+          const PillarIcon = pillar.icon;
+          const c = getColor(pillar.color);
+          return (
+            <motion.div
+              key={pillar.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 + pi * 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center gap-4"
+            >
+              {/* Pillar label */}
+              <div className="w-32 flex-shrink-0 flex items-center gap-2">
+                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", c.bg)}>
+                  <PillarIcon className={cn("w-3.5 h-3.5", c.text)} />
+                </div>
+                <span className="text-xs font-medium text-white/80">{pillar.label}</span>
+              </div>
+              
+              {/* Benchmark bars */}
+              <div className="flex-1 flex items-center gap-2">
+                {benchmarkGroups.map((group, gi) => {
+                  const gc = getColor(group.color);
+                  // Simulated widths for visual illustration
+                  const widths = [
+                    [55, 48, 62, 85], // governance
+                    [45, 52, 58, 90], // prevention
+                    [40, 45, 55, 88], // surveillance
+                    [60, 55, 65, 82], // restoration
+                  ];
+                  const w = widths[pi][gi];
+                  return (
+                    <div key={group.label} className="flex-1">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${w}%` }}
+                        transition={{ delay: 0.8 + pi * 0.15 + gi * 0.08, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        className={cn("h-5 rounded-md", gc.bg, "border", gc.border, "relative")}
+                      >
+                        <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-semibold", gc.text)}>
+                          {w}
+                        </span>
+                      </motion.div>
+                      {pi === 0 && (
+                        <p className={cn("text-[8px] mt-1 text-center", gc.text, "opacity-60")}>{group.label}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Key insight */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        className="text-center px-6 py-4 rounded-xl bg-white/5 border border-white/10"
+      >
+        <p className="text-xs text-white/60 leading-relaxed">
+          <span className="text-emerald-400 font-semibold">Strength:</span> Restoration systems outpace GCC and G20 averages.{" "}
+          <span className="text-amber-400 font-semibold">Gap:</span> Prevention and surveillance require targeted investment to reach global leader benchmarks.
+        </p>
+      </motion.div>
+    </div>
   );
 }
 
@@ -7818,12 +8045,14 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
     "global-challenge": 10,
     "adl-solution": 10,
     "overview": 12,
+    "data-sources": 10,
     "workforce-lens": 12,
     "governance": 12,
     "pillar-1": 10,
     "pillar-2": 10,
     "pillar-3": 10,
     "integration": 12,
+    "ksa-position": 12,
     "success-stories": 10,
     "gosi-opportunity": 12,
     "conclusion": 15,
@@ -8095,10 +8324,14 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={slide.id}
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.02 }}
-                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 1.01, y: -6 }}
+                    transition={{ 
+                      duration: 0.6, 
+                      ease: [0.16, 1, 0.3, 1],
+                      opacity: { duration: 0.4 }
+                    }}
                     className="absolute inset-0"
                   >
                     {renderConsultingSlide(slide, {
@@ -8207,7 +8440,7 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
             {!showLoader && (
               <div className="flex-shrink-0 px-4 sm:px-8 py-2 bg-black/80 flex items-center justify-between text-[10px] sm:text-xs text-white/30">
                 <button onClick={onClose} className="hover:text-white/60 transition-colors">
-                  Skip Briefing
+                  Skip to Platform
                 </button>
                 <div className="hidden sm:flex items-center gap-4">
                   <span>← → Navigate</span>

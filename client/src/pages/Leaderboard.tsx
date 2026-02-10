@@ -432,10 +432,10 @@ export function Leaderboard() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-white tracking-tight">
-              Global Rankings
+              Global Leaderboard
             </h1>
             <p className="text-white/40 text-sm">
-              Occupational Health Maturity Leaderboard
+              195 nations ranked by OHI score — who leads, who lags, and where KSA stands.
             </p>
           </div>
         </div>
@@ -586,7 +586,9 @@ export function Leaderboard() {
                       onClick={() => navigate(`/country/${country.iso_code}`)}
                       className={cn(
                         "cursor-pointer transition-colors",
-                        getRowStyle(rank)
+                        country.iso_code === "SAU" 
+                          ? "bg-emerald-500/15 hover:bg-emerald-500/20 ring-1 ring-emerald-500/30" 
+                          : getRowStyle(rank)
                       )}
                     >
                       {/* Rank */}

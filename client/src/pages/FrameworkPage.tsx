@@ -80,7 +80,12 @@ export function FrameworkPage() {
       />
 
       {/* Page Header - Fixed */}
-      <div className="flex-shrink-0 mb-4">
+      <motion.div 
+        className="flex-shrink-0 mb-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
@@ -92,10 +97,10 @@ export function FrameworkPage() {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-white tracking-tight">
-                ADL Occupational Health Framework
+                The Assessment Architecture
               </h1>
               <p className="text-white/40 text-sm">
-                Version 2.0 — Comprehensive Assessment Architecture
+                One governance layer. Three operational pillars. 25 metrics that define occupational health maturity.
               </p>
             </div>
           </div>
@@ -103,19 +108,19 @@ export function FrameworkPage() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
               <Info className="w-3.5 h-3.5 text-white/40" />
-              <span className="text-xs text-white/40">Click blocks to explore</span>
+              <span className="text-xs text-white/40">Select any element to explore</span>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content - Flexible */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Temple Visualization */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className={cn(
             "flex-1 min-h-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden",
             activeBlock ? "lg:flex-[3]" : "lg:flex-1"

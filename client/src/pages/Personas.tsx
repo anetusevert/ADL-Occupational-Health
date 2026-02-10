@@ -158,12 +158,12 @@ export function Personas() {
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-white flex flex-wrap items-center gap-2">
-                  Personas
+                  The Workforce
                   <span className="hidden sm:inline text-xs font-normal text-white/40">|</span>
-                  <span className="hidden sm:inline text-sm font-medium text-white/60">Saudi Arabia Labor Force Lens</span>
+                  <span className="hidden sm:inline text-sm font-medium text-white/60">Five Personas. Five Realities.</span>
                 </h1>
                 <p className="text-[10px] sm:text-xs text-white/40 mt-0.5">
-                  Understanding occupational health through the eyes of different workers
+                  Each segment of Saudi Arabia's 13M workforce faces distinct occupational health risks and coverage realities.
                 </p>
               </div>
             </div>
@@ -218,8 +218,8 @@ export function Personas() {
             <CoverageIndicator status="none" />
           </div>
           <p className="text-[10px] text-white/30 text-center max-w-md mt-2">
-            Click on any persona card to explore their occupational health journey, 
-            coverage details, and researched insights with source citations.
+            Select any persona to explore their hazard profile, coverage status, 
+            and journey through the occupational health system — with sourced evidence.
           </p>
         </motion.div>
       </main>

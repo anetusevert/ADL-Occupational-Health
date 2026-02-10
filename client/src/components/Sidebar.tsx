@@ -116,7 +116,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, onOpenExecutiveBrie
           <div className="flex flex-col items-center text-center pt-1">
             <div className={cn(
               "flex items-center justify-center",
-              isMobile || !isCollapsed ? "h-10 w-20" : "h-8 w-14"
+              isMobile || !isCollapsed ? "h-11 w-32" : "h-8 w-16"
             )}>
               <img 
                 src="/gosi-logo.png" 

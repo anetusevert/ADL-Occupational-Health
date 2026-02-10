@@ -177,7 +177,7 @@ export function FocusKSA() {
                 <h1 className="text-lg font-bold text-white flex items-center gap-2">
                   Focus: KSA
                   <span className="text-xs font-normal text-white/40">|</span>
-                  <span className="text-sm font-medium text-white/60">Strategic Framework Analysis</span>
+                  <span className="text-sm font-medium text-white/60">Benchmarked Against 195 Nations</span>
                 </h1>
               </div>
             </div>
@@ -194,7 +194,7 @@ export function FocusKSA() {
               )}
               <div>
                 <p className="text-sm font-semibold text-white">Kingdom of Saudi Arabia</p>
-                <p className="text-[10px] text-emerald-400/80">GOSI Occupational Health Initiative</p>
+                <p className="text-[10px] text-emerald-400/80">Pillar-by-pillar positioning vs GCC, G20 & global leaders</p>
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@ export function FocusKSA() {
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-white/10">
               <Globe2 className="w-4 h-4 text-white/50" />
               <span className="text-xs text-white/50">
-                vs {globalStats?.totalCountries || 0} countries
+                vs {globalStats?.totalCountries || 0} nations
               </span>
             </div>
           </div>

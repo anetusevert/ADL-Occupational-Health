@@ -281,11 +281,11 @@ export default function BestPractices() {
             </motion.div>
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                Best Practices Compendium
+                Best Practices
                 <Sparkles className="w-5 h-5 text-amber-400" />
               </h1>
               <p className="text-slate-400 text-sm">
-                Global standards and leading country approaches
+                What the world's leading nations do differently — and how KSA can apply those lessons.
               </p>
             </div>
           </div>
@@ -313,8 +313,8 @@ export default function BestPractices() {
                     Framework Pillars
                   </h2>
                   <p className="text-slate-400 max-w-2xl mx-auto">
-                    Explore best practices across the four pillars of occupational health.
-                    Each pillar contains strategic questions with evidence-based guidance.
+                    For each pillar of the framework, global leaders have been identified and their approaches documented.
+                    Select a pillar to explore evidence-based practices that drive measurable outcomes.
                   </p>
                 </motion.div>
               </div>
