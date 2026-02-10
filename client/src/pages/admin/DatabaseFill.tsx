@@ -281,6 +281,7 @@ export function DatabaseFill() {
   const [etlRunning, setEtlRunning] = useState(false);
 
   // Phase 2 - AI Fill
+  const [forceRegenFill, setForceRegenFill] = useState(false);
   const [forceRegenInsights, setForceRegenInsights] = useState(false);
   const [fillStatus, setFillStatus] = useState<FillStatus | null>(null);
   const [fillRunning, setFillRunning] = useState(false);
@@ -440,9 +441,12 @@ export function DatabaseFill() {
   // ── Start Phase 2: AI Fill ──
   const startFill = async () => {
     setError(null);
-    console.log('[DBFill] Starting Phase 2: AI database fill...');
+    console.log('[DBFill] Starting Phase 2: AI database fill (force_regenerate:', forceRegenFill, ')...');
     try {
-      const res = await apiClient.post('/api/v1/etl/fill-database', { delay_between: 2.0 });
+      const res = await apiClient.post('/api/v1/etl/fill-database', {
+        delay_between: 2.0,
+        force_regenerate: forceRegenFill,
+      });
       console.log('[DBFill] Phase 2 started:', res.data);
       setFillRunning(true);
     } catch (err: any) {
@@ -642,6 +646,20 @@ export function DatabaseFill() {
           isComplete={fillStatus?.status === 'completed'}
           onStart={startFill}
         >
+          {/* Controls */}
+          <div className="flex items-center gap-4 mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={forceRegenFill}
+                onChange={(e) => setForceRegenFill(e.target.checked)}
+                disabled={fillRunning}
+                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500/30"
+              />
+              <span className="text-xs text-white/50">Force regenerate (overwrite existing values)</span>
+            </label>
+          </div>
+
           {fillStatus && fillStatus.status !== 'idle' && (
             <div className="space-y-3">
               <ProgressBar
@@ -852,15 +870,15 @@ export function DatabaseFill() {
 
               {/* Error list */}
               {(insightStatus.errors?.length ?? 0) > 0 && (
-                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-auto">
+                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 max-h-48 overflow-auto">
                   <p className="text-xs text-red-400 font-medium mb-1">Errors ({insightStatus.errors?.length ?? 0})</p>
-                  {(insightStatus.errors ?? []).slice(0, 5).map((e, i) => (
-                    <p key={i} className="text-xs text-red-300/60 truncate">
-                      {e.country_iso}: {e.error}
+                  {(insightStatus.errors ?? []).slice(0, 10).map((e, i) => (
+                    <p key={i} className="text-xs text-red-300/60 break-words mb-0.5">
+                      <span className="text-red-400 font-mono">{e.country_iso}</span>: {e.error}
                     </p>
                   ))}
-                  {(insightStatus.errors?.length ?? 0) > 5 && (
-                    <p className="text-xs text-red-400/40 mt-1">+ {(insightStatus.errors?.length ?? 0) - 5} more</p>
+                  {(insightStatus.errors?.length ?? 0) > 10 && (
+                    <p className="text-xs text-red-400/40 mt-1">+ {(insightStatus.errors?.length ?? 0) - 10} more</p>
                   )}
                 </div>
               )}

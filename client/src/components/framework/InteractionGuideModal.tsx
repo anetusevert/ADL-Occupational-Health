@@ -6139,84 +6139,114 @@ function CurrentLandscapeVisual() {
 const icebergSources = {
   totalCost: {
     id: "total-cost",
-    title: "Total Economic Cost: $68 Billion",
-    value: 68,
-    calculation: "Based on ILO methodology: 4% of GDP lost to occupational injuries and diseases",
+    title: "Total Economic Cost: $49 Billion",
+    value: 49,
+    calculation: "ILO methodology applied to Saudi Arabia's actual GDP",
+    calculationSteps: [
+      { label: "Saudi GDP (2024)", value: "$1.24T", source: "World Bank" },
+      { label: "ILO Loss Rate", value: "× 3.94%", source: "ILO/ICOH/EU-OSHA" },
+      { label: "Total Cost", value: "= $49B", source: "Calculated", isResult: true }
+    ],
     methodology: [
-      "Saudi Arabia GDP 2024: ~$1.1 trillion (World Bank)",
-      "ILO estimates 4% of global GDP is lost to occupational accidents and diseases",
-      "Applied to Saudi Arabia: $1.1T × 4% = ~$44B (conservative)",
-      "Adjusted for Saudi-specific factors: higher construction/oil sector risk = $68B estimate"
+      "Saudi Arabia GDP 2024 = $1.24 trillion (World Bank)",
+      "ILO estimates 3.94% of GDP is lost to occupational injuries and diseases globally",
+      "$1.24T × 3.94% = $48.9 billion, rounded to ~$49B",
+      "Includes direct costs (claims, medical, legal) and indirect costs (productivity, disability, unreported illness)"
     ],
     sources: [
-      { name: "ILO Global Estimates 2024", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/lang--en/index.htm" },
-      { name: "World Bank - Saudi GDP", url: "https://data.worldbank.org/country/saudi-arabia" },
-      { name: "GOSI Annual Report 2023", url: "https://www.gosi.gov.sa" }
+      { name: "ILO Global Strategy on OSH 2024–30", org: "International Labour Organization", url: "https://www.ilo.org/resource/gb/349/global-strategy-occupational-safety-and-health-2024-30-and-plan-action-its" },
+      { name: "Saudi Arabia GDP (Current US$)", org: "World Bank Open Data", url: "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=SA" },
+      { name: "GOSI Occupational Hazards Branch", org: "General Organization for Social Insurance", url: "https://www.gosi.gov.sa/GOSIOnline/Occupational_Hazards_Branch&locale=en_US" }
     ]
   },
   visibleCosts: {
     id: "visible-costs",
-    title: "Direct Claims Costs: $15 Billion (22%)",
-    value: 15,
-    calculation: "Direct costs include workers' compensation claims, medical expenses, and legal costs",
+    title: "Direct Claims Costs: $11 Billion (22%)",
+    value: 11,
+    calculation: "22% of total cost — the portion captured in GOSI claims and medical records",
+    calculationSteps: [
+      { label: "Total OH Cost", value: "$49B", source: "Calculated above" },
+      { label: "Direct Cost Ratio", value: "× 22%", source: "ILO methodology" },
+      { label: "Direct Costs", value: "= $11B", source: "Calculated", isResult: true }
+    ],
     methodology: [
-      "GOSI reported occupational injury claims and disbursements",
-      "Direct medical costs for workplace injuries",
-      "Administrative and legal processing costs",
-      "Represents ~22% of total occupational health costs (ILO ratio)"
+      "Total occupational health cost for Saudi Arabia = $49B",
+      "ILO estimates direct costs represent ~22% of total occupational health costs",
+      "$49B × 22% = $10.8B, rounded to ~$11B",
+      "Includes: GOSI compensation claims, direct medical treatment, administrative and legal processing",
+      "GOSI Occupational Hazards Branch contribution rate: 2% of wages, paid entirely by employer"
     ],
     sources: [
-      { name: "GOSI Statistical Report", url: "https://www.gosi.gov.sa/GOSIOnline/Statistics" },
-      { name: "ILO Cost Structure Analysis", url: "https://www.ilo.org/safework/info/publications/WCMS_466478/lang--en/index.htm" }
+      { name: "GOSI Occupational Hazards Branch", org: "General Organization for Social Insurance", url: "https://www.gosi.gov.sa/GOSIOnline/Occupational_Hazards_Branch&locale=en_US" },
+      { name: "Estimating Economic Costs of OI&I", org: "International Labour Organization", url: "https://www.ilo.org/publications/estimating-economic-costs-occupational-injuries-and-illnesses-developing" }
     ]
   },
   hiddenCosts: {
     id: "hidden-costs",
-    title: "Hidden Costs: $53 Billion (78%)",
-    value: 53,
-    calculation: "Indirect costs including lost productivity, replacement costs, and unreported incidents",
+    title: "Hidden Costs: $38 Billion (78%)",
+    value: 38,
+    calculation: "78% of total cost — the invisible economic drain beneath the surface",
+    calculationSteps: [
+      { label: "Total OH Cost", value: "$49B", source: "Calculated above" },
+      { label: "Indirect Cost Ratio", value: "× 78%", source: "ILO: indirect 4–10× direct" },
+      { label: "Hidden Costs", value: "= $38B", source: "Calculated", isResult: true }
+    ],
     methodology: [
-      "Lost productivity from absences and presenteeism",
+      "Total occupational health cost for Saudi Arabia = $49B",
+      "ILO estimates indirect costs are 4–10× direct costs, representing ~78% of total",
+      "$49B × 78% = $38.2B, rounded to ~$38B",
+      "Includes: Lost productivity from absences and presenteeism",
       "Training and replacement costs for injured workers",
-      "Unreported occupational diseases (estimated 50-90% under-reporting)",
-      "Long-term disability and reduced workforce capacity",
-      "ILO estimates indirect costs are 2-10x direct costs"
+      "Unreported occupational diseases (estimated 50–90% under-reporting in developing economies)",
+      "Long-term disability and reduced workforce capacity"
     ],
     sources: [
-      { name: "ILO Hidden Costs Study", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/lang--en/index.htm" },
-      { name: "EU-OSHA Economic Impact", url: "https://osha.europa.eu/en/publications/estimating-cost-work-related-accidents-and-ill-health" }
+      { name: "Estimating Economic Costs of OI&I", org: "International Labour Organization", url: "https://www.ilo.org/publications/estimating-economic-costs-occupational-injuries-and-illnesses-developing" },
+      { name: "Estimating the Cost of Work-Related Accidents and Ill-Health", org: "EU-OSHA", url: "https://osha.europa.eu/en/publications/estimating-cost-work-related-accidents-and-ill-health" }
     ]
   },
   gdpImpact: {
     id: "gdp-impact",
-    title: "GDP Impact: 4%",
-    value: 4,
-    calculation: "Global benchmark applied to Saudi Arabia based on ILO research",
+    title: "GDP Impact: 3.94%",
+    value: 3.94,
+    calculation: "Share of Saudi GDP lost annually to occupational injuries and diseases",
+    calculationSteps: [
+      { label: "Global Average", value: "3.94%", source: "ILO/ICOH/EU-OSHA 2017" },
+      { label: "Saudi GDP", value: "$1.24T", source: "World Bank 2024" },
+      { label: "Annual Loss", value: "= $49B", source: "Calculated", isResult: true }
+    ],
     methodology: [
-      "ILO calculates global average of 4% GDP lost annually",
-      "Includes both direct and indirect costs",
-      "Saudi Arabia's high-risk sectors (construction, oil) may exceed average",
-      "Conservative estimate aligned with global standards"
+      "3.94% figure from ILO/ICOH/EU-OSHA joint study (2017, reaffirmed in ILO Global Strategy 2024–30)",
+      "Collaborative methodology by ministries from Singapore and Finland, ICOH, EU-OSHA, and ILO",
+      "Covers: lost working time, workers' compensation, interrupted production, and medical expenses",
+      "Saudi Arabia's high-risk sectors (construction accounts for 42–48% of all injuries) may exceed this global average"
     ],
     sources: [
-      { name: "ILO World Statistics 2024", url: "https://www.ilo.org/moscow/areas-of-work/occupational-safety-and-health/WCMS_249278/lang--en/index.htm" },
-      { name: "WHO/ILO Joint Estimates", url: "https://www.who.int/publications/i/item/9789240034945" }
+      { name: "ILO Global Strategy on OSH 2024–30", org: "International Labour Organization", url: "https://www.ilo.org/resource/gb/349/global-strategy-occupational-safety-and-health-2024-30-and-plan-action-its" },
+      { name: "WHO/ILO Joint Estimates on Work-Related Burden", org: "World Health Organization", url: "https://www.who.int/publications/i/item/9789240034945" }
     ]
   },
-  globalDeaths: {
-    id: "global-deaths",
-    title: "Global Deaths: 2.9 Million/Year",
-    value: 2.9,
-    calculation: "WHO/ILO joint estimate of annual work-related fatalities worldwide",
+  saudiInjuries: {
+    id: "saudi-injuries",
+    title: "Saudi Workplace Injuries: ~42,200/Year",
+    value: 42.2,
+    calculation: "GASTAT injury rate applied to Saudi Arabia's total workforce",
+    calculationSteps: [
+      { label: "Saudi Workforce", value: "17.17M", source: "World Bank 2024" },
+      { label: "Injury Rate", value: "× 245.7 per 100K", source: "GASTAT 2024" },
+      { label: "Annual Injuries", value: "= ~42,200", source: "Calculated", isResult: true }
+    ],
     methodology: [
-      "2.78 million deaths from occupational diseases",
-      "380,000+ deaths from occupational accidents",
-      "Total: ~2.9 million work-related deaths annually",
-      "Updated from previous 2.3M estimate with better data"
+      "Saudi workforce = 17.17 million workers (World Bank 2024)",
+      "Non-fatal occupational injury rate = 245.7 per 100,000 workers aged 15+ (GASTAT 2024)",
+      "17.17M × 245.7 / 100,000 = ~42,200 non-fatal injuries per year",
+      "Fatal occupational injury rate: 1.1 per 100,000 = ~189 fatalities per year",
+      "Rates exclude road traffic accidents; register-based data from National Council for OSH"
     ],
     sources: [
-      { name: "WHO/ILO Joint Estimates 2024", url: "https://www.who.int/publications/i/item/9789240034945" },
-      { name: "ILO Global Estimates on OSH", url: "https://www.ilo.org/global/topics/safety-and-health-at-work/resources-library/publications/WCMS_864859/lang--en/index.htm" }
+      { name: "Health and Safety at Workplace Statistics 2024", org: "General Authority for Statistics (GASTAT)", url: "https://stats.gov.sa/documents/20117/2435273/Health+and+Safety+at+Workplace+Statistics+2024+EN+%281%29.pdf" },
+      { name: "Saudi Arabia Labor Force Data", org: "World Bank Open Data", url: "https://data.worldbank.org/indicator/SL.TLF.TOTL.IN?locations=SA" },
+      { name: "WHO/ILO Joint Estimates on Work-Related Burden", org: "World Health Organization", url: "https://www.who.int/teams/environment-climate-change-and-health/monitoring/who-ilo-joint-estimates" }
     ]
   }
 };
@@ -6269,7 +6299,7 @@ function IcebergVisual() {
             transition={{ delay: 0.5 }}
             className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white"
           >
-            The <span className="text-red-400">$68 Billion</span> Iceberg
+            The <span className="text-red-400">$49 Billion</span> Iceberg
           </motion.h2>
         </motion.div>
 
@@ -6485,7 +6515,7 @@ function IcebergVisual() {
               <div className="flex items-baseline gap-1">
                 <span className="text-cyan-400 text-lg sm:text-2xl font-bold">$</span>
                 <NumberCounter 
-                  value={15} 
+                  value={11} 
                   duration={1.5} 
                   delay={2.5}
                   className="text-xl sm:text-3xl font-bold text-white"

@@ -818,6 +818,7 @@ class DatabaseFillRequest(BaseModel):
     """Request body for the database fill endpoint."""
     country_filter: Optional[List[str]] = None  # List of ISOs, or None for all 193
     delay_between: float = 2.0  # Seconds between countries (rate limiting)
+    force_regenerate: bool = False  # If True, overwrite existing values
 
 
 class DatabaseFillResponse(BaseModel):
@@ -894,8 +895,10 @@ async def fill_database(
 
     # Determine target countries
     delay_between = 2.0
+    force_regenerate = False
     if request:
         delay_between = request.delay_between
+        force_regenerate = request.force_regenerate
         if request.country_filter:
             valid_codes = set(UN_MEMBER_STATES)
             invalid = [c for c in request.country_filter if c.upper() not in valid_codes]
@@ -927,12 +930,14 @@ async def fill_database(
             country_isos=target_countries,
             db_url=settings.DATABASE_URL,
             delay_between=delay_between,
+            force_regenerate=force_regenerate,
         )
     )
 
+    mode = "force regenerate" if force_regenerate else "fill missing"
     return DatabaseFillResponse(
         success=True,
-        message=f"Database fill started for {len(target_countries)} countries",
+        message=f"Database fill started for {len(target_countries)} countries (mode: {mode})",
         total_countries=len(target_countries),
         status="accepted",
     )

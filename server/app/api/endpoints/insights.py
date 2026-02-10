@@ -1840,7 +1840,7 @@ async def regenerate_all_insights(
 # =============================================================================
 
 async def _generate_single_category(
-    db_url: str,
+    session_factory,
     country_iso: str,
     country_name: str,
     category,
@@ -1852,16 +1852,12 @@ async def _generate_single_category(
     Runs content generation and image fetching in parallel.
     Includes automatic retry logic.
     Returns dict with success/failure info.
+    
+    Uses a shared session_factory (not creating a new engine per call).
     """
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_engine(db_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
     last_error = None
     for attempt in range(1 + BATCH_MAX_RETRIES):
-        db = SessionLocal()
+        db = session_factory()
         try:
             if attempt > 0:
                 logger.info(f"[BatchInsights] Retry {attempt}/{BATCH_MAX_RETRIES} for {country_iso}/{category.value}")
@@ -1894,6 +1890,15 @@ async def _generate_single_category(
 
             if not user:
                 return {"success": False, "category": category.value, "error": "User not found"}
+
+            # Verify AI config is accessible before making LLM call
+            ai_config = get_ai_config(db)
+            if not ai_config:
+                return {"success": False, "category": category.value, "error": "No AI configuration found. Configure AI settings in Admin > AI Settings."}
+            if not ai_config.api_key_encrypted:
+                return {"success": False, "category": category.value, "error": f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}."}
+
+            logger.info(f"[BatchInsights] Starting {country_iso}/{category.value} (attempt {attempt + 1}) - AI: {ai_config.provider.value}/{ai_config.model_name}")
 
             # Run content generation and image fetching in PARALLEL
             content_task = asyncio.wait_for(
@@ -1937,12 +1942,15 @@ async def _generate_single_category(
             insight.ai_model = content.get("ai_model")
             db.commit()
 
+            logger.info(f"[BatchInsights] SUCCESS {country_iso}/{category.value}")
             return {"success": True, "category": category.value}
 
         except Exception as e:
             last_error = e.detail if hasattr(e, "detail") else str(e)
-            logger.warning(
-                f"[BatchInsights] Attempt {attempt + 1} failed for {country_iso}/{category.value}: {last_error}"
+            logger.error(
+                f"[BatchInsights] Attempt {attempt + 1}/{1 + BATCH_MAX_RETRIES} FAILED "
+                f"for {country_iso}/{category.value}: {last_error}",
+                exc_info=True,
             )
             try:
                 db.rollback()
@@ -1965,20 +1973,18 @@ async def _generate_single_category(
 async def _process_single_country(
     country_iso: str,
     user_id: int,
-    db_url: str,
+    session_factory,
     force_regenerate: bool,
     idx: int,
     total: int,
 ) -> None:
-    """Process all insight categories for a single country (categories in parallel)."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
+    """Process all insight categories for a single country (categories in parallel).
+    
+    Uses a shared session_factory from the parent batch function.
+    """
     global _batch_generation_status
 
-    engine = create_engine(db_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    db = session_factory()
 
     try:
         country = db.query(Country).filter(Country.iso_code == country_iso).first()
@@ -2029,7 +2035,7 @@ async def _process_single_country(
     # Generate ALL categories in PARALLEL using asyncio.gather
     tasks = [
         _generate_single_category(
-            db_url=db_url,
+            session_factory=session_factory,
             country_iso=country_iso,
             country_name=country_name,
             category=category,
@@ -2041,34 +2047,41 @@ async def _process_single_country(
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Tally results
+    # Tally results and collect error details
     country_success = 0
     country_fail = 0
+    fail_details = []
     for r in results:
         if isinstance(r, Exception):
             country_fail += 1
             _batch_generation_status["total_insights_failed"] += 1
+            fail_details.append(str(r))
         elif r.get("success"):
             country_success += 1
             _batch_generation_status["total_insights_generated"] += 1
         else:
             country_fail += 1
             _batch_generation_status["total_insights_failed"] += 1
+            fail_details.append(f"{r.get('category', '?')}: {r.get('error', 'Unknown')}")
 
-    # Track country-level result
+    # Track country-level result with detailed error info
     if country_fail == 0:
         _batch_generation_status["countries_completed"] += 1
     elif country_success > 0:
         _batch_generation_status["countries_completed"] += 1
+        detail = "; ".join(fail_details[:3])
         _batch_generation_status["errors"].append({
             "country_iso": country_iso,
-            "error": f"Partial: {country_success} ok, {country_fail} failed",
+            "error": f"Partial ({country_success} ok, {country_fail} failed): {detail}",
         })
     else:
         _batch_generation_status["countries_failed"] += 1
+        # Show the first unique error detail for debugging
+        unique_errors = list(set(fail_details))
+        detail = unique_errors[0] if unique_errors else "Unknown error"
         _batch_generation_status["errors"].append({
             "country_iso": country_iso,
-            "error": f"All {country_fail} categories failed",
+            "error": f"All {country_fail} failed: {detail}",
         })
 
     _batch_generation_status["last_completed_country"] = country_iso
@@ -2096,8 +2109,39 @@ async def run_batch_insight_generation(
     - Content and images are fetched in parallel per category
     - Failed categories are retried up to 2 times with backoff
     - Graceful stop via _batch_stop_requested flag
+    - Single shared DB engine (no per-category engine creation)
     """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
     global _batch_generation_status, _batch_stop_requested
+
+    # Create a SINGLE shared engine for the entire batch run
+    engine = create_engine(db_url, pool_size=10, max_overflow=20, pool_pre_ping=True)
+    SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    # Verify AI config is accessible before starting
+    test_db = SessionFactory()
+    try:
+        ai_config = get_ai_config(test_db)
+        if not ai_config:
+            logger.error("[BatchInsights] No AI config found - aborting batch")
+            _batch_generation_status = {
+                "status": "completed",
+                "total_countries": 0,
+                "countries_completed": 0,
+                "countries_failed": 0,
+                "countries_skipped": 0,
+                "errors": [{"country_iso": "N/A", "error": "No AI configuration found. Configure AI settings in Admin > AI Settings first."}],
+                "started_at": datetime.utcnow().isoformat(),
+                "completed_at": datetime.utcnow().isoformat(),
+                "total_insights_generated": 0,
+                "total_insights_failed": 0,
+            }
+            return
+        logger.info(f"[BatchInsights] AI config verified: {ai_config.provider.value}/{ai_config.model_name}, has_key={bool(ai_config.api_key_encrypted)}")
+    finally:
+        test_db.close()
 
     total = len(country_isos)
     _batch_generation_status = {
@@ -2133,7 +2177,7 @@ async def run_batch_insight_generation(
             await _process_single_country(
                 country_iso=country_iso,
                 user_id=user_id,
-                db_url=db_url,
+                session_factory=SessionFactory,
                 force_regenerate=force_regenerate,
                 idx=idx,
                 total=total,
@@ -2168,6 +2212,9 @@ async def run_batch_insight_generation(
     _batch_generation_status["current_category"] = None
     _batch_generation_status["completed_at"] = datetime.utcnow().isoformat()
     _batch_stop_requested = False
+
+    # Clean up the shared engine
+    engine.dispose()
 
     logger.info(
         f"[BatchInsights] Batch {final_status}: "

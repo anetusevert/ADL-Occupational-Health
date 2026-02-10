@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Plus,
 } from 'lucide-react';
-import { apiClient } from '../../services/api';
+import { apiClient, aiApiClient } from '../../services/api';
 import { AgentCard, AgentData, AgentEditModal, AgentTestModal } from '../../components/orchestration';
 
 // =============================================================================
@@ -43,7 +43,8 @@ async function testAgent(
   variables: Record<string, string>,
   enableWebSearch: boolean = false
 ): Promise<{ success: boolean; output?: string; error?: string; execution_time_ms?: number }> {
-  const response = await apiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, { 
+  // Use aiApiClient (6 min timeout) since LLM calls with web search can take 30-90+ seconds
+  const response = await aiApiClient.post(`/api/v1/orchestration/agents/${agentId}/test`, { 
     variables,
     enable_web_search: enableWebSearch
   });

@@ -351,9 +351,13 @@ async def fill_country(
     db: Session,
     country_iso: str,
     ai_config: Optional[AIConfig] = None,
+    force_regenerate: bool = False,
 ) -> Dict[str, Any]:
     """
     Fill NULL pillar fields for a single country using the AI agent.
+    
+    Args:
+        force_regenerate: If True, regenerate ALL fields even if they already have values.
     
     Returns a result dict with status and counts.
     """
@@ -365,7 +369,12 @@ async def fill_country(
             "error": f"Country not found: {country_iso}",
         }
 
-    null_fields, existing_data = _get_null_fields(db, country_iso)
+    if force_regenerate:
+        # Treat ALL fields as needing generation
+        null_fields = list(FIELD_DEFINITIONS.keys())
+        _, existing_data = _get_null_fields(db, country_iso)
+    else:
+        null_fields, existing_data = _get_null_fields(db, country_iso)
 
     if not null_fields:
         return {
@@ -488,10 +497,14 @@ async def run_batch_fill(
     country_isos: List[str],
     db_url: str,
     delay_between: float = 2.0,
+    force_regenerate: bool = False,
 ):
     """
     Run the database fill agent for multiple countries sequentially.
     Updates _fill_status for progress tracking.
+    
+    Args:
+        force_regenerate: If True, regenerate ALL fields even if they already have values.
     
     Uses its own DB session since this runs as a background task.
     """
@@ -523,11 +536,14 @@ async def run_batch_fill(
         db = SessionLocal()
 
         try:
-            result = await fill_country(db, country_iso)
+            result = await fill_country(db, country_iso, force_regenerate=force_regenerate)
             _fill_status["results"].append(result)
 
             if result.get("success"):
                 if result.get("status") == "already_complete":
+                    _fill_status["skipped"] += 1
+                elif result.get("status") == "no_data_found":
+                    # AI ran but returned no usable data — count as skipped
                     _fill_status["skipped"] += 1
                 else:
                     _fill_status["completed"] += 1
