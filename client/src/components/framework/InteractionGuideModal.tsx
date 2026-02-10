@@ -7834,186 +7834,64 @@ function UnifiedFrameworkVisual() {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring" }}
-        className="text-center pt-2 pb-1 px-4 flex-shrink-0"
+        className="text-center pt-6 sm:pt-8 pb-2 px-4 flex-shrink-0"
       >
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5">
-          THE SOLUTION: <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">THE ADL FRAMEWORK</span>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+          <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">The Occupational Health Framework</span>
         </h1>
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-white/60 text-xs sm:text-sm"
+          className="text-white/50 text-sm sm:text-base mb-3"
         >
-          Global Data Sources Powering Integrated Intelligence
+          One Governance Layer. Three Pillars. 25 Metrics.
         </motion.p>
+        {/* Animated divider */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.8, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto w-32 sm:w-48 h-[2px] bg-gradient-to-r from-transparent via-purple-400/60 to-transparent"
+        />
       </motion.div>
 
       {/* Main Visualization Area - CENTERED */}
       <div className="flex-1 relative min-h-0 flex items-center justify-center">
 
-        {/* Data Source Badges - Neutral styling with accent indicators */}
-        <div className="absolute inset-0">
-          {frameworkDataSources.map((source, index) => {
-            const pos = getSourcePosition(index, frameworkDataSources.length);
-            const isVisible = isSourceVisible(index);
-            const isSpotlit = animationPhase === 'cycling' && spotlightIndex === index;
-            
-            return (
-              <motion.button
-                key={source.id}
-                initial={{ opacity: 0, scale: 0.5, y: -15 }}
-                animate={isVisible ? { 
-                  opacity: 1, 
-                  scale: 1, 
-                  y: 0 
-                } : { 
-                  opacity: 0, 
-                  scale: 0.6, 
-                  y: -10 
-                }}
-                transition={{ 
-                  duration: 0.4, 
-                  type: "spring", 
-                  stiffness: 300, 
-                  damping: 22 
-                }}
-                whileHover={isVisible ? { scale: 1.08, zIndex: 50 } : {}}
-                whileTap={isVisible ? { scale: 0.98 } : {}}
-                onClick={() => isVisible && setSelectedSource(source)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-20 ${isVisible ? 'cursor-pointer' : 'cursor-default pointer-events-none'}`}
-                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-              >
-                {/* Neutral source badge with small accent dot */}
-                <motion.div
-                  className="relative flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-slate-800/90 border border-slate-600/60 backdrop-blur-md shadow-lg"
-                >
-                  {/* Small colored accent dot */}
-                  <div 
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: getColorRgba(source.accentColor, 1) }}
-                  />
-                  <span className="font-semibold text-sm sm:text-base text-white/90 whitespace-nowrap">
-                    {source.shortName}
-                  </span>
-                </motion.div>
-                
-                {/* Source full name label */}
-                <AnimatePresence>
-                  {isSpotlit && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.25, delay: 0.1 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap"
-                    >
-                      <span className="text-[10px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-700/50">
-                        {source.name.split('(')[0].trim()}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            );
-          })}
-        </div>
-        
-        {/* Data Point Chips - Flying from source to framework pillars */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {frameworkDataSources.map((source, sourceIndex) => {
-            const sourcePos = getSourcePosition(sourceIndex, frameworkDataSources.length);
-            const isActive = isFlowActive(sourceIndex);
-            
-            // Get pillar color for styling
-            const getPillarColor = (targetId: string) => {
-              const pillarColors: Record<string, string> = {
-                governance: 'purple',
-                pillar1: 'blue',
-                pillar2: 'emerald',
-                pillar3: 'amber'
-              };
-              return pillarColors[targetId] || 'cyan';
-            };
-            
-            // Get target position adjusted for the framework layout
-            const getTargetDisplayPos = (targetId: string) => {
-              // These match the visual positions of the framework blocks on screen
-              const positions: Record<string, { x: number; y: number }> = {
-                governance: { x: 50, y: 45 },  // Center top - governance block
-                pillar1: { x: 30, y: 68 },     // Left - Hazard Prevention
-                pillar2: { x: 50, y: 68 },     // Center - Surveillance
-                pillar3: { x: 70, y: 68 },     // Right - Restoration
-              };
-              return positions[targetId] || { x: 50, y: 50 };
-            };
-            
-            return source.dataPoints.map((dataPoint, dpIndex) => {
-              const targetPos = getTargetDisplayPos(dataPoint.target);
-              const pillarColor = getPillarColor(dataPoint.target);
-              const chipDelay = 0.4 + dpIndex * 0.3;
-              
-              return (
-                <AnimatePresence key={`${source.id}-${dataPoint.label}`}>
-                  {isActive && (
-                    <motion.div
-                      initial={{ 
-                        left: `${sourcePos.x}%`,
-                        top: `${sourcePos.y}%`,
-                        opacity: 0, 
-                        scale: 0.5,
-                        x: '-50%',
-                        y: '-50%'
-                      }}
-                      animate={{ 
-                        left: [`${sourcePos.x}%`, `${sourcePos.x}%`, `${targetPos.x}%`],
-                        top: [`${sourcePos.y}%`, `${sourcePos.y + 5}%`, `${targetPos.y}%`],
-                        opacity: [0, 1, 1, 1, 0],
-                        scale: [0.5, 1, 1, 0.9, 0.6],
-                      }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ 
-                        duration: 2,
-                        delay: chipDelay,
-                        ease: [0.4, 0, 0.2, 1],
-                        times: [0, 0.15, 0.8, 0.95, 1]
-                      }}
-                      className="absolute flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-500/70 shadow-lg z-30"
-                    >
-                      {/* Pillar color indicator dot */}
-                      <div 
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ 
-                          backgroundColor: getColorRgba(pillarColor, 1)
-                        }}
-                      />
-                      <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
-                        {dataPoint.label}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              );
-            });
-          })}
-        </div>
-
         {/* Framework Temple Structure - CENTERED */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pt-12 sm:pt-16">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
           {/* Governance - Roof with dramatic entrance */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: -50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, type: "spring", stiffness: 100, damping: 15 }}
-            className="w-full max-w-lg lg:max-w-xl px-4 mb-4"
+            className="w-full max-w-xl lg:max-w-2xl px-4 mb-6 lg:mb-8"
           >
             <motion.button
               onClick={() => setSelectedBlock(frameworkBlocks[0])}
-              whileHover={{ scale: 1.03, y: -4 }}
+              whileHover={{ 
+                scale: 1.04, 
+                y: -6,
+                boxShadow: "0 0 40px rgba(168,85,247,0.4)"
+              }}
               whileTap={{ scale: 0.97 }}
-              className={`w-full relative p-4 sm:p-5 lg:p-6 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
+              className={`w-full relative p-5 sm:p-6 lg:p-8 rounded-2xl ${frameworkBlocks[0].bgColor} ${frameworkBlocks[0].borderColor} border-2 backdrop-blur-md cursor-pointer transition-all group`}
               style={{ perspective: '1000px' }}
             >
+              {/* Pulsing glow ring */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl"
+                animate={{
+                  boxShadow: [
+                    "0 0 15px 3px rgba(168,85,247,0.15)",
+                    "0 0 30px 6px rgba(168,85,247,0.3)",
+                    "0 0 15px 3px rgba(168,85,247,0.15)",
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              
               {/* Roof decorative top beam */}
               <motion.div 
                 initial={{ scaleX: 0 }}
@@ -8022,13 +7900,17 @@ function UnifiedFrameworkVisual() {
                 className="absolute -top-2 left-1/2 -translate-x-1/2 w-4/5 h-2 bg-gradient-to-r from-transparent via-purple-400/60 to-transparent rounded-full" 
               />
               
-              <div className="flex items-center justify-center gap-4 relative z-10">
-                <div className="p-3 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30">
-                  <Crown className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 text-purple-300" />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
-                  <p className="text-xs sm:text-sm text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
+              <div className="flex items-center justify-center gap-5 relative z-10">
+                <motion.div 
+                  animate={{ rotate: [0, 3, -3, 0] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="p-3 sm:p-4 rounded-xl bg-purple-500/40 backdrop-blur-sm border border-purple-400/30"
+                >
+                  <Crown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-purple-300" />
+                </motion.div>
+                <div className="text-center sm:text-left">
+                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold text-purple-200">{frameworkBlocks[0].title}</h3>
+                  <p className="text-xs sm:text-sm lg:text-base text-purple-300/70">{frameworkBlocks[0].subtitle}</p>
                 </div>
               </div>
               
@@ -8039,7 +7921,7 @@ function UnifiedFrameworkVisual() {
                   initial={{ scaleY: 0, opacity: 0 }}
                   animate={{ scaleY: 1, opacity: 1 }}
                   transition={{ delay: 1.0 + i * 0.1, duration: 0.3 }}
-                  className="absolute -bottom-5 w-0.5 h-5 bg-gradient-to-b from-purple-400/70 to-purple-400/10 origin-top"
+                  className="absolute -bottom-7 w-0.5 h-7 bg-gradient-to-b from-purple-400/70 to-purple-400/10 origin-top"
                   style={{ left: `${pos * 100}%`, transform: `translateX(-50%)` }}
                 />
               ))}
@@ -8047,21 +7929,44 @@ function UnifiedFrameworkVisual() {
           </motion.div>
 
           {/* Pillars Row - Rise from bottom */}
-          <div className="w-full max-w-2xl lg:max-w-3xl px-4 sm:px-6 grid grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+          <div className="w-full max-w-3xl lg:max-w-4xl px-4 sm:px-6 grid grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
             {frameworkBlocks.slice(1).map((block, index) => {
               const Icon = block.icon;
               const pillarDelay = 0.6 + index * 0.2;
+              const glowColors: Record<string, string> = {
+                blue: "rgba(59,130,246,",
+                emerald: "rgba(16,185,129,",
+                amber: "rgba(245,158,11,",
+              };
+              const glow = glowColors[block.color] || "rgba(6,182,212,";
               return (
                 <motion.button
                   key={block.id}
                   initial={{ opacity: 0, y: 60, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ delay: pillarDelay, duration: 0.6, type: "spring", stiffness: 120, damping: 15 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileHover={{ 
+                    scale: 1.07, 
+                    y: -8,
+                    boxShadow: `0 0 40px ${glow}0.4)`
+                  }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedBlock(block)}
-                  className={`relative p-4 sm:p-5 lg:p-6 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all`}
+                  className={`relative p-5 sm:p-6 lg:p-8 rounded-2xl ${block.bgColor} ${block.borderColor} border-2 backdrop-blur-md cursor-pointer transition-all group`}
                 >
+                  {/* Pulsing glow ring */}
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl"
+                    animate={{
+                      boxShadow: [
+                        `0 0 12px 2px ${glow}0.1)`,
+                        `0 0 25px 5px ${glow}0.25)`,
+                        `0 0 12px 2px ${glow}0.1)`,
+                      ]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                  />
+                  
                   {/* Pillar top decoration with draw-in */}
                   <motion.div 
                     initial={{ scaleX: 0 }}
@@ -8074,15 +7979,19 @@ function UnifiedFrameworkVisual() {
                     }`} 
                   />
                   
-                  <div className="flex flex-col items-center gap-3 relative z-10">
-                    <div className={`p-2.5 sm:p-3 rounded-xl ${block.bgColor} border ${block.borderColor}`}>
-                      <Icon className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${block.textColor}`} />
-                    </div>
+                  <div className="flex flex-col items-center gap-4 relative z-10">
+                    <motion.div 
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.4 }}
+                      className={`p-3 sm:p-4 rounded-xl ${block.bgColor} border ${block.borderColor}`}
+                    >
+                      <Icon className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 ${block.textColor}`} />
+                    </motion.div>
                     <div className="text-center">
-                      <h3 className={`text-xs sm:text-base lg:text-lg font-bold ${block.textColor} leading-tight`}>
+                      <h3 className={`text-sm sm:text-lg lg:text-xl font-bold ${block.textColor} leading-tight`}>
                         {block.title}
                       </h3>
-                      <p className="text-[9px] sm:text-xs text-white/50 mt-1">
+                      <p className="text-[10px] sm:text-xs lg:text-sm text-white/50 mt-1">
                         {block.subtitle}
                       </p>
                     </div>
@@ -8093,56 +8002,21 @@ function UnifiedFrameworkVisual() {
           </div>
         </div>
 
-        {/* Legend with pillar color mapping */}
+        {/* Invite text */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: [0, 1, 1, 0.7, 1] }}
+          transition={{ delay: 1.8, duration: 3, repeat: Infinity, repeatDelay: 4 }}
+          className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2"
         >
-          <div className="bg-slate-900/80 backdrop-blur-md rounded-lg p-2 border border-slate-700/50">
-            <p className="text-[8px] sm:text-[10px] text-white/50 mb-1.5">Data flows to:</p>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-purple-500" />
-                <span className="text-[8px] sm:text-[10px] text-white/70">Governance</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[8px] sm:text-[10px] text-white/70">Hazard Prevention</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-[8px] sm:text-[10px] text-white/70">Surveillance</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="text-[8px] sm:text-[10px] text-white/70">Restoration</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-        
-        {/* Current source indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 text-right"
-        >
-          {animationPhase === 'cycling' && spotlightIndex >= 0 && (
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
             <motion.div
-              key={spotlightIndex}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-1"
-            >
-              <span className="text-[9px] sm:text-xs text-white/70 bg-slate-900/80 px-2 py-1 rounded border border-slate-700/50">
-                {frameworkDataSources[spotlightIndex]?.shortName}: {frameworkDataSources[spotlightIndex]?.dataPoints?.length ?? 0} metrics
-              </span>
-            </motion.div>
-          )}
-          <p className="text-[8px] sm:text-[10px] text-white/40">Click any element for details</p>
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-2 h-2 rounded-full bg-cyan-400"
+            />
+            <p className="text-sm sm:text-base text-white/60 font-medium">Click any element to begin its story</p>
+          </div>
         </motion.div>
       </div>
 
