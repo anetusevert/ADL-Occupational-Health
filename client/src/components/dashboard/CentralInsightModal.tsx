@@ -514,7 +514,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
   };
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4 p-4 sm:p-5 overflow-hidden">
+    <div className="h-full flex flex-col lg:flex-row gap-4 p-4 sm:p-5 min-h-0">
       {/* Left side: Image only (no stats) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, x: -30 }}
@@ -559,7 +559,7 @@ function CountryInsightContent({ insightData, config, countryName, Icon }: Count
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="flex-1 flex flex-col min-h-0 overflow-hidden"
+        className="flex-1 flex flex-col min-h-0"
       >
         {/* Tab Navigation */}
         <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4 relative flex-shrink-0">
@@ -1085,7 +1085,7 @@ export function CentralInsightModal({
             </motion.div>
 
             {/* Content */}
-            <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+            <div className="relative flex-1 min-h-0 overflow-auto" style={{ minHeight: 0 }}>
               {isLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
