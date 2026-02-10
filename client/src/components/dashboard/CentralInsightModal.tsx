@@ -948,11 +948,11 @@ export function CentralInsightModal({
         setInsightData(convertApiToInsightData(apiData));
       } else {
         // No API data available - show placeholder
-        // Content will be auto-generated when admin visits the country page
+        // Admins can manually generate content using "Regenerate All" button
         setInsightData({
           images: [],
-          whatIsAnalysis: `AI-generated analysis for ${countryName}'s ${CATEGORY_CONFIGS[category]?.title || category} is being prepared.\n\n${isAdmin ? 'Content will be automatically generated. Use "Regenerate All" in the header to refresh all insights.' : 'Please wait while content is generated, or contact an administrator.'}`,
-          ohImplications: isAdmin ? "AI analysis will appear here once generation completes. Check back shortly." : "This content will be available shortly.",
+          whatIsAnalysis: `AI-generated analysis for ${countryName}'s ${CATEGORY_CONFIGS[category]?.title || category} is not available yet.\n\n${isAdmin ? 'Use "Regenerate All" in the header to generate insights for this country.' : 'Please contact an administrator to generate content for this country.'}`,
+          ohImplications: isAdmin ? "AI analysis will appear here once you generate content using the Regenerate All button." : "This content will be available once an administrator generates it.",
           keyStats: [],
           status: "pending",
           isFromApi: false,

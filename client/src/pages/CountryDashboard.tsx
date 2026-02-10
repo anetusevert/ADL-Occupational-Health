@@ -175,19 +175,20 @@ export function CountryDashboard() {
         : "idle";
   const generationProgress = generationStatus?.message || "";
   
-  // Auto-initialize country insights when admin visits (generates all 6 tiles)
-  useEffect(() => {
-    if (!iso || !isAdmin || !currentCountry) return;
-    
-    // If already tracking this country, just resume polling
-    if (isCountryGenerating(iso)) {
-      resumePolling(iso);
-      return;
-    }
-    
-    // Start generation for this country
-    startInsightGeneration(iso, currentCountry.name);
-  }, [iso, isAdmin, currentCountry, startInsightGeneration, isCountryGenerating, resumePolling]);
+  // DISABLED: Auto-initialize country insights when admin visits (generates all 6 tiles)
+  // This was causing automatic report generation when clicking on countries from the global map
+  // useEffect(() => {
+  //   if (!iso || !isAdmin || !currentCountry) return;
+  //   
+  //   // If already tracking this country, just resume polling
+  //   if (isCountryGenerating(iso)) {
+  //     resumePolling(iso);
+  //     return;
+  //   }
+  //   
+  //   // Start generation for this country
+  //   startInsightGeneration(iso, currentCountry.name);
+  // }, [iso, isAdmin, currentCountry, startInsightGeneration, isCountryGenerating, resumePolling]);
   
   // Invalidate queries when generation completes
   useEffect(() => {

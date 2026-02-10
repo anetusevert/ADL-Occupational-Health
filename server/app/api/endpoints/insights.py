@@ -820,6 +820,46 @@ async def test_ai_call(
 
 
 # =============================================================================
+# BATCH SCHEMAS & STATE (must be defined BEFORE batch endpoints)
+# =============================================================================
+
+_batch_generation_status: Dict[str, Any] = {}
+
+BATCH_DELAY_BETWEEN_COUNTRIES = 3.0  # seconds between countries
+
+
+class BatchGenerateRequest(BaseModel):
+    """Request body for batch insight generation."""
+    country_filter: Optional[List[str]] = None  # Subset of ISOs, or None for all
+    force_regenerate: bool = False  # If True, regenerate even completed insights
+    delay_between: float = BATCH_DELAY_BETWEEN_COUNTRIES
+
+
+class BatchGenerateResponse(BaseModel):
+    """Response when batch generation is started."""
+    success: bool
+    message: str
+    total_countries: int
+    status: str  # "accepted", "already_running", "error"
+
+
+class BatchGenerateStatusResponse(BaseModel):
+    """Status of the batch insight generation."""
+    status: str  # "idle", "running", "completed"
+    total_countries: int = 0
+    countries_completed: int = 0
+    countries_failed: int = 0
+    countries_skipped: int = 0
+    current_country: Optional[str] = None
+    current_country_name: Optional[str] = None
+    total_insights_generated: int = 0
+    total_insights_failed: int = 0
+    errors: List[Dict[str, Any]] = []
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+# =============================================================================
 # BATCH ENDPOINTS (must come BEFORE /{country_iso} wildcard routes)
 # =============================================================================
 
@@ -1721,45 +1761,8 @@ async def regenerate_all_insights(
 
 
 # =============================================================================
-# BATCH GENERATE ALL - Phase 3: Generate insights for ALL countries
+# BATCH GENERATE ALL - Phase 3: Background task
 # =============================================================================
-
-# Global batch status tracker
-_batch_generation_status: Dict[str, Any] = {}
-
-BATCH_DELAY_BETWEEN_COUNTRIES = 3.0  # seconds between countries
-
-
-class BatchGenerateRequest(BaseModel):
-    """Request body for batch insight generation."""
-    country_filter: Optional[List[str]] = None  # Subset of ISOs, or None for all
-    force_regenerate: bool = False  # If True, regenerate even completed insights
-    delay_between: float = BATCH_DELAY_BETWEEN_COUNTRIES
-
-
-class BatchGenerateResponse(BaseModel):
-    """Response when batch generation is started."""
-    success: bool
-    message: str
-    total_countries: int
-    status: str  # "accepted", "already_running", "error"
-
-
-class BatchGenerateStatusResponse(BaseModel):
-    """Status of the batch insight generation."""
-    status: str  # "idle", "running", "completed"
-    total_countries: int = 0
-    countries_completed: int = 0
-    countries_failed: int = 0
-    countries_skipped: int = 0
-    current_country: Optional[str] = None
-    current_country_name: Optional[str] = None
-    total_insights_generated: int = 0
-    total_insights_failed: int = 0
-    errors: List[Dict[str, Any]] = []
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-
 
 async def run_batch_insight_generation(
     country_isos: List[str],
