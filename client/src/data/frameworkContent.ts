@@ -756,7 +756,7 @@ export const statCardContent: Record<string, StatCardContent> = {
 
 export interface GuideSlide {
   id: string;
-  type: 'intro' | 'overview' | 'challenge' | 'cta' | 'workforce' | 'data-sources' | 'ksa-position' | 'app-global' | 'app-country' | 'app-bestpractices' | 'app-leaderboard' | 'app-compare';
+  type: 'intro' | 'overview' | 'challenge' | 'cta' | 'workforce' | 'data-sources' | 'ksa-deep' | 'ksa-position' | 'app-global' | 'app-country' | 'app-bestpractices' | 'app-leaderboard' | 'app-compare';
   title: string;
   actionTitle: string; // McKinsey-style action title stating the key insight
   subtitle?: string;
@@ -870,7 +870,32 @@ export const guideSlides: GuideSlide[] = [
     color: "blue"
   },
   // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 5: THE EVIDENCE BASE
+  // SLIDE 5: FOCUS — KSA DEEP ANALYSIS
+  // Saudi Arabia's occupational health performance across every pillar.
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    id: "ksa-deep-analysis",
+    type: "ksa-deep",
+    title: "Focus: Saudi Arabia",
+    actionTitle: "The Kingdom's Occupational Health Performance — Assessed Across Every Dimension",
+    subtitle: "Saudi Arabia Strategic Intelligence",
+    content: "A sovereign-level analysis of Saudi Arabia's occupational health system. Every pillar scored, every dimension benchmarked against GCC peers, G20 economies, and global leaders. Vision 2030 is rewriting the rules — this is where the Kingdom stands today, and where targeted investment will deliver the greatest impact for GOSI and the 13 million workers it serves.",
+    highlights: [
+      "Governance: ILO convention status, inspector density, enforcement capacity",
+      "Hazard Control: Carcinogen exposure, heat stress regulation, OEL compliance",
+      "Health Vigilance: Surveillance systems, migrant coverage, disease reporting",
+      "Restoration: Compensation mechanisms, return-to-work success, rehabilitation access"
+    ],
+    stats: [
+      { value: "SAU", label: "Focus Nation", color: "emerald" },
+      { value: "4", label: "Pillars Assessed", color: "cyan" },
+      { value: "13M", label: "Workers Served", color: "purple" }
+    ],
+    navTarget: "/focus-ksa",
+    color: "emerald"
+  },
+  // ══════════════════════════════════════════════════════════════════════════
+  // SLIDE 6: THE EVIDENCE BASE
   // Data sources — what powers the platform.
   // ══════════════════════════════════════════════════════════════════════════
   {

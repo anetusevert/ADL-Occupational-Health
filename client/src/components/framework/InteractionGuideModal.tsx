@@ -3188,6 +3188,7 @@ function getVisualForSlide(slideId: string, _options: GetVisualOptions = {}) {
     case "the-stakes": return <GlobalChallengeVisual />;
     case "the-framework": return <TempleOverviewVisual />;
     case "global-intelligence": return <GlobalMapVisual />;
+    case "ksa-deep-analysis": return <KSADeepAnalysisVisual />;
     case "evidence-base": return <DataSourcesVisual stats={[]} />;
     case "country-dive": return <CountryDashboardVisual />;
     case "focus-ksa": return <KSAPositionVisual />;
@@ -3255,7 +3256,23 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         </div>
       );
 
-    // SLIDE 5: EVIDENCE BASE - Data sources
+    // SLIDE 5: KSA DEEP ANALYSIS - Saudi Arabia pillar performance
+    case "ksa-deep":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Target className="w-5 h-5 text-emerald-400" />}
+            color="emerald"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden p-4 lg:p-6 flex items-center justify-center">
+            <KSADeepAnalysisVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 6: EVIDENCE BASE - Data sources
     case "data-sources":
       return (
         <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
@@ -3815,6 +3832,480 @@ function KSAPositionVisual() {
         </div>
       </SlideInteractionModal>
     )}
+    </>
+  );
+}
+
+// ============================================================================
+// KSA DEEP ANALYSIS VISUAL - Sovereign-level pillar performance showcase
+// ============================================================================
+
+const KSA_PILLARS = [
+  {
+    id: "governance",
+    label: "OH Governance",
+    shortLabel: "Governance",
+    icon: Crown,
+    color: "purple" as const,
+    score: 58,
+    globalAvg: 45,
+    gccAvg: 52,
+    g20Avg: 62,
+    leader: { name: "Germany", score: 92 },
+    metrics: [
+      { name: "ILO C187 Ratification", value: "Ratified", status: "strong" },
+      { name: "ILO C155 Ratification", value: "Ratified", status: "strong" },
+      { name: "Inspector Density", value: "0.8 per 10k", status: "gap" },
+      { name: "Mental Health Policy", value: "Emerging", status: "developing" },
+    ],
+    insight: "Saudi Arabia has ratified both core ILO conventions — placing it ahead of most GCC peers. However, inspector density at 0.8 per 10,000 workers falls below the ILO minimum recommendation of 1.0. Vision 2030 investments in MHRSD are closing this gap.",
+    opportunity: "Increasing inspector density by 25% and digitizing workplace audits could move KSA from 58th to top-40 percentile within 18 months.",
+  },
+  {
+    id: "hazard",
+    label: "Hazard Control",
+    shortLabel: "Prevention",
+    icon: Shield,
+    color: "blue" as const,
+    score: 44,
+    globalAvg: 40,
+    gccAvg: 38,
+    g20Avg: 58,
+    leader: { name: "Singapore", score: 91 },
+    metrics: [
+      { name: "Carcinogen Exposure", value: "12.3%", status: "gap" },
+      { name: "Heat Stress Regulation", value: "Comprehensive", status: "strong" },
+      { name: "OEL Compliance", value: "67%", status: "developing" },
+      { name: "Safety Training (avg hrs)", value: "18h", status: "developing" },
+    ],
+    insight: "KSA leads the GCC on heat stress regulation — the midday work ban is a global reference. But carcinogen exposure in petrochemical and construction sectors remains elevated at 12.3%, above the OECD average of 8.5%.",
+    opportunity: "Extending OEL monitoring to SMEs and mandating sector-specific carcinogen protocols could reduce occupational cancer incidence by 30% over a decade.",
+  },
+  {
+    id: "vigilance",
+    label: "Health Vigilance",
+    shortLabel: "Surveillance",
+    icon: Eye,
+    color: "emerald" as const,
+    score: 39,
+    globalAvg: 35,
+    gccAvg: 33,
+    g20Avg: 55,
+    leader: { name: "Finland", score: 89 },
+    metrics: [
+      { name: "Surveillance System", value: "Event-Based", status: "developing" },
+      { name: "Migrant Worker Coverage", value: "42%", status: "gap" },
+      { name: "Lead Screening Rate", value: "28%", status: "gap" },
+      { name: "Disease Reporting Rate", value: "34%", status: "gap" },
+    ],
+    insight: "Surveillance remains KSA's most significant structural gap. The event-based model captures acute incidents but misses chronic occupational diseases. Migrant workers — 76% of the private-sector workforce — have only 42% effective surveillance coverage.",
+    opportunity: "Transitioning to risk-based surveillance and integrating GOSI claims data with MOH health records would provide real-time occupational health intelligence across all sectors.",
+  },
+  {
+    id: "restoration",
+    label: "Restoration & Recovery",
+    shortLabel: "Restoration",
+    icon: Heart,
+    color: "amber" as const,
+    score: 62,
+    globalAvg: 42,
+    gccAvg: 48,
+    g20Avg: 60,
+    leader: { name: "New Zealand", score: 88 },
+    metrics: [
+      { name: "Payer Mechanism", value: "Social Insurance", status: "strong" },
+      { name: "Reintegration Law", value: "Active", status: "strong" },
+      { name: "Return-to-Work Rate", value: "71%", status: "developing" },
+      { name: "Avg Claim Settlement", value: "45 days", status: "developing" },
+    ],
+    insight: "GOSI's social insurance model is KSA's strongest pillar — outperforming the G20 average. The Annuity system provides comprehensive coverage, and the 71% return-to-work rate exceeds the GCC and approaches G20 benchmarks.",
+    opportunity: "Reducing claim settlement time from 45 to 30 days and introducing employer-incentivized rehabilitation programs could push KSA into global top-20 for restoration.",
+  },
+];
+
+function KSADeepAnalysisVisual() {
+  const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const [hoveredPillar, setHoveredPillar] = useState<string | null>(null);
+
+  const pillarData = selectedPillar ? KSA_PILLARS.find(p => p.id === selectedPillar) : null;
+
+  // Overall OHI composite
+  const ohiScore = Math.round(KSA_PILLARS.reduce((sum, p) => sum + p.score, 0) / KSA_PILLARS.length);
+
+  return (
+    <>
+    <div className="w-[92vw] max-w-6xl mx-auto h-full flex flex-col">
+      {/* Top: KSA Identity Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="flex items-center justify-between mb-4 lg:mb-6"
+      >
+        {/* Left: Flag + Identity */}
+        <div className="flex items-center gap-4">
+          <motion.div
+            initial={{ scale: 0, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+            className="relative"
+          >
+            <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl overflow-hidden border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/20">
+              <img
+                src="https://flagcdn.com/w160/sa.png"
+                alt="Saudi Arabia"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <motion.div
+              animate={{
+                boxShadow: [
+                  "0 0 15px rgba(16,185,129,0.3)",
+                  "0 0 30px rgba(16,185,129,0.5)",
+                  "0 0 15px rgba(16,185,129,0.3)",
+                ],
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="absolute inset-0 rounded-2xl"
+            />
+          </motion.div>
+          <div>
+            <motion.h2
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-xl lg:text-2xl font-bold text-white"
+            >
+              Kingdom of Saudi Arabia
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-xs lg:text-sm text-emerald-400/80"
+            >
+              Vision 2030 &middot; 13M Workers &middot; GOSI Coverage
+            </motion.p>
+          </div>
+        </div>
+
+        {/* Right: OHI Score Ring */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.5, type: "spring", stiffness: 150, damping: 20 }}
+          className="relative w-20 h-20 lg:w-24 lg:h-24 flex-shrink-0"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+            <motion.circle
+              cx="50" cy="50" r="42"
+              fill="none"
+              stroke="url(#ohiGrad)"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 42}`}
+              initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+              animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - ohiScore / 100) }}
+              transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            />
+            <defs>
+              <linearGradient id="ohiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#06b6d4" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="text-xl lg:text-2xl font-bold text-white"
+            >
+              {ohiScore}
+            </motion.span>
+            <span className="text-[9px] text-white/40 uppercase tracking-wider">OHI Score</span>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Main: 4-Pillar Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 lg:gap-4">
+        {KSA_PILLARS.map((pillar, pi) => {
+          const PillarIcon = pillar.icon;
+          const c = colors[pillar.color];
+          const isHovered = hoveredPillar === pillar.id;
+          const gapToLeader = pillar.leader.score - pillar.score;
+
+          return (
+            <motion.div
+              key={pillar.id}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.4 + pi * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{
+                scale: 1.02,
+                y: -4,
+                boxShadow: `0 0 40px ${c.hex}33`,
+              }}
+              whileTap={{ scale: 0.98 }}
+              onHoverStart={() => setHoveredPillar(pillar.id)}
+              onHoverEnd={() => setHoveredPillar(null)}
+              onClick={() => setSelectedPillar(pillar.id)}
+              className={cn(
+                "relative rounded-2xl border cursor-pointer overflow-hidden transition-colors duration-300",
+                "bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80",
+                isHovered ? c.border : "border-white/10",
+                "flex flex-col p-4 lg:p-5"
+              )}
+            >
+              {/* Background glow */}
+              <motion.div
+                animate={{ opacity: isHovered ? 0.15 : 0.05 }}
+                className={cn("absolute inset-0 bg-gradient-to-br", `from-${pillar.color}-500/20`, "to-transparent")}
+              />
+
+              {/* Header: Icon + Label + Score */}
+              <div className="relative flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <motion.div
+                    animate={isHovered ? { rotate: [0, -10, 10, 0], scale: 1.1 } : { scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className={cn("w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center", c.bg)}
+                  >
+                    <PillarIcon className={cn("w-4 h-4 lg:w-5 lg:h-5", c.text)} />
+                  </motion.div>
+                  <div>
+                    <p className="text-sm lg:text-base font-semibold text-white">{pillar.label}</p>
+                    <p className="text-[10px] text-white/40">Click to explore</p>
+                  </div>
+                </div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.8 + pi * 0.12, type: "spring" }}
+                  className="text-right"
+                >
+                  <span className={cn("text-2xl lg:text-3xl font-bold", c.text)}>{pillar.score}</span>
+                  <span className="text-[10px] text-white/30 block">/100</span>
+                </motion.div>
+              </div>
+
+              {/* Score Bar */}
+              <div className="relative mb-3">
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pillar.score}%` }}
+                    transition={{ delay: 0.9 + pi * 0.12, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className={cn("h-full rounded-full bg-gradient-to-r", `from-${pillar.color}-500`, `to-${pillar.color}-400`)}
+                  />
+                </div>
+                {/* Benchmark markers */}
+                <div className="absolute top-0 h-2 w-full pointer-events-none">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.5 }}
+                    className="absolute top-0 h-full w-0.5 bg-white/30"
+                    style={{ left: `${pillar.g20Avg}%` }}
+                    title={`G20 Avg: ${pillar.g20Avg}`}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.7 }}
+                    className="absolute top-0 h-full w-0.5 bg-amber-400/60"
+                    style={{ left: `${pillar.leader.score}%` }}
+                    title={`Leader: ${pillar.leader.score}`}
+                  />
+                </div>
+              </div>
+
+              {/* Benchmark comparison row */}
+              <div className="relative flex items-center gap-2 text-[10px] lg:text-[11px] mb-2">
+                <span className="text-white/30">GCC: <span className="text-cyan-400">{pillar.gccAvg}</span></span>
+                <span className="text-white/10">|</span>
+                <span className="text-white/30">G20: <span className="text-purple-400">{pillar.g20Avg}</span></span>
+                <span className="text-white/10">|</span>
+                <span className="text-white/30">Leader: <span className="text-amber-400">{pillar.leader.score}</span></span>
+              </div>
+
+              {/* Gap indicator */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 + pi * 0.1 }}
+                className="relative flex items-center gap-2 mt-auto"
+              >
+                <div className={cn("px-2 py-1 rounded-md text-[10px] font-medium", 
+                  gapToLeader > 40 ? "bg-red-500/10 text-red-400" :
+                  gapToLeader > 25 ? "bg-amber-500/10 text-amber-400" :
+                  "bg-emerald-500/10 text-emerald-400"
+                )}>
+                  {gapToLeader > 0 ? `${gapToLeader}pt gap to #1` : "Global leader"}
+                </div>
+                <motion.div
+                  animate={isHovered ? { x: [0, 4, 0] } : {}}
+                  transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0 }}
+                  className={cn("text-[10px]", c.text, "opacity-60")}
+                >
+                  →
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Bottom: Key Insight Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.8 }}
+        className="mt-3 lg:mt-4 px-5 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center"
+      >
+        <p className="text-[11px] lg:text-xs text-white/50 leading-relaxed">
+          <span className="text-emerald-400 font-semibold">Strongest:</span> Restoration & compensation systems outperform G20 average.{" "}
+          <span className="text-amber-400 font-semibold">Priority:</span> Health surveillance coverage for migrant workers is the largest structural gap.{" "}
+          <span className="text-cyan-400 font-semibold">Momentum:</span> Vision 2030 reforms are accelerating governance capacity.
+        </p>
+      </motion.div>
+    </div>
+
+    {/* ══════════ Pillar Detail Modal ══════════ */}
+    <AnimatePresence>
+      {selectedPillar && pillarData && (
+        <SlideInteractionModal
+          isOpen={true}
+          onClose={() => setSelectedPillar(null)}
+          title={pillarData.label}
+          subtitle={`KSA Performance: ${pillarData.score}/100`}
+          color={pillarData.color}
+          size="xl"
+        >
+          <div className="space-y-5">
+            {/* Score comparison */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="grid grid-cols-4 gap-3"
+            >
+              {[
+                { label: "KSA", value: pillarData.score, color: "emerald" },
+                { label: "GCC Average", value: pillarData.gccAvg, color: "cyan" },
+                { label: "G20 Average", value: pillarData.g20Avg, color: "purple" },
+                { label: pillarData.leader.name, value: pillarData.leader.score, color: "amber" },
+              ].map((bench, i) => {
+                const bc = colors[bench.color];
+                return (
+                  <motion.div
+                    key={bench.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + i * 0.08 }}
+                    className={cn("rounded-xl p-3 text-center border", bc.bg, bc.border)}
+                  >
+                    <p className={cn("text-2xl font-bold", bc.text)}>{bench.value}</p>
+                    <p className="text-[10px] text-white/40 mt-1">{bench.label}</p>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* Animated comparison bars */}
+            <div className="space-y-3">
+              {[
+                { label: "KSA", value: pillarData.score, color: "emerald" },
+                { label: "GCC Average", value: pillarData.gccAvg, color: "cyan" },
+                { label: "G20 Average", value: pillarData.g20Avg, color: "purple" },
+                { label: `${pillarData.leader.name} (Leader)`, value: pillarData.leader.score, color: "amber" },
+              ].map((bench, i) => {
+                const bc = colors[bench.color];
+                return (
+                  <motion.div
+                    key={bench.label}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="flex items-center gap-3"
+                  >
+                    <span className={cn("w-28 text-xs font-medium text-right", bc.text)}>{bench.label}</span>
+                    <div className="flex-1 h-7 bg-white/5 rounded-lg overflow-hidden relative">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${bench.value}%` }}
+                        transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        className={cn("h-full rounded-lg", bc.bg, "border", bc.border, "relative")}
+                      >
+                        <span className={cn("absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold", bc.text)}>
+                          {bench.value}
+                        </span>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Key Metrics Grid */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Key Metrics</p>
+              <div className="grid grid-cols-2 gap-2">
+                {pillarData.metrics.map((metric, i) => (
+                  <motion.div
+                    key={metric.name}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.8 + i * 0.06 }}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                  >
+                    <span className="text-xs text-white/60">{metric.name}</span>
+                    <span className={cn("text-xs font-semibold",
+                      metric.status === "strong" ? "text-emerald-400" :
+                      metric.status === "developing" ? "text-amber-400" :
+                      "text-red-400"
+                    )}>
+                      {metric.value}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Expert Insight */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              className="p-4 rounded-xl bg-gradient-to-r from-white/[0.03] to-white/[0.01] border border-white/[0.08]"
+            >
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Expert Insight</p>
+              <p className="text-sm text-white/70 leading-relaxed">{pillarData.insight}</p>
+            </motion.div>
+
+            {/* Strategic Opportunity */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1 }}
+              className={cn("p-4 rounded-xl border", colors[pillarData.color].bg, colors[pillarData.color].border)}
+            >
+              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2", colors[pillarData.color].text)}>
+                Strategic Opportunity
+              </p>
+              <p className="text-sm text-white/70 leading-relaxed">{pillarData.opportunity}</p>
+            </motion.div>
+          </div>
+        </SlideInteractionModal>
+      )}
+    </AnimatePresence>
     </>
   );
 }
