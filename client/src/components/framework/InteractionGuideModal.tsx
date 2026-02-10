@@ -3249,16 +3249,8 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
     // SLIDE 4: GLOBAL INTELLIGENCE - World map
     case "app-global":
       return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<Globe className="w-5 h-5 text-blue-400" />}
-            color="blue"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <GlobalMapVisual />
-          </div>
+        <div className="h-full flex flex-col overflow-hidden">
+          <GlobalMapVisual />
         </div>
       );
 
@@ -3832,247 +3824,385 @@ function KSAPositionVisual() {
 
 // GLOBAL INTELLIGENCE VISUAL - World map representation
 function GlobalMapVisual() {
-  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
-  
-  const continents = [
-    { 
-      name: "Europe", 
-      x: 52, 
-      y: 25, 
-      count: 44, 
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [scanPosition, setScanPosition] = useState(0);
+
+  // Animated scan line that sweeps across the map
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setScanPosition(prev => (prev >= 100 ? 0 : prev + 0.4));
+    }, 30);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Stylized world map dots - rough continent silhouettes
+  const mapDots: { x: number; y: number; tier: "leading" | "advancing" | "developing" | "critical" }[] = [
+    // North America
+    { x: 15, y: 22, tier: "leading" }, { x: 18, y: 25, tier: "leading" }, { x: 21, y: 23, tier: "leading" },
+    { x: 17, y: 28, tier: "leading" }, { x: 20, y: 27, tier: "advancing" }, { x: 14, y: 26, tier: "advancing" },
+    { x: 22, y: 30, tier: "advancing" }, { x: 19, y: 32, tier: "advancing" },
+    // Central America & Caribbean
+    { x: 22, y: 38, tier: "developing" }, { x: 24, y: 40, tier: "developing" },
+    // South America
+    { x: 28, y: 48, tier: "developing" }, { x: 30, y: 52, tier: "developing" }, { x: 29, y: 56, tier: "advancing" },
+    { x: 31, y: 60, tier: "developing" }, { x: 27, y: 55, tier: "critical" }, { x: 32, y: 65, tier: "advancing" },
+    { x: 30, y: 68, tier: "developing" },
+    // Europe
+    { x: 48, y: 22, tier: "leading" }, { x: 50, y: 20, tier: "leading" }, { x: 52, y: 22, tier: "leading" },
+    { x: 47, y: 25, tier: "leading" }, { x: 49, y: 27, tier: "leading" }, { x: 51, y: 25, tier: "leading" },
+    { x: 53, y: 27, tier: "advancing" }, { x: 55, y: 24, tier: "leading" }, { x: 46, y: 28, tier: "advancing" },
+    { x: 50, y: 30, tier: "advancing" },
+    // Africa
+    { x: 50, y: 40, tier: "developing" }, { x: 48, y: 45, tier: "critical" }, { x: 52, y: 43, tier: "critical" },
+    { x: 50, y: 50, tier: "critical" }, { x: 53, y: 48, tier: "critical" }, { x: 47, y: 52, tier: "developing" },
+    { x: 55, y: 55, tier: "developing" }, { x: 51, y: 58, tier: "developing" },
+    // Middle East
+    { x: 58, y: 33, tier: "advancing" }, { x: 60, y: 35, tier: "advancing" }, { x: 56, y: 36, tier: "developing" },
+    // Central / South Asia
+    { x: 65, y: 30, tier: "developing" }, { x: 68, y: 32, tier: "developing" }, { x: 70, y: 35, tier: "developing" },
+    { x: 67, y: 37, tier: "critical" },
+    // East Asia
+    { x: 75, y: 25, tier: "leading" }, { x: 78, y: 28, tier: "leading" }, { x: 76, y: 30, tier: "advancing" },
+    { x: 80, y: 32, tier: "advancing" },
+    // Southeast Asia
+    { x: 76, y: 42, tier: "developing" }, { x: 78, y: 45, tier: "developing" }, { x: 80, y: 40, tier: "advancing" },
+    // Oceania
+    { x: 82, y: 60, tier: "leading" }, { x: 85, y: 62, tier: "leading" }, { x: 84, y: 65, tier: "advancing" },
+  ];
+
+  const tierColors = {
+    leading: { color: "#10b981", label: "Leading" },
+    advancing: { color: "#06b6d4", label: "Advancing" },
+    developing: { color: "#f59e0b", label: "Developing" },
+    critical: { color: "#ef4444", label: "Critical" },
+  };
+
+  const featureCards = [
+    {
+      id: "map",
+      icon: Globe,
+      title: "Interactive World Map",
+      description: "Color-coded by OHI score. Filter by pillar, continent, or maturity tier.",
+      stat: "195",
+      statLabel: "Nations",
       color: "cyan" as const,
-      topCountries: ["Germany", "Sweden", "Switzerland"],
-      challenge: "Aging workforce and automation balance"
+      modalTitle: "Interactive World Map",
+      modalSubtitle: "Full global coverage at your fingertips",
+      modalContent: {
+        preview: "A fully interactive choropleth world map that visualizes occupational health maturity across all 195 countries. Every nation is color-coded based on its OHI composite score.",
+        capabilities: [
+          "Hover any country for an instant profile snapshot",
+          "Filter by pillar: Governance, Prevention, Compensation, or Rehabilitation",
+          "Toggle between continent view and global view",
+          "Filter by maturity tier to identify peer groups",
+          "Zoom, pan, and explore regional clusters",
+        ],
+        insight: "The map reveals striking geographic patterns — Nordic nations form a 'green belt' of excellence, while equatorial regions show the greatest need for systemic investment.",
+      },
     },
-    { 
-      name: "Asia", 
-      x: 72, 
-      y: 35, 
-      count: 49, 
+    {
+      id: "country",
+      icon: BarChart3,
+      title: "Country Intelligence",
+      description: "Click any nation for its full dashboard — economic context, framework scores, and analysis.",
+      stat: "4",
+      statLabel: "Pillars Scored",
       color: "emerald" as const,
-      topCountries: ["Singapore", "Japan", "South Korea"],
-      challenge: "Rapid industrialization and informal sector coverage"
+      modalTitle: "Country Intelligence Dashboard",
+      modalSubtitle: "Deep-dive into any nation",
+      modalContent: {
+        preview: "Each country has a dedicated intelligence dashboard that breaks down its occupational health performance across all four framework pillars with rich contextual data.",
+        capabilities: [
+          "Economic context: GDP, labor force size, industry mix",
+          "Framework scores across Governance, Prevention, Compensation, Rehabilitation",
+          "25 individual metrics scored and benchmarked",
+          "Historical trajectory and improvement trends",
+          "Peer comparison against regional and income-group averages",
+        ],
+        insight: "Country dashboards transform raw data into strategic intelligence — revealing not just where a nation stands, but why, and what it would take to improve.",
+      },
     },
-    { 
-      name: "Africa", 
-      x: 52, 
-      y: 55, 
-      count: 54, 
-      color: "amber" as const,
-      topCountries: ["Mauritius", "Tunisia", "South Africa"],
-      challenge: "Resource constraints and governance capacity"
-    },
-    { 
-      name: "Americas", 
-      x: 25, 
-      y: 40, 
-      count: 35, 
-      color: "blue" as const,
-      topCountries: ["Canada", "United States", "Chile"],
-      challenge: "Healthcare access disparity and gig economy gaps"
-    },
-    { 
-      name: "Oceania", 
-      x: 82, 
-      y: 65, 
-      count: 14, 
+    {
+      id: "insights",
+      icon: Lightbulb,
+      title: "Strategic Insights",
+      description: "Deep strategic analysis on every country's occupational health landscape — strengths, gaps, and recommendations.",
+      stat: "6",
+      statLabel: "Insight Categories",
       color: "purple" as const,
-      topCountries: ["New Zealand", "Australia"],
-      challenge: "Geographic isolation and resource industry hazards"
+      modalTitle: "Strategic Insights Engine",
+      modalSubtitle: "Intelligence that drives action",
+      modalContent: {
+        preview: "Every country profile includes a comprehensive strategic analysis engine that generates actionable insights across six key categories, turning data into decisions.",
+        capabilities: [
+          "Executive summary of national OH posture",
+          "Strength identification — what the country does best",
+          "Gap analysis — where critical shortfalls exist",
+          "Peer benchmarking — how the country compares to similar economies",
+          "Recommendation engine — prioritized actions for improvement",
+          "Best practice transfer — lessons from leading nations",
+        ],
+        insight: "The insight engine connects the dots across 25 metrics and hundreds of data points, producing nuanced strategic narratives that would take analysts weeks to compile manually.",
+      },
     },
   ];
 
-  const selectedContinentData = continents.find(c => c.name === selectedContinent);
+  const selectedFeatureData = featureCards.find(f => f.id === selectedFeature);
 
   return (
     <>
-    <div className="w-full h-full relative flex items-center justify-center">
-      {/* Background grid */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="w-full h-full" style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)",
-          backgroundSize: "24px 24px"
-        }} />
-      </div>
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/30 to-slate-900">
+      {/* Particle effects */}
+      <ParticleField count={40} color="cyan" speed="slow" />
+      
+      {/* Ambient glow orbs */}
+      <FloatingGlowOrb color="cyan" size="lg" position="top-right" delay={0} />
+      <FloatingGlowOrb color="blue" size="md" position="bottom-left" delay={0.5} />
+      <FloatingGlowOrb color="emerald" size="sm" position="top-left" delay={1} />
 
-      {/* Globe outline */}
+      {/* Title Section - matching framework slide pattern */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-[90vw] max-w-5xl aspect-[2/1]"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, type: "spring" }}
+        className="text-center pt-6 sm:pt-8 pb-2 px-4 flex-shrink-0"
       >
-        {/* Equator line */}
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+          <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Global Intelligence</span>
+        </h1>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-white/50 text-sm sm:text-base mb-3"
+        >
+          195 nations. One interactive map. Every insight at your fingertips.
+        </motion.p>
+        {/* Animated divider */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-1/2 left-[10%] right-[10%] h-[1px] bg-white/10 origin-left"
+          transition={{ delay: 0.8, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto w-32 sm:w-48 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
         />
+      </motion.div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 sm:px-8 gap-4 sm:gap-6">
         
-        {/* Continent nodes */}
-        {continents.map((c, i) => {
-          const col = getColor(c.color);
-          return (
+        {/* Stylized World Map */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-4xl aspect-[2.5/1] rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm overflow-hidden"
+        >
+          {/* Grid background */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize: "20px 20px"
+          }} />
+
+          {/* Scan line */}
+          <motion.div
+            className="absolute top-0 bottom-0 w-[2px] pointer-events-none z-10"
+            style={{ left: `${scanPosition}%` }}
+          >
+            <div className="w-full h-full bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent" />
+          </motion.div>
+
+          {/* Map dots */}
+          {mapDots.map((dot, i) => (
             <motion.div
-              key={c.name}
+              key={i}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ 
-                opacity: 1, 
+                opacity: [0.5, 0.9, 0.5], 
                 scale: 1,
-                y: [0, -8, 0]
               }}
               transition={{ 
-                delay: 0.6 + i * 0.15, 
-                duration: 0.6, 
-                ease: [0.16, 1, 0.3, 1],
-                y: { duration: 4, repeat: Infinity, delay: i * 0.3 }
+                delay: 0.5 + i * 0.02,
+                duration: 0.4,
+                opacity: { duration: 3 + (i % 3), repeat: Infinity, delay: i * 0.1 }
               }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-              style={{ left: `${c.x}%`, top: `${c.y}%` }}
-              onClick={() => setSelectedContinent(c.name)}
-              whileHover={{ scale: 1.15 }}
-            >
-              {/* Pulse ring - enhanced */}
-              <motion.div
-                animate={{ scale: [1, 2.2, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                className={cn("absolute inset-0 rounded-full", col.bgSolid)}
-                style={{ width: 64, height: 64, left: -16, top: -16 }}
-              />
-              {/* Secondary pulse */}
-              <motion.div
-                animate={{ scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
-                transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 + 0.5 }}
-                className={cn("absolute inset-0 rounded-full", col.bgSolid)}
-                style={{ width: 48, height: 48, left: -8, top: -8 }}
-              />
-              {/* Core */}
-              <div className={cn("relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all group-hover:shadow-lg", col.bg, "border", col.border, "backdrop-blur-sm")}>
-                <span className={cn("text-[10px] sm:text-xs lg:text-sm font-bold", col.text)}>{c.count}</span>
-              </div>
-              {/* Label */}
-              <div className="absolute top-10 lg:top-14 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                <p className="text-xs sm:text-sm font-medium text-white/60">{c.name}</p>
-              </div>
-            </motion.div>
-          );
-        })}
+              whileHover={{ scale: 1.8, opacity: 1 }}
+              className="absolute w-[6px] h-[6px] sm:w-2 sm:h-2 rounded-full cursor-default"
+              style={{ 
+                left: `${dot.x}%`, 
+                top: `${dot.y}%`,
+                backgroundColor: tierColors[dot.tier].color,
+                boxShadow: `0 0 6px ${tierColors[dot.tier].color}80`,
+              }}
+            />
+          ))}
 
-        {/* Connection lines between continents */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {continents.map((c, i) => {
-            const next = continents[(i + 1) % continents.length];
+          {/* Tier legend */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+            className="absolute bottom-2 sm:bottom-3 right-2 sm:right-4 flex items-center gap-2 sm:gap-3"
+          >
+            {Object.entries(tierColors).map(([key, val]) => (
+              <div key={key} className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: val.color }} />
+                <span className="text-[9px] sm:text-[10px] text-white/40">{val.label}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* "195 Countries" floating badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: [0, -4, 0] }}
+            transition={{ delay: 1.2, y: { duration: 3, repeat: Infinity } }}
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 backdrop-blur-sm"
+          >
+            <span className="text-cyan-400 text-xs sm:text-sm font-bold">195</span>
+            <span className="text-white/50 text-[10px] sm:text-xs ml-1.5">Countries Mapped</span>
+          </motion.div>
+        </motion.div>
+
+        {/* Feature Showcase Cards */}
+        <div className="w-full max-w-4xl grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+          {featureCards.map((card, i) => {
+            const col = getColor(card.color);
+            const Icon = card.icon;
             return (
-              <motion.line
-                key={`${c.name}-${next.name}`}
-                x1={c.x} y1={c.y} x2={next.x} y2={next.y}
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth="0.3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 + i * 0.1, duration: 0.6, ease: "easeOut" }}
-              />
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: [0, -3, 0] }}
+                transition={{ 
+                  delay: 0.8 + i * 0.15, 
+                  duration: 0.6,
+                  y: { duration: 4, repeat: Infinity, delay: i * 0.5 }
+                }}
+                whileHover={{ 
+                  scale: 1.03, 
+                  boxShadow: `0 0 30px ${col.hex}30`,
+                  y: -4,
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedFeature(card.id)}
+                className={cn(
+                  "relative group cursor-pointer rounded-xl p-4 sm:p-5 lg:p-6",
+                  "border backdrop-blur-sm transition-all duration-300",
+                  col.bg, col.border,
+                  "hover:border-opacity-60"
+                )}
+              >
+                {/* Pulsing glow ring */}
+                <motion.div
+                  animate={{ opacity: [0, 0.15, 0], scale: [0.95, 1.05, 0.95] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.4 }}
+                  className="absolute inset-0 rounded-xl"
+                  style={{ boxShadow: `inset 0 0 20px ${col.hex}20` }}
+                />
+
+                {/* Icon */}
+                <motion.div 
+                  className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-3", col.bg, "border", col.border)}
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
+                >
+                  <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", col.text)} />
+                </motion.div>
+
+                {/* Title */}
+                <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-white mb-1 sm:mb-2">{card.title}</h3>
+
+                {/* Description */}
+                <p className="text-[10px] sm:text-xs text-white/50 leading-relaxed mb-3 sm:mb-4 line-clamp-2">{card.description}</p>
+
+                {/* Stat */}
+                <div className="flex items-baseline gap-1.5">
+                  <span className={cn("text-lg sm:text-xl lg:text-2xl font-bold", col.text)}>{card.stat}</span>
+                  <span className="text-[10px] sm:text-xs text-white/40">{card.statLabel}</span>
+                </div>
+
+                {/* Hover arrow */}
+                <motion.div
+                  className="absolute top-3 right-3 sm:top-4 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ArrowRight className={cn("w-4 h-4", col.text)} />
+                </motion.div>
+              </motion.div>
             );
           })}
-        </svg>
-      </motion.div>
-
-      {/* Interaction hint */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
-        className="absolute top-6 left-1/2 -translate-x-1/2"
-      >
-        <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-          <p className="text-xs text-white/60">Click any continent to explore</p>
         </div>
-      </motion.div>
 
-      {/* Bottom stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.6 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-6"
-      >
-        {[
-          { label: "Nations Assessed", value: "195", color: "cyan" as const },
-          { label: "Hover for Profile", value: "↗", color: "emerald" as const },
-          { label: "Click to Deep Dive", value: "⊕", color: "purple" as const },
-        ].map((item, i) => {
-          const col = getColor(item.color);
-          return (
-            <div key={i} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg", col.bg, "border", col.border)}>
-              <span className={cn("text-xs font-semibold", col.text)}>{item.value}</span>
-              <span className="text-[10px] text-white/50">{item.label}</span>
-            </div>
-          );
-        })}
-      </motion.div>
+        {/* Invitation text */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+          className="flex items-center gap-2 pb-4"
+        >
+          <motion.div
+            animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-2 h-2 rounded-full bg-cyan-400"
+          />
+          <p className="text-xs sm:text-sm text-white/40">Click any card to preview — or enter the Global tab to start exploring</p>
+        </motion.div>
+      </div>
     </div>
 
-    {/* Continent Detail Modal */}
-    {selectedContinentData && (
+    {/* Feature Preview Modal */}
+    {selectedFeatureData && (
       <SlideInteractionModal
-        isOpen={!!selectedContinent}
-        onClose={() => setSelectedContinent(null)}
-        title={selectedContinentData.name}
-        subtitle={`${selectedContinentData.count} nations assessed`}
-        color={selectedContinentData.color}
-        size="md"
+        isOpen={!!selectedFeature}
+        onClose={() => setSelectedFeature(null)}
+        title={selectedFeatureData.modalTitle}
+        subtitle={selectedFeatureData.modalSubtitle}
+        color={selectedFeatureData.color}
+        size="lg"
       >
         <div className="space-y-6">
-          {/* Top Countries */}
+          {/* Preview description */}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-sm sm:text-base text-white/70 leading-relaxed"
+          >
+            {selectedFeatureData.modalContent.preview}
+          </motion.p>
+
+          {/* Capabilities */}
           <div>
-            <h4 className="text-sm font-semibold text-white/80 mb-3">Top Performing Countries</h4>
+            <h4 className="text-sm font-semibold text-white/80 mb-3">What You Can Do</h4>
             <div className="space-y-2">
-              {selectedContinentData.topCountries.map((country, i) => (
+              {selectedFeatureData.modalContent.capabilities.map((cap, i) => (
                 <motion.div
-                  key={country}
+                  key={i}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
+                  transition={{ delay: 0.1 + i * 0.08 }}
+                  className="flex items-start gap-3 p-2.5 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
-                    getColor(selectedContinentData.color).bg, 
-                    getColor(selectedContinentData.color).text
-                  )}>
-                    {i + 1}
-                  </div>
-                  <span className="text-sm text-white">{country}</span>
+                  <CheckCircle className={cn("w-4 h-4 mt-0.5 flex-shrink-0", getColor(selectedFeatureData.color).text)} />
+                  <span className="text-xs sm:text-sm text-white/70">{cap}</span>
                 </motion.div>
               ))}
             </div>
           </div>
 
-          {/* Regional Challenge */}
-          <div>
-            <h4 className="text-sm font-semibold text-white/80 mb-3">Key Regional Challenge</h4>
-            <p className="text-sm text-white/60 leading-relaxed">
-              {selectedContinentData.challenge}
-            </p>
-          </div>
-
-          {/* CTA */}
-          <motion.button
-            whileHover={{ 
-              scale: 1.02,
-              boxShadow: `0 0 25px ${getColor(selectedContinentData.color).hex}0.4)`
-            }}
-            whileTap={{ scale: 0.98 }}
-            className={cn(
-              "w-full px-4 py-3 rounded-xl font-semibold text-white text-sm",
-              "bg-gradient-to-r transition-all",
-              getColor(selectedContinentData.color).bg,
-              "border",
-              getColor(selectedContinentData.color).border
-            )}
+          {/* Key Insight */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className={cn("p-4 rounded-xl border", getColor(selectedFeatureData.color).bg, getColor(selectedFeatureData.color).border)}
           >
-            View All {selectedContinentData.name} Countries →
-          </motion.button>
+            <div className="flex items-center gap-2 mb-2">
+              <Lightbulb className={cn("w-4 h-4", getColor(selectedFeatureData.color).text)} />
+              <h4 className={cn("text-xs font-semibold uppercase tracking-wider", getColor(selectedFeatureData.color).text)}>Key Insight</h4>
+            </div>
+            <p className="text-xs sm:text-sm text-white/60 leading-relaxed italic">
+              "{selectedFeatureData.modalContent.insight}"
+            </p>
+          </motion.div>
         </div>
       </SlideInteractionModal>
     )}
