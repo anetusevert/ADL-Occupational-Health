@@ -1460,7 +1460,7 @@ export function StrategicDeepDive() {
       
       {/* Footer */}
       <div className="flex-shrink-0 mt-3 text-[10px] text-slate-500 text-center">
-        Powered by Strategic Deep Dive Agent • AI Orchestration Layer
+        Powered by Strategic Deep Dive Agent • Analysis Engine
       </div>
     </div>
   );

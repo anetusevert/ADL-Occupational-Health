@@ -631,11 +631,11 @@ export function DatabaseFill() {
           <ArrowRight className="w-5 h-5 text-white/20 rotate-90" />
         </div>
 
-        {/* ── PHASE 2: AI Database Fill ── */}
+        {/* ── PHASE 2: Enriched Database Fill ── */}
         <PhaseCard
           phase={2}
-          title="AI-Enriched Pillar Metrics"
-          description="Use GPT-4o with web search to fill ~20 NULL pillar fields per country. Includes source citations and automatic score recalculation."
+          title="Enriched Pillar Metrics"
+          description="Use web search to fill ~20 NULL pillar fields per country. Includes source citations and automatic score recalculation."
           icon={Brain}
           color="purple"
           isRunning={fillRunning}
@@ -694,7 +694,7 @@ export function DatabaseFill() {
         {/* ── PHASE 3: Batch Insight Generation ── */}
         <PhaseCard
           phase={3}
-          title="AI Country Insights"
+          title="Country Insights"
           description="Generate all 6 insight categories for every country (culture, infrastructure, industry, urban, workforce, political). ~1,158 insights total. Categories are generated in parallel for faster processing."
           icon={Sparkles}
           color="cyan"
@@ -885,8 +885,8 @@ export function DatabaseFill() {
         {/* ── Execution Notes ── */}
         <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl p-4 text-xs text-white/30 space-y-1">
           <p className="text-white/50 font-medium mb-2">Execution Notes</p>
-          <p>Phase 1: ~15-20 min for 193 countries (API rate limits). Free, no AI cost.</p>
-          <p>Phase 2: ~60-90 min for 193 countries. Estimated cost: $6-10 (GPT-4o with web search).</p>
+          <p>Phase 1: ~15-20 min for 193 countries (API rate limits). Free, no analysis cost.</p>
+          <p>Phase 2: ~60-90 min for 193 countries. Estimated cost: $6-10 (web search enrichment).</p>
           <p>Phase 3: ~3-6 hours for 193 countries (parallel categories + 2 concurrent countries). Estimated cost: $35-60. Can be stopped and resumed at any time.</p>
           <p>Phases are sequential -- run Phase 1 first to ensure all countries exist in the database.</p>
           <p>Failed insights are auto-retried up to 2 times. Use "Retry Failed" button for remaining failures.</p>

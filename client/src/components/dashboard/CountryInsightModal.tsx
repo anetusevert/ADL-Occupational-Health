@@ -189,10 +189,10 @@ export function CountryInsightModal({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* AI Badge - Hidden on mobile */}
+                    {/* Expert Badge - Hidden on mobile */}
                     <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30">
                       <Sparkles className="w-3 h-3 text-purple-400" />
-                      <span className="text-[10px] text-purple-400 font-medium">AI</span>
+                      <span className="text-[10px] text-purple-400 font-medium">Expert</span>
                     </div>
 
                     <button

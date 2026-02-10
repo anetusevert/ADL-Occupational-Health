@@ -84,7 +84,7 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center gap-4 text-xs text-slate-600">
               <span>ADL Occupational Health Framework v2.0</span>
               <span>•</span>
-              <span>Phase 25: Deep Dive AI</span>
+              <span>Phase 25: Deep Dive Analysis</span>
             </div>
           </div>
         </div>

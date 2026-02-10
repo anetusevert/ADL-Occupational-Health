@@ -247,7 +247,7 @@ export function AgentPrompts() {
               Agent Prompts
             </h1>
             <p className="text-white/40 text-sm">
-              Configure AI agents for country analysis and research
+              Configure agents for country analysis and research
             </p>
           </div>
         </div>

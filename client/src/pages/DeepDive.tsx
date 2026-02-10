@@ -662,7 +662,7 @@ export function DeepDive() {
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-cyan-400" />
               <span className="text-sm text-slate-400">Orchestrator</span>
-              <span className="text-xs text-slate-500">GPT-4o Synthesis</span>
+              <span className="text-xs text-slate-500">Data Synthesis</span>
             </div>
           </div>
         </div>

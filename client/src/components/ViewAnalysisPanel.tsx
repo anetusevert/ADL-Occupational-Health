@@ -156,7 +156,7 @@ function AnalysisLoading() {
       </motion.div>
       <div className="text-center">
         <p className="text-sm font-medium text-white">Generating Analysis</p>
-        <p className="text-xs text-white/50">Powered by AI</p>
+        <p className="text-xs text-white/50">Expert Analysis</p>
       </div>
     </div>
   );

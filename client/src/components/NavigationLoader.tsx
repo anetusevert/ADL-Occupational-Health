@@ -37,7 +37,7 @@ const routeConfig: Record<string, { icon: LucideIcon; label: string; color: stri
   "/admin/data-engine": { icon: Database, label: "Data Engine", color: "text-blue-400" },
   "/admin/agent-prompts": { icon: Bot, label: "Agent Prompts", color: "text-purple-400" },
   "/admin/users": { icon: Users, label: "User Management", color: "text-orange-400" },
-  "/admin/ai-config": { icon: Cpu, label: "AI Configuration", color: "text-green-400" },
+  "/admin/ai-config": { icon: Cpu, label: "Configuration", color: "text-green-400" },
 };
 
 // Get route config, with fallback for dynamic routes

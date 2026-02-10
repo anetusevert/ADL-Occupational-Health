@@ -172,7 +172,7 @@ export function AIOrchestrationLayer() {
               <Bot className="w-6 h-6 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">AI Agents</h1>
+              <h1 className="text-xl font-semibold text-white">Analysis Agents</h1>
               <p className="text-sm text-slate-400">
                 {agents?.length || 0} agents available
               </p>

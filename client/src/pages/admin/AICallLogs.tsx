@@ -142,7 +142,7 @@ export function AICallLogs() {
               AI Call Logs
             </h1>
             <p className="text-white/40 text-sm">
-              Persistent traces of all AI provider API calls
+              Persistent traces of all provider API calls
             </p>
           </div>
         </div>
