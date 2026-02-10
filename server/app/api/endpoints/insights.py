@@ -1933,3 +1933,24 @@ async def get_batch_generate_status():
         started_at=_batch_generation_status.get("started_at"),
         completed_at=_batch_generation_status.get("completed_at"),
     )
+
+
+@router.post("/batch-generate-reset")
+async def reset_batch_generate_status(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Reset the batch insight generation status.
+    Useful for clearing stale data from previous runs.
+    Cannot reset while a batch is actively running.
+    """
+    global _batch_generation_status
+    
+    if _batch_generation_status.get("status") == "running":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot reset while batch generation is running",
+        )
+    
+    _batch_generation_status = {}
+    return {"status": "reset", "message": "Batch generation status cleared"}

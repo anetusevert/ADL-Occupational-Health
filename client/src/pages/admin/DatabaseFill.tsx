@@ -178,7 +178,13 @@ function ProgressBar({
   total: number;
   label?: string;
 }) {
-  const pct = total > 0 ? ((completed + failed + skipped) / total) * 100 : 0;
+  // Defensive: ensure all values are valid numbers
+  const c = Number(completed) || 0;
+  const f = Number(failed) || 0;
+  const s = Number(skipped) || 0;
+  const t = Number(total) || 0;
+  const done = c + f + s;
+  const pct = t > 0 ? (done / t) * 100 : 0;
 
   return (
     <div>
@@ -186,7 +192,7 @@ function ProgressBar({
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs text-white/40">{label}</span>
           <span className="text-xs text-white/60 font-mono">
-            {completed + failed + skipped} / {total}
+            {done} / {t}
           </span>
         </div>
       )}
@@ -197,9 +203,9 @@ function ProgressBar({
         />
       </div>
       <div className="flex items-center gap-4 mt-1.5 text-xs">
-        <span className="text-emerald-400">{completed} done</span>
-        {failed > 0 && <span className="text-red-400">{failed} failed</span>}
-        {skipped > 0 && <span className="text-white/30">{skipped} skipped</span>}
+        <span className="text-emerald-400">{c} done</span>
+        {f > 0 && <span className="text-red-400">{f} failed</span>}
+        {s > 0 && <span className="text-white/30">{s} skipped</span>}
       </div>
     </div>
   );
@@ -246,6 +252,7 @@ export function DatabaseFill() {
   const [etlRunning, setEtlRunning] = useState(false);
 
   // Phase 2 - AI Fill
+  const [forceRegenInsights, setForceRegenInsights] = useState(false);
   const [fillStatus, setFillStatus] = useState<FillStatus | null>(null);
   const [fillRunning, setFillRunning] = useState(false);
 
@@ -330,10 +337,24 @@ export function DatabaseFill() {
   const startInsights = async () => {
     setError(null);
     try {
-      await apiClient.post('/api/v1/insights/batch-generate-all', { delay_between: 3.0 });
+      await apiClient.post('/api/v1/insights/batch-generate-all', {
+        delay_between: 3.0,
+        force_regenerate: forceRegenInsights,
+      });
       setInsightRunning(true);
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Failed to start batch insight generation');
+    }
+  };
+
+  // ── Reset Phase 3 Status ──
+  const resetInsightStatus = async () => {
+    try {
+      await apiClient.post('/api/v1/insights/batch-generate-reset');
+      setInsightStatus(null);
+      setInsightRunning(false);
+    } catch {
+      // ignore
     }
   };
 
@@ -482,6 +503,41 @@ export function DatabaseFill() {
           isComplete={insightStatus?.status === 'completed'}
           onStart={startInsights}
         >
+          {/* Controls */}
+          <div className="flex items-center gap-4 mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={forceRegenInsights}
+                onChange={(e) => setForceRegenInsights(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/30"
+              />
+              <span className="text-xs text-white/50">Force regenerate (overwrite existing insights)</span>
+            </label>
+
+            {insightStatus && insightStatus.status !== 'idle' && !insightRunning && (
+              <button
+                onClick={resetInsightStatus}
+                className="text-xs text-white/30 hover:text-white/60 underline transition-colors"
+              >
+                Reset status
+              </button>
+            )}
+          </div>
+
+          {/* Skipped warning */}
+          {insightStatus?.status === 'completed' &&
+            (insightStatus.total_insights_generated ?? 0) === 0 &&
+            (insightStatus.countries_skipped ?? 0) > 0 && (
+            <div className="mb-3 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-300">
+                All {insightStatus.countries_skipped} countries were skipped because insights already exist.
+                Enable "Force regenerate" to overwrite them.
+              </span>
+            </div>
+          )}
+
           {insightStatus && insightStatus.status !== 'idle' && (
             <div className="space-y-3">
               <ProgressBar
