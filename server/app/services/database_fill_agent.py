@@ -279,9 +279,13 @@ def _apply_filled_fields(
     db: Session,
     country_iso: str,
     filled_fields: Dict[str, Dict[str, Any]],
+    force_overwrite: bool = False,
 ) -> Dict[str, int]:
     """
     Apply validated field values to the database.
+    
+    Args:
+        force_overwrite: If True, overwrite existing non-NULL values.
     
     Returns dict with counts: {"written": N, "skipped": N, "invalid": N}
     """
@@ -323,11 +327,12 @@ def _apply_filled_fields(
         record = _get_or_create_pillar_record(db, model_cls, country_iso)
 
         for field_name, value in fields.items():
-            # Only write if currently NULL (don't overwrite)
-            current_value = getattr(record, field_name, None)
-            if current_value is not None:
-                counts["skipped"] += 1
-                continue
+            # Skip if field already has a value and we're not forcing overwrite
+            if not force_overwrite:
+                current_value = getattr(record, field_name, None)
+                if current_value is not None:
+                    counts["skipped"] += 1
+                    continue
 
             setattr(record, field_name, value)
             counts["written"] += 1
@@ -373,10 +378,13 @@ async def fill_country(
         # Treat ALL fields as needing generation
         null_fields = list(FIELD_DEFINITIONS.keys())
         _, existing_data = _get_null_fields(db, country_iso)
+        logger.info(f"[DatabaseFill] {country_iso}: force_regenerate=True, targeting all {len(null_fields)} fields")
     else:
         null_fields, existing_data = _get_null_fields(db, country_iso)
+        logger.info(f"[DatabaseFill] {country_iso}: {len(null_fields)} NULL fields, {len(existing_data)} existing fields")
 
     if not null_fields:
+        logger.info(f"[DatabaseFill] {country_iso}: SKIPPING - all {len(FIELD_DEFINITIONS)} fields already have values")
         return {
             "country_iso": country_iso,
             "country_name": country.name,
@@ -423,6 +431,7 @@ async def fill_country(
         }
 
     if not result.get("success"):
+        logger.error(f"[DatabaseFill] {country_iso}: AI agent returned failure: {result.get('error')}")
         return {
             "country_iso": country_iso,
             "country_name": country.name,
@@ -432,9 +441,11 @@ async def fill_country(
 
     # Parse the AI output
     output = result.get("output", "")
+    logger.info(f"[DatabaseFill] {country_iso}: AI returned {len(output)} chars of output")
     try:
         parsed = _parse_agent_output(output)
     except Exception as e:
+        logger.error(f"[DatabaseFill] {country_iso}: Failed to parse AI output: {e}. Preview: {str(output)[:300]}")
         return {
             "country_iso": country_iso,
             "country_name": country.name,
@@ -445,6 +456,7 @@ async def fill_country(
 
     filled_fields = parsed.get("filled_fields", {})
     if not filled_fields:
+        logger.warning(f"[DatabaseFill] {country_iso}: AI returned no filled_fields. Parsed keys: {list(parsed.keys())}. Preview: {str(output)[:300]}")
         return {
             "country_iso": country_iso,
             "country_name": country.name,
@@ -455,8 +467,10 @@ async def fill_country(
             "unfilled": parsed.get("unfilled_fields", null_fields),
         }
 
+    logger.info(f"[DatabaseFill] {country_iso}: AI returned {len(filled_fields)} filled fields, applying to DB (force_overwrite={force_regenerate})")
+
     # Apply to database
-    counts = _apply_filled_fields(db, country_iso, filled_fields)
+    counts = _apply_filled_fields(db, country_iso, filled_fields, force_overwrite=force_regenerate)
 
     return {
         "country_iso": country_iso,

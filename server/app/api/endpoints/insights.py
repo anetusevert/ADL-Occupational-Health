@@ -1006,6 +1006,21 @@ async def get_batch_generate_status():
         except Exception:
             pass
 
+    # Build live category progress string (e.g., "culture [done], oh-infrastructure [done], industry, urban, workforce, political")
+    raw_category = _batch_generation_status.get("current_category")
+    done_cats = _batch_generation_status.get("_done_categories", set())
+    if raw_category and done_cats and _batch_generation_status.get("status") == "running":
+        cat_list = [c.strip() for c in raw_category.split(",")]
+        display_parts = []
+        for c in cat_list:
+            if c in done_cats:
+                display_parts.append(f"{c} [done]")
+            else:
+                display_parts.append(c)
+        cat_progress = f"{len(done_cats)}/{len(cat_list)} done: " + ", ".join(display_parts)
+    else:
+        cat_progress = raw_category
+
     return BatchGenerateStatusResponse(
         status=_batch_generation_status.get("status", "idle"),
         total_countries=_batch_generation_status.get("total_countries", 0),
@@ -1014,7 +1029,7 @@ async def get_batch_generate_status():
         countries_skipped=_batch_generation_status.get("countries_skipped", 0),
         current_country=_batch_generation_status.get("current_country"),
         current_country_name=_batch_generation_status.get("current_country_name"),
-        current_category=_batch_generation_status.get("current_category"),
+        current_category=cat_progress,
         total_insights_generated=_batch_generation_status.get("total_insights_generated", 0),
         total_insights_failed=_batch_generation_status.get("total_insights_failed", 0),
         errors=_batch_generation_status.get("errors", []),
@@ -1943,6 +1958,10 @@ async def _generate_single_category(
             db.commit()
 
             logger.info(f"[BatchInsights] SUCCESS {country_iso}/{category.value}")
+            # Update real-time per-category progress for status polling
+            done_cats = _batch_generation_status.get("_done_categories", set())
+            done_cats.add(category.value)
+            _batch_generation_status["_done_categories"] = done_cats
             return {"success": True, "category": category.value}
 
         except Exception as e:
@@ -2025,7 +2044,9 @@ async def _process_single_country(
             f"{len(missing_categories)} categories ({idx + 1}/{total})"
         )
 
-        # Update current category for status display
+        # Reset per-category progress tracker for this country
+        _batch_generation_status["_done_categories"] = set()
+        _batch_generation_status["_total_cat_count"] = len(missing_categories)
         cat_names = ", ".join(c.value for c in missing_categories)
         _batch_generation_status["current_category"] = cat_names
 
