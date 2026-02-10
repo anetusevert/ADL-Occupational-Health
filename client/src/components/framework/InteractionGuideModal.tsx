@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { personas, getCoverageStatus, type Persona } from "../../data/personas";
+import { PILLAR_DEFINITIONS, type PillarId, type StrategicQuestion } from "../../lib/strategicQuestions";
 import { cn } from "../../lib/utils";
 import { 
   CinematicLoader, 
@@ -6979,6 +6980,663 @@ const frameworkDataSources: FrameworkDataSource[] = [
   },
 ];
 
+// ============================================================================
+// PILLAR STORYFLOW - Cinematic question-by-question walkthrough
+// ============================================================================
+
+// Map framework block IDs to strategic question pillar IDs
+const BLOCK_TO_PILLAR: Record<string, PillarId> = {
+  governance: "governance",
+  pillar1: "hazard-control",
+  pillar2: "vigilance",
+  pillar3: "restoration",
+};
+
+// Color helpers for storyflow
+const pillarGlowColors: Record<string, string> = {
+  purple: "rgba(168,85,247,",
+  blue: "rgba(59,130,246,",
+  emerald: "rgba(16,185,129,",
+  amber: "rgba(245,158,11,",
+};
+
+interface PillarStoryflowProps {
+  block: {
+    id: string;
+    title: string;
+    subtitle: string;
+    color: string;
+    textColor: string;
+    bgColor: string;
+    borderColor: string;
+    icon: React.ElementType;
+    description: string;
+    keyMetrics: string[];
+    dataSources: string[];
+  };
+  onClose: () => void;
+}
+
+function PillarStoryflow({ block, onClose }: PillarStoryflowProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [typedText, setTypedText] = useState("");
+
+  const pillarId = BLOCK_TO_PILLAR[block.id];
+  const pillarDef = pillarId ? PILLAR_DEFINITIONS[pillarId] : null;
+  const questions = pillarDef?.questions || [];
+  const totalSteps = questions.length + 2; // intro + questions + summary
+
+  const glowBase = pillarGlowColors[block.color] || "rgba(6,182,212,";
+
+  // Typewriter effect for intro
+  useEffect(() => {
+    if (currentStep !== 0) return;
+    setTypedText("");
+    const fullText = block.title;
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      setTypedText(fullText.slice(0, i));
+      if (i >= fullText.length) clearInterval(timer);
+    }, 60);
+    return () => clearInterval(timer);
+  }, [currentStep, block.title]);
+
+  // Auto-play timer
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const delay = currentStep === 0 ? 3500 : currentStep === totalSteps - 1 ? 8000 : 6000;
+    const timer = setTimeout(() => {
+      if (currentStep < totalSteps - 1) {
+        setDirection(1);
+        setCurrentStep(prev => prev + 1);
+      } else {
+        setIsAutoPlaying(false);
+      }
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [currentStep, isAutoPlaying, totalSteps]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight" && currentStep < totalSteps - 1) {
+        setIsAutoPlaying(false);
+        setDirection(1);
+        setCurrentStep(prev => prev + 1);
+      }
+      if (e.key === "ArrowLeft" && currentStep > 0) {
+        setIsAutoPlaying(false);
+        setDirection(-1);
+        setCurrentStep(prev => prev - 1);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [currentStep, totalSteps, onClose]);
+
+  const goTo = (step: number) => {
+    setIsAutoPlaying(false);
+    setDirection(step > currentStep ? 1 : -1);
+    setCurrentStep(step);
+  };
+
+  const goNext = () => {
+    if (currentStep < totalSteps - 1) {
+      setIsAutoPlaying(false);
+      setDirection(1);
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (currentStep > 0) {
+      setIsAutoPlaying(false);
+      setDirection(-1);
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0, scale: 0.95 }),
+    center: { x: 0, opacity: 1, scale: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -300 : 300, opacity: 0, scale: 0.95 }),
+  };
+
+  const BlockIcon = block.icon;
+
+  // ---------------------------------------------------------------------------
+  // STEP 0: INTRODUCTION
+  // ---------------------------------------------------------------------------
+  const renderIntro = () => (
+    <motion.div
+      key="intro"
+      custom={direction}
+      variants={slideVariants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col items-center justify-center h-full px-8 text-center"
+    >
+      {/* Icon with glow ring */}
+      <motion.div
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+        className="relative mb-8"
+      >
+        <motion.div
+          animate={{
+            boxShadow: [
+              `0 0 30px 10px ${glowBase}0.2)`,
+              `0 0 60px 20px ${glowBase}0.4)`,
+              `0 0 30px 10px ${glowBase}0.2)`,
+            ],
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className={cn("w-24 h-24 lg:w-32 lg:h-32 rounded-3xl flex items-center justify-center", block.bgColor, "border-2", block.borderColor)}
+        >
+          <BlockIcon className={cn("w-12 h-12 lg:w-16 lg:h-16", block.textColor)} />
+        </motion.div>
+        {/* Pulse rings */}
+        {[0, 1, 2].map(ring => (
+          <motion.div
+            key={ring}
+            className={cn("absolute inset-0 rounded-3xl border-2", block.borderColor)}
+            animate={{ scale: [1, 1.6 + ring * 0.3], opacity: [0.4, 0] }}
+            transition={{ duration: 2, repeat: Infinity, delay: ring * 0.5 }}
+          />
+        ))}
+      </motion.div>
+
+      {/* Typewriter title */}
+      <h2 className={cn("text-3xl lg:text-5xl font-bold mb-3 tracking-tight", block.textColor)}>
+        {typedText}
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="inline-block w-[3px] h-[1em] ml-1 align-middle bg-current"
+        />
+      </h2>
+
+      {/* Subtitle */}
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5 }}
+        className="text-lg lg:text-xl text-white/50 mb-6"
+      >
+        {block.subtitle}
+      </motion.p>
+
+      {/* Description */}
+      <motion.p
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2 }}
+        className="text-base lg:text-lg text-white/70 max-w-2xl leading-relaxed"
+      >
+        {block.description}
+      </motion.p>
+
+      {/* Prompt */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.5 }}
+        className="mt-10"
+      >
+        <motion.button
+          onClick={goNext}
+          whileHover={{ scale: 1.05, boxShadow: `0 0 25px ${glowBase}0.4)` }}
+          whileTap={{ scale: 0.95 }}
+          className={cn(
+            "px-8 py-3 rounded-xl font-semibold text-sm border",
+            block.bgColor, block.borderColor, block.textColor
+          )}
+        >
+          Explore the 4 Strategic Questions →
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+
+  // ---------------------------------------------------------------------------
+  // STEPS 1-4: STRATEGIC QUESTIONS
+  // ---------------------------------------------------------------------------
+  const renderQuestion = (question: StrategicQuestion, index: number) => (
+    <motion.div
+      key={question.id}
+      custom={direction}
+      variants={slideVariants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col h-full px-6 sm:px-10 lg:px-16 py-8 overflow-y-auto"
+    >
+      <div className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
+        {/* Question number with animated ring */}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="flex items-center gap-5 mb-8"
+        >
+          <div className="relative">
+            <svg width="64" height="64" viewBox="0 0 64 64" className="lg:w-20 lg:h-20">
+              {/* Background circle */}
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/10" />
+              {/* Animated progress arc */}
+              <motion.circle
+                cx="32" cy="32" r="28"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                className={block.textColor}
+                strokeDasharray={`${(index + 1) / questions.length * 175.9} 175.9`}
+                initial={{ strokeDasharray: "0 175.9" }}
+                animate={{ strokeDasharray: `${(index + 1) / questions.length * 175.9} 175.9` }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+                transform="rotate(-90 32 32)"
+              />
+            </svg>
+            <span className={cn("absolute inset-0 flex items-center justify-center text-lg lg:text-xl font-bold", block.textColor)}>
+              {String(index + 1).padStart(2, "0")}
+            </span>
+          </div>
+
+          <div>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className={cn("h-1 rounded-full mb-2", block.bgColor)}
+              style={{ maxWidth: 120 }}
+            />
+            <h3 className={cn("text-lg lg:text-xl font-bold", block.textColor)}>
+              {question.title}
+            </h3>
+          </div>
+        </motion.div>
+
+        {/* The question itself */}
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+          className="text-2xl lg:text-3xl xl:text-4xl font-bold text-white leading-tight mb-6"
+        >
+          {question.question}
+        </motion.h2>
+
+        {/* Description */}
+        <motion.p
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="text-base lg:text-lg text-white/60 leading-relaxed mb-8 max-w-3xl"
+        >
+          {question.description}
+        </motion.p>
+
+        {/* Assessment Criteria - Traffic Light */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="space-y-3 mb-8"
+        >
+          <p className="text-xs uppercase tracking-wider text-white/40 mb-3">Assessment Criteria</p>
+          {[
+            { label: "Complete", text: question.assessmentCriteria.complete, color: "emerald", icon: "✓" },
+            { label: "Partial", text: question.assessmentCriteria.partial, color: "amber", icon: "◐" },
+            { label: "Gap", text: question.assessmentCriteria.gap, color: "red", icon: "✗" },
+          ].map((criteria, ci) => {
+            const barColors: Record<string, string> = {
+              emerald: "bg-emerald-500",
+              amber: "bg-amber-500",
+              red: "bg-red-500",
+            };
+            const textColors: Record<string, string> = {
+              emerald: "text-emerald-400",
+              amber: "text-amber-400",
+              red: "text-red-400",
+            };
+            return (
+              <motion.div
+                key={criteria.label}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 + ci * 0.15, duration: 0.4 }}
+                className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10"
+              >
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: 4 }}
+                  transition={{ delay: 1.1 + ci * 0.15, duration: 0.3 }}
+                  className={cn("self-stretch rounded-full flex-shrink-0", barColors[criteria.color])}
+                />
+                <span className={cn("text-sm font-bold w-16 flex-shrink-0", textColors[criteria.color])}>
+                  {criteria.icon} {criteria.label}
+                </span>
+                <span className="text-sm text-white/60 leading-relaxed">{criteria.text}</span>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        {/* Data fields as animated tags */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          <p className="text-xs uppercase tracking-wider text-white/40 mb-3">Platform Metrics</p>
+          <div className="flex flex-wrap gap-2">
+            {question.dataFields.map((field, fi) => (
+              <motion.span
+                key={field}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 1.6 + fi * 0.08 }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-mono border",
+                  block.bgColor, block.borderColor, block.textColor
+                )}
+              >
+                {field.replace(/_/g, " ")}
+              </motion.span>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+
+  // ---------------------------------------------------------------------------
+  // STEP 5: SUMMARY
+  // ---------------------------------------------------------------------------
+  const renderSummary = () => (
+    <motion.div
+      key="summary"
+      custom={direction}
+      variants={slideVariants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col h-full px-6 sm:px-10 lg:px-16 py-8 overflow-y-auto"
+    >
+      <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto w-full">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 mb-8"
+        >
+          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", block.bgColor, "border", block.borderColor)}>
+            <BlockIcon className={cn("w-6 h-6", block.textColor)} />
+          </div>
+          <div>
+            <h2 className={cn("text-2xl lg:text-3xl font-bold", block.textColor)}>{block.title}</h2>
+            <p className="text-sm text-white/50">{questions.length} Strategic Questions Explored</p>
+          </div>
+        </motion.div>
+
+        {/* Questions grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {questions.map((q, i) => (
+            <motion.div
+              key={q.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.12 }}
+              whileHover={{ scale: 1.02, x: 4 }}
+              onClick={() => goTo(i + 1)}
+              className={cn(
+                "p-4 rounded-xl border cursor-pointer transition-all",
+                "bg-white/5 border-white/10 hover:border-white/20"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold",
+                  block.bgColor, block.textColor
+                )}>
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <div className="min-w-0">
+                  <p className={cn("text-sm font-semibold mb-1", block.textColor)}>{q.title}</p>
+                  <p className="text-xs text-white/50 line-clamp-2">{q.question}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Key metrics */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mb-8"
+        >
+          <p className="text-xs uppercase tracking-wider text-white/40 mb-3">Key Metrics Assessed</p>
+          <div className="flex flex-wrap gap-2">
+            {block.keyMetrics.map((metric, i) => (
+              <motion.span
+                key={metric}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.9 + i * 0.08 }}
+                whileHover={{ scale: 1.08, boxShadow: `0 0 15px ${glowBase}0.3)` }}
+                className={cn(
+                  "px-4 py-2 rounded-full text-sm font-medium border cursor-default",
+                  block.bgColor, block.textColor, block.borderColor
+                )}
+              >
+                {metric}
+              </motion.span>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Data sources */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+          className="mb-8"
+        >
+          <p className="text-xs uppercase tracking-wider text-white/40 mb-3">Data Sources</p>
+          <div className="flex flex-wrap gap-3">
+            {block.dataSources.map((src, i) => (
+              <motion.div
+                key={src}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 + i * 0.08 }}
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10"
+              >
+                <Database className="w-4 h-4 text-white/50" />
+                <span className="text-sm text-white/70 font-medium">{src}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* CTA */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.4 }}
+          whileHover={{ scale: 1.03, boxShadow: `0 0 30px ${glowBase}0.4)` }}
+          whileTap={{ scale: 0.97 }}
+          onClick={onClose}
+          className={cn(
+            "w-full max-w-md mx-auto px-6 py-4 rounded-xl font-semibold text-base border",
+            block.bgColor, block.borderColor, block.textColor,
+            "bg-gradient-to-r from-white/5 to-white/10"
+          )}
+        >
+          Continue Presentation →
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+
+  // ---------------------------------------------------------------------------
+  // MAIN RENDER
+  // ---------------------------------------------------------------------------
+  return (
+    <>
+      {/* Full-screen backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50"
+        style={{ backgroundColor: "rgba(0,0,0,0.92)" }}
+      >
+        <motion.div
+          className="absolute inset-0"
+          initial={{ backdropFilter: "blur(0px)" }}
+          animate={{ backdropFilter: "blur(16px)" }}
+          transition={{ duration: 0.5 }}
+        />
+      </motion.div>
+
+      {/* Content layer */}
+      <div className="fixed inset-0 z-50 flex flex-col">
+        {/* Top bar: close + auto-play + step counter */}
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <X className="w-5 h-5 text-white/70" />
+            </motion.button>
+            <span className={cn("text-sm font-medium", block.textColor)}>{block.title}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Auto-play toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                isAutoPlaying
+                  ? `${block.bgColor} ${block.borderColor} ${block.textColor}`
+                  : "bg-white/5 border-white/10 text-white/40"
+              )}
+            >
+              <Play className="w-3 h-3" />
+              {isAutoPlaying ? "Auto" : "Manual"}
+            </motion.button>
+
+            <span className="text-sm font-mono text-white/30">
+              {String(currentStep + 1).padStart(2, "0")} / {String(totalSteps).padStart(2, "0")}
+            </span>
+          </div>
+        </div>
+
+        {/* Ambient glow */}
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+          animate={{
+            background: [
+              `radial-gradient(circle, ${glowBase}0.08) 0%, transparent 70%)`,
+              `radial-gradient(circle, ${glowBase}0.15) 0%, transparent 70%)`,
+              `radial-gradient(circle, ${glowBase}0.08) 0%, transparent 70%)`,
+            ],
+          }}
+          transition={{ duration: 4, repeat: Infinity }}
+        />
+
+        {/* Main content area */}
+        <div className="flex-1 relative overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
+            {currentStep === 0 && renderIntro()}
+            {currentStep >= 1 && currentStep <= questions.length && renderQuestion(questions[currentStep - 1], currentStep - 1)}
+            {currentStep === totalSteps - 1 && renderSummary()}
+          </AnimatePresence>
+        </div>
+
+        {/* Bottom navigation */}
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Previous button */}
+          <motion.button
+            whileHover={{ scale: 1.1, x: -3 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={goPrev}
+            className={cn(
+              "p-2 rounded-full transition-colors",
+              currentStep > 0 ? "bg-white/10 hover:bg-white/20 text-white" : "text-white/10 cursor-default"
+            )}
+            disabled={currentStep === 0}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </motion.button>
+
+          {/* Progress dots */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <motion.button
+                key={i}
+                onClick={() => goTo(i)}
+                whileHover={{ scale: 1.3 }}
+                className={cn(
+                  "rounded-full transition-all duration-300",
+                  i === currentStep
+                    ? `w-8 h-2 ${block.textColor.replace("text-", "bg-")}`
+                    : i < currentStep
+                    ? "w-2 h-2 bg-white/40"
+                    : "w-2 h-2 bg-white/15"
+                )}
+              />
+            ))}
+          </div>
+
+          {/* Next button */}
+          <motion.button
+            whileHover={{ scale: 1.1, x: 3 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={goNext}
+            className={cn(
+              "p-2 rounded-full transition-colors",
+              currentStep < totalSteps - 1 ? "bg-white/10 hover:bg-white/20 text-white" : "text-white/10 cursor-default"
+            )}
+            disabled={currentStep === totalSteps - 1}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </motion.button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1 bg-white/5">
+          <motion.div
+            className={cn("h-full rounded-r-full", block.textColor.replace("text-", "bg-"))}
+            animate={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // Framework temple blocks
 interface FrameworkBlock {
   id: 'governance' | 'pillar1' | 'pillar2' | 'pillar3';
@@ -7655,156 +8313,13 @@ function UnifiedFrameworkVisual() {
         )}
       </AnimatePresence>
 
-      {/* Framework Block Detail Modal - PREMIUM ANIMATION */}
+      {/* Cinematic Pillar Storyflow */}
       <AnimatePresence>
         {selectedBlock && (
-          <>
-            {/* Backdrop with blur animation */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => setSelectedBlock(null)}
-              className="fixed inset-0 z-50"
-              style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
-            >
-              <motion.div
-                className="absolute inset-0"
-                initial={{ backdropFilter: 'blur(0px)' }}
-                animate={{ backdropFilter: 'blur(12px)' }}
-                exit={{ backdropFilter: 'blur(0px)' }}
-                transition={{ duration: 0.4 }}
-              />
-            </motion.div>
-            
-            {/* Modal with 3D entrance */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.75, y: 60, rotateX: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 40, rotateX: 10 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              style={{ perspective: '1200px' }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-lg max-h-[75vh] overflow-hidden rounded-3xl shadow-2xl"
-            >
-              {/* Animated border glow */}
-              <motion.div
-                className="absolute inset-0 rounded-3xl"
-                animate={{
-                  boxShadow: [
-                    `0 0 20px 5px ${getColorRgba(selectedBlock.color, 0.3)}`,
-                    `0 0 40px 10px ${getColorRgba(selectedBlock.color, 0.5)}`,
-                    `0 0 20px 5px ${getColorRgba(selectedBlock.color, 0.3)}`,
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              
-              <div className="relative bg-gradient-to-br from-slate-900/98 via-slate-800/98 to-slate-900/98 border border-white/10 rounded-3xl overflow-hidden">
-                {/* Modal Header */}
-                <motion.div 
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className={`p-5 ${selectedBlock.bgColor} border-b border-white/10`}
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setSelectedBlock(null)}
-                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                  >
-                    <X className="w-4 h-4 text-white/80" />
-                  </motion.button>
-                  
-                  <motion.div
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.15, type: "spring", stiffness: 400 }}
-                    className="flex items-center gap-4"
-                  >
-                    <motion.div 
-                      animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                      className={`p-3 rounded-2xl ${selectedBlock.bgColor} ${selectedBlock.borderColor} border-2`}
-                    >
-                      <selectedBlock.icon className={`w-7 h-7 ${selectedBlock.textColor}`} />
-                    </motion.div>
-                    <div>
-                      <h3 className={`text-lg sm:text-xl font-bold ${selectedBlock.textColor}`}>
-                        {selectedBlock.title}
-                      </h3>
-                      <p className="text-white/60 text-sm">{selectedBlock.subtitle}</p>
-                    </div>
-                  </motion.div>
-                </motion.div>
-
-                {/* Modal Content with staggered sections */}
-                <div className="p-5 space-y-5 overflow-y-auto max-h-[50vh]">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                  >
-                    <p className="text-white/80 text-sm leading-relaxed">{selectedBlock.description}</p>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3, type: "spring" }}
-                  >
-                    <h4 className="text-white/90 text-sm font-semibold mb-3">Key Metrics</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedBlock.keyMetrics.map((metric, i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.35 + i * 0.05 }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium ${selectedBlock.bgColor} ${selectedBlock.textColor} ${selectedBlock.borderColor} border`}
-                        >
-                          {metric}
-                        </motion.span>
-                      ))}
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4, type: "spring" }}
-                  >
-                    <h4 className="text-white/90 text-sm font-semibold mb-3">Data Sources</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {selectedBlock.dataSources.map((sourceName, i) => {
-                        const source = frameworkDataSources.find(s => s.shortName === sourceName);
-                        if (!source) return null;
-                        return (
-                          <motion.button
-                            key={source.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45 + i * 0.08 }}
-                            whileHover={{ scale: 1.03, x: 3 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => {
-                              setSelectedBlock(null);
-                              setTimeout(() => setSelectedSource(source), 250);
-                            }}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl ${source.bgColor} ${source.borderColor} border-2 hover:bg-white/10 transition-all`}
-                          >
-                            <Database className={`w-4 h-4 ${source.textColor}`} />
-                            <span className={`text-xs font-medium ${source.textColor}`}>{source.shortName}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.div>
-          </>
+          <PillarStoryflow
+            block={selectedBlock}
+            onClose={() => setSelectedBlock(null)}
+          />
         )}
       </AnimatePresence>
     </div>
