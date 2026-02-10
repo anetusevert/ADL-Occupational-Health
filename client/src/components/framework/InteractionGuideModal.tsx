@@ -50,6 +50,8 @@ import {
   AlertTriangle,
   Target,
   ExternalLink,
+  Award,
+  Trophy,
 } from "lucide-react";
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { personas, getCoverageStatus, type Persona } from "../../data/personas";
@@ -3079,23 +3081,20 @@ interface GetVisualOptions {
   onCloseAndExplore?: () => void;
 }
 
-function getVisualForSlide(slideId: string, options: GetVisualOptions = {}) {
-  const { onInsightClick, onNavigate, onCloseAndExplore } = options;
-  
+function getVisualForSlide(slideId: string, _options: GetVisualOptions = {}) {
   switch (slideId) {
     case "intro": return <IntroVisual />;
-    case "global-challenge": return <GlobalChallengeVisual />;
-    case "adl-solution": return <ADLSolutionVisual />;
-    case "overview": return <TempleOverviewVisual />;
-    case "workforce-lens": return <WorkforceLensVisual />;
-    case "governance": return <GovernanceVisual onInsightClick={onInsightClick} />;
-    case "pillar-1": return <HazardPreventionVisual onInsightClick={onInsightClick} />;
-    case "pillar-2": return <SurveillanceVisual onInsightClick={onInsightClick} />;
-    case "pillar-3": return <RestorationVisual onInsightClick={onInsightClick} />;
-    case "integration": return <IntegrationVisual onInsightClick={onInsightClick} />;
-    case "success-stories": return <SuccessStoriesVisual />;
-    case "gosi-opportunity": return <GOSIOpportunityVisual />;
-    case "conclusion": return <ConclusionVisual onNavigate={onNavigate} onCloseAndExplore={onCloseAndExplore} />;
+    case "the-stakes": return <GlobalChallengeVisual />;
+    case "the-framework": return <TempleOverviewVisual />;
+    case "global-intelligence": return <GlobalMapVisual />;
+    case "evidence-base": return <DataSourcesVisual stats={[]} />;
+    case "country-dive": return <CountryDashboardVisual />;
+    case "focus-ksa": return <KSAPositionVisual />;
+    case "the-workforce": return <WorkforceLensVisual />;
+    case "best-practices": return <BestPracticesVisual />;
+    case "leaderboard": return <LeaderboardVisual />;
+    case "compare-tool": return <CompareVisual />;
+    case "conclusion": return <HandshakeVisual />;
     default: return <IntroVisual />;
   }
 }
@@ -3111,22 +3110,11 @@ interface RenderOptions {
 }
 
 function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
-  const { onInsightClick, onNavigate, onCloseAndExplore } = options;
-  
-  // Get icon component for the slide
-  const getIcon = () => {
-    switch (slide.icon) {
-      case "Crown": return <Crown className="w-5 h-5 text-purple-400" />;
-      case "Shield": return <Shield className="w-5 h-5 text-blue-400" />;
-      case "Eye": return <Eye className="w-5 h-5 text-emerald-400" />;
-      case "Heart": return <Heart className="w-5 h-5 text-amber-400" />;
-      default: return null;
-    }
-  };
+  const { onCloseAndExplore } = options;
 
   // Map slide types to layout templates
   switch (slide.type) {
-    // SLIDE 1: GLOBAL OCCUPATIONAL HEALTH INTELLIGENCE - Full immersive layout
+    // SLIDE 1: WELCOME - Full immersive intro
     case "intro":
       return (
         <div className="h-full flex flex-col overflow-hidden">
@@ -3134,7 +3122,151 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
         </div>
       );
 
-    // SLIDE 12: THE HANDSHAKE - ADL + GOSI Partnership
+    // SLIDE 2: THE STAKES - Cost iceberg
+    case "challenge":
+      return (
+        <div className="h-full flex flex-col overflow-hidden">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
+            color="amber"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <IcebergVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 3: THE FRAMEWORK - Temple architecture
+    case "overview":
+      return (
+        <div className="h-full flex flex-col overflow-hidden">
+          <UnifiedFrameworkVisual />
+        </div>
+      );
+
+    // SLIDE 4: GLOBAL INTELLIGENCE - World map
+    case "app-global":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Globe className="w-5 h-5 text-blue-400" />}
+            color="blue"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <GlobalMapVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 5: EVIDENCE BASE - Data sources
+    case "data-sources":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Database className="w-5 h-5 text-cyan-400" />}
+            color="cyan"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
+            <DataSourcesVisual stats={slide.stats} />
+          </div>
+        </div>
+      );
+
+    // SLIDE 6: COUNTRY DEEP DIVE - Dashboard preview
+    case "app-country":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Building2 className="w-5 h-5 text-blue-400" />}
+            color="blue"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <CountryDashboardVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 7: FOCUS KSA - Benchmarking
+    case "ksa-position":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Target className="w-5 h-5 text-emerald-400" />}
+            color="emerald"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
+            <KSAPositionVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 8: THE WORKFORCE - Personas
+    case "workforce":
+      return (
+        <div className="h-full flex flex-col overflow-hidden">
+          <WorkforceLensVisual />
+        </div>
+      );
+
+    // SLIDE 9: BEST PRACTICES - Leader showcase
+    case "app-bestpractices":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Award className="w-5 h-5 text-emerald-400" />}
+            color="emerald"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <BestPracticesVisual countries={slide.countries} />
+          </div>
+        </div>
+      );
+
+    // SLIDE 10: GLOBAL LEADERBOARD - Rankings
+    case "app-leaderboard":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Trophy className="w-5 h-5 text-blue-400" />}
+            color="blue"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <LeaderboardVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 11: COMPARE & ANALYZE - AI comparison
+    case "app-compare":
+      return (
+        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
+          <ConsultingSlideHeader
+            actionTitle={slide.actionTitle}
+            subtitle={slide.subtitle}
+            icon={<Scale className="w-5 h-5 text-cyan-400" />}
+            color="cyan"
+          />
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <CompareVisual />
+          </div>
+        </div>
+      );
+
+    // SLIDE 12: BEGIN EXPLORING - CTA
     case "cta":
       return (
         <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
@@ -3157,174 +3289,6 @@ function renderConsultingSlide(slide: GuideSlide, options: RenderOptions = {}) {
               Start Exploring the Platform
             </motion.button>
           </motion.div>
-        </div>
-      );
-
-    // DATA IMPACT LAYOUT - Challenge and opportunity slides
-    // SLIDE 2: THE ICEBERG - Saudi Arabia's Silent Economic Hemorrhage
-    case "challenge":
-      return (
-        <div className="h-full flex flex-col overflow-hidden">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
-            color="amber"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <IcebergVisual />
-          </div>
-        </div>
-      );
-
-    // SLIDE 11: THE ASCENT - 3-Year Strategic Transformation
-    case "opportunity":
-      return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<TrendingUp className="w-5 h-5 text-cyan-400" />}
-            color="cyan"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <AscentVisual />
-          </div>
-        </div>
-      );
-
-    // SLIDE 4: THE SOLUTION - Unified Global Occupational Health Framework
-    case "overview":
-      return (
-        <div className="h-full flex flex-col overflow-hidden">
-          <UnifiedFrameworkVisual />
-        </div>
-      );
-
-    // SLIDE 5: THE WORKFORCE - Labor Force Lens (Personas)
-    case "workforce":
-      return (
-        <div className="h-full flex flex-col overflow-hidden">
-          <WorkforceLensVisual />
-        </div>
-      );
-
-    // SLIDE 9: THE ENGINE - Spinning Cube with Data Particles
-    case "integration":
-      return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<RefreshCcw className="w-5 h-5 text-cyan-400" />}
-            color="cyan"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <SpinningEngineVisual />
-          </div>
-        </div>
-      );
-
-    // SOVEREIGN SHIELD VISUALS - Slides 5-8 (Governance + Pillars)
-    case "component":
-      const componentColors: Record<string, "purple" | "blue" | "emerald" | "amber" | "cyan"> = {
-        governance: "purple",
-        "pillar-1": "blue",
-        "pillar-2": "emerald",
-        "pillar-3": "amber",
-      };
-      
-      // Map to Sovereign Shield visuals
-      const sovereignVisuals: Record<string, React.ReactNode> = {
-        governance: <ControlTowerVisual onInsightClick={onInsightClick} />,
-        "pillar-1": <HierarchyPyramidVisual onInsightClick={onInsightClick} />,
-        "pillar-2": <DigitalTwinVisual onInsightClick={onInsightClick} />,
-        "pillar-3": <FastTrackVisual onInsightClick={onInsightClick} />,
-      };
-
-      const componentId = slide.componentId || "governance";
-      const colorKey = componentColors[componentId];
-
-      // Full-bleed Sovereign Shield visual with framework navigator
-      return (
-        <div className={cn(
-          "h-full flex flex-col overflow-hidden",
-          colorKey === "purple" && "bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900",
-          colorKey === "blue" && "bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900",
-          colorKey === "emerald" && "bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900",
-          colorKey === "amber" && "bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900",
-        )}>
-          {/* Framework Navigator - Top left */}
-          <FrameworkNavigator activeComponent={componentId} />
-          
-          {/* Consulting header */}
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={getIcon()}
-            color={colorKey}
-          />
-          
-          {/* Sovereign Shield visual */}
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            {sovereignVisuals[componentId]}
-          </div>
-        </div>
-      );
-
-    // SLIDE 10: THE WORLD MAP - Pulsing Country Shields
-    case "success":
-      return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<Globe className="w-5 h-5 text-emerald-400" />}
-            color="emerald"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden">
-            <WorldMapVisual />
-          </div>
-        </div>
-      );
-
-    case "solution":
-      // SLIDE 3: The Current Landscape - Fragmented Data, Accelerating Risks
-      return (
-        <div className="h-full flex flex-col overflow-hidden">
-          <CurrentLandscapeVisual />
-        </div>
-      );
-
-    // SLIDE 5: THE GLOBAL LENS - Data Sources and Evidence Base
-    case "data-sources":
-      return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-cyan-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<Database className="w-5 h-5 text-cyan-400" />}
-            color="cyan"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
-            <DataSourcesVisual stats={slide.stats} highlights={slide.highlights} />
-          </div>
-        </div>
-      );
-
-    // SLIDE 11: KSA POSITIONING - Benchmarks and Gap Analysis
-    case "ksa-position":
-      return (
-        <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900">
-          <ConsultingSlideHeader
-            actionTitle={slide.actionTitle}
-            subtitle={slide.subtitle}
-            icon={<Target className="w-5 h-5 text-emerald-400" />}
-            color="emerald"
-          />
-          <div className="flex-1 min-h-0 relative overflow-hidden p-6 flex items-center justify-center">
-            <KSAPositionVisual stats={slide.stats} highlights={slide.highlights} />
-          </div>
         </div>
       );
 
@@ -3499,7 +3463,7 @@ const benchmarkGroups = [
   { label: "Global Leader", color: "amber" as const },
 ];
 
-function KSAPositionVisual(_props: { stats?: { value: string; label: string; color?: string }[]; highlights?: string[] }) {
+function KSAPositionVisual() {
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* KSA header badge */}
@@ -3589,6 +3553,466 @@ function KSAPositionVisual(_props: { stats?: { value: string; label: string; col
           <span className="text-amber-400 font-semibold">Gap:</span> Prevention and surveillance require targeted investment to reach global leader benchmarks.
         </p>
       </motion.div>
+    </div>
+  );
+}
+
+// ============================================================================
+// APP TOUR VISUALS - New visual components for application section slides
+// ============================================================================
+
+// GLOBAL INTELLIGENCE VISUAL - World map representation
+function GlobalMapVisual() {
+  const continents = [
+    { name: "Europe", x: 52, y: 25, count: 44, color: "cyan" as const },
+    { name: "Asia", x: 72, y: 35, count: 49, color: "emerald" as const },
+    { name: "Africa", x: 52, y: 55, count: 54, color: "amber" as const },
+    { name: "Americas", x: 25, y: 40, count: 35, color: "blue" as const },
+    { name: "Oceania", x: 82, y: 65, count: 14, color: "purple" as const },
+  ];
+
+  return (
+    <div className="w-full h-full relative flex items-center justify-center">
+      {/* Background grid */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="w-full h-full" style={{
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)",
+          backgroundSize: "24px 24px"
+        }} />
+      </div>
+
+      {/* Globe outline */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-2xl aspect-[2/1]"
+      >
+        {/* Equator line */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute top-1/2 left-[10%] right-[10%] h-[1px] bg-white/10 origin-left"
+        />
+        
+        {/* Continent nodes */}
+        {continents.map((c, i) => {
+          const col = getColor(c.color);
+          return (
+            <motion.div
+              key={c.name}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 + i * 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${c.x}%`, top: `${c.y}%` }}
+            >
+              {/* Pulse ring */}
+              <motion.div
+                animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
+                className={cn("absolute inset-0 rounded-full", col.bgSolid, "opacity-20")}
+                style={{ width: 48, height: 48, left: -12, top: -12 }}
+              />
+              {/* Core */}
+              <div className={cn("relative w-6 h-6 rounded-full flex items-center justify-center", col.bg, "border", col.border, "backdrop-blur-sm")}>
+                <span className={cn("text-[8px] font-bold", col.text)}>{c.count}</span>
+              </div>
+              {/* Label */}
+              <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <p className="text-[10px] font-medium text-white/60">{c.name}</p>
+              </div>
+            </motion.div>
+          );
+        })}
+
+        {/* Connection lines between continents */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {continents.map((c, i) => {
+            const next = continents[(i + 1) % continents.length];
+            return (
+              <motion.line
+                key={`${c.name}-${next.name}`}
+                x1={c.x} y1={c.y} x2={next.x} y2={next.y}
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth="0.3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 + i * 0.1, duration: 0.6, ease: "easeOut" }}
+              />
+            );
+          })}
+        </svg>
+      </motion.div>
+
+      {/* Bottom stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5, duration: 0.6 }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-6"
+      >
+        {[
+          { label: "Nations Assessed", value: "195", color: "cyan" as const },
+          { label: "Hover for Profile", value: "↗", color: "emerald" as const },
+          { label: "Click to Deep Dive", value: "⊕", color: "purple" as const },
+        ].map((item, i) => {
+          const col = getColor(item.color);
+          return (
+            <div key={i} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg", col.bg, "border", col.border)}>
+              <span className={cn("text-xs font-semibold", col.text)}>{item.value}</span>
+              <span className="text-[10px] text-white/50">{item.label}</span>
+            </div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
+// COUNTRY DEEP DIVE VISUAL - Dashboard quadrant representation
+function CountryDashboardVisual() {
+  const quadrants = [
+    { label: "Economic Context", icon: "📊", items: ["GDP per capita", "Labor force", "Demographics"], color: "cyan" as const },
+    { label: "Framework Scores", icon: "🏛", items: ["Governance", "Prevention", "Surveillance", "Restoration"], color: "emerald" as const },
+    { label: "AI Insights", icon: "🤖", items: ["6 intelligence categories", "Strategic analysis", "Recommendations"], color: "purple" as const },
+    { label: "Global Position", icon: "🌍", items: ["Percentile ranking", "Peer comparison", "Gap to #1"], color: "blue" as const },
+  ];
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4">
+      <div className="w-full max-w-xl">
+        {/* Country header mock */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center justify-center gap-3 mb-6"
+        >
+          <div className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+            <div className="w-6 h-4 rounded-sm bg-gradient-to-b from-emerald-400 to-emerald-600" />
+            <span className="text-sm font-semibold text-white">Any Country</span>
+            <span className="text-xs text-cyan-400 font-mono">OHI 2.8</span>
+          </div>
+        </motion.div>
+
+        {/* Dashboard grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {quadrants.map((q, i) => {
+            const c = getColor(q.color);
+            return (
+              <motion.div
+                key={q.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className={cn("p-4 rounded-xl border backdrop-blur-sm", c.bg, c.border)}
+              >
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="text-base">{q.icon}</span>
+                  <span className={cn("text-xs font-semibold", c.text)}>{q.label}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {q.items.map((item, j) => (
+                    <motion.div
+                      key={item}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8 + i * 0.12 + j * 0.06, duration: 0.3 }}
+                      className="flex items-center gap-1.5"
+                    >
+                      <div className={cn("w-1 h-1 rounded-full", c.bgSolid)} />
+                      <span className="text-[10px] text-white/50">{item}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Bottom hint */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-center text-[10px] text-white/30 mt-4"
+        >
+          Click any country on the Global Map to access its full dashboard
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
+// BEST PRACTICES VISUAL - Leader showcase
+function BestPracticesVisual({ countries }: { countries?: { code: string; name: string; achievement: string }[] }) {
+  const leaders = countries || [
+    { code: "DEU", name: "Germany", achievement: "75% fatality reduction" },
+    { code: "SGP", name: "Singapore", achievement: "Zero-fatality sectors" },
+    { code: "NZL", name: "New Zealand", achievement: "Universal no-fault since 1974" },
+    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" },
+  ];
+
+  const pillars = [
+    { label: "Governance", color: "purple" as const, leader: "Germany" },
+    { label: "Prevention", color: "blue" as const, leader: "Singapore" },
+    { label: "Surveillance", color: "emerald" as const, leader: "South Korea" },
+    { label: "Restoration", color: "amber" as const, leader: "New Zealand" },
+  ];
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Pillar leaders */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {pillars.map((p, i) => {
+            const c = getColor(p.color);
+            return (
+              <motion.div
+                key={p.label}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className={cn("p-3 rounded-xl border text-center", c.bg, c.border)}
+              >
+                <p className={cn("text-[10px] uppercase tracking-wider mb-1", c.text)}>{p.label}</p>
+                <p className="text-xs font-semibold text-white">{p.leader}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Global leaders detail */}
+        <div className="space-y-2.5">
+          {leaders.map((leader, i) => (
+            <motion.div
+              key={leader.code}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/10"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                <span className="text-xs font-bold text-emerald-400">#{i + 1}</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-white">{leader.name}</p>
+                <p className="text-[10px] text-white/40">{leader.achievement}</p>
+              </div>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${90 - i * 8}%` }}
+                transition={{ delay: 1.2 + i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500/50 to-cyan-500/50 max-w-[120px]"
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* AI analysis hint */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+          className="mt-4 text-center px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20"
+        >
+          <p className="text-[10px] text-purple-300">
+            Each practice includes AI-generated analysis showing how it can be adapted for KSA
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// LEADERBOARD VISUAL - Rankings table representation
+function LeaderboardVisual() {
+  const mockRankings = [
+    { rank: 1, name: "Germany", score: 3.72, tier: "Leading", color: "emerald" as const },
+    { rank: 2, name: "Sweden", score: 3.68, tier: "Leading", color: "emerald" as const },
+    { rank: 3, name: "Singapore", score: 3.61, tier: "Leading", color: "emerald" as const },
+    { rank: "...", name: "", score: 0, tier: "", color: "cyan" as const },
+    { rank: "KSA", name: "Saudi Arabia", score: 2.45, tier: "Developing", color: "amber" as const },
+    { rank: "...", name: "", score: 0, tier: "", color: "cyan" as const },
+    { rank: 195, name: "Somalia", score: 0.82, tier: "Critical", color: "red" as const },
+  ];
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4">
+      <div className="w-full max-w-xl">
+        {/* Filter chips */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="flex justify-center gap-2 mb-5"
+        >
+          {["Global", "G20", "GCC", "Europe", "Asia"].map((f, i) => (
+            <div key={f} className={cn(
+              "px-3 py-1 rounded-full text-[10px] font-medium border",
+              i === 0 ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300" : "bg-white/5 border-white/10 text-white/40"
+            )}>
+              {f}
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Rankings table */}
+        <div className="space-y-1.5">
+          {mockRankings.map((r, i) => {
+            if (r.name === "") {
+              return (
+                <motion.div key={`sep-${i}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 + i * 0.08 }}
+                  className="text-center text-white/20 text-xs py-1"
+                >
+                  ···
+                </motion.div>
+              );
+            }
+            const isKSA = r.rank === "KSA";
+            const col = getColor(r.color);
+            return (
+              <motion.div
+                key={r.name}
+                initial={{ opacity: 0, x: -15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 + i * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2.5 rounded-xl border",
+                  isKSA ? "bg-emerald-500/15 border-emerald-500/30 ring-1 ring-emerald-500/20" : "bg-white/5 border-white/10"
+                )}
+              >
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                  isKSA ? "bg-emerald-500/20 text-emerald-400" : col.bg + " " + col.text
+                )}>
+                  {typeof r.rank === "number" ? `#${r.rank}` : r.rank}
+                </div>
+                <span className={cn("flex-1 text-sm font-medium", isKSA ? "text-emerald-300" : "text-white")}>{r.name}</span>
+                <span className={cn("text-sm font-mono font-semibold", col.text)}>{r.score.toFixed(2)}</span>
+                <span className={cn("text-[9px] px-2 py-0.5 rounded-full", col.bg, col.text, "border", col.border)}>
+                  {r.tier}
+                </span>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Sortable hint */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-center text-[10px] text-white/30 mt-4"
+        >
+          Sort by any pillar · Filter by region · Click any row to explore
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
+// COMPARE VISUAL - Side-by-side comparison representation
+function CompareVisual() {
+  const dimensions = [
+    { label: "Governance", ksaScore: 55, otherScore: 82, color: "purple" as const },
+    { label: "Prevention", ksaScore: 45, otherScore: 88, color: "blue" as const },
+    { label: "Surveillance", ksaScore: 40, otherScore: 85, color: "emerald" as const },
+    { label: "Restoration", ksaScore: 60, otherScore: 78, color: "amber" as const },
+  ];
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-4">
+      <div className="w-full max-w-xl">
+        {/* Country headers */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+            <span className="text-sm font-semibold text-emerald-400">🇸🇦 Saudi Arabia</span>
+          </div>
+          <motion.div
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-xs text-white/30 font-mono"
+          >
+            VS
+          </motion.div>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+            <span className="text-sm font-semibold text-cyan-400">🇩🇪 Germany</span>
+          </div>
+        </motion.div>
+
+        {/* Comparison bars */}
+        <div className="space-y-4 mb-6">
+          {dimensions.map((d, i) => {
+            const c = getColor(d.color);
+            return (
+              <motion.div
+                key={d.label}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 + i * 0.12 }}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={cn("text-[10px] uppercase tracking-wider", c.text)}>{d.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* KSA bar (right aligned) */}
+                  <div className="flex-1 flex justify-end">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${d.ksaScore}%` }}
+                      transition={{ delay: 0.8 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      className="h-4 rounded-l-md bg-emerald-500/30 border border-emerald-500/20 relative"
+                    >
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-400">
+                        {d.ksaScore}
+                      </span>
+                    </motion.div>
+                  </div>
+                  {/* Divider */}
+                  <div className="w-[1px] h-4 bg-white/20" />
+                  {/* Comparison bar (left aligned) */}
+                  <div className="flex-1">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${d.otherScore}%` }}
+                      transition={{ delay: 0.8 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      className="h-4 rounded-r-md bg-cyan-500/30 border border-cyan-500/20 relative"
+                    >
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-cyan-400">
+                        {d.otherScore}
+                      </span>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* AI analysis badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.6 }}
+          className="text-center p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-white/10"
+        >
+          <p className="text-[10px] text-white/50">
+            <span className="text-purple-300 font-semibold">AI-Powered</span> — Full strategic comparison generated in seconds.
+            Pillar analysis, gap identification, and actionable recommendations.
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -8041,20 +8465,17 @@ export function InteractionGuideModal({ isOpen, onClose, onNavigateToBlock }: In
 
   // Auto-advance timing per slide (in seconds)
   const slideTimings: Record<string, number> = {
-    "intro": 8,
-    "global-challenge": 10,
-    "adl-solution": 10,
-    "overview": 12,
-    "data-sources": 10,
-    "workforce-lens": 12,
-    "governance": 12,
-    "pillar-1": 10,
-    "pillar-2": 10,
-    "pillar-3": 10,
-    "integration": 12,
-    "ksa-position": 12,
-    "success-stories": 10,
-    "gosi-opportunity": 12,
+    "intro": 10,
+    "the-stakes": 10,
+    "the-framework": 10,
+    "global-intelligence": 10,
+    "evidence-base": 10,
+    "country-dive": 10,
+    "focus-ksa": 10,
+    "the-workforce": 10,
+    "best-practices": 10,
+    "leaderboard": 10,
+    "compare-tool": 10,
     "conclusion": 15,
   };
 

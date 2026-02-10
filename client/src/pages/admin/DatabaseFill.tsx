@@ -263,14 +263,17 @@ export function DatabaseFill() {
   // Error display
   const [error, setError] = useState<string | null>(null);
 
+  // Backend connectivity
+  const [backendReady, setBackendReady] = useState<boolean | null>(null);
+
   // ── Poll Phase 1 Status ──
   const pollEtl = useCallback(async () => {
     try {
       const res = await apiClient.get('/api/v1/etl/status');
       setEtlStatus(res.data);
       setEtlRunning(res.data.is_running);
-    } catch {
-      // ignore poll errors
+    } catch (err: any) {
+      console.warn('[DBFill] Phase 1 poll failed:', err?.response?.status, err?.message);
     }
   }, []);
 
@@ -280,8 +283,8 @@ export function DatabaseFill() {
       const res = await apiClient.get('/api/v1/etl/fill-status');
       setFillStatus(res.data);
       setFillRunning(res.data.status === 'running' || res.data.status === 'recalculating_scores');
-    } catch {
-      // ignore
+    } catch (err: any) {
+      console.warn('[DBFill] Phase 2 poll failed:', err?.response?.status, err?.message);
     }
   }, []);
 
@@ -291,9 +294,43 @@ export function DatabaseFill() {
       const res = await apiClient.get('/api/v1/insights/batch-generate-status');
       setInsightStatus(res.data);
       setInsightRunning(res.data.status === 'running');
-    } catch {
-      // ignore
+    } catch (err: any) {
+      console.warn('[DBFill] Phase 3 poll failed:', err?.response?.status, err?.message);
     }
+  }, []);
+
+  // ── Backend connectivity check on mount ──
+  useEffect(() => {
+    const checkBackend = async () => {
+      const endpoints = [
+        { name: 'ETL status', url: '/api/v1/etl/status' },
+        { name: 'Fill status', url: '/api/v1/etl/fill-status' },
+        { name: 'Insights status', url: '/api/v1/insights/batch-generate-status' },
+      ];
+      const failures: string[] = [];
+      for (const ep of endpoints) {
+        try {
+          await apiClient.get(ep.url);
+        } catch (err: any) {
+          const code = err?.response?.status;
+          if (code === 404) {
+            failures.push(`${ep.name} (404 Not Found)`);
+          } else if (code === 401 || code === 403) {
+            failures.push(`${ep.name} (${code} Unauthorized)`);
+          }
+          // Other errors (network, timeout) might be transient
+        }
+      }
+      if (failures.length > 0) {
+        setBackendReady(false);
+        setError(`Backend endpoints not available: ${failures.join(', ')}. The backend may need redeployment.`);
+        console.error('[DBFill] Backend check failed:', failures);
+      } else {
+        setBackendReady(true);
+        console.log('[DBFill] Backend connectivity OK - all endpoints reachable');
+      }
+    };
+    checkBackend();
   }, []);
 
   // ── Auto-poll ──
@@ -314,36 +351,48 @@ export function DatabaseFill() {
   // ── Start Phase 1: ETL ──
   const startEtl = async () => {
     setError(null);
+    console.log('[DBFill] Starting Phase 1: ETL pipeline...');
     try {
-      await apiClient.post('/api/v1/etl/run', { fetch_flags: true });
+      const res = await apiClient.post('/api/v1/etl/run', { fetch_flags: true });
+      console.log('[DBFill] Phase 1 started:', res.data);
       setEtlRunning(true);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to start ETL pipeline');
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start ETL pipeline';
+      console.error('[DBFill] Phase 1 start failed:', err?.response?.status, msg, err);
+      setError(`Phase 1 Error: ${msg}`);
     }
   };
 
   // ── Start Phase 2: AI Fill ──
   const startFill = async () => {
     setError(null);
+    console.log('[DBFill] Starting Phase 2: AI database fill...');
     try {
-      await apiClient.post('/api/v1/etl/fill-database', { delay_between: 2.0 });
+      const res = await apiClient.post('/api/v1/etl/fill-database', { delay_between: 2.0 });
+      console.log('[DBFill] Phase 2 started:', res.data);
       setFillRunning(true);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Failed to start database fill');
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start database fill';
+      console.error('[DBFill] Phase 2 start failed:', err?.response?.status, msg, err);
+      setError(`Phase 2 Error: ${msg}`);
     }
   };
 
   // ── Start Phase 3: Batch Insights ──
   const startInsights = async () => {
     setError(null);
+    console.log('[DBFill] Starting Phase 3: Batch insights (force_regenerate:', forceRegenInsights, ')...');
     try {
-      await apiClient.post('/api/v1/insights/batch-generate-all', {
+      const res = await apiClient.post('/api/v1/insights/batch-generate-all', {
         delay_between: 3.0,
         force_regenerate: forceRegenInsights,
       });
+      console.log('[DBFill] Phase 3 started:', res.data);
       setInsightRunning(true);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Failed to start batch insight generation');
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start batch insight generation';
+      console.error('[DBFill] Phase 3 start failed:', err?.response?.status, msg, err);
+      setError(`Phase 3 Error: ${msg}`);
     }
   };
 
@@ -353,8 +402,8 @@ export function DatabaseFill() {
       await apiClient.post('/api/v1/insights/batch-generate-reset');
       setInsightStatus(null);
       setInsightRunning(false);
-    } catch {
-      // ignore
+    } catch (err: any) {
+      console.warn('[DBFill] Reset failed:', err?.message);
     }
   };
 
@@ -383,6 +432,24 @@ export function DatabaseFill() {
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
+
+      {/* Backend status indicator */}
+      {backendReady === false && (
+        <div className="flex-shrink-0 mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3">
+          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-red-300">
+            Backend API is not fully available. Some pipeline phases may not work. Please ensure the backend is deployed with the latest code.
+          </span>
+        </div>
+      )}
+      {backendReady === true && (
+        <div className="flex-shrink-0 mb-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span className="text-sm text-emerald-300">
+            Backend API connected — all pipeline endpoints are reachable.
+          </span>
+        </div>
+      )}
 
       {/* Error banner */}
       {error && (

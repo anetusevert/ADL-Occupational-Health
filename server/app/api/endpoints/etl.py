@@ -19,8 +19,11 @@ Features:
 - Real-time progress logging
 """
 
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -794,6 +797,23 @@ async def get_source_registry(db: Session = Depends(get_db)):
 # DATABASE FILL - AI-Enriched Pillar Metrics (Phase 2)
 # =============================================================================
 
+def _ensure_fill_agent_exists(db: Session) -> None:
+    """Ensure the database-fill-agent exists in the database (lazy seed)."""
+    from app.models.agent import Agent, DEFAULT_AGENTS
+
+    agent_id = "database-fill-agent"
+    existing = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not existing:
+        agent_config = next((a for a in DEFAULT_AGENTS if a["id"] == agent_id), None)
+        if agent_config:
+            agent = Agent(**agent_config)
+            db.add(agent)
+            db.commit()
+            logger.info(f"[ETL] Created '{agent_id}' agent in database (lazy seed)")
+        else:
+            logger.error(f"[ETL] Could not find '{agent_id}' in DEFAULT_AGENTS!")
+
+
 class DatabaseFillRequest(BaseModel):
     """Request body for the database fill endpoint."""
     country_filter: Optional[List[str]] = None  # List of ISOs, or None for all 193
@@ -844,6 +864,23 @@ async def fill_database(
     """Start the AI database fill process as a background task."""
     import asyncio
     from app.core.config import settings
+
+    # Ensure the database-fill-agent exists in the DB (lazy seed)
+    _ensure_fill_agent_exists(db)
+
+    # Verify AI configuration exists
+    from app.models.user import AIConfig
+    ai_config = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+    if not ai_config:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings first.",
+        )
+    if not ai_config.api_key_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}. Please add your API key in Admin > AI Settings.",
+        )
 
     # Check if already running
     current_status = get_fill_status()

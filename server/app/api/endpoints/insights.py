@@ -1859,6 +1859,22 @@ async def batch_generate_all_insights(
     """
     from app.core.config import settings
 
+    # Ensure the insight agent exists (lazy seed)
+    ensure_insight_agent_exists(db)
+
+    # Verify AI configuration exists
+    ai_config = get_ai_config(db)
+    if not ai_config:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings first.",
+        )
+    if not ai_config.api_key_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}. Please add your API key in Admin > AI Settings.",
+        )
+
     # Check if already running
     if _batch_generation_status.get("status") == "running":
         return BatchGenerateResponse(
