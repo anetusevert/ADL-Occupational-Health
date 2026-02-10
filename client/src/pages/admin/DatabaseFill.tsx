@@ -289,11 +289,34 @@ export function DatabaseFill() {
   }, []);
 
   // ── Poll Phase 3 Status ──
+  // Try new URL first (/insight-batch/), fall back to legacy (/insights/batch-)
   const pollInsights = useCallback(async () => {
+    // Try new router first
     try {
       const res = await apiClient.get('/api/v1/insight-batch/generate-status');
-      setInsightStatus(res.data);
-      setInsightRunning(res.data.status === 'running');
+      if (res.data && typeof res.data.status === 'string' && !res.data.country_iso) {
+        setInsightStatus(res.data);
+        setInsightRunning(res.data.status === 'running');
+        return;
+      }
+    } catch {
+      // New router not available, try legacy
+    }
+
+    // Fallback: legacy URL (may be intercepted by wildcard on old backend)
+    try {
+      const res = await apiClient.get('/api/v1/insights/batch-generate-status');
+      // Validate response shape: if it has country_iso, it's the wrong endpoint (wildcard intercepted)
+      if (res.data && res.data.country_iso) {
+        // Wildcard intercepted - treat as no batch status
+        console.warn('[DBFill] Phase 3 legacy poll intercepted by wildcard, treating as idle');
+        return;
+      }
+      if (res.data && typeof res.data.status === 'string') {
+        setInsightStatus(res.data);
+        setInsightRunning(res.data.status === 'running');
+        return;
+      }
     } catch (err: any) {
       console.warn('[DBFill] Phase 3 poll failed:', err?.response?.status, err?.message);
     }
@@ -302,32 +325,49 @@ export function DatabaseFill() {
   // ── Backend connectivity check on mount ──
   useEffect(() => {
     const checkBackend = async () => {
-      const endpoints = [
+      // Check Phase 1 & 2 endpoints
+      const basicEndpoints = [
         { name: 'ETL status', url: '/api/v1/etl/status' },
         { name: 'Fill status', url: '/api/v1/etl/fill-status' },
-        { name: 'Insights status', url: '/api/v1/insight-batch/generate-status' },
       ];
       const failures: string[] = [];
-      for (const ep of endpoints) {
+      for (const ep of basicEndpoints) {
         try {
           await apiClient.get(ep.url);
         } catch (err: any) {
           const code = err?.response?.status;
-          if (code === 404) {
-            failures.push(`${ep.name} (404 Not Found)`);
-          } else if (code === 401 || code === 403) {
-            failures.push(`${ep.name} (${code} Unauthorized)`);
-          }
-          // Other errors (network, timeout) might be transient
+          if (code === 404) failures.push(`${ep.name} (404)`);
+          else if (code === 401 || code === 403) failures.push(`${ep.name} (${code})`);
         }
       }
+
+      // Check Phase 3: try new URL, fallback to legacy (validating response shape)
+      let phase3ok = false;
+      try {
+        const res = await apiClient.get('/api/v1/insight-batch/generate-status');
+        if (res.data && !res.data.country_iso) { phase3ok = true; }
+      } catch { /* try legacy */ }
+      if (!phase3ok) {
+        try {
+          const res = await apiClient.get('/api/v1/insights/batch-generate-status');
+          // If wildcard intercepted, response has country_iso field
+          if (res.data && !res.data.country_iso && typeof res.data.status === 'string') {
+            phase3ok = true;
+          }
+        } catch { /* not available */ }
+      }
+      if (!phase3ok) {
+        console.warn('[DBFill] Phase 3 status endpoint not properly available (wildcard conflict or 404)');
+        // Don't report as failure - Phase 3 POST may still work
+      }
+
       if (failures.length > 0) {
         setBackendReady(false);
         setError(`Backend endpoints not available: ${failures.join(', ')}. The backend may need redeployment.`);
         console.error('[DBFill] Backend check failed:', failures);
       } else {
         setBackendReady(true);
-        console.log('[DBFill] Backend connectivity OK - all endpoints reachable');
+        console.log('[DBFill] Backend connectivity OK', phase3ok ? '- all endpoints reachable' : '- Phase 3 polling may use fallback');
       }
     };
     checkBackend();
@@ -379,15 +419,33 @@ export function DatabaseFill() {
   };
 
   // ── Start Phase 3: Batch Insights ──
+  // Try new URL first, fall back to legacy
   const startInsights = async () => {
     setError(null);
+    const body = { delay_between: 3.0, force_regenerate: forceRegenInsights };
     console.log('[DBFill] Starting Phase 3: Batch insights (force_regenerate:', forceRegenInsights, ')...');
+
+    // Try new router first
     try {
-      const res = await apiClient.post('/api/v1/insight-batch/generate-all', {
-        delay_between: 3.0,
-        force_regenerate: forceRegenInsights,
-      });
-      console.log('[DBFill] Phase 3 started:', res.data);
+      const res = await apiClient.post('/api/v1/insight-batch/generate-all', body);
+      console.log('[DBFill] Phase 3 started (new router):', res.data);
+      setInsightRunning(true);
+      return;
+    } catch (err: any) {
+      if (err?.response?.status !== 404) {
+        // Real error (not just missing endpoint)
+        const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start batch insight generation';
+        console.error('[DBFill] Phase 3 start failed:', err?.response?.status, msg);
+        setError(`Phase 3 Error: ${msg}`);
+        return;
+      }
+      console.log('[DBFill] New router 404, trying legacy URL...');
+    }
+
+    // Fallback: legacy URL
+    try {
+      const res = await apiClient.post('/api/v1/insights/batch-generate-all', body);
+      console.log('[DBFill] Phase 3 started (legacy):', res.data);
       setInsightRunning(true);
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to start batch insight generation';
@@ -398,8 +456,17 @@ export function DatabaseFill() {
 
   // ── Reset Phase 3 Status ──
   const resetInsightStatus = async () => {
+    // Try new URL first, fall back to legacy
     try {
       await apiClient.post('/api/v1/insight-batch/generate-reset');
+      setInsightStatus(null);
+      setInsightRunning(false);
+      return;
+    } catch {
+      // Try legacy
+    }
+    try {
+      await apiClient.post('/api/v1/insights/batch-generate-reset');
       setInsightStatus(null);
       setInsightRunning(false);
     } catch (err: any) {
