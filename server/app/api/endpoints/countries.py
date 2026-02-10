@@ -13,10 +13,13 @@ Key Features:
 
 from typing import List, Optional
 from enum import Enum
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session, joinedload
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.models.country import Country, Pillar1Hazard, Pillar2Vigilance, Pillar3Restoration, GovernanceLayer, CountryIntelligence
@@ -645,38 +648,58 @@ async def get_comparison_countries(
     Fetch all countries with complete pillar data for comparison.
     
     Uses eager loading to prevent N+1 queries.
+    Includes per-country error handling so one bad record doesn't break the response.
     """
-    # Query with eager loading of all layers
-    countries = (
-        db.query(Country)
-        .options(
-            joinedload(Country.governance),
-            joinedload(Country.pillar_1_hazard),
-            joinedload(Country.pillar_2_vigilance),
-            joinedload(Country.pillar_3_restoration),
+    try:
+        # Query with eager loading of all layers
+        countries = (
+            db.query(Country)
+            .options(
+                joinedload(Country.governance),
+                joinedload(Country.pillar_1_hazard),
+                joinedload(Country.pillar_2_vigilance),
+                joinedload(Country.pillar_3_restoration),
+            )
+            .order_by(Country.name)
+            .all()
         )
-        .order_by(Country.name)
-        .all()
-    )
+    except Exception as e:
+        logger.error(f"Database query failed in get_comparison_countries: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database query failed: {str(e)}"
+        )
     
     # Build full response for each country
     country_responses = []
+    skipped_countries = []
     for country in countries:
-        response_data = {
-            "iso_code": country.iso_code,
-            "name": country.name,
-            "maturity_score": country.maturity_score,
-            "strategic_summary_text": country.strategic_summary_text,
-            "flag_url": country.flag_url,
-            "created_at": country.created_at,
-            "updated_at": country.updated_at,
-            "governance": country.governance,
-            "pillar_1_hazard": country.pillar_1_hazard,
-            "pillar_2_vigilance": country.pillar_2_vigilance,
-            "pillar_3_restoration": country.pillar_3_restoration,
-            "data_coverage_score": country.data_coverage_score(),
-        }
-        country_responses.append(CountryResponse.model_validate(response_data))
+        try:
+            response_data = {
+                "iso_code": country.iso_code,
+                "name": country.name,
+                "maturity_score": country.maturity_score,
+                "strategic_summary_text": country.strategic_summary_text,
+                "flag_url": country.flag_url,
+                "created_at": country.created_at,
+                "updated_at": country.updated_at,
+                "governance": country.governance,
+                "pillar_1_hazard": country.pillar_1_hazard,
+                "pillar_2_vigilance": country.pillar_2_vigilance,
+                "pillar_3_restoration": country.pillar_3_restoration,
+                "data_coverage_score": country.data_coverage_score(),
+            }
+            country_responses.append(CountryResponse.model_validate(response_data))
+        except (ValidationError, Exception) as e:
+            logger.warning(
+                f"Skipping country {country.iso_code} ({country.name}) due to validation error: {e}"
+            )
+            skipped_countries.append(country.iso_code)
+    
+    if skipped_countries:
+        logger.warning(
+            f"Comparison endpoint skipped {len(skipped_countries)} countries due to errors: {skipped_countries}"
+        )
     
     return ComparisonCountriesResponse(
         total=len(country_responses),

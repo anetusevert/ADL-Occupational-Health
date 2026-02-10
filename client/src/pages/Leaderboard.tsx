@@ -497,7 +497,7 @@ export function Leaderboard() {
               <h3 className="text-lg font-medium text-white mb-2">Connection Error</h3>
               <p className="text-slate-400 mb-4">Unable to fetch country data.</p>
               <p className="text-sm text-slate-500">
-                Make sure the backend server is running at http://localhost:8002
+                The backend server may be unavailable. Please try again shortly.
               </p>
             </div>
           ) : filteredAndSortedCountries.length === 0 ? (
