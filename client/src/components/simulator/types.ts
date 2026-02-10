@@ -385,11 +385,13 @@ export interface MaturityStage {
   color: string;
 }
 
+// Pillar weights for OHI Score calculation — aligned with OHI_PILLAR_WEIGHTS in utils.ts
+// Hazard Prevention weighted highest as prevention is the primary goal
 export const PILLAR_WEIGHTS: Record<PillarId, number> = {
-  governance: 0.30,
-  hazardControl: 0.25,
-  healthVigilance: 0.25,
-  restoration: 0.20,
+  governance: 0.20,      // 20% - Regulatory foundation
+  hazardControl: 0.35,   // 35% - Prevention (Pillar 1) - Highest priority
+  healthVigilance: 0.25, // 25% - Detection (Pillar 2)
+  restoration: 0.20,     // 20% - Recovery (Pillar 3)
 };
 
 export const SPEED_DURATIONS: Record<GameSpeed, number> = {

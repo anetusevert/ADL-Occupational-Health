@@ -632,35 +632,36 @@ def recalculate_all_scores_standalone(db: Session) -> int:
          vuln_idx, disease_det, disease_rep, lead_screen, surveillance,
          rehab_access, rtw_success, rehab_part, claim_settle, reintegration, payer) = row
 
-        # Calculate pillar scores using simple weighted average (safe fallback)
+        # Calculate pillar scores using weighted average
+        # Weights aligned with DEFAULT_PILLAR_SUMMARIES in metric_config.py
         gov_score = _safe_weighted_avg([
-            (100.0 if ilo_c187 else (0.0 if ilo_c187 is not None else None), 0.25),
-            (100.0 if ilo_c155 else (0.0 if ilo_c155 is not None else None), 0.25),
-            (_safe_normalize(inspector_density_val, 3.0), 0.25),
+            (100.0 if ilo_c187 else (0.0 if ilo_c187 is not None else None), 0.20),
+            (100.0 if ilo_c155 else (0.0 if ilo_c155 is not None else None), 0.20),
+            (_safe_normalize(inspector_density_val, 3.0), 0.30),
             (100.0 if mental_health else (0.0 if mental_health is not None else None), 0.15),
-            (strategic_cap, 0.10),
+            (strategic_cap, 0.15),
         ])
 
         p1_score = _safe_weighted_avg([
-            (_safe_normalize(fatal_rate, 10.0, invert=True), 0.30),
-            (oel_comp, 0.20),
-            (_safe_normalize(safety_train, 40.0), 0.20),
-            (_safe_normalize(carcinogen_exp, 50.0, invert=True), 0.15),
-            (control_mat, 0.15),
+            (_safe_normalize(fatal_rate, 10.0, invert=True), 0.35),
+            (oel_comp, 0.25),
+            (control_mat, 0.20),
+            (_safe_normalize(safety_train, 40.0), 0.10),
+            (_safe_normalize(carcinogen_exp, 50.0, invert=True), 0.10),
         ])
 
         p2_score = _safe_weighted_avg([
-            (_safe_normalize(vuln_idx, 100.0, invert=True), 0.25),
-            (disease_det, 0.25),
-            (disease_rep, 0.25),
-            (lead_screen, 0.25),
+            (_safe_normalize(vuln_idx, 100.0, invert=True), 0.30),
+            (disease_det, 0.30),
+            (disease_rep, 0.20),
+            (lead_screen, 0.20),
         ])
 
         p3_score = _safe_weighted_avg([
-            (rehab_access, 0.25),
-            (rtw_success, 0.25),
-            (rehab_part, 0.25),
-            (_safe_normalize(claim_settle, 365.0, invert=True), 0.25),
+            (rehab_access, 0.30),
+            (rtw_success, 0.30),
+            (rehab_part, 0.20),
+            (_safe_normalize(claim_settle, 365.0, invert=True), 0.20),
         ])
 
         # Calculate maturity score (1.0 - 4.0)

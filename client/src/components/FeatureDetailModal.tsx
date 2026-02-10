@@ -52,7 +52,7 @@ const FEATURE_CONTENT = {
       { icon: Heart, name: "Restoration", desc: "Compensation & rehabilitation", color: "text-amber-400" },
     ],
     features: [
-      "Weighted scoring across 50+ indicators",
+      "Weighted scoring across 25 metrics in 4 pillars",
       "ADL OHI Score: 1.0-4.0 maturity scale",
       "Benchmarking against global leaders",
       "Gap analysis and recommendations",
