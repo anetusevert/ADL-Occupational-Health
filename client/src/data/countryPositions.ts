@@ -264,3 +264,73 @@ export const TIER_COLORS: Record<MaturityTier, { color: string; label: string; h
 
 /** Region order for staggered animations */
 export const REGION_ORDER = ["Europe", "Asia", "Americas", "Africa", "Oceania"];
+
+/** ISO3 to ISO2 mapping for flag images (flagcdn.com uses lowercase ISO2) */
+export const ISO3_TO_ISO2: Record<string, string> = {
+  // Africa
+  DZA:"dz",AGO:"ao",BEN:"bj",BWA:"bw",BFA:"bf",BDI:"bi",CPV:"cv",CMR:"cm",CAF:"cf",TCD:"td",
+  COM:"km",COG:"cg",COD:"cd",CIV:"ci",DJI:"dj",EGY:"eg",GNQ:"gq",ERI:"er",SWZ:"sz",ETH:"et",
+  GAB:"ga",GMB:"gm",GHA:"gh",GIN:"gn",GNB:"gw",KEN:"ke",LSO:"ls",LBR:"lr",LBY:"ly",MDG:"mg",
+  MWI:"mw",MLI:"ml",MRT:"mr",MUS:"mu",MAR:"ma",MOZ:"mz",NAM:"na",NER:"ne",NGA:"ng",RWA:"rw",
+  STP:"st",SEN:"sn",SYC:"sc",SLE:"sl",SOM:"so",ZAF:"za",SSD:"ss",SDN:"sd",TZA:"tz",TGO:"tg",
+  TUN:"tn",UGA:"ug",ZMB:"zm",ZWE:"zw",
+  // Americas
+  ATG:"ag",ARG:"ar",BHS:"bs",BRB:"bb",BLZ:"bz",BOL:"bo",BRA:"br",CAN:"ca",CHL:"cl",COL:"co",
+  CRI:"cr",CUB:"cu",DMA:"dm",DOM:"do",ECU:"ec",SLV:"sv",GRD:"gd",GTM:"gt",GUY:"gy",HTI:"ht",
+  HND:"hn",JAM:"jm",MEX:"mx",NIC:"ni",PAN:"pa",PRY:"py",PER:"pe",KNA:"kn",LCA:"lc",VCT:"vc",
+  SUR:"sr",TTO:"tt",USA:"us",URY:"uy",VEN:"ve",
+  // Asia
+  AFG:"af",ARM:"am",AZE:"az",BHR:"bh",BGD:"bd",BTN:"bt",BRN:"bn",KHM:"kh",CHN:"cn",CYP:"cy",
+  GEO:"ge",IND:"in",IDN:"id",IRN:"ir",IRQ:"iq",ISR:"il",JPN:"jp",JOR:"jo",KAZ:"kz",KWT:"kw",
+  KGZ:"kg",LAO:"la",LBN:"lb",MYS:"my",MDV:"mv",MNG:"mn",MMR:"mm",NPL:"np",PRK:"kp",OMN:"om",
+  PAK:"pk",PHL:"ph",QAT:"qa",SAU:"sa",SGP:"sg",KOR:"kr",LKA:"lk",SYR:"sy",TJK:"tj",THA:"th",
+  TLS:"tl",TKM:"tm",ARE:"ae",UZB:"uz",VNM:"vn",YEM:"ye",PSE:"ps",TWN:"tw",
+  // Europe
+  ALB:"al",AND:"ad",AUT:"at",BLR:"by",BEL:"be",BIH:"ba",BGR:"bg",HRV:"hr",CZE:"cz",DNK:"dk",
+  EST:"ee",FIN:"fi",FRA:"fr",DEU:"de",GRC:"gr",HUN:"hu",ISL:"is",IRL:"ie",ITA:"it",LVA:"lv",
+  LIE:"li",LTU:"lt",LUX:"lu",MLT:"mt",MDA:"md",MCO:"mc",MNE:"me",NLD:"nl",MKD:"mk",NOR:"no",
+  POL:"pl",PRT:"pt",ROU:"ro",RUS:"ru",SMR:"sm",SRB:"rs",SVK:"sk",SVN:"si",ESP:"es",SWE:"se",
+  CHE:"ch",UKR:"ua",GBR:"gb",VAT:"va",
+  // Oceania
+  AUS:"au",FJI:"fj",KIR:"ki",MHL:"mh",FSM:"fm",NRU:"nr",NZL:"nz",PLW:"pw",PNG:"pg",WSM:"ws",
+  SLB:"sb",TON:"to",TUV:"tv",VUT:"vu",
+};
+
+/** Get flag URL for a country */
+export function getFlagUrl(iso3: string): string {
+  const iso2 = ISO3_TO_ISO2[iso3];
+  return iso2 ? `https://flagcdn.com/w80/${iso2}.png` : "";
+}
+
+/** Generate illustrative scores based on tier for the fact sheet */
+export function getIllustrativeScores(tier: MaturityTier): { governance: number; prevention: number; compensation: number; rehabilitation: number; overall: number } {
+  const ranges: Record<MaturityTier, [number, number]> = {
+    leading: [75, 95],
+    advancing: [55, 78],
+    developing: [32, 58],
+    critical: [12, 38],
+  };
+  const [min, max] = ranges[tier];
+  const r = (seed: number) => min + Math.round((seed % 100) / 100 * (max - min));
+  return {
+    governance: r(37),
+    prevention: r(73),
+    compensation: r(51),
+    rehabilitation: r(19),
+    overall: r(45),
+  };
+}
+
+/** Get approximate rank based on tier */
+export function getApproxRank(tier: MaturityTier, iso: string): number {
+  const tierRanges: Record<MaturityTier, [number, number]> = {
+    leading: [1, 38],
+    advancing: [39, 88],
+    developing: [89, 148],
+    critical: [149, 195],
+  };
+  const [min, max] = tierRanges[tier];
+  // Deterministic pseudo-rank from iso code hash
+  const hash = iso.charCodeAt(0) * 7 + iso.charCodeAt(1) * 13 + iso.charCodeAt(2) * 3;
+  return min + (hash % (max - min + 1));
+}
