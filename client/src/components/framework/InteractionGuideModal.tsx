@@ -2276,6 +2276,105 @@ function WorkforceLensVisual() {
 }
 
 // Persona Detail Modal Component
+// ============================================================================
+// SLIDE INTERACTION MODAL - Reusable modal for all slide interactions
+// ============================================================================
+
+interface SlideInteractionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  color?: "cyan" | "emerald" | "purple" | "blue" | "amber";
+  size?: "sm" | "md" | "lg" | "xl";
+}
+
+function SlideInteractionModal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  color = "cyan",
+  size = "lg"
+}: SlideInteractionModalProps) {
+  const c = colors[color];
+  
+  const sizeClasses = {
+    sm: "max-w-md",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl"
+  };
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleEscape);
+      return () => window.removeEventListener("keydown", handleEscape);
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className={cn(
+            "relative w-full bg-slate-900/95 backdrop-blur-xl rounded-2xl border shadow-2xl overflow-hidden",
+            sizeClasses[size],
+            c.border
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className={cn("px-6 py-5 border-b", c.border, c.bg)}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className={cn("text-xl font-bold", c.text)}>{title}</h3>
+                {subtitle && (
+                  <p className="text-sm text-white/60 mt-1">{subtitle}</p>
+                )}
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4 text-white" />
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 max-h-[70vh] overflow-y-auto">
+            {children}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
+// WORKFORCE PERSONA MODAL
+// ============================================================================
+
 function WorkforcePersonaModal({ persona, onClose }: { persona: Persona; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<'journey' | 'risks' | 'coverage'>('journey');
   
@@ -3376,32 +3475,72 @@ const dataSources = [
 ];
 
 function DataSourcesVisual({ stats }: { stats?: { value: string; label: string; color?: string }[]; highlights?: string[] }) {
+  const [expandedSource, setExpandedSource] = useState<string | null>(null);
+  
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* Central convergence point */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1,
+          boxShadow: [
+            "0 0 20px rgba(6,182,212,0.2)",
+            "0 0 40px rgba(6,182,212,0.4)",
+            "0 0 20px rgba(6,182,212,0.2)"
+          ]
+        }}
+        transition={{ 
+          delay: 0.3, 
+          duration: 0.8, 
+          ease: [0.16, 1, 0.3, 1],
+          boxShadow: { duration: 3, repeat: Infinity }
+        }}
         className="text-center mb-8"
       >
         <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-emerald-500/10 border border-white/10">
-          <Database className="w-5 h-5 text-cyan-400" />
+          <motion.div
+            animate={{ rotate: [0, 5, 0, -5, 0] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >
+            <Database className="w-5 h-5 text-cyan-400" />
+          </motion.div>
           <span className="text-sm font-semibold text-white">ADL Intelligence Engine</span>
         </div>
       </motion.div>
 
       {/* Data source grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {dataSources.map((source, i) => {
           const c = getColor(source.color);
+          const isExpanded = expandedSource === source.abbr;
           return (
             <motion.div
               key={source.abbr}
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className={cn("relative p-4 rounded-xl border backdrop-blur-sm", c.bg, c.border)}
+              animate={{ 
+                opacity: 1, 
+                y: [0, -5, 0]
+              }}
+              transition={{ 
+                delay: 0.5 + i * 0.1, 
+                duration: 0.5, 
+                ease: [0.16, 1, 0.3, 1],
+                y: { duration: 5, repeat: Infinity, delay: i * 0.4 }
+              }}
+              layout
+              className={cn(
+                "relative p-6 rounded-xl border backdrop-blur-sm cursor-pointer transition-all",
+                c.bg, c.border,
+                isExpanded && "col-span-full"
+              )}
+              onClick={() => setExpandedSource(isExpanded ? null : source.abbr)}
+              whileHover={{ 
+                scale: isExpanded ? 1 : 1.05, 
+                y: 0,
+                boxShadow: isExpanded ? "0 0 0px rgba(0,0,0,0)" : `0 0 25px ${c.hex}0.3)`
+              }}
             >
               {/* Connection line to center */}
               <motion.div
@@ -3411,12 +3550,46 @@ function DataSourcesVisual({ stats }: { stats?: { value: string; label: string; 
                 className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-[1px]", c.bgSolid, "opacity-30")}
               />
               <div className="flex items-center gap-2 mb-1.5">
-                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold", c.bg, c.text)}>
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold", c.bg, c.text)}>
                   {source.abbr}
                 </div>
-                <span className="text-xs font-semibold text-white">{source.name}</span>
+                <span className="text-sm font-semibold text-white">{source.name}</span>
               </div>
-              <p className="text-[10px] text-white/40 leading-relaxed">{source.desc}</p>
+              <p className="text-xs text-white/40 leading-relaxed">{source.desc}</p>
+              
+              {/* Expanded content */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4 pt-4 border-t border-white/10"
+                  >
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold text-white/60 mb-1">Metrics Sourced:</p>
+                        <p className="text-xs text-white/80">Inspector density, fatal accident rates, convention ratifications, disease burden indicators</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-white/60 mb-1">Update Frequency:</p>
+                        <p className="text-xs text-white/80">Annually with quarterly supplements</p>
+                      </div>
+                      <motion.button
+                        whileHover={{ 
+                          scale: 1.02,
+                          boxShadow: `0 0 20px ${c.hex}0.4)`
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn("w-full mt-2 px-4 py-2 rounded-lg text-xs font-semibold", c.bg, "border", c.border, c.text)}
+                      >
+                        View in Data Engine →
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );
         })}
@@ -3464,18 +3637,39 @@ const benchmarkGroups = [
 ];
 
 function KSAPositionVisual() {
+  const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <>
+    <div className="w-[90vw] max-w-5xl mx-auto">
       {/* KSA header badge */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.6 }}
+        animate={{ 
+          opacity: 1, 
+          y: [0, -5, 0],
+          boxShadow: [
+            "0 0 20px rgba(16,185,129,0.2)",
+            "0 0 35px rgba(16,185,129,0.4)",
+            "0 0 20px rgba(16,185,129,0.2)"
+          ]
+        }}
+        transition={{ 
+          delay: 0.3, 
+          duration: 0.6,
+          y: { duration: 5, repeat: Infinity, delay: 1 },
+          boxShadow: { duration: 3, repeat: Infinity }
+        }}
         className="flex items-center justify-center gap-3 mb-8"
       >
         <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 to-cyan-500/15 border border-emerald-500/30">
           <div className="flex items-center gap-3">
-            <Target className="w-5 h-5 text-emerald-400" />
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
+              <Target className="w-5 h-5 text-emerald-400" />
+            </motion.div>
             <div>
               <span className="text-sm font-semibold text-white">Kingdom of Saudi Arabia</span>
               <span className="block text-[10px] text-emerald-400/80">Benchmarked across 195 nations</span>
@@ -3494,15 +3688,17 @@ function KSAPositionVisual() {
               key={pillar.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              whileHover={{ scale: 1.02, x: 4 }}
               transition={{ delay: 0.5 + pi * 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-4"
+              className="flex items-center gap-4 cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-all"
+              onClick={() => setSelectedPillar(pillar.id)}
             >
               {/* Pillar label */}
-              <div className="w-32 flex-shrink-0 flex items-center gap-2">
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", c.bg)}>
-                  <PillarIcon className={cn("w-3.5 h-3.5", c.text)} />
+              <div className="w-36 lg:w-40 flex-shrink-0 flex items-center gap-2">
+                <div className={cn("w-8 h-8 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center", c.bg)}>
+                  <PillarIcon className={cn("w-4 h-4 lg:w-5 lg:h-5", c.text)} />
                 </div>
-                <span className="text-xs font-medium text-white/80">{pillar.label}</span>
+                <span className="text-sm lg:text-base font-medium text-white/80">{pillar.label}</span>
               </div>
               
               {/* Benchmark bars */}
@@ -3523,9 +3719,9 @@ function KSAPositionVisual() {
                         initial={{ width: 0 }}
                         animate={{ width: `${w}%` }}
                         transition={{ delay: 0.8 + pi * 0.15 + gi * 0.08, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                        className={cn("h-5 rounded-md", gc.bg, "border", gc.border, "relative")}
+                        className={cn("h-8 lg:h-10 rounded-md", gc.bg, "border", gc.border, "relative")}
                       >
-                        <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-semibold", gc.text)}>
+                        <span className={cn("absolute inset-0 flex items-center justify-center text-xs lg:text-sm font-semibold", gc.text)}>
                           {w}
                         </span>
                       </motion.div>
@@ -3554,6 +3750,78 @@ function KSAPositionVisual() {
         </p>
       </motion.div>
     </div>
+
+    {/* Pillar Detail Modal */}
+    {selectedPillar && (
+      <SlideInteractionModal
+        isOpen={!!selectedPillar}
+        onClose={() => setSelectedPillar(null)}
+        title={benchmarkPillars.find(p => p.id === selectedPillar)?.label || ""}
+        subtitle="KSA Performance vs Global Benchmarks"
+        color={benchmarkPillars.find(p => p.id === selectedPillar)?.color || "cyan"}
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Comparison chart */}
+          <div className="space-y-4">
+            {benchmarkGroups.map((group, i) => {
+              const gc = getColor(group.color);
+              const widths = {
+                governance: [55, 48, 62, 85],
+                prevention: [45, 52, 58, 90],
+                surveillance: [40, 45, 55, 88],
+                restoration: [60, 55, 65, 82],
+              };
+              const pillarIndex = benchmarkPillars.findIndex(p => p.id === selectedPillar);
+              const width = widths[selectedPillar as keyof typeof widths]?.[i] || 50;
+              
+              return (
+                <motion.div
+                  key={group.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center gap-4"
+                >
+                  <span className={cn("w-24 text-sm font-medium", gc.text)}>{group.label}</span>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${width}%` }}
+                    transition={{ delay: 0.3 + i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className={cn("h-8 rounded-lg relative", gc.bg, "border", gc.border)}
+                  >
+                    <span className={cn("absolute inset-0 flex items-center justify-center text-sm font-bold", gc.text)}>
+                      {width}
+                    </span>
+                  </motion.div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Gap Analysis */}
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <p className="text-xs font-semibold text-amber-400 mb-2">Gap to Global Leader</p>
+            <p className="text-sm text-white/70">
+              Targeted interventions in inspector capacity, surveillance infrastructure, and enforcement mechanisms could close 60% of the gap within 24 months.
+            </p>
+          </div>
+
+          {/* CTA */}
+          <motion.button
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: "0 0 30px rgba(16,185,129,0.4)"
+            }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 font-semibold text-sm"
+          >
+            View Best Practices for {benchmarkPillars.find(p => p.id === selectedPillar)?.label} →
+          </motion.button>
+        </div>
+      </SlideInteractionModal>
+    )}
+    </>
   );
 }
 
@@ -3563,15 +3831,60 @@ function KSAPositionVisual() {
 
 // GLOBAL INTELLIGENCE VISUAL - World map representation
 function GlobalMapVisual() {
+  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
+  
   const continents = [
-    { name: "Europe", x: 52, y: 25, count: 44, color: "cyan" as const },
-    { name: "Asia", x: 72, y: 35, count: 49, color: "emerald" as const },
-    { name: "Africa", x: 52, y: 55, count: 54, color: "amber" as const },
-    { name: "Americas", x: 25, y: 40, count: 35, color: "blue" as const },
-    { name: "Oceania", x: 82, y: 65, count: 14, color: "purple" as const },
+    { 
+      name: "Europe", 
+      x: 52, 
+      y: 25, 
+      count: 44, 
+      color: "cyan" as const,
+      topCountries: ["Germany", "Sweden", "Switzerland"],
+      challenge: "Aging workforce and automation balance"
+    },
+    { 
+      name: "Asia", 
+      x: 72, 
+      y: 35, 
+      count: 49, 
+      color: "emerald" as const,
+      topCountries: ["Singapore", "Japan", "South Korea"],
+      challenge: "Rapid industrialization and informal sector coverage"
+    },
+    { 
+      name: "Africa", 
+      x: 52, 
+      y: 55, 
+      count: 54, 
+      color: "amber" as const,
+      topCountries: ["Mauritius", "Tunisia", "South Africa"],
+      challenge: "Resource constraints and governance capacity"
+    },
+    { 
+      name: "Americas", 
+      x: 25, 
+      y: 40, 
+      count: 35, 
+      color: "blue" as const,
+      topCountries: ["Canada", "United States", "Chile"],
+      challenge: "Healthcare access disparity and gig economy gaps"
+    },
+    { 
+      name: "Oceania", 
+      x: 82, 
+      y: 65, 
+      count: 14, 
+      color: "purple" as const,
+      topCountries: ["New Zealand", "Australia"],
+      challenge: "Geographic isolation and resource industry hazards"
+    },
   ];
 
+  const selectedContinentData = continents.find(c => c.name === selectedContinent);
+
   return (
+    <>
     <div className="w-full h-full relative flex items-center justify-center">
       {/* Background grid */}
       <div className="absolute inset-0 opacity-5">
@@ -3586,7 +3899,7 @@ function GlobalMapVisual() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-2xl aspect-[2/1]"
+        className="relative w-[90vw] max-w-5xl aspect-[2/1]"
       >
         {/* Equator line */}
         <motion.div
@@ -3603,25 +3916,43 @@ function GlobalMapVisual() {
             <motion.div
               key={c.name}
               initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6 + i * 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                y: [0, -8, 0]
+              }}
+              transition={{ 
+                delay: 0.6 + i * 0.15, 
+                duration: 0.6, 
+                ease: [0.16, 1, 0.3, 1],
+                y: { duration: 4, repeat: Infinity, delay: i * 0.3 }
+              }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
               style={{ left: `${c.x}%`, top: `${c.y}%` }}
+              onClick={() => setSelectedContinent(c.name)}
+              whileHover={{ scale: 1.15 }}
             >
-              {/* Pulse ring */}
+              {/* Pulse ring - enhanced */}
               <motion.div
-                animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
+                animate={{ scale: [1, 2.2, 1], opacity: [0.5, 0, 0.5] }}
                 transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                className={cn("absolute inset-0 rounded-full", col.bgSolid, "opacity-20")}
-                style={{ width: 48, height: 48, left: -12, top: -12 }}
+                className={cn("absolute inset-0 rounded-full", col.bgSolid)}
+                style={{ width: 64, height: 64, left: -16, top: -16 }}
+              />
+              {/* Secondary pulse */}
+              <motion.div
+                animate={{ scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 + 0.5 }}
+                className={cn("absolute inset-0 rounded-full", col.bgSolid)}
+                style={{ width: 48, height: 48, left: -8, top: -8 }}
               />
               {/* Core */}
-              <div className={cn("relative w-6 h-6 rounded-full flex items-center justify-center", col.bg, "border", col.border, "backdrop-blur-sm")}>
-                <span className={cn("text-[8px] font-bold", col.text)}>{c.count}</span>
+              <div className={cn("relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all group-hover:shadow-lg", col.bg, "border", col.border, "backdrop-blur-sm")}>
+                <span className={cn("text-[10px] sm:text-xs lg:text-sm font-bold", col.text)}>{c.count}</span>
               </div>
               {/* Label */}
-              <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                <p className="text-[10px] font-medium text-white/60">{c.name}</p>
+              <div className="absolute top-10 lg:top-14 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <p className="text-xs sm:text-sm font-medium text-white/60">{c.name}</p>
               </div>
             </motion.div>
           );
@@ -3646,6 +3977,18 @@ function GlobalMapVisual() {
         </svg>
       </motion.div>
 
+      {/* Interaction hint */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+        className="absolute top-6 left-1/2 -translate-x-1/2"
+      >
+        <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+          <p className="text-xs text-white/60">Click any continent to explore</p>
+        </div>
+      </motion.div>
+
       {/* Bottom stats */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -3668,50 +4011,171 @@ function GlobalMapVisual() {
         })}
       </motion.div>
     </div>
+
+    {/* Continent Detail Modal */}
+    {selectedContinentData && (
+      <SlideInteractionModal
+        isOpen={!!selectedContinent}
+        onClose={() => setSelectedContinent(null)}
+        title={selectedContinentData.name}
+        subtitle={`${selectedContinentData.count} nations assessed`}
+        color={selectedContinentData.color}
+        size="md"
+      >
+        <div className="space-y-6">
+          {/* Top Countries */}
+          <div>
+            <h4 className="text-sm font-semibold text-white/80 mb-3">Top Performing Countries</h4>
+            <div className="space-y-2">
+              {selectedContinentData.topCountries.map((country, i) => (
+                <motion.div
+                  key={country}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10"
+                >
+                  <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", 
+                    getColor(selectedContinentData.color).bg, 
+                    getColor(selectedContinentData.color).text
+                  )}>
+                    {i + 1}
+                  </div>
+                  <span className="text-sm text-white">{country}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Regional Challenge */}
+          <div>
+            <h4 className="text-sm font-semibold text-white/80 mb-3">Key Regional Challenge</h4>
+            <p className="text-sm text-white/60 leading-relaxed">
+              {selectedContinentData.challenge}
+            </p>
+          </div>
+
+          {/* CTA */}
+          <motion.button
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: `0 0 25px ${getColor(selectedContinentData.color).hex}0.4)`
+            }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              "w-full px-4 py-3 rounded-xl font-semibold text-white text-sm",
+              "bg-gradient-to-r transition-all",
+              getColor(selectedContinentData.color).bg,
+              "border",
+              getColor(selectedContinentData.color).border
+            )}
+          >
+            View All {selectedContinentData.name} Countries →
+          </motion.button>
+        </div>
+      </SlideInteractionModal>
+    )}
+    </>
   );
 }
 
 // COUNTRY DEEP DIVE VISUAL - Dashboard quadrant representation
 function CountryDashboardVisual() {
+  const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
+  
   const quadrants = [
-    { label: "Economic Context", icon: "📊", items: ["GDP per capita", "Labor force", "Demographics"], color: "cyan" as const },
-    { label: "Framework Scores", icon: "🏛", items: ["Governance", "Prevention", "Surveillance", "Restoration"], color: "emerald" as const },
-    { label: "AI Insights", icon: "🤖", items: ["6 intelligence categories", "Strategic analysis", "Recommendations"], color: "purple" as const },
-    { label: "Global Position", icon: "🌍", items: ["Percentile ranking", "Peer comparison", "Gap to #1"], color: "blue" as const },
+    { 
+      label: "Economic Context", 
+      icon: "📊", 
+      items: ["GDP per capita", "Labor force", "Demographics"], 
+      color: "cyan" as const,
+      details: "Complete economic overview with GDP breakdown, labor market statistics, and demographic trends."
+    },
+    { 
+      label: "Framework Scores", 
+      icon: "🏛", 
+      items: ["Governance", "Prevention", "Surveillance", "Restoration"], 
+      color: "emerald" as const,
+      details: "All 4 pillar scores with radar chart visualization and percentile rankings."
+    },
+    { 
+      label: "AI Insights", 
+      icon: "🤖", 
+      items: ["6 intelligence categories", "Strategic analysis", "Recommendations"], 
+      color: "purple" as const,
+      details: "AI-generated strategic analysis across 6 categories: economic context, workforce, health infrastructure, regulatory environment, industry profile, and risk assessment."
+    },
+    { 
+      label: "Global Position", 
+      icon: "🌍", 
+      items: ["Percentile ranking", "Peer comparison", "Gap to #1"], 
+      color: "blue" as const,
+      details: "Interactive percentile comparison showing where the country ranks globally, regionally, and against peer nations."
+    },
   ];
 
+  const selectedQuadrantData = quadrants.find(q => q.label === selectedQuadrant);
+
   return (
-    <div className="w-full h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
+    <>
+    <div className="w-full h-full flex items-center justify-center p-6 lg:p-8">
+      <div className="w-[90vw] max-w-4xl">
         {/* Country header mock */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          animate={{ 
+            opacity: 1, 
+            y: [0, -3, 0]
+          }}
+          transition={{ 
+            delay: 0.3, 
+            duration: 0.6, 
+            ease: [0.16, 1, 0.3, 1],
+            y: { duration: 4, repeat: Infinity, delay: 1 }
+          }}
           className="flex items-center justify-center gap-3 mb-6"
         >
           <div className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
-            <div className="w-6 h-4 rounded-sm bg-gradient-to-b from-emerald-400 to-emerald-600" />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.1, 1],
+                boxShadow: [
+                  "0 0 0px rgba(16,185,129,0.3)",
+                  "0 0 15px rgba(16,185,129,0.6)",
+                  "0 0 0px rgba(16,185,129,0.3)"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-6 h-4 rounded-sm bg-gradient-to-b from-emerald-400 to-emerald-600" 
+            />
             <span className="text-sm font-semibold text-white">Any Country</span>
             <span className="text-xs text-cyan-400 font-mono">OHI 2.8</span>
           </div>
         </motion.div>
 
         {/* Dashboard grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {quadrants.map((q, i) => {
             const c = getColor(q.color);
             return (
               <motion.div
                 key={q.label}
                 initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1
+                }}
+                whileHover={{ 
+                  scale: 1.05, 
+                  boxShadow: `0 0 30px ${c.hex}0.3)`
+                }}
                 transition={{ delay: 0.5 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className={cn("p-4 rounded-xl border backdrop-blur-sm", c.bg, c.border)}
+                className={cn("p-6 lg:p-8 rounded-xl border backdrop-blur-sm cursor-pointer", c.bg, c.border)}
+                onClick={() => setSelectedQuadrant(q.label)}
               >
                 <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-base">{q.icon}</span>
-                  <span className={cn("text-xs font-semibold", c.text)}>{q.label}</span>
+                  <span className="text-lg sm:text-xl">{q.icon}</span>
+                  <span className={cn("text-sm sm:text-base font-semibold", c.text)}>{q.label}</span>
                 </div>
                 <div className="space-y-1.5">
                   {q.items.map((item, j) => (
@@ -3743,16 +4207,96 @@ function CountryDashboardVisual() {
         </motion.p>
       </div>
     </div>
+
+    {/* Quadrant Detail Modal */}
+    {selectedQuadrantData && (
+      <SlideInteractionModal
+        isOpen={!!selectedQuadrant}
+        onClose={() => setSelectedQuadrant(null)}
+        title={selectedQuadrantData.label}
+        subtitle="What you'll find in this dashboard section"
+        color={selectedQuadrantData.color}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-white/70 leading-relaxed">
+            {selectedQuadrantData.details}
+          </p>
+          
+          <div className="grid grid-cols-1 gap-2">
+            {selectedQuadrantData.items.map((item, i) => (
+              <motion.div
+                key={item}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5"
+              >
+                <div className={cn("w-1.5 h-1.5 rounded-full", getColor(selectedQuadrantData.color).bgSolid)} />
+                <span className="text-sm text-white/80">{item}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </SlideInteractionModal>
+    )}
+    </>
   );
 }
 
 // BEST PRACTICES VISUAL - Leader showcase
 function BestPracticesVisual({ countries }: { countries?: { code: string; name: string; achievement: string }[] }) {
+  const [selectedLeader, setSelectedLeader] = useState<string | null>(null);
+  
   const leaders = countries || [
-    { code: "DEU", name: "Germany", achievement: "75% fatality reduction" },
-    { code: "SGP", name: "Singapore", achievement: "Zero-fatality sectors" },
-    { code: "NZL", name: "New Zealand", achievement: "Universal no-fault since 1974" },
-    { code: "SWE", name: "Sweden", achievement: "Vision Zero pioneer" },
+    { 
+      code: "DEU", 
+      name: "Germany", 
+      achievement: "75% fatality reduction",
+      practices: [
+        "Dual insurance system (Berufsgenossenschaften) combining prevention and compensation",
+        "Mandatory sector-specific safety standards with peer enforcement",
+        "Integrated data systems linking incidents to prevention updates",
+        "Comprehensive rehabilitation with 'work before pension' philosophy"
+      ],
+      ksaApplication: "GOSI could adopt the BG model by creating sector-specific safety associations with enforcement authority, funded by employers and governed jointly with labor."
+    },
+    { 
+      code: "SGP", 
+      name: "Singapore", 
+      achievement: "Zero-fatality sectors",
+      practices: [
+        "Escalating penalties tied to company size and repeat violations",
+        "Public registry of safety violations creating reputational pressure",
+        "Sector-specific zero-fatality targets with government oversight",
+        "Safety auditor certification with legal liability for auditors"
+      ],
+      ksaApplication: "Vision 2030 mega-projects could adopt sector-specific zero-fatality targets with public tracking dashboards and escalating penalties for repeat offenders."
+    },
+    { 
+      code: "NZL", 
+      name: "New Zealand", 
+      achievement: "Universal no-fault since 1974",
+      practices: [
+        "ACC system covers all injuries (work and non-work) with no litigation",
+        "24-hour coverage eliminates work/non-work classification disputes",
+        "Rehabilitation priority over compensation — outcomes, not payments",
+        "Experience rating adjusts employer premiums based on safety performance"
+      ],
+      ksaApplication: "KSA could pilot a no-fault system in high-risk sectors (construction, petrochemicals) to test speed and RTW improvements before national rollout."
+    },
+    { 
+      code: "SWE", 
+      name: "Sweden", 
+      achievement: "Vision Zero pioneer",
+      practices: [
+        "Zero-death philosophy: no fatality is acceptable or inevitable",
+        "Work Environment Act covers all workers including gig economy",
+        "Active surveillance with mandatory employer health services",
+        "Systematic work environment management (SAM) required by law"
+      ],
+      ksaApplication: "Adopt Vision Zero for giga-projects with public quarterly reporting on incidents, near-misses, and corrective actions — creating accountability through transparency."
+    },
   ];
 
   const pillars = [
@@ -3762,11 +4306,14 @@ function BestPracticesVisual({ countries }: { countries?: { code: string; name: 
     { label: "Restoration", color: "amber" as const, leader: "New Zealand" },
   ];
 
+  const selectedLeaderData = leaders.find(l => l.name === selectedLeader);
+
   return (
-    <div className="w-full h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+    <>
+    <div className="w-full h-full flex items-center justify-center p-6 lg:p-8">
+      <div className="w-[90vw] max-w-5xl">
         {/* Pillar leaders */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {pillars.map((p, i) => {
             const c = getColor(p.color);
             return (
@@ -3775,37 +4322,48 @@ function BestPracticesVisual({ countries }: { countries?: { code: string; name: 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className={cn("p-3 rounded-xl border text-center", c.bg, c.border)}
+                className={cn("p-4 lg:p-5 rounded-xl border text-center", c.bg, c.border)}
               >
-                <p className={cn("text-[10px] uppercase tracking-wider mb-1", c.text)}>{p.label}</p>
-                <p className="text-xs font-semibold text-white">{p.leader}</p>
+                <p className={cn("text-xs uppercase tracking-wider mb-1", c.text)}>{p.label}</p>
+                <p className="text-sm lg:text-base font-semibold text-white">{p.leader}</p>
               </motion.div>
             );
           })}
         </div>
 
         {/* Global leaders detail */}
-        <div className="space-y-2.5">
+        <div className="space-y-3 sm:space-y-4">
           {leaders.map((leader, i) => (
             <motion.div
               key={leader.code}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 + i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/10"
+              animate={{ 
+                opacity: 1, 
+                x: 0,
+                boxShadow: ["0 0 0px rgba(16,185,129,0)", "0 0 20px rgba(16,185,129,0.3)", "0 0 0px rgba(16,185,129,0)"]
+              }}
+              transition={{ 
+                delay: 0.8 + i * 0.12, 
+                duration: 0.5, 
+                ease: [0.16, 1, 0.3, 1],
+                boxShadow: { duration: 3, repeat: Infinity, delay: i * 0.5 }
+              }}
+              whileHover={{ scale: 1.03, x: 8 }}
+              className="flex items-center gap-4 sm:gap-6 p-5 lg:p-6 rounded-xl bg-white/5 border border-white/10 cursor-pointer"
+              onClick={() => setSelectedLeader(leader.name)}
             >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                <span className="text-xs font-bold text-emerald-400">#{i + 1}</span>
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm lg:text-base font-bold text-emerald-400">#{i + 1}</span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">{leader.name}</p>
-                <p className="text-[10px] text-white/40">{leader.achievement}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-base lg:text-lg font-semibold text-white">{leader.name}</p>
+                <p className="text-xs lg:text-sm text-white/40">{leader.achievement}</p>
               </div>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${90 - i * 8}%` }}
                 transition={{ delay: 1.2 + i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500/50 to-cyan-500/50 max-w-[120px]"
+                className="h-2 lg:h-2.5 rounded-full bg-gradient-to-r from-emerald-500/50 to-cyan-500/50 max-w-[140px] lg:max-w-[180px]"
               />
             </motion.div>
           ))}
@@ -3818,17 +4376,75 @@ function BestPracticesVisual({ countries }: { countries?: { code: string; name: 
           transition={{ delay: 1.8 }}
           className="mt-4 text-center px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20"
         >
-          <p className="text-[10px] text-purple-300">
-            Each practice includes AI-generated analysis showing how it can be adapted for KSA
+          <p className="text-xs text-purple-300">
+            Click any leader to see detailed practices and KSA adaptation strategy
           </p>
         </motion.div>
       </div>
     </div>
+
+    {/* Leader Detail Modal */}
+    {selectedLeaderData && (
+      <SlideInteractionModal
+        isOpen={!!selectedLeader}
+        onClose={() => setSelectedLeader(null)}
+        title={selectedLeaderData.name}
+        subtitle={selectedLeaderData.achievement}
+        color="emerald"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Key Practices */}
+          <div>
+            <h4 className="text-sm font-semibold text-white/80 mb-4">What They Do Differently</h4>
+            <div className="space-y-3">
+              {selectedLeaderData.practices.map((practice, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-start gap-3 p-4 rounded-lg bg-white/5 border border-white/10"
+                >
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-bold text-emerald-400">{i + 1}</span>
+                  </div>
+                  <p className="text-sm text-white/70 leading-relaxed">{practice}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* How KSA Can Apply */}
+          <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
+            <h4 className="text-sm font-semibold text-emerald-400 mb-3">How KSA Can Apply This</h4>
+            <p className="text-sm text-white/80 leading-relaxed">
+              {selectedLeaderData.ksaApplication}
+            </p>
+          </div>
+
+          {/* CTA */}
+          <motion.button
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: "0 0 30px rgba(16,185,129,0.4)"
+            }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 font-semibold text-sm"
+          >
+            View Full Best Practices Compendium →
+          </motion.button>
+        </div>
+      </SlideInteractionModal>
+    )}
+    </>
   );
 }
 
 // LEADERBOARD VISUAL - Rankings table representation
 function LeaderboardVisual() {
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  
   const mockRankings = [
     { rank: 1, name: "Germany", score: 3.72, tier: "Leading", color: "emerald" as const },
     { rank: 2, name: "Sweden", score: 3.68, tier: "Leading", color: "emerald" as const },
@@ -3840,8 +4456,8 @@ function LeaderboardVisual() {
   ];
 
   return (
-    <div className="w-full h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
+    <div className="w-full h-full flex items-center justify-center p-6 lg:p-8">
+      <div className="w-[90vw] max-w-4xl">
         {/* Filter chips */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -3851,7 +4467,7 @@ function LeaderboardVisual() {
         >
           {["Global", "G20", "GCC", "Europe", "Asia"].map((f, i) => (
             <div key={f} className={cn(
-              "px-3 py-1 rounded-full text-[10px] font-medium border",
+              "px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border",
               i === 0 ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300" : "bg-white/5 border-white/10 text-white/40"
             )}>
               {f}
@@ -3860,7 +4476,7 @@ function LeaderboardVisual() {
         </motion.div>
 
         {/* Rankings table */}
-        <div className="space-y-1.5">
+        <div className="space-y-2 sm:space-y-2.5">
           {mockRankings.map((r, i) => {
             if (r.name === "") {
               return (
@@ -3868,7 +4484,7 @@ function LeaderboardVisual() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 + i * 0.08 }}
-                  className="text-center text-white/20 text-xs py-1"
+                  className="text-center text-white/20 text-sm py-2"
                 >
                   ···
                 </motion.div>
@@ -3880,22 +4496,38 @@ function LeaderboardVisual() {
               <motion.div
                 key={r.name}
                 initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  boxShadow: isKSA ? [
+                    "0 0 0px rgba(16,185,129,0)",
+                    "0 0 25px rgba(16,185,129,0.4)",
+                    "0 0 0px rgba(16,185,129,0)"
+                  ] : undefined
+                }}
+                transition={{ 
+                  delay: 0.5 + i * 0.08, 
+                  duration: 0.4, 
+                  ease: [0.16, 1, 0.3, 1],
+                  boxShadow: isKSA ? { duration: 3, repeat: Infinity } : undefined
+                }}
+                whileHover={{ scale: 1.02, x: 6 }}
+                onHoverStart={() => setHoveredCountry(r.name)}
+                onHoverEnd={() => setHoveredCountry(null)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-xl border",
-                  isKSA ? "bg-emerald-500/15 border-emerald-500/30 ring-1 ring-emerald-500/20" : "bg-white/5 border-white/10"
+                  "flex items-center gap-4 sm:gap-6 px-5 py-3 lg:py-4 rounded-xl border cursor-pointer transition-all",
+                  isKSA ? "bg-emerald-500/15 border-emerald-500/30 ring-1 ring-emerald-500/20" : "bg-white/5 border-white/10 hover:bg-white/10"
                 )}
               >
                 <div className={cn(
-                  "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                  "w-9 h-9 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0",
                   isKSA ? "bg-emerald-500/20 text-emerald-400" : col.bg + " " + col.text
                 )}>
                   {typeof r.rank === "number" ? `#${r.rank}` : r.rank}
                 </div>
-                <span className={cn("flex-1 text-sm font-medium", isKSA ? "text-emerald-300" : "text-white")}>{r.name}</span>
-                <span className={cn("text-sm font-mono font-semibold", col.text)}>{r.score.toFixed(2)}</span>
-                <span className={cn("text-[9px] px-2 py-0.5 rounded-full", col.bg, col.text, "border", col.border)}>
+                <span className={cn("flex-1 text-base lg:text-lg font-medium", isKSA ? "text-emerald-300" : "text-white")}>{r.name}</span>
+                <span className={cn("text-base lg:text-lg font-mono font-semibold", col.text)}>{r.score.toFixed(2)}</span>
+                <span className={cn("text-xs px-2.5 py-1 rounded-full hidden sm:inline-block", col.bg, col.text, "border", col.border)}>
                   {r.tier}
                 </span>
               </motion.div>
@@ -3903,14 +4535,14 @@ function LeaderboardVisual() {
           })}
         </div>
 
-        {/* Sortable hint */}
+        {/* Interactive hint */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="text-center text-[10px] text-white/30 mt-4"
+          className="text-center text-xs text-white/40 mt-4"
         >
-          Sort by any pillar · Filter by region · Click any row to explore
+          {hoveredCountry ? `Click to explore ${hoveredCountry}'s full dashboard` : "Hover and click any row to explore"}
         </motion.p>
       </div>
     </div>
@@ -3919,16 +4551,53 @@ function LeaderboardVisual() {
 
 // COMPARE VISUAL - Side-by-side comparison representation
 function CompareVisual() {
+  const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
+  
   const dimensions = [
-    { label: "Governance", ksaScore: 55, otherScore: 82, color: "purple" as const },
-    { label: "Prevention", ksaScore: 45, otherScore: 88, color: "blue" as const },
-    { label: "Surveillance", ksaScore: 40, otherScore: 85, color: "emerald" as const },
-    { label: "Restoration", ksaScore: 60, otherScore: 78, color: "amber" as const },
+    { 
+      label: "Governance", 
+      ksaScore: 55, 
+      otherScore: 82, 
+      color: "purple" as const,
+      gap: "27 points",
+      insight: "Germany's advantage stems from dual-authority inspection (state + BG), mandatory tripartite councils, and whistleblower protection with legal guarantees.",
+      action: "Strengthen inspector capacity, formalize tripartite mechanisms, and protect workplace safety whistleblowers through dedicated legal framework."
+    },
+    { 
+      label: "Prevention", 
+      ksaScore: 45, 
+      otherScore: 88, 
+      color: "blue" as const,
+      gap: "43 points",
+      insight: "Germany prioritizes elimination and substitution over PPE, mandates risk assessment with worker participation, and requires continuous improvement cycles.",
+      action: "Adopt hierarchy of controls formally, mandate participatory risk assessment, and create sector-specific safety catalogues (Arbocatalogus model)."
+    },
+    { 
+      label: "Surveillance", 
+      ksaScore: 40, 
+      otherScore: 85, 
+      color: "emerald" as const,
+      gap: "45 points",
+      insight: "Germany's mandatory occupational health services conduct regular biomarker monitoring, track disease trends nationally, and feed data back into prevention.",
+      action: "Expand mandatory health examinations to all hazardous sectors, establish national occupational disease registry, and integrate surveillance with prevention."
+    },
+    { 
+      label: "Restoration", 
+      ksaScore: 60, 
+      otherScore: 78, 
+      color: "amber" as const,
+      gap: "18 points (smallest)",
+      insight: "Germany's 'rehabilitation before pension' principle achieves 80% RTW rates through comprehensive medical, vocational, and psychological support.",
+      action: "KSA already leads GCC in this pillar. Focus on reducing claim processing time and expanding vocational rehabilitation capacity."
+    },
   ];
 
+  const selectedDimensionData = dimensions.find(d => d.label === selectedDimension);
+
   return (
-    <div className="w-full h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
+    <>
+    <div className="w-full h-full flex items-center justify-center p-6 lg:p-8">
+      <div className="w-[90vw] max-w-4xl">
         {/* Country headers */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -3936,23 +4605,46 @@ function CompareVisual() {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="flex items-center justify-between mb-6"
         >
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-            <span className="text-sm font-semibold text-emerald-400">🇸🇦 Saudi Arabia</span>
-          </div>
+          <motion.div 
+            animate={{
+              boxShadow: [
+                "0 0 15px rgba(16,185,129,0.2)",
+                "0 0 30px rgba(16,185,129,0.4)",
+                "0 0 15px rgba(16,185,129,0.2)"
+              ]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30"
+          >
+            <span className="text-base lg:text-lg font-semibold text-emerald-400">🇸🇦 Saudi Arabia</span>
+          </motion.div>
           <motion.div
-            animate={{ opacity: [0.3, 1, 0.3] }}
+            animate={{ 
+              opacity: [0.3, 1, 0.3],
+              scale: [1, 1.1, 1]
+            }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="text-xs text-white/30 font-mono"
+            className="text-sm lg:text-base text-white/30 font-mono"
           >
             VS
           </motion.div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-            <span className="text-sm font-semibold text-cyan-400">🇩🇪 Germany</span>
-          </div>
+          <motion.div 
+            animate={{
+              boxShadow: [
+                "0 0 15px rgba(6,182,212,0.2)",
+                "0 0 30px rgba(6,182,212,0.4)",
+                "0 0 15px rgba(6,182,212,0.2)"
+              ]
+            }}
+            transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30"
+          >
+            <span className="text-base lg:text-lg font-semibold text-cyan-400">🇩🇪 Germany</span>
+          </motion.div>
         </motion.div>
 
         {/* Comparison bars */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-5 sm:space-y-6 mb-8">
           {dimensions.map((d, i) => {
             const c = getColor(d.color);
             return (
@@ -3961,35 +4653,40 @@ function CompareVisual() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 + i * 0.12 }}
+                className="group"
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={cn("text-[10px] uppercase tracking-wider", c.text)}>{d.label}</span>
+                <div 
+                  className="flex items-center justify-between mb-2 cursor-pointer"
+                  onClick={() => setSelectedDimension(d.label)}
+                >
+                  <span className={cn("text-xs sm:text-sm uppercase tracking-wider group-hover:underline transition-all", c.text)}>{d.label}</span>
+                  <span className="text-xs text-white/40 group-hover:text-white/60 transition-all">Click for analysis →</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {/* KSA bar (right aligned) */}
                   <div className="flex-1 flex justify-end">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${d.ksaScore}%` }}
                       transition={{ delay: 0.8 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      className="h-4 rounded-l-md bg-emerald-500/30 border border-emerald-500/20 relative"
+                      className="h-6 lg:h-8 rounded-l-md bg-emerald-500/30 border border-emerald-500/20 relative"
                     >
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-400">
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs lg:text-sm font-bold text-emerald-400">
                         {d.ksaScore}
                       </span>
                     </motion.div>
                   </div>
                   {/* Divider */}
-                  <div className="w-[1px] h-4 bg-white/20" />
+                  <div className="w-[2px] h-6 lg:h-8 bg-white/20" />
                   {/* Comparison bar (left aligned) */}
                   <div className="flex-1">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${d.otherScore}%` }}
                       transition={{ delay: 0.8 + i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      className="h-4 rounded-r-md bg-cyan-500/30 border border-cyan-500/20 relative"
+                      className="h-6 lg:h-8 rounded-r-md bg-cyan-500/30 border border-cyan-500/20 relative"
                     >
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-cyan-400">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs lg:text-sm font-bold text-cyan-400">
                         {d.otherScore}
                       </span>
                     </motion.div>
@@ -4007,13 +4704,72 @@ function CompareVisual() {
           transition={{ delay: 1.6 }}
           className="text-center p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-white/10"
         >
-          <p className="text-[10px] text-white/50">
-            <span className="text-purple-300 font-semibold">AI-Powered</span> — Full strategic comparison generated in seconds.
-            Pillar analysis, gap identification, and actionable recommendations.
+          <p className="text-xs text-white/50">
+            <span className="text-purple-300 font-semibold">AI-Powered</span> — Click any dimension for detailed gap analysis and strategic recommendations.
           </p>
         </motion.div>
       </div>
     </div>
+
+    {/* Dimension Detail Modal */}
+    {selectedDimensionData && (
+      <SlideInteractionModal
+        isOpen={!!selectedDimension}
+        onClose={() => setSelectedDimension(null)}
+        title={selectedDimensionData.label}
+        subtitle={`Gap: ${selectedDimensionData.gap} | KSA ${selectedDimensionData.ksaScore} vs Germany ${selectedDimensionData.otherScore}`}
+        color={selectedDimensionData.color}
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Visual comparison */}
+          <div>
+            <h4 className="text-sm font-semibold text-white/80 mb-4">Score Comparison</h4>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-emerald-400 mb-2">Saudi Arabia</p>
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${selectedDimensionData.ksaScore}%` }}
+                  transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                  className="h-10 rounded-lg bg-emerald-500/30 border border-emerald-500/20 flex items-center justify-center"
+                >
+                  <span className="text-sm font-bold text-emerald-400">{selectedDimensionData.ksaScore}</span>
+                </motion.div>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-cyan-400 mb-2">Germany</p>
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${selectedDimensionData.otherScore}%` }}
+                  transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                  className="h-10 rounded-lg bg-cyan-500/30 border border-cyan-500/20 flex items-center justify-center"
+                >
+                  <span className="text-sm font-bold text-cyan-400">{selectedDimensionData.otherScore}</span>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* What creates the gap */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+            <h4 className="text-sm font-semibold text-white/80 mb-2">What Creates the Gap</h4>
+            <p className="text-sm text-white/70 leading-relaxed">
+              {selectedDimensionData.insight}
+            </p>
+          </div>
+
+          {/* What closing it means */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
+            <h4 className="text-sm font-semibold text-emerald-400 mb-2">How KSA Can Close the Gap</h4>
+            <p className="text-sm text-white/80 leading-relaxed">
+              {selectedDimensionData.action}
+            </p>
+          </div>
+        </div>
+      </SlideInteractionModal>
+    )}
+    </>
   );
 }
 
@@ -7899,7 +8655,7 @@ function HandshakeVisual() {
               transition={{ duration: 3, repeat: Infinity }}
               className="p-6 rounded-2xl bg-slate-900/80 border border-purple-500/40 backdrop-blur-md"
             >
-              <img src="/adl-logo.png" alt="Arthur D. Little" className="h-16 object-contain" />
+              <img src="/adl-logo.png" alt="Arthur D. Little" className="h-20 lg:h-24 object-contain" />
             </motion.div>
           </HeroReveal>
           
@@ -7942,7 +8698,7 @@ function HandshakeVisual() {
               transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}
               className="p-6 rounded-2xl bg-slate-900/80 border border-emerald-500/40 backdrop-blur-md"
             >
-              <img src="/gosi-logo.png" alt="GOSI" className="h-16 object-contain" />
+              <img src="/gosi-logo.png" alt="GOSI" className="h-20 lg:h-24 object-contain brightness-0 invert" />
             </motion.div>
           </HeroReveal>
         </div>
