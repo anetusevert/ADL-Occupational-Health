@@ -6544,7 +6544,7 @@ function IcebergVisual() {
               <div className="flex items-baseline gap-1">
                 <span className="text-red-400 text-lg sm:text-2xl font-bold">$</span>
                 <NumberCounter 
-                  value={53} 
+                  value={38} 
                   duration={2} 
                   delay={3}
                   className="text-xl sm:text-3xl font-bold text-white"
@@ -6588,7 +6588,7 @@ function IcebergVisual() {
             <div className="flex items-baseline justify-center gap-1">
               <span className="text-red-400 text-xl sm:text-2xl font-bold">$</span>
               <NumberCounter 
-                value={68} 
+                value={49} 
                 duration={2} 
                 delay={3.5}
                 className="text-2xl sm:text-4xl font-bold text-white"
@@ -6596,6 +6596,7 @@ function IcebergVisual() {
               <span className="text-red-400 text-xl sm:text-2xl font-bold">B</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 mt-1">Total Annual Loss</p>
+            <p className="text-[8px] text-red-400/50 mt-0.5">Click to see calculation</p>
           </motion.button>
           
           {/* GDP Impact */}
@@ -6607,34 +6608,37 @@ function IcebergVisual() {
           >
             <div className="flex items-baseline justify-center gap-1">
               <NumberCounter 
-                value={4} 
+                value={3.94} 
                 duration={1} 
                 delay={3.7}
+                decimals={2}
                 className="text-2xl sm:text-4xl font-bold text-amber-400"
               />
               <span className="text-amber-400 text-xl sm:text-2xl font-bold">%</span>
             </div>
             <p className="text-xs sm:text-sm text-white/60 mt-1">of Saudi GDP</p>
+            <p className="text-[8px] text-amber-400/50 mt-0.5">Click to see calculation</p>
           </motion.button>
           
-          {/* Global Deaths */}
+          {/* Saudi Injuries */}
           <motion.button
-            onClick={() => setSelectedSource("globalDeaths")}
+            onClick={() => setSelectedSource("saudiInjuries")}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             className="text-center border-l border-white/10 pl-4 sm:pl-8 cursor-pointer hover:bg-white/5 rounded-lg px-3 py-2 transition-colors"
           >
             <div className="flex items-baseline justify-center gap-1">
               <NumberCounter 
-                value={2.9} 
+                value={42.2} 
                 duration={1.5} 
                 delay={3.9}
                 decimals={1}
                 className="text-2xl sm:text-4xl font-bold text-purple-400"
               />
-              <span className="text-purple-400 text-xl sm:text-2xl font-bold">M</span>
+              <span className="text-purple-400 text-xl sm:text-2xl font-bold">K</span>
             </div>
-            <p className="text-xs sm:text-sm text-white/60 mt-1">Global Deaths/Year</p>
+            <p className="text-xs sm:text-sm text-white/60 mt-1">Saudi Injuries/Year</p>
+            <p className="text-[8px] text-purple-400/50 mt-0.5">Click to see calculation</p>
           </motion.button>
         </motion.div>
 
@@ -6646,15 +6650,15 @@ function IcebergVisual() {
           className="mt-6 max-w-xl text-center"
         >
           <p className="text-xs sm:text-sm text-white/70 italic leading-relaxed">
-            "Saudi Arabia's economic growth is silently taxed by preventable workplace incidents.
-            <span className="text-red-400 font-medium"> 78% of these costs remain invisible</span>—hidden in lost productivity, 
-            unreported illnesses, and diminished workforce potential."
+            "An estimated $49 billion is lost annually — 3.94% of Saudi GDP.
+            <span className="text-red-400 font-medium"> 78% of these costs remain invisible</span> — hidden in lost productivity, 
+            unreported illnesses, and diminished workforce potential across 17 million workers."
           </p>
-          <p className="text-[10px] sm:text-xs text-white/40 mt-2">— ILO Global Estimates, World Bank, GOSI Annual Reports</p>
+          <p className="text-[10px] sm:text-xs text-white/40 mt-2">— ILO Global Strategy 2024–30, World Bank, GASTAT 2024</p>
         </motion.div>
       </div>
 
-      {/* Source Detail Modal */}
+      {/* Source Detail Modal — Visual Calculation Breakdown */}
       <AnimatePresence>
         {activeSource && (
           <>
@@ -6664,68 +6668,176 @@ function IcebergVisual() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedSource(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
             />
             
             {/* Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.92, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-lg max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-cyan-500/30 rounded-xl p-6 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.92, y: 30 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[92vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-slate-900/98 to-slate-800/95 border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/5"
             >
               {/* Close button */}
-              <button
+              <motion.button
                 onClick={() => setSelectedSource(null)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                className="absolute top-5 right-5 z-10 w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
               >
-                <X className="w-5 h-5 text-white/60" />
-              </button>
+                <X className="w-4 h-4 text-white/70" />
+              </motion.button>
 
-              {/* Header */}
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-white">{activeSource.title}</h3>
-                <p className="text-sm text-white/60 mt-1">{activeSource.calculation}</p>
+              {/* Header with large value */}
+              <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-5 border-b border-white/10 bg-gradient-to-r from-cyan-500/5 via-transparent to-red-500/5">
+                <motion.h3 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-xl sm:text-2xl font-bold text-white leading-tight pr-10"
+                >
+                  {activeSource.title}
+                </motion.h3>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-sm text-white/50 mt-2 leading-relaxed"
+                >
+                  {activeSource.calculation}
+                </motion.p>
               </div>
 
-              {/* Methodology */}
-              <div className="mb-4">
-                <h4 className="text-sm font-semibold text-cyan-400 mb-2">Methodology</h4>
-                <ul className="space-y-1">
-                  {activeSource.methodology.map((item, i) => (
-                    <li key={i} className="text-xs text-white/70 flex items-start gap-2">
-                      <span className="text-cyan-400 mt-0.5">•</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <div className="px-6 sm:px-8 py-6 space-y-6">
 
-              {/* Sources with Links */}
-              <div>
-                <h4 className="text-sm font-semibold text-emerald-400 mb-2">Sources</h4>
-                <div className="space-y-2">
-                  {activeSource.sources.map((source, i) => (
-                    <a
-                      key={i}
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
-                    >
-                      <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span className="text-xs text-white/80 group-hover:text-white">{source.name}</span>
-                      <ArrowRight className="w-3 h-3 text-white/40 group-hover:text-emerald-400 ml-auto" />
-                    </a>
-                  ))}
+                {/* Calculation Steps — Visual Flow */}
+                {activeSource.calculationSteps && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-widest mb-4">How This Number Is Calculated</h4>
+                    <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                      {activeSource.calculationSteps.map((step: { label: string; value: string; source: string; isResult?: boolean }, si: number) => (
+                        <motion.div 
+                          key={si} 
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + si * 0.12 }}
+                          className="flex-1 flex flex-col"
+                        >
+                          <div className={cn(
+                            "relative flex-1 rounded-xl p-4 sm:p-5 border backdrop-blur-sm",
+                            step.isResult 
+                              ? "bg-gradient-to-br from-red-500/15 to-amber-500/10 border-red-500/40" 
+                              : "bg-white/5 border-white/10"
+                          )}>
+                            {/* Step number badge */}
+                            <div className={cn(
+                              "absolute -top-2.5 left-4 px-2 py-0.5 rounded-full text-[10px] font-bold",
+                              step.isResult 
+                                ? "bg-red-500/30 text-red-300 border border-red-500/40" 
+                                : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                            )}>
+                              {step.isResult ? "Result" : `Step ${si + 1}`}
+                            </div>
+                            
+                            <p className="text-[10px] sm:text-xs text-white/50 mt-2 mb-1">{step.label}</p>
+                            <p className={cn(
+                              "text-xl sm:text-2xl font-bold font-mono",
+                              step.isResult ? "text-white" : "text-cyan-300"
+                            )}>
+                              {step.value}
+                            </p>
+                            <p className="text-[9px] sm:text-[10px] text-white/30 mt-1.5">{step.source}</p>
+                          </div>
+                          
+                          {/* Arrow connector (hidden on last step) */}
+                          {si < activeSource.calculationSteps.length - 1 && (
+                            <div className="hidden sm:flex items-center justify-center h-0">
+                              <motion.div
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.4 + si * 0.12 }}
+                                className="absolute -right-4 top-1/2 -translate-y-1/2 z-10"
+                              >
+                                <ArrowRight className="w-5 h-5 text-cyan-400/60" />
+                              </motion.div>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* What This Includes — Methodology */}
+                <div>
+                  <h4 className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Full Methodology</h4>
+                  <div className="space-y-2">
+                    {activeSource.methodology.map((item: string, i: number) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.06 }}
+                        className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                      >
+                        <div className="w-5 h-5 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-[9px] font-bold text-cyan-400">{i + 1}</span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-white/70 leading-relaxed">{item}</p>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Disclaimer */}
-              <p className="text-[10px] text-white/40 mt-4 pt-4 border-t border-white/10">
-                Note: Figures are estimates based on ILO methodology and may vary based on data availability. 
-                Saudi-specific data from GOSI and national statistics where available.
-              </p>
+                {/* Sources — Prominent Cards */}
+                <div>
+                  <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-3">Verified Sources</h4>
+                  <div className="space-y-3">
+                    {activeSource.sources.map((source: { name: string; org?: string; url: string }, i: number) => (
+                      <motion.a
+                        key={i}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10 transition-all group cursor-pointer"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                          <Globe className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">{source.name}</p>
+                          {source.org && (
+                            <p className="text-[11px] text-white/40 mt-0.5">{source.org}</p>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 group-hover:bg-emerald-500/25 transition-all">
+                          <span className="text-[10px] font-semibold text-emerald-400">Open</span>
+                          <ArrowRight className="w-3 h-3 text-emerald-400" />
+                        </div>
+                      </motion.a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Disclaimer */}
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="pt-4 border-t border-white/[0.06]"
+                >
+                  <p className="text-[10px] sm:text-xs text-white/35 leading-relaxed">
+                    Estimates are calculated using ILO methodology (3.94% of GDP) applied to World Bank GDP figures. 
+                    Saudi-specific injury data from GASTAT Health and Safety at Workplace Statistics 2024.
+                    Actual costs may vary based on reporting completeness and sector-specific risk profiles.
+                  </p>
+                </motion.div>
+              </div>
             </motion.div>
           </>
         )}

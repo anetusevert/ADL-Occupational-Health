@@ -803,19 +803,19 @@ export const guideSlides: GuideSlide[] = [
     id: "the-stakes",
     type: "challenge",
     title: "The Stakes",
-    actionTitle: "$68 Billion Lost Every Year — Most of It Invisible",
+    actionTitle: "$49 Billion Lost Every Year — Most of It Invisible",
     subtitle: "Why This Platform Exists",
-    content: "Preventable occupational injuries and diseases drain $68 billion annually from the Saudi economy. Direct claims are the tip. Lost productivity, workforce attrition, and unreported chronic conditions are the mass beneath. This platform makes the invisible visible — and the unmanageable, strategic.",
+    content: "Preventable occupational injuries and diseases drain $49 billion annually from the Saudi economy — 3.94% of GDP. Direct claims are the tip. Lost productivity, workforce attrition, and unreported chronic conditions are the mass beneath. This platform makes the invisible visible — and the unmanageable, strategic.",
     highlights: [
-      "Direct claims costs: ~$15B annually (the visible 22%)",
-      "Hidden costs: ~$53B in lost productivity and chronic disease",
-      "2.9 million deaths from occupational causes globally each year",
-      "ILO: 4% of world GDP lost to workplace incidents"
+      "Direct claims costs: ~$11B annually (the visible 22%)",
+      "Hidden costs: ~$38B in lost productivity and chronic disease",
+      "42,200+ workplace injuries annually in Saudi Arabia alone",
+      "ILO: 3.94% of GDP lost to workplace incidents"
     ],
     stats: [
-      { value: "$68B", label: "Annual Loss", color: "red" },
+      { value: "$49B", label: "Annual Loss", color: "red" },
       { value: "78%", label: "Costs Hidden", color: "amber" },
-      { value: "4%", label: "GDP at Risk", color: "cyan" }
+      { value: "3.94%", label: "GDP at Risk", color: "cyan" }
     ],
     color: "amber"
   },
