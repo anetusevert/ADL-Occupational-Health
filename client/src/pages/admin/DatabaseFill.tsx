@@ -291,6 +291,19 @@ export function DatabaseFill() {
   const [insightRunning, setInsightRunning] = useState(false);
   const [insightStopping, setInsightStopping] = useState(false);
 
+  // DB-level insight progress (survives server restarts)
+  const [insightDbProgress, setInsightDbProgress] = useState<{
+    total_countries: number;
+    total_possible_insights: number;
+    completed: number;
+    generating: number;
+    error: number;
+    pending: number;
+    countries_fully_done: number;
+    is_interrupted: boolean;
+    batch_running: boolean;
+  } | null>(null);
+
   // Error display
   const [error, setError] = useState<string | null>(null);
 
@@ -408,11 +421,22 @@ export function DatabaseFill() {
     checkBackend();
   }, []);
 
+  // ── Poll Phase 3 DB progress (persisted across restarts) ──
+  const pollInsightDbProgress = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/api/v1/insight-batch/db-progress');
+      setInsightDbProgress(res.data);
+    } catch {
+      // endpoint may not exist on older backends - ignore silently
+    }
+  }, []);
+
   // ── Auto-poll ──
   useEffect(() => {
     pollEtl();
     pollFill();
     pollInsights();
+    pollInsightDbProgress();
 
     const interval = setInterval(() => {
       pollEtl();
@@ -420,8 +444,11 @@ export function DatabaseFill() {
       pollInsights();
     }, 3000);
 
-    return () => clearInterval(interval);
-  }, [pollEtl, pollFill, pollInsights]);
+    // DB progress less frequently (every 15s) - it queries the database
+    const dbInterval = setInterval(pollInsightDbProgress, 15000);
+
+    return () => { clearInterval(interval); clearInterval(dbInterval); };
+  }, [pollEtl, pollFill, pollInsights, pollInsightDbProgress]);
 
   // ── Start Phase 1: ETL ──
   const startEtl = async () => {
@@ -562,7 +589,7 @@ export function DatabaseFill() {
         </div>
 
         <button
-          onClick={() => { pollEtl(); pollFill(); pollInsights(); }}
+          onClick={() => { pollEtl(); pollFill(); pollInsights(); pollInsightDbProgress(); }}
           className="px-3 py-2 rounded-lg bg-slate-700/50 text-white/60 hover:text-white hover:bg-slate-700 transition-all text-sm flex items-center gap-2"
         >
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -793,6 +820,35 @@ export function DatabaseFill() {
                 All {insightStatus.countries_skipped} countries were skipped because insights already exist.
                 Enable "Force regenerate" to overwrite them.
               </span>
+            </div>
+          )}
+
+          {/* Interrupted generation banner — shown when server restarted mid-generation */}
+          {!insightRunning && (!insightStatus || insightStatus.status === 'idle') &&
+            insightDbProgress && !insightDbProgress.batch_running &&
+            insightDbProgress.completed > 0 &&
+            insightDbProgress.completed < insightDbProgress.total_possible_insights &&
+            (insightDbProgress.total_possible_insights - insightDbProgress.completed - insightDbProgress.error) > 0 && (
+            <div className="mb-3 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span className="text-xs font-medium text-blue-300">
+                  Previous generation was interrupted
+                </span>
+              </div>
+              <p className="text-xs text-white/50 mb-2">
+                {insightDbProgress.countries_fully_done} of {insightDbProgress.total_countries} countries fully complete
+                ({insightDbProgress.completed} / {insightDbProgress.total_possible_insights} insights).
+                {insightDbProgress.error > 0 && ` ${insightDbProgress.error} failed.`}
+                {' '}Click "Start" to resume — already-completed insights will be skipped.
+              </p>
+              <div className="flex gap-2">
+                <StatBadge icon={CheckCircle2} label="Completed" value={insightDbProgress.completed} color="emerald" />
+                {insightDbProgress.error > 0 && (
+                  <StatBadge icon={XCircle} label="Failed" value={insightDbProgress.error} color="red" />
+                )}
+                <StatBadge icon={Globe} label="Countries Done" value={insightDbProgress.countries_fully_done} color="cyan" />
+              </div>
             </div>
           )}
 

@@ -170,6 +170,23 @@ async def startup_event():
     # Agents will be seeded on first API request if needed
     print("Skipping agent seeding during startup (will sync on first request)", flush=True)
     
+    # Clean up insights stuck in "generating" status from a previous interrupted run
+    # These happen when the server is restarted mid-generation
+    try:
+        from app.models.country_insight import CountryInsight, InsightStatus
+        cleanup_db = SessionLocal()
+        stuck_count = cleanup_db.query(CountryInsight).filter(
+            CountryInsight.status == InsightStatus.generating
+        ).update({"status": InsightStatus.pending, "error_message": "Reset: server restarted during generation"})
+        cleanup_db.commit()
+        cleanup_db.close()
+        if stuck_count > 0:
+            print(f"Cleaned up {stuck_count} insights stuck in 'generating' status (reset to 'pending')", flush=True)
+        else:
+            print("No stuck insights to clean up", flush=True)
+    except Exception as e:
+        print(f"WARNING: Could not clean up stuck insights: {e}", flush=True)
+    
     print("=" * 60, flush=True)
     print("STARTUP COMPLETE - Application ready!", flush=True)
     print("=" * 60, flush=True)

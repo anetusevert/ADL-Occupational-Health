@@ -5139,6 +5139,7 @@ function GlobalMapVisual() {
   const [scanPosition, setScanPosition] = useState(0);
   const [activeCountry, setActiveCountry] = useState<CountryMapPoint | null>(null);
   const [highlightedIsos, setHighlightedIsos] = useState<Set<string>>(new Set());
+  const [isAutoScanning, setIsAutoScanning] = useState(true);
   const [shuffledCountries] = useState<CountryMapPoint[]>(() => {
     const arr = [...COUNTRY_MAP_POINTS];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -5158,7 +5159,6 @@ function GlobalMapVisual() {
       const iso3 = ISO2_TO_ISO3[a2];
       if (iso3) return iso3;
     }
-    // Fallback: check ISO_A3 property directly
     const a3 = geo.properties.ISO_A3;
     if (a3 && a3 !== "-99" && COUNTRY_MAP_INDEX[a3]) return a3;
     return undefined;
@@ -5166,6 +5166,7 @@ function GlobalMapVisual() {
 
   // Pick 2-3 targets for each sweep cycle
   useEffect(() => {
+    if (!isAutoScanning) return;
     const count = 2 + Math.floor(Math.random() * 2);
     const targets: CountryMapPoint[] = [];
     for (let i = 0; i < count; i++) {
@@ -5175,10 +5176,11 @@ function GlobalMapVisual() {
     setCycleTargets(targets);
     setTargetIdx(0);
     setHighlightedIsos(new Set());
-  }, [globalIdx, shuffledCountries]);
+  }, [globalIdx, shuffledCountries, isAutoScanning]);
 
-  // Scanner sweep
+  // Scanner sweep — only when auto-scanning
   useEffect(() => {
+    if (!isAutoScanning) return;
     const SCAN_SPEED = 0.3;
     const interval = setInterval(() => {
       setScanPosition(prev => {
@@ -5191,10 +5193,11 @@ function GlobalMapVisual() {
       });
     }, 20);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAutoScanning]);
 
   // Detect when scanner reaches a target country
   useEffect(() => {
+    if (!isAutoScanning) return;
     if (targetIdx >= cycleTargets.length) return;
     const target = cycleTargets[targetIdx];
     if (target && scanPosition >= target.x - 1 && scanPosition <= target.x + 3) {
@@ -5202,7 +5205,7 @@ function GlobalMapVisual() {
       setHighlightedIsos(prev => new Set(prev).add(target.iso));
       setTargetIdx(ti => ti + 1);
     }
-  }, [scanPosition, cycleTargets, targetIdx]);
+  }, [scanPosition, cycleTargets, targetIdx, isAutoScanning]);
 
   // Set initial active country
   useEffect(() => {
@@ -5211,10 +5214,22 @@ function GlobalMapVisual() {
     }
   }, [activeCountry, shuffledCountries]);
 
+  // Handle click on a country in the map
+  const handleCountryClick = useCallback((iso3: string) => {
+    const country = COUNTRY_MAP_INDEX[iso3];
+    if (country) {
+      setIsAutoScanning(false);
+      setActiveCountry(country);
+      setHighlightedIsos(new Set([iso3]));
+      // Resume auto-scanning after 8 seconds
+      setTimeout(() => setIsAutoScanning(true), 8000);
+    }
+  }, []);
+
   const featureCards = [
-    { id: "map", icon: Globe, title: "Interactive World Map", description: "Color-coded by OHI score. Filter by pillar, continent, or maturity tier.", stat: "195", statLabel: "Nations", color: "cyan" as const },
-    { id: "country", icon: BarChart3, title: "Country Intelligence", description: "Click any nation for its full dashboard — economic context and framework scores.", stat: "4", statLabel: "Pillars Scored", color: "emerald" as const },
-    { id: "insights", icon: Lightbulb, title: "Strategic Insights", description: "Deep strategic analysis — strengths, gaps, and recommendations for every country.", stat: "6", statLabel: "Insight Categories", color: "purple" as const },
+    { id: "map", icon: Globe, title: "Interactive World Map", desc: "Color-coded by OHI score. Filter by pillar, continent, or maturity tier.", stat: "195", statLabel: "Nations", color: "cyan" as const },
+    { id: "country", icon: BarChart3, title: "Country Intelligence", desc: "Click any nation for its full dashboard — economic context and framework scores.", stat: "4", statLabel: "Pillars Scored", color: "emerald" as const },
+    { id: "insights", icon: Lightbulb, title: "Strategic Insights", desc: "Deep strategic analysis — strengths, gaps, and recommendations for every country.", stat: "6", statLabel: "Dimensions", color: "purple" as const },
   ];
 
   // Scores for active country fact sheet
@@ -5227,289 +5242,224 @@ function GlobalMapVisual() {
     <>
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950/30 to-slate-900">
       {/* Particle effects */}
-      <ParticleField count={30} color="cyan" speed="slow" />
+      <ParticleField count={25} color="cyan" speed="slow" />
       <FloatingGlowOrb color="cyan" size="lg" position="top-right" delay={0} />
       <FloatingGlowOrb color="blue" size="md" position="bottom-left" delay={0.5} />
 
-      {/* Title Section */}
+      {/* Title Section — compact */}
       <motion.div
-        initial={{ opacity: 0, y: -30 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring" }}
-        className="text-center pt-3 sm:pt-4 pb-1 px-4 flex-shrink-0"
+        className="text-center pt-2 sm:pt-3 pb-1 px-4 flex-shrink-0"
       >
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Global Intelligence</span>
         </h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-white/50 text-xs sm:text-sm lg:text-base mb-1">
-          195 nations. One interactive map. Every insight at your fingertips.
+          className="text-white/50 text-[10px] sm:text-xs">
+          195 nations. One interactive map. Click any country to explore.
         </motion.p>
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
-          transition={{ delay: 0.8, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-24 sm:w-36 lg:w-48 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
       </motion.div>
 
-      {/* Main Content: Map + Fact Sheet */}
-      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3">
+      {/* ===== TOP: Map + Fact Sheet (approx 60% of height) ===== */}
+      <div className="flex-[3] min-h-0 flex px-3 sm:px-4 lg:px-5 gap-2 sm:gap-3">
         
-        {/* Map + Fact Sheet Row */}
-        <div className="flex-1 min-h-0 flex gap-3 sm:gap-4">
-          
-          {/* LEFT: Real Choropleth World Map */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="flex-[2.5] lg:flex-[3] relative rounded-xl border border-white/10 bg-slate-900/50 overflow-hidden flex items-center justify-center"
+        {/* LEFT: Real Choropleth World Map */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="flex-[2.8] relative rounded-xl border border-white/10 bg-slate-900/50 overflow-hidden flex items-center justify-center"
+        >
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{ scale: 130, center: [15, 30] }}
+            style={{ width: "100%", height: "100%" }}
           >
-            {/* ComposableMap - real world map */}
-            <ComposableMap
-              projection="geoMercator"
-              projectionConfig={{ scale: 130, center: [15, 30] }}
-              style={{ width: "100%", height: "100%" }}
-            >
-              <Geographies geography={PRESENTATION_GEO_URL}>
-                {({ geographies }) =>
-                  geographies.map((geo) => {
-                    const iso3 = getGeoIso3(geo);
-                    const countryData = iso3 ? COUNTRY_MAP_INDEX[iso3] : undefined;
-                    const isActive = iso3 === activeCountry?.iso;
-                    const isHighlighted = iso3 ? highlightedIsos.has(iso3) : false;
+            <Geographies geography={PRESENTATION_GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const iso3 = getGeoIso3(geo);
+                  const countryData = iso3 ? COUNTRY_MAP_INDEX[iso3] : undefined;
+                  const isActive = iso3 === activeCountry?.iso;
+                  const isHighlighted = iso3 ? highlightedIsos.has(iso3) : false;
 
-                    // Colorful base fills so the map looks vibrant
-                    let fill = "#1e293b";
-                    if (countryData) {
-                      if (isActive) {
-                        // Full bright tier color for active
-                        fill = TIER_COLORS[countryData.tier].color;
-                      } else if (isHighlighted) {
-                        // Slightly dimmed but still vivid for highlighted
-                        fill = countryData.tier === "leading" ? "#0ead76"
-                          : countryData.tier === "advancing" ? "#08a5c4"
-                          : countryData.tier === "developing" ? "#e5a50e"
-                          : "#e84545";
-                      } else {
-                        // Visible base colors — not too dim, clearly distinguishable
-                        fill = countryData.tier === "leading" ? "#0a7c55"
-                          : countryData.tier === "advancing" ? "#06788e"
-                          : countryData.tier === "developing" ? "#a67508"
-                          : "#a83232";
-                      }
+                  // Determine fill: active = full bright, others = visible base
+                  let fill = "#1e293b";
+                  if (countryData) {
+                    if (isActive) {
+                      fill = TIER_COLORS[countryData.tier].color;
+                    } else if (isHighlighted) {
+                      fill = countryData.tier === "leading" ? "#0ead76"
+                        : countryData.tier === "advancing" ? "#08a5c4"
+                        : countryData.tier === "developing" ? "#e5a50e"
+                        : "#e84545";
+                    } else {
+                      fill = countryData.tier === "leading" ? "#0a7c55"
+                        : countryData.tier === "advancing" ? "#06788e"
+                        : countryData.tier === "developing" ? "#a67508"
+                        : "#a83232";
                     }
+                  }
 
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={fill}
-                        stroke={isActive ? "#ffffff" : isHighlighted ? "#e2e8f0" : "#475569"}
-                        strokeWidth={isActive ? 2 : isHighlighted ? 1 : 0.4}
-                        style={{
-                          default: { outline: "none", transition: "all 0.3s ease" },
-                          hover: { outline: "none", fill: countryData ? TIER_COLORS[countryData.tier].color : "#475569", strokeWidth: 1, stroke: "#e2e8f0" },
-                          pressed: { outline: "none" },
-                        }}
-                      />
-                    );
-                  })
-                }
-              </Geographies>
-            </ComposableMap>
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={fill}
+                      stroke={isActive ? "#ffffff" : isHighlighted ? "#cbd5e1" : "#475569"}
+                      strokeWidth={isActive ? 2.5 : isHighlighted ? 1 : 0.4}
+                      onClick={() => iso3 && handleCountryClick(iso3)}
+                      style={{
+                        default: { outline: "none", transition: "all 0.3s ease", cursor: countryData ? "pointer" : "default" },
+                        hover: { outline: "none", fill: countryData ? TIER_COLORS[countryData.tier].color : "#475569", strokeWidth: 1.5, stroke: "#ffffff", cursor: countryData ? "pointer" : "default" },
+                        pressed: { outline: "none" },
+                      }}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ComposableMap>
 
-            {/* Pulsating glow overlay for active country */}
-            {activeCountry && (
-              <div className="absolute inset-0 pointer-events-none z-10">
-                <motion.div
-                  key={activeCountry.iso}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, type: "spring" }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${activeCountry.x}%`, top: `${activeCountry.y}%` }}
-                >
-                  {/* Outer pulse ring */}
-                  <motion.div
-                    animate={{ scale: [1, 2.5, 1], opacity: [0.6, 0, 0.6] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-0 w-8 h-8 sm:w-10 sm:h-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{ backgroundColor: TIER_COLORS[activeCountry.tier].color, left: "50%", top: "50%" }}
-                  />
-                  {/* Middle pulse ring */}
-                  <motion.div
-                    animate={{ scale: [1, 2, 1], opacity: [0.4, 0, 0.4] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-                    className="absolute inset-0 w-6 h-6 sm:w-8 sm:h-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{ backgroundColor: TIER_COLORS[activeCountry.tier].color, left: "50%", top: "50%" }}
-                  />
-                  {/* Core bright dot */}
-                  <motion.div
-                    animate={{ scale: [0.9, 1.2, 0.9] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                    className="absolute w-3 h-3 sm:w-4 sm:h-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{
-                      backgroundColor: TIER_COLORS[activeCountry.tier].color,
-                      boxShadow: `0 0 16px ${TIER_COLORS[activeCountry.tier].color}, 0 0 32px ${TIER_COLORS[activeCountry.tier].color}60`,
-                      left: "50%", top: "50%",
-                    }}
-                  />
-                </motion.div>
-              </div>
-            )}
-
-            {/* Scan line overlay on top of the map */}
+          {/* Scan line overlay — only when auto-scanning */}
+          {isAutoScanning && (
             <div className="absolute top-0 bottom-0 pointer-events-none z-20" style={{ left: `${scanPosition}%` }}>
               <div className="absolute -left-[20px] top-0 bottom-0 w-[40px] bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent" />
               <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-400/30 via-cyan-400/80 to-cyan-400/30" />
             </div>
+          )}
 
-            {/* Tier legend */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-              className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 flex items-center gap-2 sm:gap-3 z-20 bg-black/40 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-white/10">
-              {Object.entries(TIER_COLORS).map(([key, val]) => (
-                <div key={key} className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: val.color }} />
-                  <span className="text-[9px] sm:text-[10px] text-white/60 font-medium">{val.label}</span>
-                </div>
-              ))}
-            </motion.div>
-
-            {/* Country count badge */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10 z-20"
-            >
-              <span className="text-cyan-400 text-xs sm:text-sm font-bold">195</span>
-              <span className="text-white/50 text-[9px] sm:text-xs ml-1.5">Countries</span>
-            </motion.div>
+          {/* Tier legend */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
+            className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 flex items-center gap-1.5 sm:gap-2 z-20 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10">
+            {Object.entries(TIER_COLORS).map(([key, val]) => (
+              <div key={key} className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: val.color }} />
+                <span className="text-[8px] sm:text-[9px] text-white/60">{val.label}</span>
+              </div>
+            ))}
           </motion.div>
 
-          {/* RIGHT: Country Fact Sheet */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="flex-[1.4] sm:flex-[1.2] rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-sm overflow-hidden flex flex-col"
-          >
-            <AnimatePresence mode="wait">
-              {activeCountry && (
-                <motion.div
-                  key={activeCountry.iso}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.4, type: "spring", damping: 20 }}
-                  className="flex flex-col h-full p-4 sm:p-5"
-                >
-                  {/* Header: Flag + Name */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border-2 border-white/20 bg-white/5 flex-shrink-0 flex items-center justify-center shadow-lg">
-                      {flagUrl ? (
-                        <img src={flagUrl} alt={activeCountry.name} className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : (
-                        <Globe className="w-6 h-6 text-white/30" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-white truncate">{activeCountry.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold"
-                          style={{ backgroundColor: `${tierColor.color}25`, color: tierColor.color, border: `1px solid ${tierColor.color}40` }}>
-                          {tierColor.label}
-                        </span>
-                        <span className="text-[10px] sm:text-xs text-white/40">{activeCountry.region}</span>
-                      </div>
-                    </div>
-                  </div>
+          {/* Country count badge */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+            className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/10 z-20">
+            <span className="text-cyan-400 text-[10px] sm:text-xs font-bold">195</span>
+            <span className="text-white/40 text-[8px] sm:text-[10px] ml-1">Countries</span>
+          </motion.div>
+        </motion.div>
 
-                  {/* Rank */}
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 mb-4">
-                    <span className="text-xs sm:text-sm text-white/50 font-medium">Global Rank</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base sm:text-lg font-bold" style={{ color: tierColor.color }}>#{rank}</span>
-                      <span className="text-[10px] sm:text-xs text-white/30">/ 195</span>
+        {/* RIGHT: Country Fact Sheet — compact */}
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+          className="flex-[1.1] rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-sm overflow-hidden flex flex-col"
+        >
+          <AnimatePresence mode="wait">
+            {activeCountry && (
+              <motion.div
+                key={activeCountry.iso}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, type: "spring", damping: 22 }}
+                className="flex flex-col h-full p-3 sm:p-4"
+              >
+                {/* Header: Flag + Name */}
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border-2 border-white/20 bg-white/5 flex-shrink-0 flex items-center justify-center">
+                    {flagUrl ? (
+                      <img src={flagUrl} alt={activeCountry.name} className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <Globe className="w-5 h-5 text-white/30" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate">{activeCountry.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                        style={{ backgroundColor: `${tierColor.color}25`, color: tierColor.color, border: `1px solid ${tierColor.color}40` }}>
+                        {tierColor.label}
+                      </span>
+                      <span className="text-[9px] sm:text-[10px] text-white/35">{activeCountry.region}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Pillar Scores */}
-                  <div className="space-y-2.5 flex-1">
-                    <p className="text-[10px] sm:text-xs text-white/50 uppercase tracking-wider font-semibold">Framework Scores</p>
-                    {scores && [
-                      { label: "Governance", score: scores.governance, color: "#10b981" },
-                      { label: "Prevention", score: scores.prevention, color: "#06b6d4" },
-                      { label: "Compensation", score: scores.compensation, color: "#f59e0b" },
-                      { label: "Rehabilitation", score: scores.rehabilitation, color: "#a855f7" },
-                    ].map((pillar, pi) => (
-                      <motion.div key={pillar.label}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.15 + pi * 0.08 }}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] sm:text-xs text-white/60">{pillar.label}</span>
-                          <span className="text-xs sm:text-sm font-bold" style={{ color: pillar.color }}>{pillar.score}</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pillar.score}%` }}
-                            transition={{ delay: 0.3 + pi * 0.1, duration: 0.6, ease: "easeOut" }}
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: pillar.color }}
-                          />
-                        </div>
-                      </motion.div>
-                    ))}
+                {/* Rank */}
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 mb-2.5">
+                  <span className="text-[10px] sm:text-xs text-white/45">Global Rank</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm sm:text-base font-bold" style={{ color: tierColor.color }}>#{rank}</span>
+                    <span className="text-[9px] text-white/30">/ 195</span>
                   </div>
+                </div>
 
-                  {/* Overall Score */}
-                  {scores && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 }}
-                      className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between"
+                {/* Pillar Scores */}
+                <div className="space-y-2 flex-1 min-h-0">
+                  <p className="text-[9px] sm:text-[10px] text-white/45 uppercase tracking-wider font-semibold">Framework Scores</p>
+                  {scores && [
+                    { label: "Governance", score: scores.governance, color: "#10b981" },
+                    { label: "Prevention", score: scores.prevention, color: "#06b6d4" },
+                    { label: "Compensation", score: scores.compensation, color: "#f59e0b" },
+                    { label: "Rehabilitation", score: scores.rehabilitation, color: "#a855f7" },
+                  ].map((pillar, pi) => (
+                    <motion.div key={pillar.label}
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.12 + pi * 0.06 }}
                     >
-                      <span className="text-xs sm:text-sm text-white/50 font-semibold">OHI Score</span>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-20 sm:w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${scores.overall}%` }}
-                            transition={{ delay: 0.8, duration: 0.6 }}
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: tierColor.color }}
-                          />
-                        </div>
-                        <span className="text-base sm:text-xl font-bold" style={{ color: tierColor.color }}>{scores.overall}</span>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[9px] sm:text-[10px] text-white/55">{pillar.label}</span>
+                        <span className="text-[10px] sm:text-xs font-bold" style={{ color: pillar.color }}>{pillar.score}</span>
+                      </div>
+                      <div className="h-1.5 sm:h-2 rounded-full bg-white/10 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pillar.score}%` }}
+                          transition={{ delay: 0.2 + pi * 0.08, duration: 0.5, ease: "easeOut" }}
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: pillar.color }}
+                        />
                       </div>
                     </motion.div>
-                  )}
+                  ))}
+                </div>
 
-                  {/* Scanning indicator */}
-                  <motion.div
-                    animate={{ opacity: [0.3, 0.8, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="mt-3 flex items-center justify-center gap-2"
-                  >
-                    <motion.div
-                      animate={{ scale: [0.8, 1.2, 0.8] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="w-1.5 h-1.5 rounded-full bg-cyan-400"
-                    />
-                    <span className="text-[9px] sm:text-[10px] text-white/30">Scanning countries...</span>
+                {/* Overall Score */}
+                {scores && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                    className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-[10px] sm:text-xs text-white/45 font-semibold">OHI Score</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-14 sm:w-18 h-1.5 sm:h-2 rounded-full bg-white/10 overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${scores.overall}%` }}
+                          transition={{ delay: 0.7, duration: 0.5 }}
+                          className="h-full rounded-full" style={{ backgroundColor: tierColor.color }} />
+                      </div>
+                      <span className="text-sm sm:text-base font-bold" style={{ color: tierColor.color }}>{scores.overall}</span>
+                    </div>
                   </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+                )}
 
-        {/* Feature Cards Row */}
-        <div className="flex-shrink-0 w-full grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+                {/* Scanning indicator */}
+                <motion.div animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}
+                  className="mt-2 flex items-center justify-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-cyan-400" />
+                  <span className="text-[8px] sm:text-[9px] text-white/25">{isAutoScanning ? "Scanning..." : "Click a country"}</span>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      {/* ===== BOTTOM: Feature Cards (approx 1/3 of height) ===== */}
+      <div className="flex-[2] min-h-0 flex flex-col justify-center px-3 sm:px-4 lg:px-5 pb-2 sm:pb-3 pt-2">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 h-full">
           {featureCards.map((card, i) => {
             const col = getColor(card.color);
             const Icon = card.icon;
@@ -5518,45 +5468,45 @@ function GlobalMapVisual() {
                 key={card.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0, boxShadow: [`0 0 12px ${col.hex}15`, `0 0 24px ${col.hex}30`, `0 0 12px ${col.hex}15`] }}
-                transition={{ delay: 1 + i * 0.15, duration: 0.5, boxShadow: { duration: 3, repeat: Infinity, delay: i * 0.5 } }}
-                whileHover={{ scale: 1.04, boxShadow: `0 0 35px ${col.hex}50`, y: -3 }}
+                transition={{ delay: 0.8 + i * 0.12, duration: 0.5, boxShadow: { duration: 3, repeat: Infinity, delay: i * 0.5 } }}
+                whileHover={{ scale: 1.03, boxShadow: `0 0 35px ${col.hex}50`, y: -2 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setSelectedFeature(card.id)}
                 className={cn(
-                  "relative group cursor-pointer rounded-xl p-3 sm:p-4",
+                  "relative group cursor-pointer rounded-xl p-3 sm:p-4 lg:p-5",
                   "border-2 backdrop-blur-sm transition-all duration-300",
+                  "flex flex-col justify-between",
                   col.bg, col.border
                 )}
               >
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <div className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 border", col.bg, col.border)}>
-                    <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", col.text)} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-xs sm:text-sm font-semibold text-white truncate">{card.title}</h3>
-                    <p className="text-[9px] sm:text-xs text-white/45 truncate mt-0.5">{card.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="text-right">
-                      <span className={cn("text-base sm:text-lg font-bold", col.text)}>{card.stat}</span>
-                      <p className="text-[8px] sm:text-[9px] text-white/30">{card.statLabel}</p>
+                {/* Top: Icon + Title */}
+                <div>
+                  <div className="flex items-center gap-2.5 sm:gap-3 mb-2 sm:mb-3">
+                    <div className={cn("w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0 border", col.bg, col.border)}>
+                      <Icon className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6", col.text)} />
                     </div>
-                    <motion.div
-                      animate={{ x: [0, 4, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      className={cn("opacity-50 group-hover:opacity-100 transition-opacity", col.text)}
-                    >
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </motion.div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white leading-tight">{card.title}</h3>
+                    </div>
                   </div>
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-white/45 leading-relaxed line-clamp-2">{card.desc}</p>
                 </div>
-                {/* Explore label on hover */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  className="absolute bottom-1 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                >
-                  <span className={cn("text-[9px] sm:text-[10px] font-medium", col.text)}>Explore</span>
-                </motion.div>
+
+                {/* Bottom: Stat + CTA */}
+                <div className="flex items-end justify-between mt-2 sm:mt-3">
+                  <div>
+                    <span className={cn("text-2xl sm:text-3xl lg:text-4xl font-bold", col.text)}>{card.stat}</span>
+                    <p className="text-[9px] sm:text-[10px] lg:text-xs text-white/35 mt-0.5">{card.statLabel}</p>
+                  </div>
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className={cn("flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity", col.text)}
+                  >
+                    <span className="text-[10px] sm:text-xs font-medium hidden sm:inline">Explore</span>
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </motion.div>
+                </div>
               </motion.div>
             );
           })}

@@ -455,9 +455,9 @@ async def generate_insight_content(
     Generate AI insight content using the country-insight-generator agent.
     
     Returns dict with:
-    - what_is_analysis: str (3-4 paragraphs)
-    - oh_implications: str (3-4 paragraphs)
-    - key_stats: list of 6 stat objects [{label, value, description}]
+    - what_is_analysis: str (3 short paragraphs, ~150-200 words)
+    - oh_implications: str (3 short paragraphs, ~150-200 words)
+    - key_stats: list of 6 stat objects [{label, value, description, source, source_url}]
     """
     logger.info(f"[InsightGen] Starting for {country.name} - {category.value}")
     
@@ -537,8 +537,8 @@ async def generate_insight_content(
     try:
         from app.services.ai_service import call_ai_api
         
-        # Build prompt following agent pattern
-        prompt = f"""Generate a detailed analysis about {category_title} in {country.name} for an Occupational Health intelligence platform.
+        # Build prompt following agent pattern — concise McKinsey slide-deck style
+        prompt = f"""Produce a concise, data-led briefing on {category_title} in {country.name} for an Occupational Health intelligence platform.
 
 ## COUNTRY DATA:
 {database_context}
@@ -546,42 +546,45 @@ async def generate_insight_content(
 ## REQUIREMENTS:
 
 **SECTION 1: "What is {category_title}?"**
-Write 3-4 substantial paragraphs (250-350 words total) explaining {category_title} in {country.name}:
-- Be highly specific to {country.name} - name industries, institutions, statistics
-- Include concrete data points: percentages, rankings, growth rates
-- Describe the current state with factual precision
-- Cover key trends and recent developments
+Write exactly 3 SHORT paragraphs (150-200 words TOTAL). Rules:
+- Each paragraph is 2-3 sentences MAX. No exceptions.
+- Open every paragraph with a concrete number, percentage, or named institution.
+- Separate paragraphs with a blank line.
+- Be highly specific to {country.name} — name industries, institutions, companies.
+- NO filler, NO preamble, NO introductory sentences like "Country X is characterized by…"
+- Jump straight into the data.
 
 **SECTION 2: "What does this mean for Occupational Health?"**
-Write 3-4 substantial paragraphs (250-350 words total) analyzing OH implications:
-- Connect {category_title} directly to worker safety and health outcomes
-- Explain specific impacts on workplace conditions
-- Describe how OH systems are affected
-- Be purely informative - NO strategic recommendations
+Write exactly 3 SHORT paragraphs (150-200 words TOTAL). Rules:
+- Each paragraph is 2-3 sentences MAX. No exceptions.
+- Open every paragraph with a specific OH-related data point or fact.
+- Connect {category_title} directly to worker safety, health outcomes, or workplace conditions.
+- Be purely informative — NO strategic recommendations.
+- Separate paragraphs with a blank line.
 
 **SECTION 3: Key Statistics (TOPIC-SPECIFIC)**
-Provide exactly 6 key statistics that are DIRECTLY and SPECIFICALLY relevant to {category_title} in {country.name}.
+Provide exactly 6 statistics DIRECTLY relevant to {category_title} in {country.name}.
 
-CRITICAL: Statistics MUST be directly about {category_title}, NOT generic country stats.
-- For "Urban Development": urbanization rate, city population, housing stock, metro ridership, urban infrastructure spending
+CRITICAL: Statistics MUST be about {category_title}, NOT generic country stats.
+- For "Urban Development": urbanization rate, city population, housing stock, metro ridership, infrastructure spending
 - For "Industry & Economy": sector GDP breakdown, manufacturing output, export values, industrial employment
 - For "Workforce Demographics": labor force size, age distribution, education levels, participation rates
-- For "OH Infrastructure": number of OH professionals, hospital beds, occupational clinics, workplace inspections
-- For "Cultural Factors": work hours, union membership, safety culture surveys, training participation
+- For "OH Infrastructure": OH professionals, hospital beds, occupational clinics, workplace inspections
+- For "Cultural Factors": work hours, union membership, safety culture, training participation
 - For "Political Capacity": OH legislation count, enforcement budget, regulatory staff, inspection rates
 
 Each stat MUST have:
 - label: Short label (2-4 words) SPECIFIC to {category_title}
-- value: The actual value with unit (e.g., "74.98%", "143.8M", "112 sq.m")
-- description: Brief context (10-15 words explaining significance for {category_title})
+- value: Actual value with unit (e.g., "74.98%", "143.8M", "112 sq.m")
+- description: Brief context (10-15 words explaining significance)
 - source: Data source name (e.g., "World Bank", "ILO", "WHO", "National Statistics")
 - source_url: Direct URL to the data source (use real, working URLs)
 
 ## OUTPUT FORMAT:
 Respond with valid JSON only:
 {{
-  "what_is_analysis": "Full 3-4 paragraph analysis here...",
-  "oh_implications": "Full 3-4 paragraph OH analysis here...",
+  "what_is_analysis": "3 short paragraphs separated by blank lines...",
+  "oh_implications": "3 short paragraphs separated by blank lines...",
   "key_stats": [
     {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "World Bank", "source_url": "https://data.worldbank.org/..."}},
     {{"label": "Stat Name", "value": "Value", "description": "Brief context", "source": "ILO", "source_url": "https://ilostat.ilo.org/..."}},
@@ -592,22 +595,26 @@ Respond with valid JSON only:
   ]
 }}"""
 
-        system_prompt = """You are a Senior McKinsey Partner specializing in country analysis for occupational health strategy.
+        system_prompt = """You are a Senior McKinsey Partner writing slide-deck annotations for a client briefing on occupational health.
 
-Your role is to provide CONCRETE, SPECIFIC, DATA-DRIVEN analysis. Never be generic or vague.
+STYLE:
+- Short paragraphs only: 2-3 sentences each. Never more.
+- Lead every paragraph with a hard number, percentage, or named entity.
+- Write in crisp, direct consulting prose — not academic text.
+- No filler phrases. No "it is worth noting", "it should be noted", "characterized by". Get to the point.
+- Each sentence must carry a fact. Remove any sentence that merely connects or summarizes.
 
-WRITING REQUIREMENTS:
-1. SPECIFICITY: Name specific industries, companies, institutions, statistics
-2. DATA-DRIVEN: Include percentages, numbers, rankings, growth rates
-3. COUNTRY-SPECIFIC: Every sentence must be relevant to the specific country
-4. CONSULTING QUALITY: Write in professional, analytical prose
-5. OH-FOCUSED: Connect all analysis to occupational health implications
+CONTENT:
+- SPECIFICITY: Name exact industries, institutions, regulations, companies.
+- DATA-DRIVEN: Every paragraph must contain at least one concrete metric.
+- COUNTRY-SPECIFIC: Every sentence must be relevant to the specific country.
+- OH-FOCUSED: Connect all analysis to occupational health implications.
 
 TONE:
-- Authoritative and expert
-- Factual, not speculative
-- Informative without recommendations (analysis only)
-- McKinsey partner briefing a client"""
+- Authoritative, precise, economical with words.
+- Factual, not speculative.
+- Informative only — no recommendations.
+- Senior Partner annotating a slide for a board presentation."""
 
         result = await call_ai_api(
             db=db,
@@ -1081,6 +1088,60 @@ async def reset_batch_generate_status(
     
     _batch_generation_status = {}
     return {"status": "reset", "message": "Batch generation status cleared"}
+
+
+@batch_router.get("/db-progress")
+async def get_insight_db_progress(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Return insight completion counts directly from the database.
+    
+    This survives server restarts (unlike in-memory status) and lets
+    the frontend detect interrupted generations.
+    """
+    from sqlalchemy import func
+
+    total_countries = db.query(Country).count()
+    total_possible = total_countries * len(COUNTRY_INSIGHT_CATEGORIES)
+
+    rows = (
+        db.query(CountryInsight.status, func.count())
+        .filter(CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES))
+        .group_by(CountryInsight.status)
+        .all()
+    )
+    counts = {s.value: c for s, c in rows}
+
+    completed = counts.get("completed", 0)
+    generating = counts.get("generating", 0)
+    error = counts.get("error", 0)
+    pending = counts.get("pending", 0)
+
+    # Countries with all 6 categories completed
+    fully_done_countries = (
+        db.query(CountryInsight.country_iso)
+        .filter(
+            CountryInsight.category.in_(COUNTRY_INSIGHT_CATEGORIES),
+            CountryInsight.status == InsightStatus.completed,
+        )
+        .group_by(CountryInsight.country_iso)
+        .having(func.count() == len(COUNTRY_INSIGHT_CATEGORIES))
+        .count()
+    )
+
+    return {
+        "total_countries": total_countries,
+        "total_possible_insights": total_possible,
+        "completed": completed,
+        "generating": generating,
+        "error": error,
+        "pending": pending,
+        "countries_fully_done": fully_done_countries,
+        "is_interrupted": generating > 0,  # stuck in "generating" = was interrupted
+        "batch_running": _batch_generation_status.get("status") == "running",
+    }
 
 
 # =============================================================================
