@@ -5262,8 +5262,8 @@ function GlobalMapVisual() {
         </motion.p>
       </motion.div>
 
-      {/* ===== TOP: Map + Fact Sheet (approx 60% of height) ===== */}
-      <div className="flex-[3] min-h-0 flex px-3 sm:px-4 lg:px-5 gap-2 sm:gap-3">
+      {/* ===== TOP: Map + Fact Sheet ===== */}
+      <div className="flex-1 min-h-0 flex px-3 sm:px-4 lg:px-5 gap-2 sm:gap-3">
         
         {/* LEFT: Real Choropleth World Map */}
         <motion.div
@@ -5457,55 +5457,45 @@ function GlobalMapVisual() {
         </motion.div>
       </div>
 
-      {/* ===== BOTTOM: Feature Cards (approx 1/3 of height) ===== */}
-      <div className="flex-[2] min-h-0 flex flex-col justify-center px-3 sm:px-4 lg:px-5 pb-2 sm:pb-3 pt-2">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 h-full">
+      {/* ===== BOTTOM: Feature Buttons ===== */}
+      <div className="flex-shrink-0 px-3 sm:px-4 lg:px-5 mt-2 mb-3 sm:mb-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {featureCards.map((card, i) => {
             const col = getColor(card.color);
             const Icon = card.icon;
             return (
               <motion.div
                 key={card.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0, boxShadow: [`0 0 12px ${col.hex}15`, `0 0 24px ${col.hex}30`, `0 0 12px ${col.hex}15`] }}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0, boxShadow: [`0 0 10px ${col.hex}15`, `0 0 20px ${col.hex}25`, `0 0 10px ${col.hex}15`] }}
                 transition={{ delay: 0.8 + i * 0.12, duration: 0.5, boxShadow: { duration: 3, repeat: Infinity, delay: i * 0.5 } }}
-                whileHover={{ scale: 1.03, boxShadow: `0 0 35px ${col.hex}50`, y: -2 }}
+                whileHover={{ scale: 1.03, boxShadow: `0 0 30px ${col.hex}45`, y: -2 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setSelectedFeature(card.id)}
                 className={cn(
-                  "relative group cursor-pointer rounded-xl p-3 sm:p-4 lg:p-5",
+                  "group cursor-pointer rounded-xl p-2.5 sm:p-3",
                   "border-2 backdrop-blur-sm transition-all duration-300",
-                  "flex flex-col justify-between",
                   col.bg, col.border
                 )}
               >
-                {/* Top: Icon + Title */}
-                <div>
-                  <div className="flex items-center gap-2.5 sm:gap-3 mb-2 sm:mb-3">
-                    <div className={cn("w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0 border", col.bg, col.border)}>
-                      <Icon className={cn("w-4.5 h-4.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6", col.text)} />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white leading-tight">{card.title}</h3>
-                    </div>
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                  <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0 border", col.bg, col.border)}>
+                    <Icon className={cn("w-4 h-4 sm:w-4.5 sm:h-4.5", col.text)} />
                   </div>
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-white/45 leading-relaxed line-clamp-2">{card.desc}</p>
-                </div>
-
-                {/* Bottom: Stat + CTA */}
-                <div className="flex items-end justify-between mt-2 sm:mt-3">
-                  <div>
-                    <span className={cn("text-2xl sm:text-3xl lg:text-4xl font-bold", col.text)}>{card.stat}</span>
-                    <p className="text-[9px] sm:text-[10px] lg:text-xs text-white/35 mt-0.5">{card.statLabel}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-white truncate">{card.title}</h3>
+                    <p className="text-[8px] sm:text-[10px] text-white/40 truncate">{card.desc}</p>
                   </div>
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                    className={cn("flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity", col.text)}
-                  >
-                    <span className="text-[10px] sm:text-xs font-medium hidden sm:inline">Explore</span>
-                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </motion.div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className={cn("text-base sm:text-lg font-bold", col.text)}>{card.stat}</span>
+                    <motion.div
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      className={cn("opacity-50 group-hover:opacity-100 transition-opacity", col.text)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </motion.div>
+                  </div>
                 </div>
               </motion.div>
             );
