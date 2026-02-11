@@ -3852,12 +3852,20 @@ const KSA_PILLARS = [
     globalAvg: 45,
     gccAvg: 52,
     g20Avg: 62,
-    leader: { name: "Germany", score: 92 },
+    leader: { name: "Germany", score: 92, iso2: "de" },
     metrics: [
-      { name: "ILO C187 Ratification", value: "Ratified", status: "strong" },
-      { name: "ILO C155 Ratification", value: "Ratified", status: "strong" },
-      { name: "Inspector Density", value: "0.8 per 10k", status: "gap" },
-      { name: "Mental Health Policy", value: "Emerging", status: "developing" },
+      { name: "ILO C187 Ratification", value: "Ratified", status: "strong",
+        description: "Ratification of the ILO Promotional Framework for Occupational Safety and Health Convention",
+        context: "KSA ratified in 2013 — ahead of 60% of GCC peers. Signals national commitment to systematic OH governance." },
+      { name: "ILO C155 Ratification", value: "Ratified", status: "strong",
+        description: "Ratification of the ILO Occupational Safety and Health Convention — the foundational treaty for worker protection",
+        context: "One of only two GCC nations to have ratified. Places KSA in the top tier of regional OH legal frameworks." },
+      { name: "Inspector Density", value: "0.8 per 10k", status: "gap",
+        description: "Number of trained occupational health and safety inspectors per 10,000 workers in the formal economy",
+        context: "Below the ILO minimum recommendation of 1.0 per 10,000. Germany achieves 2.1 — nearly triple KSA's density." },
+      { name: "Mental Health Policy", value: "Emerging", status: "developing",
+        description: "Existence and maturity of a national workplace mental health policy framework",
+        context: "KSA introduced initial guidelines in 2022 under Vision 2030. Full implementation is expected by 2027." },
     ],
     insight: "Saudi Arabia has ratified both core ILO conventions — placing it ahead of most GCC peers. However, inspector density at 0.8 per 10,000 workers falls below the ILO minimum recommendation of 1.0. Vision 2030 investments in MHRSD are closing this gap.",
     opportunity: "Increasing inspector density by 25% and digitizing workplace audits could move KSA from 58th to top-40 percentile within 18 months.",
@@ -3872,12 +3880,20 @@ const KSA_PILLARS = [
     globalAvg: 40,
     gccAvg: 38,
     g20Avg: 58,
-    leader: { name: "Singapore", score: 91 },
+    leader: { name: "Singapore", score: 91, iso2: "sg" },
     metrics: [
-      { name: "Carcinogen Exposure", value: "12.3%", status: "gap" },
-      { name: "Heat Stress Regulation", value: "Comprehensive", status: "strong" },
-      { name: "OEL Compliance", value: "67%", status: "developing" },
-      { name: "Safety Training (avg hrs)", value: "18h", status: "developing" },
+      { name: "Carcinogen Exposure", value: "12.3%", status: "gap",
+        description: "Percentage of workers regularly exposed to known occupational carcinogens without adequate controls",
+        context: "At 12.3%, KSA exceeds the OECD average of 8.5%. Petrochemical and construction sectors are primary contributors." },
+      { name: "Heat Stress Regulation", value: "Comprehensive", status: "strong",
+        description: "Regulatory framework governing outdoor work during extreme heat, including mandatory rest periods",
+        context: "KSA's midday work ban (12pm–3pm, Jun–Sep) is a global reference — cited by the ILO as best practice for arid climates." },
+      { name: "OEL Compliance", value: "67%", status: "developing",
+        description: "Rate of employer compliance with Occupational Exposure Limits for chemical and physical hazards",
+        context: "67% compliance is above the GCC average of 54% but below Singapore's 94%. SME compliance is the primary gap." },
+      { name: "Safety Training (avg hrs)", value: "18h", status: "developing",
+        description: "Average annual hours of occupational safety training per worker across all sectors",
+        context: "18 hours exceeds the GCC average of 12h but trails Singapore's 32h mandate. Construction workers receive significantly less." },
     ],
     insight: "KSA leads the GCC on heat stress regulation — the midday work ban is a global reference. But carcinogen exposure in petrochemical and construction sectors remains elevated at 12.3%, above the OECD average of 8.5%.",
     opportunity: "Extending OEL monitoring to SMEs and mandating sector-specific carcinogen protocols could reduce occupational cancer incidence by 30% over a decade.",
@@ -3892,12 +3908,20 @@ const KSA_PILLARS = [
     globalAvg: 35,
     gccAvg: 33,
     g20Avg: 55,
-    leader: { name: "Finland", score: 89 },
+    leader: { name: "Finland", score: 89, iso2: "fi" },
     metrics: [
-      { name: "Surveillance System", value: "Event-Based", status: "developing" },
-      { name: "Migrant Worker Coverage", value: "42%", status: "gap" },
-      { name: "Lead Screening Rate", value: "28%", status: "gap" },
-      { name: "Disease Reporting Rate", value: "34%", status: "gap" },
+      { name: "Surveillance System", value: "Event-Based", status: "developing",
+        description: "Type of national occupational disease surveillance system — event-based (reactive) vs. risk-based (proactive)",
+        context: "Event-based systems capture acute incidents but miss 60–80% of chronic occupational diseases. Finland uses risk-based surveillance." },
+      { name: "Migrant Worker Coverage", value: "42%", status: "gap",
+        description: "Percentage of migrant workers effectively covered by occupational health surveillance programs",
+        context: "Migrants comprise 76% of the private-sector workforce. At 42% coverage, over 4 million workers lack systematic monitoring." },
+      { name: "Lead Screening Rate", value: "28%", status: "gap",
+        description: "Percentage of at-risk workers receiving regular blood lead level screening as required by international standards",
+        context: "28% is below the WHO target of 80% for at-risk populations. Construction and battery manufacturing sectors are most affected." },
+      { name: "Disease Reporting Rate", value: "34%", status: "gap",
+        description: "Estimated percentage of occupational diseases that are formally reported and recorded in national registries",
+        context: "At 34%, the majority of occupational diseases go unreported. Finland achieves 87% through mandatory employer reporting." },
     ],
     insight: "Surveillance remains KSA's most significant structural gap. The event-based model captures acute incidents but misses chronic occupational diseases. Migrant workers — 76% of the private-sector workforce — have only 42% effective surveillance coverage.",
     opportunity: "Transitioning to risk-based surveillance and integrating GOSI claims data with MOH health records would provide real-time occupational health intelligence across all sectors.",
@@ -3912,17 +3936,65 @@ const KSA_PILLARS = [
     globalAvg: 42,
     gccAvg: 48,
     g20Avg: 60,
-    leader: { name: "New Zealand", score: 88 },
+    leader: { name: "New Zealand", score: 88, iso2: "nz" },
     metrics: [
-      { name: "Payer Mechanism", value: "Social Insurance", status: "strong" },
-      { name: "Reintegration Law", value: "Active", status: "strong" },
-      { name: "Return-to-Work Rate", value: "71%", status: "developing" },
-      { name: "Avg Claim Settlement", value: "45 days", status: "developing" },
+      { name: "Payer Mechanism", value: "Social Insurance", status: "strong",
+        description: "The funding model for occupational injury and disease compensation — social insurance, employer liability, or hybrid",
+        context: "GOSI's social insurance model provides universal coverage for all formal workers. Only 3 GCC nations have equivalent systems." },
+      { name: "Reintegration Law", value: "Active", status: "strong",
+        description: "Legal framework requiring employers to facilitate workplace reintegration of injured workers",
+        context: "Active legislation since 2019 mandates return-to-work plans. Employer compliance has reached 78% in large enterprises." },
+      { name: "Return-to-Work Rate", value: "71%", status: "developing",
+        description: "Percentage of injured workers who successfully return to employment within 12 months of injury",
+        context: "71% exceeds the GCC average of 58% and approaches the G20 benchmark of 74%. New Zealand leads at 89%." },
+      { name: "Avg Claim Settlement", value: "45 days", status: "developing",
+        description: "Average number of days from claim submission to final settlement payment for occupational injury claims",
+        context: "45 days is competitive regionally but trails New Zealand's 21-day average. Digitization of claims processing is underway." },
     ],
     insight: "GOSI's social insurance model is KSA's strongest pillar — outperforming the G20 average. The Annuity system provides comprehensive coverage, and the 71% return-to-work rate exceeds the GCC and approaches G20 benchmarks.",
     opportunity: "Reducing claim settlement time from 45 to 30 days and introducing employer-incentivized rehabilitation programs could push KSA into global top-20 for restoration.",
   },
 ];
+
+// Best-practice data for each pillar's global leader
+const LEADER_BEST_PRACTICES: Record<string, { practices: string[]; ksaApplication: string }> = {
+  governance: {
+    practices: [
+      "Dual insurance system (Berufsgenossenschaften) combining prevention and compensation",
+      "Mandatory sector-specific safety standards with peer enforcement",
+      "Integrated data systems linking incidents to prevention updates",
+      "Comprehensive rehabilitation with 'work before pension' philosophy",
+    ],
+    ksaApplication: "GOSI could adopt the BG model by creating sector-specific safety associations with enforcement authority, funded by employers and governed jointly with labor.",
+  },
+  hazard: {
+    practices: [
+      "Escalating penalties tied to company size and repeat violations",
+      "Public registry of safety violations creating reputational pressure",
+      "Sector-specific zero-fatality targets with government oversight",
+      "Safety auditor certification with legal liability for auditors",
+    ],
+    ksaApplication: "Vision 2030 mega-projects could adopt sector-specific zero-fatality targets with public tracking dashboards and escalating penalties for repeat offenders.",
+  },
+  vigilance: {
+    practices: [
+      "FIOH national institute providing occupational health services for all workers",
+      "Risk-based surveillance with sector-specific monitoring protocols",
+      "Mandatory employer health services for all companies with 20+ employees",
+      "Digital health records integrated with workplace exposure data",
+    ],
+    ksaApplication: "Establishing a national occupational health institute modeled on FIOH and integrating GOSI claims data with MOH health records would close the surveillance gap.",
+  },
+  restoration: {
+    practices: [
+      "ACC system covers all injuries — work and non-work — with no litigation",
+      "24-hour coverage eliminates work/non-work classification disputes",
+      "Rehabilitation priority over compensation — outcomes, not payments",
+      "Experience rating adjusts employer premiums based on safety performance",
+    ],
+    ksaApplication: "KSA could pilot a no-fault system in high-risk sectors (construction, petrochemicals) to test speed and return-to-work improvements before national rollout.",
+  },
+};
 
 // ── KSA Pillar Storyflow ─────────────────────────────────────────────────────
 // Cinematic 5-step storyflow for each KSA pillar (modeled on PillarStoryflow)
@@ -3931,6 +4003,10 @@ function KSAPillarStoryflow({ pillar, onClose }: { pillar: typeof KSA_PILLARS[nu
   const [direction, setDirection] = useState(1);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [typedText, setTypedText] = useState("");
+  const [metricIdx, setMetricIdx] = useState(0);
+  const [metricDir, setMetricDir] = useState(1);
+  const [showAllMetrics, setShowAllMetrics] = useState(false);
+  const [showBestPractice, setShowBestPractice] = useState(false);
   const totalSteps = 5; // intro, benchmarks, metrics, insight, opportunity
 
   const col = colors[pillar.color];
@@ -3951,16 +4027,40 @@ function KSAPillarStoryflow({ pillar, onClose }: { pillar: typeof KSA_PILLARS[nu
     return () => clearInterval(interval);
   }, [currentStep, pillar.label]);
 
-  // Auto-play
+  // Reset metric sub-step when entering metrics step
+  useEffect(() => {
+    if (currentStep === 2) { setMetricIdx(0); setShowAllMetrics(false); }
+    if (currentStep === 4) { setShowBestPractice(false); }
+  }, [currentStep]);
+
+  // Metrics sub-step auto-advance
+  useEffect(() => {
+    if (currentStep !== 2 || !isAutoPlaying || showAllMetrics) return;
+    const timer = setTimeout(() => {
+      if (metricIdx < pillar.metrics.length - 1) {
+        setMetricDir(1); setMetricIdx(s => s + 1);
+      } else {
+        setShowAllMetrics(true);
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [currentStep, metricIdx, isAutoPlaying, showAllMetrics, pillar.metrics.length]);
+
+  // Auto-play main steps (metrics step waits for all sub-steps + summary)
   useEffect(() => {
     if (!isAutoPlaying) return;
-    const delays = [3500, 7000, 6000, 6000, 8000];
+    if (currentStep === 2) {
+      if (!showAllMetrics) return; // wait for metrics sub-steps to finish
+      const timer = setTimeout(() => { setDirection(1); setCurrentStep(s => s + 1); }, 3000);
+      return () => clearTimeout(timer);
+    }
+    const delays = [3500, 7000, 0, 6000, 8000];
     const timer = setTimeout(() => {
       if (currentStep < totalSteps - 1) { setDirection(1); setCurrentStep(s => s + 1); }
       else setIsAutoPlaying(false);
     }, delays[currentStep]);
     return () => clearTimeout(timer);
-  }, [currentStep, isAutoPlaying]);
+  }, [currentStep, isAutoPlaying, showAllMetrics]);
 
   // Keyboard nav
   useEffect(() => {
@@ -4024,107 +4124,226 @@ function KSAPillarStoryflow({ pillar, onClose }: { pillar: typeof KSA_PILLARS[nu
   );
 
   const renderBenchmarks = () => {
-    const benchmarks = [
-      { label: "KSA", value: pillar.score, color: "emerald" },
-      { label: "GCC Average", value: pillar.gccAvg, color: "cyan" },
-      { label: "G20 Average", value: pillar.g20Avg, color: "purple" },
-      { label: pillar.leader.name, value: pillar.leader.score, color: "amber" },
-    ];
     const narrative = gccDiff >= 0
       ? `Saudi Arabia scores ${pillar.score} — ${gccDiff} points above the GCC average, but ${gapToLeader} points behind the global leader, ${pillar.leader.name}.`
       : `Saudi Arabia scores ${pillar.score} — ${Math.abs(gccDiff)} points below the GCC average and ${gapToLeader} points behind the global leader, ${pillar.leader.name}.`;
 
+    // Radial positions for comparators around center (relative to arena center)
+    const comparators = [
+      { label: "GCC Average", value: pillar.gccAvg, color: "cyan", angle: 210 },  // bottom-left
+      { label: pillar.leader.name, value: pillar.leader.score, color: "amber", angle: 90 },  // top
+      { label: "G20 Average", value: pillar.g20Avg, color: "purple", angle: 330 }, // bottom-right
+    ];
+    const radius = 140; // px from center
+
     return (
       <motion.div key="benchmarks" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="h-full flex flex-col justify-start pt-4 sm:pt-6 px-6 sm:px-8 lg:px-12 overflow-y-auto">
-        <div className="mb-5">
-          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
-            className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
-          <div className="flex items-center gap-3 mb-2">
+        className="h-full flex flex-col items-center justify-center">
+        {/* Title */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-3 mb-2">
             <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>01</span>
-            <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[1]}</h3>
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{stepTitles[1]}</h3>
           </div>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="text-sm sm:text-base text-white/45 max-w-2xl">{narrative}</motion.p>
-        </div>
-        {/* Score cards */}
-        <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
-          {benchmarks.map((b, i) => {
-            const bc = colors[b.color];
+        </motion.div>
+
+        {/* Radial Arena */}
+        <div className="relative" style={{ width: radius * 2 + 160, height: radius * 2 + 160 }}>
+          {/* Connecting lines (SVG) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
+            {comparators.map((comp, i) => {
+              const rad = (comp.angle * Math.PI) / 180;
+              const cx = radius + 80; // center offset
+              const cy = radius + 80;
+              const ex = cx + radius * Math.cos(rad);
+              const ey = cy - radius * Math.sin(rad);
+              return (
+                <motion.line key={comp.label} x1={cx} y1={cy} x2={ex} y2={ey}
+                  stroke={`${colors[comp.color].hex}40`} strokeWidth="1.5" strokeDasharray="6 4"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 1.5 + i * 0.15, duration: 0.6 }} />
+              );
+            })}
+          </svg>
+
+          {/* Center: KSA Score Ring */}
+          <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 150, damping: 18 }}
+            className="absolute" style={{ left: radius + 80 - 56, top: radius + 80 - 56 }}>
+            <div className="relative w-28 h-28">
+              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                <motion.circle cx="60" cy="60" r="50" fill="none" stroke={col.hex} strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 50}`}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - pillar.score / 100) }}
+                  transition={{ delay: 0.6, duration: 1.5, ease: [0.16, 1, 0.3, 1] }} />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+                  className={cn("text-3xl sm:text-4xl font-bold", col.text)}>{pillar.score}</motion.span>
+                <span className="text-[9px] text-white/40 uppercase tracking-wider font-semibold">KSA</span>
+              </div>
+              {/* Pulsing glow */}
+              <motion.div animate={{ boxShadow: [`0 0 20px ${col.hex}30`, `0 0 50px ${col.hex}50`, `0 0 20px ${col.hex}30`] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="absolute inset-0 rounded-full" />
+            </div>
+          </motion.div>
+
+          {/* Comparator nodes */}
+          {comparators.map((comp, i) => {
+            const rad = (comp.angle * Math.PI) / 180;
+            const x = radius + 80 + radius * Math.cos(rad) - 52;
+            const y = radius + 80 - radius * Math.sin(rad) - 40;
+            const bc = colors[comp.color];
             return (
-              <motion.div key={b.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-                className={cn("rounded-xl p-4 text-center border-2", bc.bg, bc.border)}>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + i * 0.1 }}
-                  className={cn("text-3xl sm:text-4xl font-bold", bc.text)}>{b.value}</motion.p>
-                <p className="text-xs text-white/45 mt-1">{b.label}</p>
+              <motion.div key={comp.label}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.6 + i * 0.3, type: "spring", stiffness: 180, damping: 18 }}
+                className="absolute" style={{ left: x, top: y }}>
+                <motion.div whileHover={{ scale: 1.08 }}
+                  className={cn("w-[104px] h-20 rounded-xl border-2 flex flex-col items-center justify-center", bc.bg, bc.border)}
+                  style={{ boxShadow: `0 0 25px ${bc.hex}25` }}>
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 + i * 0.3 }}
+                    className={cn("text-2xl sm:text-3xl font-bold", bc.text)}>{comp.value}</motion.span>
+                  <span className="text-[10px] text-white/45 leading-tight text-center px-1">{comp.label}</span>
+                </motion.div>
               </motion.div>
             );
           })}
         </div>
-        {/* Comparison bars */}
-        <div className="space-y-3 flex-1">
-          {benchmarks.map((b, i) => {
-            const bc = colors[b.color];
-            return (
-              <motion.div key={b.label} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8 + i * 0.12 }} className="flex items-center gap-3">
-                <span className={cn("w-28 text-xs sm:text-sm font-medium text-right", bc.text)}>{b.label}</span>
-                <div className="flex-1 h-8 bg-white/5 rounded-lg overflow-hidden relative">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.value}%` }}
-                    transition={{ delay: 1 + i * 0.12, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    className={cn("h-full rounded-lg", bc.bg, "border", bc.border, "relative")}>
-                    <span className={cn("absolute right-2 top-1/2 -translate-y-1/2 text-xs sm:text-sm font-bold", bc.text)}>{b.value}</span>
-                  </motion.div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+
+        {/* Narrative */}
+        <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 }}
+          className="text-sm sm:text-base text-white/50 max-w-xl text-center mt-6 sm:mt-8 px-4 leading-relaxed">{narrative}</motion.p>
       </motion.div>
     );
   };
 
-  const renderMetrics = () => (
-    <motion.div key="metrics" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="h-full flex flex-col justify-start pt-4 sm:pt-6 px-6 sm:px-8 lg:px-12 overflow-y-auto">
-      <div className="mb-6">
-        <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
-          className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
-        <div className="flex items-center gap-3 mb-2">
-          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>02</span>
-          <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[2]}</h3>
-        </div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-sm sm:text-base text-white/45 max-w-2xl">Four indicators that define KSA's position in {pillar.label.toLowerCase()}.</motion.p>
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:gap-5 flex-1">
-        {pillar.metrics.map((metric, i) => (
-          <motion.div key={metric.name} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.4 + i * 0.12, type: "spring", damping: 20 }}
-            className="p-5 sm:p-6 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm sm:text-base text-white/70 font-medium">{metric.name}</span>
-              <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full",
-                metric.status === "strong" ? "bg-emerald-500/15 text-emerald-400" :
-                metric.status === "developing" ? "bg-amber-500/15 text-amber-400" :
-                "bg-red-500/15 text-red-400"
-              )}>
-                {metric.status === "strong" ? "Strong" : metric.status === "developing" ? "Developing" : "Gap"}
-              </span>
+  const metricSlideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 200 : -200, opacity: 0, scale: 0.96 }),
+    center: { x: 0, opacity: 1, scale: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -200 : 200, opacity: 0, scale: 0.96 }),
+  };
+
+  const metricNext = () => { if (metricIdx < pillar.metrics.length - 1) { setMetricDir(1); setMetricIdx(s => s + 1); setIsAutoPlaying(false); } else { setShowAllMetrics(true); setIsAutoPlaying(false); } };
+  const metricPrev = () => { if (showAllMetrics) { setShowAllMetrics(false); setIsAutoPlaying(false); } else if (metricIdx > 0) { setMetricDir(-1); setMetricIdx(s => s - 1); setIsAutoPlaying(false); } };
+
+  const renderMetrics = () => {
+    const statusColor = (s: string) => s === "strong" ? "text-emerald-400" : s === "developing" ? "text-amber-400" : "text-red-400";
+    const statusBg = (s: string) => s === "strong" ? "bg-emerald-500/15 text-emerald-400" : s === "developing" ? "bg-amber-500/15 text-amber-400" : "bg-red-500/15 text-red-400";
+    const statusLabel = (s: string) => s === "strong" ? "Strong" : s === "developing" ? "Developing" : "Gap";
+
+    return (
+      <motion.div key="metrics" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="h-full flex flex-col">
+        {/* Header */}
+        <div className="px-6 sm:px-8 lg:px-12 pt-4 sm:pt-6">
+          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+            className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-3">
+              <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>02</span>
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{stepTitles[2]}</h3>
             </div>
-            <span className={cn("text-2xl sm:text-3xl font-bold mt-auto",
-              metric.status === "strong" ? "text-emerald-400" :
-              metric.status === "developing" ? "text-amber-400" :
-              "text-red-400"
-            )}>{metric.value}</span>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  );
+            {!showAllMetrics && (
+              <span className="text-xs text-white/30 font-mono">{metricIdx + 1} / {pillar.metrics.length}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-6 sm:px-8 lg:px-12 overflow-hidden">
+          <AnimatePresence mode="wait" custom={metricDir}>
+            {!showAllMetrics ? (
+              <motion.div key={`metric-${metricIdx}`} custom={metricDir} variants={metricSlideVariants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="w-full max-w-2xl">
+                {/* Metric name */}
+                <motion.h4 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                  className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3">{pillar.metrics[metricIdx].name}</motion.h4>
+
+                {/* Description */}
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
+                  className="text-sm sm:text-base text-white/45 leading-relaxed mb-6">{pillar.metrics[metricIdx].description}</motion.p>
+
+                {/* Value + Status */}
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", damping: 18 }}
+                  className="flex items-end gap-4 mb-5">
+                  <span className={cn("text-5xl sm:text-6xl lg:text-7xl font-bold", statusColor(pillar.metrics[metricIdx].status))}>
+                    {pillar.metrics[metricIdx].value}
+                  </span>
+                  <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}
+                    className={cn("text-sm font-bold px-3 py-1.5 rounded-full mb-2", statusBg(pillar.metrics[metricIdx].status))}>
+                    {statusLabel(pillar.metrics[metricIdx].status)}
+                  </motion.span>
+                </motion.div>
+
+                {/* Context */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+                  className="p-4 sm:p-5 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                  <p className="text-sm sm:text-base text-white/60 leading-relaxed">{pillar.metrics[metricIdx].context}</p>
+                </motion.div>
+
+                {/* Sub-navigation arrows */}
+                <div className="flex items-center justify-between mt-6">
+                  <button onClick={metricPrev} disabled={metricIdx === 0}
+                    className={cn("flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors",
+                      metricIdx === 0 ? "text-white/15 cursor-not-allowed" : "text-white/50 hover:bg-white/10")}>
+                    <ChevronLeft className="w-4 h-4" /> Previous
+                  </button>
+                  <div className="flex gap-1.5">
+                    {pillar.metrics.map((_, mi) => (
+                      <button key={mi} onClick={() => { setMetricDir(mi > metricIdx ? 1 : -1); setMetricIdx(mi); setIsAutoPlaying(false); }}
+                        className={cn("w-2 h-2 rounded-full transition-all",
+                          mi === metricIdx ? "w-5 bg-white/60" : mi < metricIdx ? "bg-white/25" : "bg-white/10")} />
+                    ))}
+                  </div>
+                  <button onClick={metricNext}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-white/50 hover:bg-white/10 transition-colors">
+                    {metricIdx === pillar.metrics.length - 1 ? "Summary" : "Next"} <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              /* Summary grid */
+              <motion.div key="metrics-summary" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 22 }}
+                className="w-full max-w-3xl">
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="text-center text-sm text-white/40 uppercase tracking-wider mb-5 font-semibold">All Indicators</motion.p>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {pillar.metrics.map((metric, i) => (
+                    <motion.div key={metric.name} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + i * 0.1, type: "spring", damping: 20 }}
+                      className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs sm:text-sm text-white/60 font-medium">{metric.name}</span>
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", statusBg(metric.status))}>{statusLabel(metric.status)}</span>
+                      </div>
+                      <span className={cn("text-xl sm:text-2xl font-bold", statusColor(metric.status))}>{metric.value}</span>
+                    </motion.div>
+                  ))}
+                </div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex justify-center mt-4">
+                  <button onClick={metricPrev} className="text-xs text-white/30 hover:text-white/50 transition-colors">
+                    ← Back to details
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    );
+  };
 
   const renderInsight = () => (
     <motion.div key="insight" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
@@ -4151,42 +4370,113 @@ function KSAPillarStoryflow({ pillar, onClose }: { pillar: typeof KSA_PILLARS[nu
     </motion.div>
   );
 
-  const renderOpportunity = () => (
-    <motion.div key="opportunity" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="h-full flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16">
-      <div className="w-full max-w-2xl">
-        <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
-          className="h-[2px] rounded-full mb-6" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>04</span>
-          <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[4]}</h3>
+  const renderOpportunity = () => {
+    const bestPractice = LEADER_BEST_PRACTICES[pillar.id];
+    const flagUrl = `https://flagcdn.com/w160/${pillar.leader.iso2}.png`;
+
+    return (
+      <motion.div key="opportunity" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="h-full flex items-center justify-center px-4 sm:px-6 lg:px-10">
+        <div className={cn("w-full flex gap-6 transition-all duration-500", showBestPractice ? "max-w-5xl" : "max-w-2xl")}>
+          {/* Left: Opportunity content */}
+          <motion.div layout className={cn("flex flex-col justify-center transition-all duration-500", showBestPractice ? "w-[45%] text-left" : "w-full text-center")}>
+            <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+              className="h-[2px] rounded-full mb-5" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+            <div className={cn("flex items-center gap-3 mb-4", showBestPractice ? "" : "justify-center")}>
+              <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>04</span>
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">{stepTitles[4]}</h3>
+            </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              className={cn("p-5 sm:p-6 rounded-2xl border-2 mb-5", col.bg, col.border)}>
+              <p className="text-base sm:text-lg text-white/80 leading-relaxed">{pillar.opportunity}</p>
+            </motion.div>
+
+            {/* Gap + Leader */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+              className={cn("flex items-center gap-5 mb-5", showBestPractice ? "" : "justify-center")}>
+              <div className={cn(showBestPractice ? "text-left" : "text-center")}>
+                <span className={cn("text-2xl sm:text-3xl font-bold", col.text)}>{gapToLeader}</span>
+                <p className="text-[10px] text-white/40 mt-0.5">Points to close</p>
+              </div>
+              <div className="w-px h-10 bg-white/10" />
+              <div className="flex items-center gap-3">
+                <img src={flagUrl} alt={pillar.leader.name} className="w-10 h-10 rounded-lg object-cover border border-white/20 shadow-md" />
+                <div>
+                  <span className="text-lg sm:text-xl font-bold text-amber-400">{pillar.leader.name}</span>
+                  <p className="text-[10px] text-white/40">Global Leader ({pillar.leader.score})</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Best-practice trigger or Continue */}
+            <div className={cn("flex gap-3", showBestPractice ? "" : "justify-center")}>
+              {!showBestPractice && bestPractice && (
+                <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1, boxShadow: ["0 0 15px rgba(251,191,36,0.15)", "0 0 30px rgba(251,191,36,0.3)", "0 0 15px rgba(251,191,36,0.15)"] }}
+                  transition={{ delay: 1, boxShadow: { duration: 2, repeat: Infinity } }}
+                  onClick={() => setShowBestPractice(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 rounded-xl font-semibold text-amber-400 text-sm border-2 border-amber-500/30 bg-amber-500/10">
+                  See what {pillar.leader.name} does differently →
+                </motion.button>
+              )}
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: showBestPractice ? 0.3 : 1.3 }}
+                onClick={onClose} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                className={cn("px-6 py-3 rounded-xl font-semibold text-white text-sm border-2", col.bg, col.border)}>
+                Continue →
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Right: Best practice panel */}
+          <AnimatePresence>
+            {showBestPractice && bestPractice && (
+              <motion.div initial={{ opacity: 0, x: 80, width: 0 }}
+                animate={{ opacity: 1, x: 0, width: "55%" }}
+                exit={{ opacity: 0, x: 80, width: 0 }}
+                transition={{ type: "spring", damping: 22, stiffness: 180 }}
+                className="overflow-hidden">
+                <div className="h-full rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.1] p-5 sm:p-6 flex flex-col">
+                  {/* Leader header */}
+                  <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="flex items-center gap-4 mb-5 pb-4 border-b border-white/10">
+                    <img src={flagUrl} alt={pillar.leader.name}
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border-2 border-amber-500/30 shadow-lg shadow-amber-500/10" />
+                    <div>
+                      <h4 className="text-lg sm:text-xl font-bold text-white">{pillar.leader.name}</h4>
+                      <p className="text-xs text-amber-400/80">Global Leader in {pillar.label} — Score: {pillar.leader.score}/100</p>
+                    </div>
+                  </motion.div>
+
+                  {/* Practices */}
+                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">What They Do Differently</p>
+                  <div className="space-y-2.5 mb-5 flex-1 min-h-0 overflow-y-auto">
+                    {bestPractice.practices.map((practice, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.35 + i * 0.1, type: "spring", damping: 20 }}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                        <div className="w-5 h-5 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-[10px] font-bold text-amber-400">{i + 1}</span>
+                        </div>
+                        <p className="text-sm text-white/65 leading-relaxed">{practice}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* KSA Application */}
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                    className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
+                    <p className="text-xs font-semibold text-emerald-400 mb-2 uppercase tracking-wider">How KSA Can Apply This</p>
+                    <p className="text-sm text-white/70 leading-relaxed">{bestPractice.ksaApplication}</p>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className={cn("p-6 sm:p-8 rounded-2xl border-2 mb-6", col.bg, col.border)}>
-          <p className="text-lg sm:text-xl text-white/80 leading-relaxed">{pillar.opportunity}</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="flex items-center justify-center gap-6 mb-8">
-          <div className="text-center">
-            <span className={cn("text-3xl sm:text-4xl font-bold", col.text)}>{gapToLeader}</span>
-            <p className="text-xs text-white/40 mt-1">Points to close</p>
-          </div>
-          <div className="w-px h-10 bg-white/10" />
-          <div className="text-center">
-            <span className="text-3xl sm:text-4xl font-bold text-amber-400">{pillar.leader.name}</span>
-            <p className="text-xs text-white/40 mt-1">Global Leader ({pillar.leader.score})</p>
-          </div>
-        </motion.div>
-        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, boxShadow: [`0 0 20px ${col.hex}20`, `0 0 40px ${col.hex}40`, `0 0 20px ${col.hex}20`] }}
-          transition={{ delay: 1, boxShadow: { duration: 2, repeat: Infinity } }}
-          onClick={onClose} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          className={cn("px-8 py-4 rounded-xl font-semibold text-white text-base border-2", col.bg, col.border)}>
-          Continue Presentation →
-        </motion.button>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
