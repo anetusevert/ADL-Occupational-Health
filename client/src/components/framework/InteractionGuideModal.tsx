@@ -4911,14 +4911,13 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
 
       {/* CTA */}
       <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2.2 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0, boxShadow: [`0 0 20px ${glowBase}0.2)`, `0 0 40px ${glowBase}0.4)`, `0 0 20px ${glowBase}0.2)`] }}
+        transition={{ delay: 2.2, boxShadow: { duration: 2, repeat: Infinity } }}
         onClick={goNext}
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.05, boxShadow: `0 0 50px ${glowBase}0.5)` }}
         whileTap={{ scale: 0.95 }}
-        className={cn("mt-8 px-6 py-3 rounded-xl font-semibold text-white text-sm border", col.bg, col.border)}
-        style={{ boxShadow: `0 0 20px ${glowBase}0.3)` }}
+        className={cn("mt-10 px-8 py-4 rounded-xl font-semibold text-white text-base border-2", col.bg, col.border)}
       >
         Explore →
       </motion.button>
@@ -4934,24 +4933,24 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
       animate="center"
       exit="exit"
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="h-full flex flex-col justify-center px-8 sm:px-12 lg:px-16 overflow-y-auto"
+      className="h-full flex flex-col justify-start pt-4 sm:pt-6 px-6 sm:px-8 lg:px-12 overflow-y-auto"
     >
       {/* Step number and title */}
-      <div className="mb-6">
+      <div className="mb-5 sm:mb-6">
         <motion.div initial={{ width: 0 }} animate={{ width: "100%" }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${glowBase}0.6), transparent)` }} />
         <div className="flex items-center gap-3 mb-2">
-          <span className={cn("text-xs font-bold px-2 py-1 rounded-full", col.bg, col.text)}>
+          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>
             {String(stepIdx).padStart(2, "0")}
           </span>
           <motion.h3 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-            className="text-xl sm:text-2xl font-bold text-white">
+            className="text-2xl sm:text-3xl font-bold text-white">
             {step.title}
           </motion.h3>
         </div>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          className="text-sm text-white/40">{step.subtitle}</motion.p>
+          className="text-sm sm:text-base text-white/45 max-w-2xl">{step.subtitle}</motion.p>
       </div>
 
       {/* Step content */}
@@ -4977,18 +4976,18 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
         animate="center"
         exit="exit"
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="h-full flex flex-col items-center justify-center text-center px-8"
+        className="h-full flex flex-col items-center justify-center text-center px-6 sm:px-8"
       >
         <motion.h3 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          className="text-3xl sm:text-4xl font-bold text-white mb-3">
           {feature.steps[totalSteps - 1].title}
         </motion.h3>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="text-sm text-white/50 mb-8 max-w-md">
+          className="text-sm sm:text-base text-white/50 mb-10 max-w-lg">
           {feature.steps[totalSteps - 1].subtitle}
         </motion.p>
 
-        <div className="grid grid-cols-4 gap-4 mb-8 max-w-lg w-full">
+        <div className="grid grid-cols-4 gap-4 sm:gap-5 mb-10 max-w-xl w-full">
           {summaryStats.map((s, i) => {
             const sc = getColor(s.c);
             return (
@@ -4996,24 +4995,23 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.1 }}
-                className={cn("p-3 rounded-xl border", sc.bg, sc.border)}
+                className={cn("p-4 sm:p-5 rounded-xl border-2", sc.bg, sc.border)}
               >
-                <p className={cn("text-2xl font-bold", sc.text)}>{s.val}</p>
-                <p className="text-[10px] text-white/40 mt-1">{s.label}</p>
+                <p className={cn("text-3xl sm:text-4xl font-bold", sc.text)}>{s.val}</p>
+                <p className="text-xs sm:text-sm text-white/45 mt-1.5">{s.label}</p>
               </motion.div>
             );
           })}
         </div>
 
         <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0, boxShadow: [`0 0 20px ${glowBase}0.2)`, `0 0 40px ${glowBase}0.4)`, `0 0 20px ${glowBase}0.2)`] }}
+          transition={{ delay: 0.8, boxShadow: { duration: 2, repeat: Infinity } }}
           onClick={onClose}
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.05, boxShadow: `0 0 50px ${glowBase}0.5)` }}
           whileTap={{ scale: 0.95 }}
-          className={cn("px-6 py-3 rounded-xl font-semibold text-white text-sm border", col.bg, col.border)}
-          style={{ boxShadow: `0 0 20px ${glowBase}0.3)` }}
+          className={cn("px-8 py-4 rounded-xl font-semibold text-white text-base border-2", col.bg, col.border)}
         >
           Continue Presentation →
         </motion.button>
@@ -5028,15 +5026,15 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "rgba(0,0,0,0.92)" }}
+      style={{ background: "rgba(2,6,23,0.98)" }}
     >
       {/* Ambient glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
-          animate={{ opacity: [0.15, 0.25, 0.15], scale: [1, 1.1, 1] }}
+          animate={{ opacity: [0.12, 0.22, 0.12], scale: [1, 1.1, 1] }}
           transition={{ duration: 6, repeat: Infinity }}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] rounded-full"
-          style={{ background: `radial-gradient(ellipse, ${glowBase}0.08) 0%, transparent 70%)` }}
+          style={{ background: `radial-gradient(ellipse, ${glowBase}0.1) 0%, transparent 70%)` }}
         />
       </div>
 
@@ -5046,15 +5044,15 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
           <X className="w-5 h-5 text-white/60" />
         </button>
         <div className="flex items-center gap-3">
-          <Icon className={cn("w-4 h-4", col.text)} />
-          <span className="text-sm font-semibold text-white/70">{feature.title}</span>
+          <Icon className={cn("w-5 h-5", col.text)} />
+          <span className="text-sm sm:text-base font-semibold text-white/80">{feature.title}</span>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => setIsAutoPlaying(!isAutoPlaying)}
             className={cn("p-2 rounded-lg transition-colors", isAutoPlaying ? "bg-white/10" : "hover:bg-white/10")}>
             <Play className={cn("w-4 h-4", isAutoPlaying ? col.text : "text-white/40")} />
           </button>
-          <span className="text-xs text-white/30 font-mono">
+          <span className="text-xs sm:text-sm text-white/30 font-mono">
             {String(currentStep + 1).padStart(2, "0")} / {String(totalSteps).padStart(2, "0")}
           </span>
         </div>
@@ -5072,34 +5070,34 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
       {/* Bottom navigation */}
       <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3 border-t border-white/10">
         <button onClick={goPrev} disabled={currentStep === 0}
-          className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors",
-            currentStep === 0 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10")}>
+          className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            currentStep === 0 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10 hover:text-white/80")}>
           <ChevronLeft className="w-4 h-4" /> Previous
         </button>
 
         {/* Progress dots */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <button key={i} onClick={() => goTo(i)}
               className={cn("rounded-full transition-all duration-300",
-                i === currentStep ? "w-6 h-2" : "w-2 h-2 hover:opacity-80")}
+                i === currentStep ? "w-7 h-2.5" : "w-2.5 h-2.5 hover:opacity-80")}
               style={{
                 backgroundColor: i === currentStep ? `${glowBase}0.8)` : i < currentStep ? `${glowBase}0.4)` : "rgba(255,255,255,0.15)",
-                boxShadow: i === currentStep ? `0 0 8px ${glowBase}0.5)` : "none",
+                boxShadow: i === currentStep ? `0 0 10px ${glowBase}0.5)` : "none",
               }}
             />
           ))}
         </div>
 
         <button onClick={goNext} disabled={currentStep === totalSteps - 1}
-          className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors",
-            currentStep === totalSteps - 1 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10")}>
+          className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            currentStep === totalSteps - 1 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10 hover:text-white/80")}>
           Next <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5 z-20">
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5 z-20">
         <motion.div
           animate={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
@@ -5238,22 +5236,22 @@ function GlobalMapVisual() {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring" }}
-        className="text-center pt-3 sm:pt-5 pb-1 px-4 flex-shrink-0"
+        className="text-center pt-3 sm:pt-4 pb-1 px-4 flex-shrink-0"
       >
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Global Intelligence</span>
         </h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-white/50 text-xs sm:text-sm mb-1">
+          className="text-white/50 text-xs sm:text-sm lg:text-base mb-1">
           195 nations. One interactive map. Every insight at your fingertips.
         </motion.p>
         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
           transition={{ delay: 0.8, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-24 sm:w-36 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          className="mx-auto w-24 sm:w-36 lg:w-48 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
       </motion.div>
 
       {/* Main Content: Map + Fact Sheet */}
-      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-5 gap-2">
+      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3">
         
         {/* Map + Fact Sheet Row */}
         <div className="flex-1 min-h-0 flex gap-3 sm:gap-4">
@@ -5263,7 +5261,7 @@ function GlobalMapVisual() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="flex-[3] relative rounded-xl border border-white/10 bg-slate-900/50 overflow-hidden flex items-center justify-center"
+            className="flex-[2.5] lg:flex-[3] relative rounded-xl border border-white/10 bg-slate-900/50 overflow-hidden flex items-center justify-center"
           >
             {/* ComposableMap - real world map */}
             <ComposableMap
@@ -5279,15 +5277,24 @@ function GlobalMapVisual() {
                     const isActive = iso3 === activeCountry?.iso;
                     const isHighlighted = iso3 ? highlightedIsos.has(iso3) : false;
 
-                    let fill = "#1e293b"; // dark slate for unknown
+                    // Colorful base fills so the map looks vibrant
+                    let fill = "#1e293b";
                     if (countryData) {
-                      fill = TIER_COLORS[countryData.tier].color;
-                      // Dim non-highlighted countries slightly
-                      if (!isActive && !isHighlighted) {
-                        fill = countryData.tier === "leading" ? "#0d9668"
-                          : countryData.tier === "advancing" ? "#0891a2"
-                          : countryData.tier === "developing" ? "#d97706"
-                          : "#dc2626";
+                      if (isActive) {
+                        // Full bright tier color for active
+                        fill = TIER_COLORS[countryData.tier].color;
+                      } else if (isHighlighted) {
+                        // Slightly dimmed but still vivid for highlighted
+                        fill = countryData.tier === "leading" ? "#0ead76"
+                          : countryData.tier === "advancing" ? "#08a5c4"
+                          : countryData.tier === "developing" ? "#e5a50e"
+                          : "#e84545";
+                      } else {
+                        // Visible base colors — not too dim, clearly distinguishable
+                        fill = countryData.tier === "leading" ? "#0a7c55"
+                          : countryData.tier === "advancing" ? "#06788e"
+                          : countryData.tier === "developing" ? "#a67508"
+                          : "#a83232";
                       }
                     }
 
@@ -5296,11 +5303,11 @@ function GlobalMapVisual() {
                         key={geo.rsmKey}
                         geography={geo}
                         fill={fill}
-                        stroke={isActive ? "#ffffff" : isHighlighted ? "#94a3b8" : "#334155"}
-                        strokeWidth={isActive ? 1.5 : isHighlighted ? 0.8 : 0.3}
+                        stroke={isActive ? "#ffffff" : isHighlighted ? "#e2e8f0" : "#475569"}
+                        strokeWidth={isActive ? 2 : isHighlighted ? 1 : 0.4}
                         style={{
                           default: { outline: "none", transition: "all 0.3s ease" },
-                          hover: { outline: "none", fill: countryData ? TIER_COLORS[countryData.tier].color : "#334155", strokeWidth: 0.8, stroke: "#94a3b8" },
+                          hover: { outline: "none", fill: countryData ? TIER_COLORS[countryData.tier].color : "#475569", strokeWidth: 1, stroke: "#e2e8f0" },
                           pressed: { outline: "none" },
                         }}
                       />
@@ -5310,19 +5317,59 @@ function GlobalMapVisual() {
               </Geographies>
             </ComposableMap>
 
+            {/* Pulsating glow overlay for active country */}
+            {activeCountry && (
+              <div className="absolute inset-0 pointer-events-none z-10">
+                <motion.div
+                  key={activeCountry.iso}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, type: "spring" }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${activeCountry.x}%`, top: `${activeCountry.y}%` }}
+                >
+                  {/* Outer pulse ring */}
+                  <motion.div
+                    animate={{ scale: [1, 2.5, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 w-8 h-8 sm:w-10 sm:h-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ backgroundColor: TIER_COLORS[activeCountry.tier].color, left: "50%", top: "50%" }}
+                  />
+                  {/* Middle pulse ring */}
+                  <motion.div
+                    animate={{ scale: [1, 2, 1], opacity: [0.4, 0, 0.4] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                    className="absolute inset-0 w-6 h-6 sm:w-8 sm:h-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ backgroundColor: TIER_COLORS[activeCountry.tier].color, left: "50%", top: "50%" }}
+                  />
+                  {/* Core bright dot */}
+                  <motion.div
+                    animate={{ scale: [0.9, 1.2, 0.9] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    className="absolute w-3 h-3 sm:w-4 sm:h-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      backgroundColor: TIER_COLORS[activeCountry.tier].color,
+                      boxShadow: `0 0 16px ${TIER_COLORS[activeCountry.tier].color}, 0 0 32px ${TIER_COLORS[activeCountry.tier].color}60`,
+                      left: "50%", top: "50%",
+                    }}
+                  />
+                </motion.div>
+              </div>
+            )}
+
             {/* Scan line overlay on top of the map */}
             <div className="absolute top-0 bottom-0 pointer-events-none z-20" style={{ left: `${scanPosition}%` }}>
-              <div className="absolute -left-[15px] top-0 bottom-0 w-[30px] bg-gradient-to-r from-transparent via-cyan-400/8 to-transparent" />
-              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-400/20 via-cyan-400/60 to-cyan-400/20" />
+              <div className="absolute -left-[20px] top-0 bottom-0 w-[40px] bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent" />
+              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-400/30 via-cyan-400/80 to-cyan-400/30" />
             </div>
 
             {/* Tier legend */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-              className="absolute bottom-1.5 sm:bottom-2 right-2 sm:right-3 flex items-center gap-2 z-20 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-md">
+              className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 flex items-center gap-2 sm:gap-3 z-20 bg-black/40 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-white/10">
               {Object.entries(TIER_COLORS).map(([key, val]) => (
-                <div key={key} className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: val.color }} />
-                  <span className="text-[8px] sm:text-[9px] text-white/50">{val.label}</span>
+                <div key={key} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: val.color }} />
+                  <span className="text-[9px] sm:text-[10px] text-white/60 font-medium">{val.label}</span>
                 </div>
               ))}
             </motion.div>
@@ -5332,10 +5379,10 @@ function GlobalMapVisual() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 py-1 rounded-md bg-black/30 backdrop-blur-sm border border-white/10 z-20"
+              className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10 z-20"
             >
-              <span className="text-cyan-400 text-[10px] sm:text-xs font-bold">195</span>
-              <span className="text-white/40 text-[8px] sm:text-[10px] ml-1">Countries</span>
+              <span className="text-cyan-400 text-xs sm:text-sm font-bold">195</span>
+              <span className="text-white/50 text-[9px] sm:text-xs ml-1.5">Countries</span>
             </motion.div>
           </motion.div>
 
@@ -5344,7 +5391,7 @@ function GlobalMapVisual() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="flex-[1.2] sm:flex-[1] rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col"
+            className="flex-[1.4] sm:flex-[1.2] rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-sm overflow-hidden flex flex-col"
           >
             <AnimatePresence mode="wait">
               {activeCountry && (
@@ -5354,42 +5401,42 @@ function GlobalMapVisual() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.4, type: "spring", damping: 20 }}
-                  className="flex flex-col h-full p-3 sm:p-4"
+                  className="flex flex-col h-full p-4 sm:p-5"
                 >
                   {/* Header: Flag + Name */}
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-white/20 bg-white/5 flex-shrink-0 flex items-center justify-center">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border-2 border-white/20 bg-white/5 flex-shrink-0 flex items-center justify-center shadow-lg">
                       {flagUrl ? (
                         <img src={flagUrl} alt={activeCountry.name} className="w-full h-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
-                        <Globe className="w-5 h-5 text-white/30" />
+                        <Globe className="w-6 h-6 text-white/30" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base font-bold text-white truncate">{activeCountry.name}</h3>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                          style={{ backgroundColor: `${tierColor.color}20`, color: tierColor.color }}>
+                      <h3 className="text-base sm:text-lg font-bold text-white truncate">{activeCountry.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-semibold"
+                          style={{ backgroundColor: `${tierColor.color}25`, color: tierColor.color, border: `1px solid ${tierColor.color}40` }}>
                           {tierColor.label}
                         </span>
-                        <span className="text-[9px] sm:text-[10px] text-white/30">{activeCountry.region}</span>
+                        <span className="text-[10px] sm:text-xs text-white/40">{activeCountry.region}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Rank */}
-                  <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 mb-3">
-                    <span className="text-[10px] sm:text-xs text-white/40">Global Rank</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm sm:text-base font-bold" style={{ color: tierColor.color }}>#{rank}</span>
-                      <span className="text-[9px] text-white/30">/ 195</span>
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 mb-4">
+                    <span className="text-xs sm:text-sm text-white/50 font-medium">Global Rank</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base sm:text-lg font-bold" style={{ color: tierColor.color }}>#{rank}</span>
+                      <span className="text-[10px] sm:text-xs text-white/30">/ 195</span>
                     </div>
                   </div>
 
                   {/* Pillar Scores */}
-                  <div className="space-y-2 flex-1">
-                    <p className="text-[9px] sm:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Framework Scores</p>
+                  <div className="space-y-2.5 flex-1">
+                    <p className="text-[10px] sm:text-xs text-white/50 uppercase tracking-wider font-semibold">Framework Scores</p>
                     {scores && [
                       { label: "Governance", score: scores.governance, color: "#10b981" },
                       { label: "Prevention", score: scores.prevention, color: "#06b6d4" },
@@ -5401,11 +5448,11 @@ function GlobalMapVisual() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.15 + pi * 0.08 }}
                       >
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[9px] sm:text-[10px] text-white/50">{pillar.label}</span>
-                          <span className="text-[10px] sm:text-xs font-bold" style={{ color: pillar.color }}>{pillar.score}</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] sm:text-xs text-white/60">{pillar.label}</span>
+                          <span className="text-xs sm:text-sm font-bold" style={{ color: pillar.color }}>{pillar.score}</span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${pillar.score}%` }}
@@ -5424,11 +5471,11 @@ function GlobalMapVisual() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.6 }}
-                      className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between"
+                      className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between"
                     >
-                      <span className="text-[10px] sm:text-xs text-white/40 font-semibold">OHI Score</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 sm:w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <span className="text-xs sm:text-sm text-white/50 font-semibold">OHI Score</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-20 sm:w-24 h-2 rounded-full bg-white/10 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${scores.overall}%` }}
@@ -5437,19 +5484,23 @@ function GlobalMapVisual() {
                             style={{ backgroundColor: tierColor.color }}
                           />
                         </div>
-                        <span className="text-sm sm:text-base font-bold" style={{ color: tierColor.color }}>{scores.overall}</span>
+                        <span className="text-base sm:text-xl font-bold" style={{ color: tierColor.color }}>{scores.overall}</span>
                       </div>
                     </motion.div>
                   )}
 
                   {/* Scanning indicator */}
                   <motion.div
-                    animate={{ opacity: [0.3, 0.7, 0.3] }}
+                    animate={{ opacity: [0.3, 0.8, 0.3] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="mt-2 flex items-center justify-center gap-1.5"
+                    className="mt-3 flex items-center justify-center gap-2"
                   >
-                    <div className="w-1 h-1 rounded-full bg-cyan-400" />
-                    <span className="text-[8px] sm:text-[9px] text-white/25">Scanning countries...</span>
+                    <motion.div
+                      animate={{ scale: [0.8, 1.2, 0.8] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-cyan-400"
+                    />
+                    <span className="text-[9px] sm:text-[10px] text-white/30">Scanning countries...</span>
                   </motion.div>
                 </motion.div>
               )}
@@ -5458,7 +5509,7 @@ function GlobalMapVisual() {
         </div>
 
         {/* Feature Cards Row */}
-        <div className="flex-shrink-0 w-full grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="flex-shrink-0 w-full grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
           {featureCards.map((card, i) => {
             const col = getColor(card.color);
             const Icon = card.icon;
@@ -5466,42 +5517,50 @@ function GlobalMapVisual() {
               <motion.div
                 key={card.id}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.02, boxShadow: `0 0 20px ${col.hex}25` }}
-                whileTap={{ scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, boxShadow: [`0 0 12px ${col.hex}15`, `0 0 24px ${col.hex}30`, `0 0 12px ${col.hex}15`] }}
+                transition={{ delay: 1 + i * 0.15, duration: 0.5, boxShadow: { duration: 3, repeat: Infinity, delay: i * 0.5 } }}
+                whileHover={{ scale: 1.04, boxShadow: `0 0 35px ${col.hex}50`, y: -3 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => setSelectedFeature(card.id)}
                 className={cn(
-                  "relative group cursor-pointer rounded-lg p-2.5 sm:p-3",
-                  "border backdrop-blur-sm transition-all duration-300",
+                  "relative group cursor-pointer rounded-xl p-3 sm:p-4",
+                  "border-2 backdrop-blur-sm transition-all duration-300",
                   col.bg, col.border
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center flex-shrink-0", col.bg, "border", col.border)}>
-                    <Icon className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5", col.text)} />
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 border", col.bg, col.border)}>
+                    <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", col.text)} />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-[10px] sm:text-xs font-semibold text-white truncate">{card.title}</h3>
-                    <p className="text-[8px] sm:text-[9px] text-white/40 truncate">{card.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-white truncate">{card.title}</h3>
+                    <p className="text-[9px] sm:text-xs text-white/45 truncate mt-0.5">{card.description}</p>
                   </div>
-                  <div className="ml-auto flex-shrink-0 text-right">
-                    <span className={cn("text-sm sm:text-base font-bold", col.text)}>{card.stat}</span>
-                    <p className="text-[7px] sm:text-[8px] text-white/30">{card.statLabel}</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="text-right">
+                      <span className={cn("text-base sm:text-lg font-bold", col.text)}>{card.stat}</span>
+                      <p className="text-[8px] sm:text-[9px] text-white/30">{card.statLabel}</p>
+                    </div>
+                    <motion.div
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      className={cn("opacity-50 group-hover:opacity-100 transition-opacity", col.text)}
+                    >
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </motion.div>
                   </div>
                 </div>
+                {/* Explore label on hover */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  className="absolute bottom-1 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                >
+                  <span className={cn("text-[9px] sm:text-[10px] font-medium", col.text)}>Explore</span>
+                </motion.div>
               </motion.div>
             );
           })}
         </div>
-
-        {/* Invitation text */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-          className="flex items-center justify-center gap-2 pb-1">
-          <motion.div animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }} transition={{ duration: 2, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-          <p className="text-[10px] sm:text-xs text-white/35">Click any card to begin its story — or enter the Global tab to explore</p>
-        </motion.div>
       </div>
     </div>
 
