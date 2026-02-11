@@ -19,13 +19,13 @@ import { motion } from "framer-motion";
 import { 
   Loader2, Target, BarChart3, Globe2, Sparkles
 } from "lucide-react";
-import { apiClient } from "../services/api";
+import { apiClient, fetchCountryDetails } from "../services/api";
 import { cn, getEffectiveOHIScore } from "../lib/utils";
 import { CountryFlag } from "../components/CountryFlag";
 import { type PillarId } from "../lib/strategicQuestions";
 import { FrameworkQuadrant } from "../components/country-focus/FrameworkQuadrant";
 import { KSADeepAnalysisModal } from "../components/country-focus/KSADeepAnalysisModal";
-import type { GeoJSONMetadataResponse } from "../types/country";
+import type { GeoJSONMetadataResponse, Country } from "../types/country";
 
 // ============================================================================
 // CONSTANTS
@@ -49,8 +49,8 @@ interface SelectedQuestion {
 export function FocusKSA() {
   const [selectedQuestion, setSelectedQuestion] = useState<SelectedQuestion | null>(null);
 
-  // Fetch all countries data
-  const { data: geoData, isLoading } = useQuery({
+  // Fetch all countries data (for global stats/percentiles)
+  const { data: geoData, isLoading: isLoadingGeo } = useQuery({
     queryKey: ["geojson-metadata"],
     queryFn: async (): Promise<GeoJSONMetadataResponse> => {
       const response = await apiClient.get<GeoJSONMetadataResponse>("/api/v1/countries/geojson-metadata");
@@ -59,7 +59,16 @@ export function FocusKSA() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Get KSA country data (hardcoded)
+  // Fetch full KSA country data with nested pillar metrics
+  const { data: ksaFullData, isLoading: isLoadingKSA } = useQuery({
+    queryKey: ["country-details", KSA_ISO_CODE],
+    queryFn: () => fetchCountryDetails(KSA_ISO_CODE),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isLoading = isLoadingGeo || isLoadingKSA;
+
+  // Get KSA country data from geojson (for scores/percentiles)
   const ksaCountry = useMemo(() => {
     if (!geoData?.countries) return null;
     return geoData.countries.find(c => c.iso_code === KSA_ISO_CODE);
@@ -247,6 +256,7 @@ export function FocusKSA() {
               pillarId="governance"
               pillarData={getPillarData("governance")}
               country={ksaCountry}
+              countryData={ksaFullData ?? null}
               globalStats={globalStats}
               onQuestionClick={(questionId) => setSelectedQuestion({ pillarId: "governance", questionId })}
             />
@@ -263,6 +273,7 @@ export function FocusKSA() {
               pillarId="hazard-control"
               pillarData={getPillarData("hazard-control")}
               country={ksaCountry}
+              countryData={ksaFullData ?? null}
               globalStats={globalStats}
               onQuestionClick={(questionId) => setSelectedQuestion({ pillarId: "hazard-control", questionId })}
             />
@@ -279,6 +290,7 @@ export function FocusKSA() {
               pillarId="vigilance"
               pillarData={getPillarData("vigilance")}
               country={ksaCountry}
+              countryData={ksaFullData ?? null}
               globalStats={globalStats}
               onQuestionClick={(questionId) => setSelectedQuestion({ pillarId: "vigilance", questionId })}
             />
@@ -295,6 +307,7 @@ export function FocusKSA() {
               pillarId="restoration"
               pillarData={getPillarData("restoration")}
               country={ksaCountry}
+              countryData={ksaFullData ?? null}
               globalStats={globalStats}
               onQuestionClick={(questionId) => setSelectedQuestion({ pillarId: "restoration", questionId })}
             />

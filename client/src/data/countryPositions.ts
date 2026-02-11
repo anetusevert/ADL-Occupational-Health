@@ -334,3 +334,13 @@ export function getApproxRank(tier: MaturityTier, iso: string): number {
   const hash = iso.charCodeAt(0) * 7 + iso.charCodeAt(1) * 13 + iso.charCodeAt(2) * 3;
   return min + (hash % (max - min + 1));
 }
+
+/** Reverse mapping: ISO Alpha-2 (uppercase) -> ISO Alpha-3 */
+export const ISO2_TO_ISO3: Record<string, string> = Object.fromEntries(
+  Object.entries(ISO3_TO_ISO2).map(([k, v]) => [v.toUpperCase(), k])
+);
+
+/** Lookup map: ISO Alpha-3 -> CountryMapPoint for O(1) access */
+export const COUNTRY_MAP_INDEX: Record<string, CountryMapPoint> = Object.fromEntries(
+  COUNTRY_MAP_POINTS.map(c => [c.iso, c])
+);

@@ -7,8 +7,9 @@
  * Right side dynamically builds animated explanations for each slide
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import {
   X,
   ChevronLeft,
@@ -56,7 +57,7 @@ import {
 import { guideSlides, type GuideSlide, elementInsights, type ElementInsight } from "../../data/frameworkContent";
 import { personas, getCoverageStatus, type Persona } from "../../data/personas";
 import { PILLAR_DEFINITIONS, type PillarId, type StrategicQuestion } from "../../lib/strategicQuestions";
-import { COUNTRY_MAP_POINTS, TIER_COLORS, REGION_ORDER, type CountryMapPoint, getFlagUrl, getIllustrativeScores, getApproxRank } from "../../data/countryPositions";
+import { COUNTRY_MAP_POINTS, TIER_COLORS, type CountryMapPoint, getFlagUrl, getIllustrativeScores, getApproxRank, ISO2_TO_ISO3, COUNTRY_MAP_INDEX } from "../../data/countryPositions";
 import { cn } from "../../lib/utils";
 import { 
   CinematicLoader, 
@@ -5110,14 +5111,36 @@ function GlobalFeatureStoryflow({ featureId, onClose }: { featureId: string; onC
   );
 }
 
-// GLOBAL INTELLIGENCE VISUAL - World map with scanner & fact sheet
+// GLOBAL INTELLIGENCE VISUAL - Real world map with scanner & fact sheet
+const PRESENTATION_GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+
+// Compact ISO Alpha-2 to Alpha-3 mapping for GeoJSON lookup
+const PRES_ISO_A2_TO_A3: Record<string, string> = {
+  AF:"AFG",AL:"ALB",DZ:"DZA",AD:"AND",AO:"AGO",AG:"ATG",AR:"ARG",AM:"ARM",AU:"AUS",AT:"AUT",AZ:"AZE",
+  BS:"BHS",BH:"BHR",BD:"BGD",BB:"BRB",BY:"BLR",BE:"BEL",BZ:"BLZ",BJ:"BEN",BT:"BTN",BO:"BOL",BA:"BIH",
+  BW:"BWA",BR:"BRA",BN:"BRN",BG:"BGR",BF:"BFA",BI:"BDI",CV:"CPV",KH:"KHM",CM:"CMR",CA:"CAN",CF:"CAF",
+  TD:"TCD",CL:"CHL",CN:"CHN",CO:"COL",KM:"COM",CG:"COG",CD:"COD",CR:"CRI",CI:"CIV",HR:"HRV",CU:"CUB",
+  CY:"CYP",CZ:"CZE",DK:"DNK",DJ:"DJI",DM:"DMA",DO:"DOM",EC:"ECU",EG:"EGY",SV:"SLV",GQ:"GNQ",ER:"ERI",
+  EE:"EST",SZ:"SWZ",ET:"ETH",FJ:"FJI",FI:"FIN",FR:"FRA",GA:"GAB",GM:"GMB",GE:"GEO",DE:"DEU",GH:"GHA",
+  GR:"GRC",GD:"GRD",GT:"GTM",GN:"GIN",GW:"GNB",GY:"GUY",HT:"HTI",HN:"HND",HU:"HUN",IS:"ISL",IN:"IND",
+  ID:"IDN",IR:"IRN",IQ:"IRQ",IE:"IRL",IL:"ISR",IT:"ITA",JM:"JAM",JP:"JPN",JO:"JOR",KZ:"KAZ",KE:"KEN",
+  KI:"KIR",KP:"PRK",KR:"KOR",KW:"KWT",KG:"KGZ",LA:"LAO",LV:"LVA",LB:"LBN",LS:"LSO",LR:"LBR",LY:"LBY",
+  LI:"LIE",LT:"LTU",LU:"LUX",MG:"MDG",MW:"MWI",MY:"MYS",MV:"MDV",ML:"MLI",MT:"MLT",MH:"MHL",MR:"MRT",
+  MU:"MUS",MX:"MEX",FM:"FSM",MD:"MDA",MC:"MCO",MN:"MNG",ME:"MNE",MA:"MAR",MZ:"MOZ",MM:"MMR",NA:"NAM",
+  NR:"NRU",NP:"NPL",NL:"NLD",NZ:"NZL",NI:"NIC",NE:"NER",NG:"NGA",MK:"MKD",NO:"NOR",OM:"OMN",PK:"PAK",
+  PW:"PLW",PS:"PSE",PA:"PAN",PG:"PNG",PY:"PRY",PE:"PER",PH:"PHL",PL:"POL",PT:"PRT",QA:"QAT",RO:"ROU",
+  RU:"RUS",RW:"RWA",KN:"KNA",LC:"LCA",VC:"VCT",WS:"WSM",SM:"SMR",ST:"STP",SA:"SAU",SN:"SEN",RS:"SRB",
+  SC:"SYC",SL:"SLE",SG:"SGP",SK:"SVK",SI:"SVN",SB:"SLB",SO:"SOM",ZA:"ZAF",SS:"SSD",ES:"ESP",LK:"LKA",
+  SD:"SDN",SR:"SUR",SE:"SWE",CH:"CHE",SY:"SYR",TW:"TWN",TJ:"TJK",TZ:"TZA",TH:"THA",TL:"TLS",TG:"TGO",
+  TO:"TON",TT:"TTO",TN:"TUN",TR:"TUR",TM:"TKM",TV:"TUV",UG:"UGA",UA:"UKR",AE:"ARE",GB:"GBR",US:"USA",
+  UY:"URY",UZ:"UZB",VU:"VUT",VA:"VAT",VE:"VEN",VN:"VNM",YE:"YEM",ZM:"ZMB",ZW:"ZWE",
+};
+
 function GlobalMapVisual() {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [scanPosition, setScanPosition] = useState(0);
   const [activeCountry, setActiveCountry] = useState<CountryMapPoint | null>(null);
   const [highlightedIsos, setHighlightedIsos] = useState<Set<string>>(new Set());
-  const [cycleTargets, setCycleTargets] = useState<CountryMapPoint[]>([]);
-  const [targetIdx, setTargetIdx] = useState(0);
   const [shuffledCountries] = useState<CountryMapPoint[]>(() => {
     const arr = [...COUNTRY_MAP_POINTS];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -5127,15 +5150,29 @@ function GlobalMapVisual() {
     return arr;
   });
   const [globalIdx, setGlobalIdx] = useState(0);
+  const [cycleTargets, setCycleTargets] = useState<CountryMapPoint[]>([]);
+  const [targetIdx, setTargetIdx] = useState(0);
+
+  // Helper: resolve TopoJSON geo -> ISO3
+  const getGeoIso3 = useCallback((geo: { properties: Record<string, string> }): string | undefined => {
+    const a2 = geo.properties.ISO_A2;
+    if (a2 && a2 !== "-99") {
+      const iso3 = ISO2_TO_ISO3[a2];
+      if (iso3) return iso3;
+    }
+    // Fallback: check ISO_A3 property directly
+    const a3 = geo.properties.ISO_A3;
+    if (a3 && a3 !== "-99" && COUNTRY_MAP_INDEX[a3]) return a3;
+    return undefined;
+  }, []);
 
   // Pick 2-3 targets for each sweep cycle
   useEffect(() => {
-    const count = 2 + Math.floor(Math.random() * 2); // 2 or 3
+    const count = 2 + Math.floor(Math.random() * 2);
     const targets: CountryMapPoint[] = [];
     for (let i = 0; i < count; i++) {
       targets.push(shuffledCountries[(globalIdx + i) % shuffledCountries.length]);
     }
-    // Sort by x so they get picked in scan order
     targets.sort((a, b) => a.x - b.x);
     setCycleTargets(targets);
     setTargetIdx(0);
@@ -5149,7 +5186,6 @@ function GlobalMapVisual() {
       setScanPosition(prev => {
         const next = prev + SCAN_SPEED;
         if (next >= 105) {
-          // New sweep cycle
           setGlobalIdx(gi => gi + 3);
           return 0;
         }
@@ -5177,12 +5213,6 @@ function GlobalMapVisual() {
     }
   }, [activeCountry, shuffledCountries]);
 
-  // Region-based stagger delays for entrance animation
-  const getRegionDelay = (region: string) => {
-    const idx = REGION_ORDER.indexOf(region);
-    return idx >= 0 ? idx * 0.25 : 0;
-  };
-
   const featureCards = [
     { id: "map", icon: Globe, title: "Interactive World Map", description: "Color-coded by OHI score. Filter by pillar, continent, or maturity tier.", stat: "195", statLabel: "Nations", color: "cyan" as const },
     { id: "country", icon: BarChart3, title: "Country Intelligence", description: "Click any nation for its full dashboard — economic context and framework scores.", stat: "4", statLabel: "Pillars Scored", color: "emerald" as const },
@@ -5194,34 +5224,6 @@ function GlobalMapVisual() {
   const rank = activeCountry ? getApproxRank(activeCountry.tier, activeCountry.iso) : 0;
   const flagUrl = activeCountry ? getFlagUrl(activeCountry.iso) : "";
   const tierColor = activeCountry ? TIER_COLORS[activeCountry.tier] : TIER_COLORS.developing;
-
-  // Simplified continent outlines for SVG background (viewBox 0 0 100 70)
-  const continentPaths = [
-    // North America
-    "M 10,14 L 14,11 20,10 24,14 25,20 23,26 20,30 17,33 14,30 10,24 Z",
-    // Central America
-    "M 17,33 L 20,32 22,35 21,38 19,40 17,37 Z",
-    // South America
-    "M 21,40 L 26,38 30,40 32,46 31,54 29,60 26,64 22,60 20,52 20,45 Z",
-    // Europe
-    "M 45,12 L 48,10 54,11 56,14 55,20 57,24 55,28 52,30 48,28 46,24 44,18 Z",
-    // Africa
-    "M 46,32 L 50,30 55,31 58,36 58,44 56,52 53,58 50,60 46,56 44,48 43,40 Z",
-    // Middle East
-    "M 57,28 L 62,26 66,30 65,36 62,40 58,38 56,32 Z",
-    // Central/South Asia
-    "M 66,26 L 72,22 76,28 75,36 72,42 68,40 66,34 Z",
-    // East Asia
-    "M 76,14 L 82,12 86,16 88,24 86,30 82,32 78,28 76,20 Z",
-    // Southeast Asia
-    "M 75,38 L 80,36 84,40 83,48 80,50 76,46 Z",
-    // Indonesia
-    "M 76,50 L 82,48 86,50 88,52 84,54 78,53 Z",
-    // Australia
-    "M 80,56 L 86,54 92,56 92,64 88,68 82,66 78,62 Z",
-    // New Zealand
-    "M 92,64 L 94,62 95,66 93,68 Z",
-  ];
 
   return (
     <>
@@ -5236,13 +5238,13 @@ function GlobalMapVisual() {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring" }}
-        className="text-center pt-4 sm:pt-6 pb-1 sm:pb-2 px-4 flex-shrink-0"
+        className="text-center pt-3 sm:pt-5 pb-1 px-4 flex-shrink-0"
       >
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Global Intelligence</span>
         </h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-white/50 text-xs sm:text-sm mb-2">
+          className="text-white/50 text-xs sm:text-sm mb-1">
           195 nations. One interactive map. Every insight at your fingertips.
         </motion.p>
         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
@@ -5251,116 +5253,76 @@ function GlobalMapVisual() {
       </motion.div>
 
       {/* Main Content: Map + Fact Sheet */}
-      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 gap-2 sm:gap-3">
+      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-5 gap-2">
         
         {/* Map + Fact Sheet Row */}
         <div className="flex-1 min-h-0 flex gap-3 sm:gap-4">
           
-          {/* LEFT: World Map */}
+          {/* LEFT: Real Choropleth World Map */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="flex-[3] relative rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-sm overflow-hidden"
+            className="flex-[3] relative rounded-xl border border-white/10 bg-slate-900/50 overflow-hidden flex items-center justify-center"
           >
-            {/* Continent outline SVG background */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 70" preserveAspectRatio="xMidYMid meet">
-              {continentPaths.map((d, i) => (
-                <motion.path
-                  key={i}
-                  d={d}
-                  fill="rgba(255,255,255,0.03)"
-                  stroke="rgba(255,255,255,0.06)"
-                  strokeWidth="0.3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 + i * 0.08, duration: 0.4 }}
-                />
-              ))}
-            </svg>
+            {/* ComposableMap - real world map */}
+            <ComposableMap
+              projection="geoMercator"
+              projectionConfig={{ scale: 130, center: [15, 30] }}
+              style={{ width: "100%", height: "100%" }}
+            >
+              <Geographies geography={PRESENTATION_GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const iso3 = getGeoIso3(geo);
+                    const countryData = iso3 ? COUNTRY_MAP_INDEX[iso3] : undefined;
+                    const isActive = iso3 === activeCountry?.iso;
+                    const isHighlighted = iso3 ? highlightedIsos.has(iso3) : false;
 
-            {/* Grid overlay */}
-            <div className="absolute inset-0 opacity-[0.02] z-0" style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-              backgroundSize: "25px 25px"
-            }} />
+                    let fill = "#1e293b"; // dark slate for unknown
+                    if (countryData) {
+                      fill = TIER_COLORS[countryData.tier].color;
+                      // Dim non-highlighted countries slightly
+                      if (!isActive && !isHighlighted) {
+                        fill = countryData.tier === "leading" ? "#0d9668"
+                          : countryData.tier === "advancing" ? "#0891a2"
+                          : countryData.tier === "developing" ? "#d97706"
+                          : "#dc2626";
+                      }
+                    }
 
-            {/* Scan line with glow trail */}
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={fill}
+                        stroke={isActive ? "#ffffff" : isHighlighted ? "#94a3b8" : "#334155"}
+                        strokeWidth={isActive ? 1.5 : isHighlighted ? 0.8 : 0.3}
+                        style={{
+                          default: { outline: "none", transition: "all 0.3s ease" },
+                          hover: { outline: "none", fill: countryData ? TIER_COLORS[countryData.tier].color : "#334155", strokeWidth: 0.8, stroke: "#94a3b8" },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ComposableMap>
+
+            {/* Scan line overlay on top of the map */}
             <div className="absolute top-0 bottom-0 pointer-events-none z-20" style={{ left: `${scanPosition}%` }}>
-              <div className="absolute -left-[20px] top-0 bottom-0 w-[40px] bg-gradient-to-r from-transparent via-cyan-400/8 to-transparent" />
+              <div className="absolute -left-[15px] top-0 bottom-0 w-[30px] bg-gradient-to-r from-transparent via-cyan-400/8 to-transparent" />
               <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-400/20 via-cyan-400/60 to-cyan-400/20" />
             </div>
 
-            {/* All 195 country dots */}
-            {COUNTRY_MAP_POINTS.map((country, i) => {
-              const isHighlighted = highlightedIsos.has(country.iso);
-              const isActive = activeCountry?.iso === country.iso;
-              const tc = TIER_COLORS[country.tier];
-              return (
-                <motion.div
-                  key={country.iso}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ 
-                    opacity: isActive ? 1 : isHighlighted ? 0.95 : [0.35, 0.7, 0.35],
-                    scale: isActive ? 2 : isHighlighted ? 1.4 : 1,
-                  }}
-                  transition={{ 
-                    delay: 0.3 + getRegionDelay(country.region) + (i % 25) * 0.012,
-                    duration: 0.3,
-                    opacity: (isActive || isHighlighted) ? { duration: 0.3 } : { duration: 3 + (i % 3), repeat: Infinity, delay: (i * 0.05) % 2 },
-                    scale: { duration: 0.4, type: "spring" }
-                  }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full z-10"
-                  style={{ 
-                    left: `${country.x}%`, 
-                    top: `${country.y}%`,
-                    width: isActive ? 8 : isHighlighted ? 7 : 4,
-                    height: isActive ? 8 : isHighlighted ? 7 : 4,
-                    backgroundColor: tc.color,
-                    boxShadow: isActive 
-                      ? `0 0 20px ${tc.color}, 0 0 40px ${tc.color}50` 
-                      : isHighlighted 
-                      ? `0 0 12px ${tc.color}80` 
-                      : `0 0 3px ${tc.color}40`,
-                  }}
-                >
-                  {/* Active pulse rings */}
-                  {isActive && (
-                    <>
-                      <motion.div
-                        animate={{ scale: [1, 3.5, 1], opacity: [0.5, 0, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="absolute inset-0 rounded-full"
-                        style={{ backgroundColor: tc.color }}
-                      />
-                      <motion.div
-                        animate={{ scale: [1, 2.5, 1], opacity: [0.3, 0, 0.3] }}
-                        transition={{ duration: 1.2, repeat: Infinity, delay: 0.3 }}
-                        className="absolute inset-0 rounded-full"
-                        style={{ backgroundColor: tc.color }}
-                      />
-                    </>
-                  )}
-                  {/* Highlighted ring */}
-                  {isHighlighted && !isActive && (
-                    <motion.div
-                      animate={{ scale: [1, 2, 1], opacity: [0.4, 0, 0.4] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute inset-0 rounded-full"
-                      style={{ backgroundColor: tc.color }}
-                    />
-                  )}
-                </motion.div>
-              );
-            })}
-
             {/* Tier legend */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-              className="absolute bottom-1.5 sm:bottom-2 right-2 sm:right-3 flex items-center gap-2 z-20">
+              className="absolute bottom-1.5 sm:bottom-2 right-2 sm:right-3 flex items-center gap-2 z-20 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-md">
               {Object.entries(TIER_COLORS).map(([key, val]) => (
                 <div key={key} className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: val.color }} />
-                  <span className="text-[8px] sm:text-[9px] text-white/30">{val.label}</span>
+                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: val.color }} />
+                  <span className="text-[8px] sm:text-[9px] text-white/50">{val.label}</span>
                 </div>
               ))}
             </motion.div>
@@ -5370,7 +5332,7 @@ function GlobalMapVisual() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 backdrop-blur-sm z-20"
+              className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 py-1 rounded-md bg-black/30 backdrop-blur-sm border border-white/10 z-20"
             >
               <span className="text-cyan-400 text-[10px] sm:text-xs font-bold">195</span>
               <span className="text-white/40 text-[8px] sm:text-[10px] ml-1">Countries</span>
