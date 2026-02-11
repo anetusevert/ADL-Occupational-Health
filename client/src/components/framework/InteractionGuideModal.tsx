@@ -3924,387 +3924,516 @@ const KSA_PILLARS = [
   },
 ];
 
+// ── KSA Pillar Storyflow ─────────────────────────────────────────────────────
+// Cinematic 5-step storyflow for each KSA pillar (modeled on PillarStoryflow)
+function KSAPillarStoryflow({ pillar, onClose }: { pillar: typeof KSA_PILLARS[number]; onClose: () => void }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [typedText, setTypedText] = useState("");
+  const totalSteps = 5; // intro, benchmarks, metrics, insight, opportunity
+
+  const col = colors[pillar.color];
+  const Icon = pillar.icon;
+  const gapToLeader = pillar.leader.score - pillar.score;
+  const gccDiff = pillar.score - pillar.gccAvg;
+
+  // Typewriter for intro
+  useEffect(() => {
+    if (currentStep !== 0) return;
+    setTypedText("");
+    const text = pillar.label;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) { setTypedText(text.slice(0, i + 1)); i++; }
+      else clearInterval(interval);
+    }, 60);
+    return () => clearInterval(interval);
+  }, [currentStep, pillar.label]);
+
+  // Auto-play
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const delays = [3500, 7000, 6000, 6000, 8000];
+    const timer = setTimeout(() => {
+      if (currentStep < totalSteps - 1) { setDirection(1); setCurrentStep(s => s + 1); }
+      else setIsAutoPlaying(false);
+    }, delays[currentStep]);
+    return () => clearTimeout(timer);
+  }, [currentStep, isAutoPlaying]);
+
+  // Keyboard nav
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight" && currentStep < totalSteps - 1) { setDirection(1); setCurrentStep(s => s + 1); setIsAutoPlaying(false); }
+      if (e.key === "ArrowLeft" && currentStep > 0) { setDirection(-1); setCurrentStep(s => s - 1); setIsAutoPlaying(false); }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [currentStep, onClose]);
+
+  const goNext = () => { if (currentStep < totalSteps - 1) { setDirection(1); setCurrentStep(s => s + 1); setIsAutoPlaying(false); } };
+  const goPrev = () => { if (currentStep > 0) { setDirection(-1); setCurrentStep(s => s - 1); setIsAutoPlaying(false); } };
+  const goTo = (i: number) => { setDirection(i > currentStep ? 1 : -1); setCurrentStep(i); setIsAutoPlaying(false); };
+
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0, scale: 0.95 }),
+    center: { x: 0, opacity: 1, scale: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -300 : 300, opacity: 0, scale: 0.95 }),
+  };
+
+  const stepTitles = ["", "Benchmarking KSA Against the World", "The Evidence Behind the Score", "Expert Assessment", "The Path Forward"];
+
+  const renderIntro = () => (
+    <motion.div key="intro" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className="flex flex-col items-center justify-center h-full text-center px-8">
+      <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 15, stiffness: 150 }}
+        className="relative mb-8">
+        {[0, 1, 2].map(r => (
+          <motion.div key={r} animate={{ scale: [1, 2.5 + r * 0.5, 1], opacity: [0.3, 0, 0.3] }}
+            transition={{ duration: 2 + r * 0.3, repeat: Infinity, delay: r * 0.4 }}
+            className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 ${20 + r * 10}px ${col.hex}40` }} />
+        ))}
+        <div className={cn("w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center border-2", col.bg, col.border)}
+          style={{ boxShadow: `0 0 40px ${col.hex}40` }}>
+          <Icon className={cn("w-10 h-10 sm:w-12 sm:h-12", col.text)} />
+        </div>
+      </motion.div>
+      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3">
+        {typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.6, repeat: Infinity }}
+          className={cn("inline-block w-[3px] h-8 sm:h-10 ml-1 rounded-full", col.bgSolid)} />
+      </h2>
+      <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.2, type: "spring" }}
+        className="mb-4">
+        <span className={cn("text-5xl sm:text-6xl font-bold", col.text)}>{pillar.score}</span>
+        <span className="text-lg text-white/30 ml-1">/100</span>
+      </motion.div>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 }}
+        className="text-base sm:text-lg text-white/50 max-w-md">
+        How does Saudi Arabia perform in {pillar.label.toLowerCase()}?
+      </motion.p>
+      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1, boxShadow: [`0 0 20px ${col.hex}20`, `0 0 40px ${col.hex}40`, `0 0 20px ${col.hex}20`] }}
+        transition={{ delay: 2, boxShadow: { duration: 2, repeat: Infinity } }}
+        onClick={goNext} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+        className={cn("mt-8 px-8 py-4 rounded-xl font-semibold text-white text-base border-2", col.bg, col.border)}>
+        Explore →
+      </motion.button>
+    </motion.div>
+  );
+
+  const renderBenchmarks = () => {
+    const benchmarks = [
+      { label: "KSA", value: pillar.score, color: "emerald" },
+      { label: "GCC Average", value: pillar.gccAvg, color: "cyan" },
+      { label: "G20 Average", value: pillar.g20Avg, color: "purple" },
+      { label: pillar.leader.name, value: pillar.leader.score, color: "amber" },
+    ];
+    const narrative = gccDiff >= 0
+      ? `Saudi Arabia scores ${pillar.score} — ${gccDiff} points above the GCC average, but ${gapToLeader} points behind the global leader, ${pillar.leader.name}.`
+      : `Saudi Arabia scores ${pillar.score} — ${Math.abs(gccDiff)} points below the GCC average and ${gapToLeader} points behind the global leader, ${pillar.leader.name}.`;
+
+    return (
+      <motion.div key="benchmarks" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="h-full flex flex-col justify-start pt-4 sm:pt-6 px-6 sm:px-8 lg:px-12 overflow-y-auto">
+        <div className="mb-5">
+          <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+            className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+          <div className="flex items-center gap-3 mb-2">
+            <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>01</span>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[1]}</h3>
+          </div>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            className="text-sm sm:text-base text-white/45 max-w-2xl">{narrative}</motion.p>
+        </div>
+        {/* Score cards */}
+        <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
+          {benchmarks.map((b, i) => {
+            const bc = colors[b.color];
+            return (
+              <motion.div key={b.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + i * 0.1 }}
+                className={cn("rounded-xl p-4 text-center border-2", bc.bg, bc.border)}>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + i * 0.1 }}
+                  className={cn("text-3xl sm:text-4xl font-bold", bc.text)}>{b.value}</motion.p>
+                <p className="text-xs text-white/45 mt-1">{b.label}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+        {/* Comparison bars */}
+        <div className="space-y-3 flex-1">
+          {benchmarks.map((b, i) => {
+            const bc = colors[b.color];
+            return (
+              <motion.div key={b.label} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 + i * 0.12 }} className="flex items-center gap-3">
+                <span className={cn("w-28 text-xs sm:text-sm font-medium text-right", bc.text)}>{b.label}</span>
+                <div className="flex-1 h-8 bg-white/5 rounded-lg overflow-hidden relative">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.value}%` }}
+                    transition={{ delay: 1 + i * 0.12, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className={cn("h-full rounded-lg", bc.bg, "border", bc.border, "relative")}>
+                    <span className={cn("absolute right-2 top-1/2 -translate-y-1/2 text-xs sm:text-sm font-bold", bc.text)}>{b.value}</span>
+                  </motion.div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderMetrics = () => (
+    <motion.div key="metrics" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className="h-full flex flex-col justify-start pt-4 sm:pt-6 px-6 sm:px-8 lg:px-12 overflow-y-auto">
+      <div className="mb-6">
+        <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+          className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+        <div className="flex items-center gap-3 mb-2">
+          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>02</span>
+          <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[2]}</h3>
+        </div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          className="text-sm sm:text-base text-white/45 max-w-2xl">Four indicators that define KSA's position in {pillar.label.toLowerCase()}.</motion.p>
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 flex-1">
+        {pillar.metrics.map((metric, i) => (
+          <motion.div key={metric.name} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.4 + i * 0.12, type: "spring", damping: 20 }}
+            className="p-5 sm:p-6 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm sm:text-base text-white/70 font-medium">{metric.name}</span>
+              <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full",
+                metric.status === "strong" ? "bg-emerald-500/15 text-emerald-400" :
+                metric.status === "developing" ? "bg-amber-500/15 text-amber-400" :
+                "bg-red-500/15 text-red-400"
+              )}>
+                {metric.status === "strong" ? "Strong" : metric.status === "developing" ? "Developing" : "Gap"}
+              </span>
+            </div>
+            <span className={cn("text-2xl sm:text-3xl font-bold mt-auto",
+              metric.status === "strong" ? "text-emerald-400" :
+              metric.status === "developing" ? "text-amber-400" :
+              "text-red-400"
+            )}>{metric.value}</span>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+
+  const renderInsight = () => (
+    <motion.div key="insight" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className="h-full flex flex-col justify-center px-6 sm:px-10 lg:px-16">
+      <div className="mb-6">
+        <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+          className="h-[2px] rounded-full mb-4" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+        <div className="flex items-center gap-3 mb-2">
+          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>03</span>
+          <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[3]}</h3>
+        </div>
+      </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+        className="relative p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.1]">
+        <div className="absolute top-4 left-6 text-4xl text-white/10 font-serif">&ldquo;</div>
+        <p className="text-lg sm:text-xl lg:text-2xl text-white/80 leading-relaxed font-light mt-4">{pillar.insight}</p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+          className="mt-6 flex items-center gap-3">
+          <div className="w-8 h-[2px] rounded-full" style={{ backgroundColor: col.hex }} />
+          <span className="text-xs text-white/40 uppercase tracking-wider">Arthur D. Little — Occupational Health Intelligence</span>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderOpportunity = () => (
+    <motion.div key="opportunity" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit"
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      className="h-full flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16">
+      <div className="w-full max-w-2xl">
+        <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.6 }}
+          className="h-[2px] rounded-full mb-6" style={{ background: `linear-gradient(to right, ${col.hex}, transparent)` }} />
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <span className={cn("text-sm font-bold px-2.5 py-1 rounded-full", col.bg, col.text)}>04</span>
+          <h3 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[4]}</h3>
+        </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className={cn("p-6 sm:p-8 rounded-2xl border-2 mb-6", col.bg, col.border)}>
+          <p className="text-lg sm:text-xl text-white/80 leading-relaxed">{pillar.opportunity}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          className="flex items-center justify-center gap-6 mb-8">
+          <div className="text-center">
+            <span className={cn("text-3xl sm:text-4xl font-bold", col.text)}>{gapToLeader}</span>
+            <p className="text-xs text-white/40 mt-1">Points to close</p>
+          </div>
+          <div className="w-px h-10 bg-white/10" />
+          <div className="text-center">
+            <span className="text-3xl sm:text-4xl font-bold text-amber-400">{pillar.leader.name}</span>
+            <p className="text-xs text-white/40 mt-1">Global Leader ({pillar.leader.score})</p>
+          </div>
+        </motion.div>
+        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, boxShadow: [`0 0 20px ${col.hex}20`, `0 0 40px ${col.hex}40`, `0 0 20px ${col.hex}20`] }}
+          transition={{ delay: 1, boxShadow: { duration: 2, repeat: Infinity } }}
+          onClick={onClose} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+          className={cn("px-8 py-4 rounded-xl font-semibold text-white text-base border-2", col.bg, col.border)}>
+          Continue Presentation →
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(2,6,23,0.98)" }}>
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div animate={{ opacity: [0.12, 0.22, 0.12], scale: [1, 1.1, 1] }} transition={{ duration: 6, repeat: Infinity }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] rounded-full"
+          style={{ background: `radial-gradient(ellipse, ${col.hex}10 0%, transparent 70%)` }} />
+      </div>
+      {/* Top bar */}
+      <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/10">
+        <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+          <X className="w-5 h-5 text-white/60" />
+        </button>
+        <div className="flex items-center gap-3">
+          <Icon className={cn("w-5 h-5", col.text)} />
+          <span className="text-sm sm:text-base font-semibold text-white/80">{pillar.label}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+            className={cn("p-2 rounded-lg transition-colors", isAutoPlaying ? "bg-white/10" : "hover:bg-white/10")}>
+            <Play className={cn("w-4 h-4", isAutoPlaying ? col.text : "text-white/40")} />
+          </button>
+          <span className="text-xs sm:text-sm text-white/30 font-mono">
+            {String(currentStep + 1).padStart(2, "0")} / {String(totalSteps).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
+      {/* Main content */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-hidden">
+        <AnimatePresence mode="wait" custom={direction}>
+          {currentStep === 0 && renderIntro()}
+          {currentStep === 1 && renderBenchmarks()}
+          {currentStep === 2 && renderMetrics()}
+          {currentStep === 3 && renderInsight()}
+          {currentStep === 4 && renderOpportunity()}
+        </AnimatePresence>
+      </div>
+      {/* Bottom nav */}
+      <div className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3 border-t border-white/10">
+        <button onClick={goPrev} disabled={currentStep === 0}
+          className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            currentStep === 0 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10 hover:text-white/80")}>
+          <ChevronLeft className="w-4 h-4" /> Previous
+        </button>
+        <div className="flex items-center gap-2">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <button key={i} onClick={() => goTo(i)}
+              className={cn("rounded-full transition-all duration-300", i === currentStep ? "w-7 h-2.5" : "w-2.5 h-2.5 hover:opacity-80")}
+              style={{
+                backgroundColor: i === currentStep ? col.hex : i < currentStep ? `${col.hex}66` : "rgba(255,255,255,0.15)",
+                boxShadow: i === currentStep ? `0 0 10px ${col.hex}80` : "none",
+              }} />
+          ))}
+        </div>
+        <button onClick={goNext} disabled={currentStep === totalSteps - 1}
+          className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            currentStep === totalSteps - 1 ? "text-white/20 cursor-not-allowed" : "text-white/60 hover:bg-white/10 hover:text-white/80")}>
+          Next <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5 z-20">
+        <motion.div animate={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }} transition={{ duration: 0.4, ease: "easeOut" }}
+          className="h-full rounded-full" style={{ background: `linear-gradient(to right, ${col.hex}, ${col.hex}66)` }} />
+      </div>
+    </motion.div>
+  );
+}
+
+// ── KSA Deep Analysis Visual ─────────────────────────────────────────────────
 function KSADeepAnalysisVisual() {
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
-  const [hoveredPillar, setHoveredPillar] = useState<string | null>(null);
 
   const pillarData = selectedPillar ? KSA_PILLARS.find(p => p.id === selectedPillar) : null;
-
-  // Overall OHI composite
   const ohiScore = Math.round(KSA_PILLARS.reduce((sum, p) => sum + p.score, 0) / KSA_PILLARS.length);
+  const governance = KSA_PILLARS[0];
+  const pillars = KSA_PILLARS.slice(1); // 3 pillars below
 
   return (
     <>
-    <div className="w-[92vw] max-w-6xl mx-auto h-full flex flex-col">
+    <div className="w-[92vw] max-w-5xl mx-auto h-full flex flex-col">
       {/* Top: KSA Identity Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="flex items-center justify-between mb-4 lg:mb-6"
-      >
-        {/* Left: Flag + Identity */}
-        <div className="flex items-center gap-4">
-          <motion.div
-            initial={{ scale: 0, rotate: -10 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-            className="relative"
-          >
-            <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl overflow-hidden border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/20">
-              <img
-                src="https://flagcdn.com/w160/sa.png"
-                alt="Saudi Arabia"
-                className="w-full h-full object-cover"
-              />
+        className="flex items-center justify-between mb-3 lg:mb-4">
+        <div className="flex items-center gap-3">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring" }}
+            className="relative">
+            <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl overflow-hidden border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/20">
+              <img src="https://flagcdn.com/w160/sa.png" alt="Saudi Arabia" className="w-full h-full object-cover" />
             </div>
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 15px rgba(16,185,129,0.3)",
-                  "0 0 30px rgba(16,185,129,0.5)",
-                  "0 0 15px rgba(16,185,129,0.3)",
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute inset-0 rounded-2xl"
-            />
           </motion.div>
           <div>
-            <motion.h2
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-xl lg:text-2xl font-bold text-white"
-            >
-              Kingdom of Saudi Arabia
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-xs lg:text-sm text-emerald-400/80"
-            >
-              Vision 2030 &middot; 13M Workers &middot; GOSI Coverage
-            </motion.p>
+            <motion.h2 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+              className="text-lg lg:text-xl font-bold text-white">Kingdom of Saudi Arabia</motion.h2>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+              className="text-[10px] lg:text-xs text-emerald-400/80">Vision 2030 &middot; 13M Workers &middot; GOSI Coverage</motion.p>
           </div>
         </div>
-
-        {/* Right: OHI Score Ring */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.5, type: "spring", stiffness: 150, damping: 20 }}
-          className="relative w-20 h-20 lg:w-24 lg:h-24 flex-shrink-0"
-        >
+        {/* OHI Score */}
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }}
+          className="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-            <motion.circle
-              cx="50" cy="50" r="42"
-              fill="none"
-              stroke="url(#ohiGrad)"
-              strokeWidth="6"
-              strokeLinecap="round"
+            <motion.circle cx="50" cy="50" r="42" fill="none" stroke="url(#ohiGrad)" strokeWidth="6" strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 42}`}
               initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
               animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - ohiScore / 100) }}
-              transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-            />
+              transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }} />
             <defs>
               <linearGradient id="ohiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#06b6d4" />
+                <stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#06b6d4" />
               </linearGradient>
             </defs>
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-              className="text-xl lg:text-2xl font-bold text-white"
-            >
-              {ohiScore}
-            </motion.span>
-            <span className="text-[9px] text-white/40 uppercase tracking-wider">OHI Score</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
+              className="text-lg lg:text-xl font-bold text-white">{ohiScore}</motion.span>
+            <span className="text-[8px] text-white/40 uppercase tracking-wider">OHI Score</span>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* Main: 4-Pillar Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 lg:gap-4">
-        {KSA_PILLARS.map((pillar, pi) => {
-          const PillarIcon = pillar.icon;
-          const c = colors[pillar.color];
-          const isHovered = hoveredPillar === pillar.id;
-          const gapToLeader = pillar.leader.score - pillar.score;
+      {/* Framework Structure: Governance Roof + 3 Pillars */}
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-4">
+        
+        {/* Governance "Roof" */}
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.7, type: "spring", stiffness: 200, damping: 20 }}
+          className="w-full max-w-2xl"
+        >
+          <motion.button
+            onClick={() => setSelectedPillar(governance.id)}
+            whileHover={{ scale: 1.02, y: -3, boxShadow: `0 0 40px ${colors[governance.color].hex}33` }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              "relative w-full rounded-2xl border-2 cursor-pointer overflow-hidden transition-all duration-300",
+              "bg-gradient-to-r from-slate-800/80 via-slate-800/60 to-slate-800/80",
+              colors[governance.color].border, "p-4 lg:p-5 text-left"
+            )}
+          >
+            <motion.div animate={{ opacity: [0.05, 0.12, 0.05] }} transition={{ duration: 3, repeat: Infinity }}
+              className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-transparent to-purple-500/20" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center", colors[governance.color].bg, "border", colors[governance.color].border)}>
+                  <Crown className={cn("w-5 h-5 lg:w-6 lg:h-6", colors[governance.color].text)} />
+                </div>
+                <div>
+                  <p className="text-base lg:text-lg font-bold text-white">{governance.label}</p>
+                  <p className="text-[10px] lg:text-xs text-white/40">Click to explore KSA performance</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className={cn("text-3xl lg:text-4xl font-bold", colors[governance.color].text)}>{governance.score}</span>
+                <span className="text-[10px] text-white/30 block">/100</span>
+              </div>
+            </div>
+          </motion.button>
+          {/* Decorative connectors */}
+          <div className="flex justify-around px-16 lg:px-24">
+            {[0, 1, 2].map(i => (
+              <motion.div key={i} initial={{ height: 0 }} animate={{ height: 16 }}
+                transition={{ delay: 0.8 + i * 0.1, duration: 0.4 }}
+                className="w-px bg-gradient-to-b from-white/20 to-transparent" />
+            ))}
+          </div>
+        </motion.div>
 
-          return (
-            <motion.div
-              key={pillar.id}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.4 + pi * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{
-                scale: 1.02,
-                y: -4,
-                boxShadow: `0 0 40px ${c.hex}33`,
-              }}
-              whileTap={{ scale: 0.98 }}
-              onHoverStart={() => setHoveredPillar(pillar.id)}
-              onHoverEnd={() => setHoveredPillar(null)}
-              onClick={() => setSelectedPillar(pillar.id)}
-              className={cn(
-                "relative rounded-2xl border cursor-pointer overflow-hidden transition-colors duration-300",
-                "bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80",
-                isHovered ? c.border : "border-white/10",
-                "flex flex-col p-4 lg:p-5"
-              )}
-            >
-              {/* Background glow */}
-              <motion.div
-                animate={{ opacity: isHovered ? 0.15 : 0.05 }}
-                className={cn("absolute inset-0 bg-gradient-to-br", `from-${pillar.color}-500/20`, "to-transparent")}
-              />
-
-              {/* Header: Icon + Label + Score */}
-              <div className="relative flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <motion.div
-                    animate={isHovered ? { rotate: [0, -10, 10, 0], scale: 1.1 } : { scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className={cn("w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center", c.bg)}
-                  >
-                    <PillarIcon className={cn("w-4 h-4 lg:w-5 lg:h-5", c.text)} />
-                  </motion.div>
-                  <div>
-                    <p className="text-sm lg:text-base font-semibold text-white">{pillar.label}</p>
-                    <p className="text-[10px] text-white/40">Click to explore</p>
+        {/* Three Pillars */}
+        <div className="w-full grid grid-cols-3 gap-3 lg:gap-4">
+          {pillars.map((pillar, pi) => {
+            const PillarIcon = pillar.icon;
+            const c = colors[pillar.color];
+            const gapToLeader = pillar.leader.score - pillar.score;
+            return (
+              <motion.div key={pillar.id}
+                initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.6 + pi * 0.2, duration: 0.7, type: "spring", stiffness: 200, damping: 20 }}>
+                <motion.button
+                  onClick={() => setSelectedPillar(pillar.id)}
+                  whileHover={{ scale: 1.03, y: -4, boxShadow: `0 0 40px ${c.hex}33` }}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "relative w-full rounded-2xl border-2 cursor-pointer overflow-hidden transition-all duration-300",
+                    "bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80",
+                    c.border, "p-4 lg:p-5 text-left flex flex-col"
+                  )}
+                >
+                  <motion.div animate={{ opacity: [0.03, 0.1, 0.03] }} transition={{ duration: 3, repeat: Infinity, delay: pi * 0.3 }}
+                    className={cn("absolute inset-0 bg-gradient-to-br", `from-${pillar.color}-500/20`, "to-transparent")} />
+                  <div className="relative flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className={cn("w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center", c.bg, "border", c.border)}>
+                        <PillarIcon className={cn("w-4 h-4 lg:w-5 lg:h-5", c.text)} />
+                      </div>
+                      <div>
+                        <p className="text-sm lg:text-base font-semibold text-white">{pillar.label}</p>
+                        <p className="text-[9px] lg:text-[10px] text-white/35">Click to explore</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={cn("text-2xl lg:text-3xl font-bold", c.text)}>{pillar.score}</span>
+                      <span className="text-[9px] text-white/30 block">/100</span>
+                    </div>
                   </div>
-                </div>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.8 + pi * 0.12, type: "spring" }}
-                  className="text-right"
-                >
-                  <span className={cn("text-2xl lg:text-3xl font-bold", c.text)}>{pillar.score}</span>
-                  <span className="text-[10px] text-white/30 block">/100</span>
-                </motion.div>
-              </div>
-
-              {/* Score Bar */}
-              <div className="relative mb-3">
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pillar.score}%` }}
-                    transition={{ delay: 0.9 + pi * 0.12, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                    className={cn("h-full rounded-full bg-gradient-to-r", `from-${pillar.color}-500`, `to-${pillar.color}-400`)}
-                  />
-                </div>
-                {/* Benchmark markers */}
-                <div className="absolute top-0 h-2 w-full pointer-events-none">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.5 }}
-                    className="absolute top-0 h-full w-0.5 bg-white/30"
-                    style={{ left: `${pillar.g20Avg}%` }}
-                    title={`G20 Avg: ${pillar.g20Avg}`}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.7 }}
-                    className="absolute top-0 h-full w-0.5 bg-amber-400/60"
-                    style={{ left: `${pillar.leader.score}%` }}
-                    title={`Leader: ${pillar.leader.score}`}
-                  />
-                </div>
-              </div>
-
-              {/* Benchmark comparison row */}
-              <div className="relative flex items-center gap-2 text-[10px] lg:text-[11px] mb-2">
-                <span className="text-white/30">GCC: <span className="text-cyan-400">{pillar.gccAvg}</span></span>
-                <span className="text-white/10">|</span>
-                <span className="text-white/30">G20: <span className="text-purple-400">{pillar.g20Avg}</span></span>
-                <span className="text-white/10">|</span>
-                <span className="text-white/30">Leader: <span className="text-amber-400">{pillar.leader.score}</span></span>
-              </div>
-
-              {/* Gap indicator */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 + pi * 0.1 }}
-                className="relative flex items-center gap-2 mt-auto"
-              >
-                <div className={cn("px-2 py-1 rounded-md text-[10px] font-medium", 
-                  gapToLeader > 40 ? "bg-red-500/10 text-red-400" :
-                  gapToLeader > 25 ? "bg-amber-500/10 text-amber-400" :
-                  "bg-emerald-500/10 text-emerald-400"
-                )}>
-                  {gapToLeader > 0 ? `${gapToLeader}pt gap to #1` : "Global leader"}
-                </div>
-                <motion.div
-                  animate={isHovered ? { x: [0, 4, 0] } : {}}
-                  transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0 }}
-                  className={cn("text-[10px]", c.text, "opacity-60")}
-                >
-                  →
-                </motion.div>
+                  {/* Score bar */}
+                  <div className="relative h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pillar.score}%` }}
+                      transition={{ delay: 0.9 + pi * 0.15, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                      className={cn("h-full rounded-full bg-gradient-to-r", `from-${pillar.color}-500`, `to-${pillar.color}-400`)} />
+                  </div>
+                  {/* Gap badge */}
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 + pi * 0.15 }}
+                    className={cn("px-2 py-0.5 rounded-md text-[10px] font-medium w-fit",
+                      gapToLeader > 40 ? "bg-red-500/10 text-red-400" :
+                      gapToLeader > 25 ? "bg-amber-500/10 text-amber-400" :
+                      "bg-emerald-500/10 text-emerald-400")}>
+                    {gapToLeader}pt gap to #{1}
+                  </motion.div>
+                </motion.button>
               </motion.div>
-            </motion.div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Bottom: Key Insight Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.8 }}
-        className="mt-3 lg:mt-4 px-5 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center"
-      >
-        <p className="text-[11px] lg:text-xs text-white/50 leading-relaxed">
-          <span className="text-emerald-400 font-semibold">Strongest:</span> Restoration & compensation systems outperform G20 average.{" "}
-          <span className="text-amber-400 font-semibold">Priority:</span> Health surveillance coverage for migrant workers is the largest structural gap.{" "}
-          <span className="text-cyan-400 font-semibold">Momentum:</span> Vision 2030 reforms are accelerating governance capacity.
+      {/* Bottom insight bar */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.8 }}
+        className="mt-2 lg:mt-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+        <p className="text-[10px] lg:text-xs text-white/50 leading-relaxed">
+          <span className="text-emerald-400 font-semibold">Strongest:</span> Restoration & compensation outperform G20 average.{" "}
+          <span className="text-amber-400 font-semibold">Priority:</span> Migrant worker surveillance is the largest structural gap.{" "}
+          <span className="text-cyan-400 font-semibold">Momentum:</span> Vision 2030 reforms accelerating governance capacity.
         </p>
       </motion.div>
     </div>
 
-    {/* ══════════ Pillar Detail Modal ══════════ */}
+    {/* KSA Pillar Storyflow Modal */}
     <AnimatePresence>
       {selectedPillar && pillarData && (
-        <SlideInteractionModal
-          isOpen={true}
-          onClose={() => setSelectedPillar(null)}
-          title={pillarData.label}
-          subtitle={`KSA Performance: ${pillarData.score}/100`}
-          color={pillarData.color}
-          size="xl"
-        >
-          <div className="space-y-5">
-            {/* Score comparison */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-4 gap-3"
-            >
-              {[
-                { label: "KSA", value: pillarData.score, color: "emerald" },
-                { label: "GCC Average", value: pillarData.gccAvg, color: "cyan" },
-                { label: "G20 Average", value: pillarData.g20Avg, color: "purple" },
-                { label: pillarData.leader.name, value: pillarData.leader.score, color: "amber" },
-              ].map((bench, i) => {
-                const bc = colors[bench.color];
-                return (
-                  <motion.div
-                    key={bench.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 + i * 0.08 }}
-                    className={cn("rounded-xl p-3 text-center border", bc.bg, bc.border)}
-                  >
-                    <p className={cn("text-2xl font-bold", bc.text)}>{bench.value}</p>
-                    <p className="text-[10px] text-white/40 mt-1">{bench.label}</p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-
-            {/* Animated comparison bars */}
-            <div className="space-y-3">
-              {[
-                { label: "KSA", value: pillarData.score, color: "emerald" },
-                { label: "GCC Average", value: pillarData.gccAvg, color: "cyan" },
-                { label: "G20 Average", value: pillarData.g20Avg, color: "purple" },
-                { label: `${pillarData.leader.name} (Leader)`, value: pillarData.leader.score, color: "amber" },
-              ].map((bench, i) => {
-                const bc = colors[bench.color];
-                return (
-                  <motion.div
-                    key={bench.label}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                    className="flex items-center gap-3"
-                  >
-                    <span className={cn("w-28 text-xs font-medium text-right", bc.text)}>{bench.label}</span>
-                    <div className="flex-1 h-7 bg-white/5 rounded-lg overflow-hidden relative">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${bench.value}%` }}
-                        transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className={cn("h-full rounded-lg", bc.bg, "border", bc.border, "relative")}
-                      >
-                        <span className={cn("absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold", bc.text)}>
-                          {bench.value}
-                        </span>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Key Metrics Grid */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Key Metrics</p>
-              <div className="grid grid-cols-2 gap-2">
-                {pillarData.metrics.map((metric, i) => (
-                  <motion.div
-                    key={metric.name}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8 + i * 0.06 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]"
-                  >
-                    <span className="text-xs text-white/60">{metric.name}</span>
-                    <span className={cn("text-xs font-semibold",
-                      metric.status === "strong" ? "text-emerald-400" :
-                      metric.status === "developing" ? "text-amber-400" :
-                      "text-red-400"
-                    )}>
-                      {metric.value}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Expert Insight */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}
-              className="p-4 rounded-xl bg-gradient-to-r from-white/[0.03] to-white/[0.01] border border-white/[0.08]"
-            >
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Expert Insight</p>
-              <p className="text-sm text-white/70 leading-relaxed">{pillarData.insight}</p>
-            </motion.div>
-
-            {/* Strategic Opportunity */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 }}
-              className={cn("p-4 rounded-xl border", colors[pillarData.color].bg, colors[pillarData.color].border)}
-            >
-              <p className={cn("text-xs font-semibold uppercase tracking-wider mb-2", colors[pillarData.color].text)}>
-                Strategic Opportunity
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed">{pillarData.opportunity}</p>
-            </motion.div>
-          </div>
-        </SlideInteractionModal>
+        <KSAPillarStoryflow pillar={pillarData} onClose={() => setSelectedPillar(null)} />
       )}
     </AnimatePresence>
     </>
