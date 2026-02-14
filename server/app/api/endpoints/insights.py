@@ -453,92 +453,156 @@ async def generate_insight_content(
 ) -> Dict[str, Any]:
     """
     Generate AI insight content using the country-insight-generator agent.
-    
+    DB-session-based wrapper — used by single-insight endpoints.
+    For batch processing, use generate_insight_content_standalone() instead.
+    """
+    logger.info(f"[InsightGen] Starting for {country.name} - {category.value}")
+
+    ai_config = get_ai_config(db)
+    if not ai_config:
+        unconfigured = db.query(AIConfig).filter(AIConfig.is_active == True).first()
+        if unconfigured:
+            raise HTTPException(status_code=503, detail=f"AI active but not configured. Provider: {unconfigured.provider.value if unconfigured.provider else 'None'}")
+        raise HTTPException(status_code=503, detail="No AI configuration found.")
+
+    if ai_config.provider not in [AIProvider.local, AIProvider.ollama] and not ai_config.api_key_encrypted:
+        raise HTTPException(status_code=503, detail=f"AI API key not set for {ai_config.provider.value}.")
+
+    ensure_insight_agent_exists(db)
+
+    # Pre-extract all data, then delegate to the standalone (session-free) function
+    ai_config_data = _extract_ai_config(ai_config)
+    country_scores = _extract_country_scores(country)
+    intelligence_data = _extract_intelligence(intelligence)
+
+    return await generate_insight_content_standalone(
+        country_name=country.name,
+        country_iso=country.iso_code,
+        intelligence_data=intelligence_data,
+        country_scores=country_scores,
+        ai_config_data=ai_config_data,
+        category=category,
+        user_email=user.email if user else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Helper: extract plain-dict snapshots from SQLAlchemy objects (session-safe)
+# ---------------------------------------------------------------------------
+
+def _extract_ai_config(ai_config) -> Dict[str, Any]:
+    """Extract AI config into a plain dict so it can be used without a session."""
+    return {
+        "provider": ai_config.provider,
+        "model_name": ai_config.model_name,
+        "api_key_encrypted": ai_config.api_key_encrypted,
+        "temperature": ai_config.temperature if ai_config.temperature is not None else 0.7,
+        "max_tokens": ai_config.max_tokens if ai_config.max_tokens is not None else 4096,
+        "api_endpoint": getattr(ai_config, "api_endpoint", None),
+    }
+
+
+def _extract_country_scores(country) -> Dict[str, Any]:
+    """Extract country scores into a plain dict."""
+    return {
+        "name": country.name,
+        "iso_code": country.iso_code,
+        "governance_score": country.governance_score,
+        "pillar1_score": country.pillar1_score,
+        "pillar2_score": country.pillar2_score,
+        "pillar3_score": country.pillar3_score,
+        "maturity_score": country.maturity_score,
+    }
+
+
+def _extract_intelligence(intelligence) -> Dict[str, Any]:
+    """Extract intelligence data into a plain dict."""
+    if not intelligence:
+        return {}
+    return {
+        "gdp_per_capita_ppp": intelligence.gdp_per_capita_ppp,
+        "population_total": intelligence.population_total,
+        "labor_force_participation": intelligence.labor_force_participation,
+        "unemployment_rate": intelligence.unemployment_rate,
+        "life_expectancy_at_birth": intelligence.life_expectancy_at_birth,
+        "urban_population_pct": intelligence.urban_population_pct,
+        "hdi_score": intelligence.hdi_score,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Standalone insight generator — NO live DB session needed
+# ---------------------------------------------------------------------------
+
+async def generate_insight_content_standalone(
+    country_name: str,
+    country_iso: str,
+    intelligence_data: Dict[str, Any],
+    country_scores: Dict[str, Any],
+    ai_config_data: Dict[str, Any],
+    category: InsightCategory,
+    user_email: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate AI insight content WITHOUT holding a DB session open.
+    All data is passed as plain Python dicts extracted before the call.
+
     Returns dict with:
     - what_is_analysis: str (3 short paragraphs, ~150-200 words)
     - oh_implications: str (3 short paragraphs, ~150-200 words)
-    - key_stats: list of 6 stat objects [{label, value, description, source, source_url}]
+    - key_stats: list of 6 stat objects
+    - ai_provider / ai_model: provider metadata
     """
-    logger.info(f"[InsightGen] Starting for {country.name} - {category.value}")
-    
-    ai_config = get_ai_config(db)
-    if ai_config:
-        logger.info(f"[InsightGen] AI config: provider={ai_config.provider.value}, model={ai_config.model_name}, has_key={bool(ai_config.api_key_encrypted)}")
-    else:
-        logger.warning("[InsightGen] No AI config found!")
-    
-    if not ai_config:
-        # Check if there's an active but unconfigured config
-        unconfigured = db.query(AIConfig).filter(AIConfig.is_active == True).first()
-        if unconfigured:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"AI is active but not fully configured. Provider: {unconfigured.provider.value if unconfigured.provider else 'None'}. Please complete AI setup in Admin > AI Settings."
-            )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No AI configuration found. Please configure AI settings in Admin > AI Settings."
-        )
-    
-    # Validate API key for providers that require one
-    if ai_config.provider not in [AIProvider.local, AIProvider.ollama] and not ai_config.api_key_encrypted:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"AI API key not set for provider {ai_config.provider.value}. Please add your API key in Admin > AI Settings."
-        )
-    
-    # Ensure agent exists
-    ensure_insight_agent_exists(db)
-    
+    from app.services.ai_service import _call_llm_sync_safe
+
+    logger.info(f"[InsightGen] Standalone call for {country_name} ({country_iso}) - {category.value}")
+
     category_meta = CATEGORY_METADATA.get(category, {})
     category_title = category_meta.get("title", category.value)
-    
-    # Build comprehensive context for AI
+
+    # ── Build context from plain dicts ──
     context_parts = [
-        f"Country: {country.name}",
-        f"ISO Code: {country.iso_code}",
+        f"Country: {country_name}",
+        f"ISO Code: {country_iso}",
         "",
         "## Socioeconomic Data:",
     ]
-    
-    if intelligence:
-        if intelligence.gdp_per_capita_ppp:
-            context_parts.append(f"- GDP per Capita (PPP): ${intelligence.gdp_per_capita_ppp:,.0f}")
-        if intelligence.population_total:
-            context_parts.append(f"- Population: {intelligence.population_total:,.0f}")
-        if intelligence.labor_force_participation:
-            context_parts.append(f"- Labor Force Participation: {intelligence.labor_force_participation}%")
-        if intelligence.unemployment_rate:
-            context_parts.append(f"- Unemployment Rate: {intelligence.unemployment_rate}%")
-        if intelligence.life_expectancy_at_birth:
-            context_parts.append(f"- Life Expectancy: {intelligence.life_expectancy_at_birth} years")
-        if intelligence.urban_population_pct:
-            context_parts.append(f"- Urban Population: {intelligence.urban_population_pct}%")
-        if intelligence.hdi_score:
-            context_parts.append(f"- HDI Score: {intelligence.hdi_score}")
-    
+
+    intel = intelligence_data
+    if intel.get("gdp_per_capita_ppp"):
+        context_parts.append(f"- GDP per Capita (PPP): ${intel['gdp_per_capita_ppp']:,.0f}")
+    if intel.get("population_total"):
+        context_parts.append(f"- Population: {intel['population_total']:,.0f}")
+    if intel.get("labor_force_participation"):
+        context_parts.append(f"- Labor Force Participation: {intel['labor_force_participation']}%")
+    if intel.get("unemployment_rate"):
+        context_parts.append(f"- Unemployment Rate: {intel['unemployment_rate']}%")
+    if intel.get("life_expectancy_at_birth"):
+        context_parts.append(f"- Life Expectancy: {intel['life_expectancy_at_birth']} years")
+    if intel.get("urban_population_pct"):
+        context_parts.append(f"- Urban Population: {intel['urban_population_pct']}%")
+    if intel.get("hdi_score"):
+        context_parts.append(f"- HDI Score: {intel['hdi_score']}")
+
     context_parts.append("")
     context_parts.append("## Occupational Health Scores:")
-    
-    if country.governance_score:
-        context_parts.append(f"- OH Governance Score: {country.governance_score}/100")
-    if country.pillar1_score:
-        context_parts.append(f"- Hazard Control Score: {country.pillar1_score}/100")
-    if country.pillar2_score:
-        context_parts.append(f"- Vigilance Score: {country.pillar2_score}/100")
-    if country.pillar3_score:
-        context_parts.append(f"- Restoration Score: {country.pillar3_score}/100")
-    if country.maturity_score:
-        context_parts.append(f"- Overall OHI Score: {country.maturity_score}/100")
-    
+
+    cs = country_scores
+    if cs.get("governance_score"):
+        context_parts.append(f"- OH Governance Score: {cs['governance_score']}/100")
+    if cs.get("pillar1_score"):
+        context_parts.append(f"- Hazard Control Score: {cs['pillar1_score']}/100")
+    if cs.get("pillar2_score"):
+        context_parts.append(f"- Vigilance Score: {cs['pillar2_score']}/100")
+    if cs.get("pillar3_score"):
+        context_parts.append(f"- Restoration Score: {cs['pillar3_score']}/100")
+    if cs.get("maturity_score"):
+        context_parts.append(f"- Overall OHI Score: {cs['maturity_score']}/100")
+
     database_context = "\n".join([p for p in context_parts if p is not None])
-    
-    # Use ai_service for direct LLM call with the agent's prompt pattern
-    try:
-        from app.services.ai_service import call_ai_api
-        
-        # Build prompt following agent pattern — concise McKinsey slide-deck style
-        prompt = f"""Produce a concise, data-led briefing on {category_title} in {country.name} for an Occupational Health intelligence platform.
+
+    # ── Build prompts ──
+    prompt = f"""Produce a concise, data-led briefing on {category_title} in {country_name} for an Occupational Health intelligence platform.
 
 ## COUNTRY DATA:
 {database_context}
@@ -550,7 +614,7 @@ Write exactly 3 SHORT paragraphs (150-200 words TOTAL). Rules:
 - Each paragraph is 2-3 sentences MAX. No exceptions.
 - Open every paragraph with a concrete number, percentage, or named institution.
 - Separate paragraphs with a blank line.
-- Be highly specific to {country.name} — name industries, institutions, companies.
+- Be highly specific to {country_name} — name industries, institutions, companies.
 - NO filler, NO preamble, NO introductory sentences like "Country X is characterized by…"
 - Jump straight into the data.
 
@@ -563,7 +627,7 @@ Write exactly 3 SHORT paragraphs (150-200 words TOTAL). Rules:
 - Separate paragraphs with a blank line.
 
 **SECTION 3: Key Statistics (TOPIC-SPECIFIC)**
-Provide exactly 6 statistics DIRECTLY relevant to {category_title} in {country.name}.
+Provide exactly 6 statistics DIRECTLY relevant to {category_title} in {country_name}.
 
 CRITICAL: Statistics MUST be about {category_title}, NOT generic country stats.
 - For "Urban Development": urbanization rate, city population, housing stock, metro ridership, infrastructure spending
@@ -595,7 +659,7 @@ Respond with valid JSON only:
   ]
 }}"""
 
-        system_prompt = """You are a Senior McKinsey Partner writing slide-deck annotations for a client briefing on occupational health.
+    system_prompt = """You are a Senior McKinsey Partner writing slide-deck annotations for a client briefing on occupational health.
 
 STYLE:
 - Short paragraphs only: 2-3 sentences each. Never more.
@@ -616,52 +680,53 @@ TONE:
 - Informative only — no recommendations.
 - Senior Partner annotating a slide for a board presentation."""
 
-        result = await call_ai_api(
-            db=db,
-            ai_config=ai_config,
-            prompt=prompt,
-            agent_id="country-insight-generator",
-            user_email=user.email if user else None,
-            system_prompt=system_prompt,
+    # ── Call AI (no DB session held) ──
+    try:
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,  # default executor
+            _call_llm_sync_safe,
+            ai_config_data,
+            prompt,
+            system_prompt,
         )
-        
-        # Parse JSON response
-        import json
-        try:
-            # Clean response
-            response_text = result.strip()
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.startswith("```"):
-                response_text = response_text[3:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-            
-            parsed = json.loads(response_text.strip())
-            return {
-                "what_is_analysis": parsed.get("what_is_analysis", ""),
-                "oh_implications": parsed.get("oh_implications", ""),
-                "key_stats": parsed.get("key_stats", []),
-                "ai_provider": ai_config.provider.value if ai_config.provider else None,
-                "ai_model": ai_config.model_name,
-            }
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse AI response as JSON: {result[:500]}")
-            # Return raw result as what_is_analysis
-            return {
-                "what_is_analysis": result,
-                "oh_implications": "",
-                "key_stats": [],
-                "ai_provider": ai_config.provider.value if ai_config.provider else None,
-                "ai_model": ai_config.model_name,
-            }
-            
+        logger.info(f"[InsightGen] AI response received ({len(result)} chars) for {country_name}/{category.value}")
     except Exception as e:
-        logger.error(f"AI generation failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate insight content: {str(e)}"
-        )
+        logger.error(f"[InsightGen] AI call failed for {country_name}/{category.value}: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to generate insight content: {type(e).__name__}: {e}")
+
+    # ── Parse JSON response ──
+    import json
+    try:
+        response_text = result.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+
+        parsed = json.loads(response_text.strip())
+        provider = ai_config_data.get("provider")
+        provider_name = provider.value if hasattr(provider, "value") else str(provider)
+        return {
+            "what_is_analysis": parsed.get("what_is_analysis", ""),
+            "oh_implications": parsed.get("oh_implications", ""),
+            "key_stats": parsed.get("key_stats", []),
+            "ai_provider": provider_name,
+            "ai_model": ai_config_data.get("model_name"),
+        }
+    except json.JSONDecodeError:
+        logger.error(f"[InsightGen] JSON parse failed for {country_name}/{category.value}: {result[:500]}")
+        provider = ai_config_data.get("provider")
+        provider_name = provider.value if hasattr(provider, "value") else str(provider)
+        return {
+            "what_is_analysis": result,
+            "oh_implications": "",
+            "key_stats": [],
+            "ai_provider": provider_name,
+            "ai_model": ai_config_data.get("model_name"),
+        }
 
 
 def generate_placeholder_images(country_name: str, category: InsightCategory) -> List[Dict]:
@@ -1925,60 +1990,95 @@ async def _generate_single_category(
 ) -> Dict[str, Any]:
     """
     Generate a single insight category for a country.
-    Runs content generation and image fetching in parallel.
-    Includes automatic retry logic.
-    Returns dict with success/failure info.
-    
-    Uses a shared session_factory (not creating a new engine per call).
+
+    Architecture: 3-phase approach to avoid holding DB sessions during long AI calls.
+      Phase A: Short-lived DB session — mark status, extract data, close session.
+      Phase B: AI call + image fetch — NO DB session held.
+      Phase C: Short-lived DB session — save results, commit, close session.
+
+    Includes automatic retry logic with robust error handling.
     """
     last_error = None
+
     for attempt in range(1 + BATCH_MAX_RETRIES):
-        db = session_factory()
+        if attempt > 0:
+            logger.info(f"[BatchInsights] Retry {attempt}/{BATCH_MAX_RETRIES} for {country_iso}/{category.value}")
+            await asyncio.sleep(BATCH_RETRY_DELAY)
+
+        # ══════════════════════════════════════════════════════════════
+        # PHASE A: Short-lived DB read — extract data, close session
+        # ══════════════════════════════════════════════════════════════
         try:
-            if attempt > 0:
-                logger.info(f"[BatchInsights] Retry {attempt}/{BATCH_MAX_RETRIES} for {country_iso}/{category.value}")
-                await asyncio.sleep(BATCH_RETRY_DELAY)
+            db_read = session_factory()
+            try:
+                # Ensure/create insight record and set to "generating"
+                insight = db_read.query(CountryInsight).filter(
+                    CountryInsight.country_iso == country_iso,
+                    CountryInsight.category == category,
+                ).first()
 
-            # Ensure/create insight record
-            insight = db.query(CountryInsight).filter(
-                CountryInsight.country_iso == country_iso,
-                CountryInsight.category == category,
-            ).first()
+                if not insight:
+                    insight = CountryInsight(
+                        country_iso=country_iso,
+                        category=category,
+                        status=InsightStatus.generating,
+                    )
+                    db_read.add(insight)
+                    db_read.commit()
+                else:
+                    insight.status = InsightStatus.generating
+                    insight.error_message = None
+                    db_read.commit()
 
-            if not insight:
-                insight = CountryInsight(
-                    country_iso=country_iso,
-                    category=category,
-                    status=InsightStatus.generating,
+                # Extract all data into plain Python dicts BEFORE closing session
+                country_data = get_country_data(db_read, country_iso)
+                intelligence = get_intelligence_data(db_read, country_iso)
+                user = db_read.query(User).filter(User.id == user_id).first()
+
+                if not user:
+                    db_read.close()
+                    return {"success": False, "category": category.value, "error": "User not found"}
+                user_email = user.email
+
+                ai_config = get_ai_config(db_read)
+                if not ai_config:
+                    db_read.close()
+                    return {"success": False, "category": category.value, "error": "No AI configuration found."}
+                if not ai_config.api_key_encrypted:
+                    db_read.close()
+                    return {"success": False, "category": category.value, "error": f"AI API key not set for {ai_config.provider.value if ai_config.provider else 'Unknown'}."}
+
+                # Snapshot all SQLAlchemy objects into plain dicts
+                ai_config_data = _extract_ai_config(ai_config)
+                country_scores = _extract_country_scores(country_data) if country_data else {"name": country_name, "iso_code": country_iso}
+                intelligence_data = _extract_intelligence(intelligence)
+
+                logger.info(
+                    f"[BatchInsights] Phase A done: {country_iso}/{category.value} "
+                    f"(attempt {attempt + 1}) - AI: {ai_config_data['provider'].value}/{ai_config_data['model_name']}"
                 )
-                db.add(insight)
-                db.commit()
-                db.refresh(insight)
-            else:
-                insight.status = InsightStatus.generating
-                insight.error_message = None
-                db.commit()
+            finally:
+                db_read.close()  # Session ALWAYS closed before AI call
+        except Exception as e:
+            last_error = f"{type(e).__name__}: {e}" if str(e) else f"{type(e).__name__}: {repr(e)}"
+            logger.error(f"[BatchInsights] Phase A FAILED for {country_iso}/{category.value}: {last_error}", exc_info=True)
+            _save_error_status(session_factory, country_iso, category, last_error)
+            continue  # retry
 
-            # Get supporting data
-            country_data = get_country_data(db, country_iso)
-            intelligence = get_intelligence_data(db, country_iso)
-            user = db.query(User).filter(User.id == user_id).first()
-
-            if not user:
-                return {"success": False, "category": category.value, "error": "User not found"}
-
-            # Verify AI config is accessible before making LLM call
-            ai_config = get_ai_config(db)
-            if not ai_config:
-                return {"success": False, "category": category.value, "error": "No AI configuration found. Configure AI settings in Admin > AI Settings."}
-            if not ai_config.api_key_encrypted:
-                return {"success": False, "category": category.value, "error": f"AI API key not set for provider {ai_config.provider.value if ai_config.provider else 'Unknown'}."}
-
-            logger.info(f"[BatchInsights] Starting {country_iso}/{category.value} (attempt {attempt + 1}) - AI: {ai_config.provider.value}/{ai_config.model_name}")
-
-            # Run content generation and image fetching in PARALLEL
+        # ══════════════════════════════════════════════════════════════
+        # PHASE B: AI call + image fetch — NO DB session held
+        # ══════════════════════════════════════════════════════════════
+        try:
             content_task = asyncio.wait_for(
-                generate_insight_content(db, country_data, intelligence, category, user),
+                generate_insight_content_standalone(
+                    country_name=country_name,
+                    country_iso=country_iso,
+                    intelligence_data=intelligence_data,
+                    country_scores=country_scores,
+                    ai_config_data=ai_config_data,
+                    category=category,
+                    user_email=user_email,
+                ),
                 timeout=INSIGHT_GENERATION_TIMEOUT_SECONDS,
             )
             image_task = asyncio.wait_for(
@@ -1991,7 +2091,6 @@ async def _generate_single_category(
                 timeout=INSIGHT_IMAGE_FETCH_TIMEOUT_SECONDS,
             )
 
-            # Gather both — if images fail, still use content
             results = await asyncio.gather(content_task, image_task, return_exceptions=True)
 
             content = results[0] if not isinstance(results[0], Exception) else None
@@ -2003,22 +2102,47 @@ async def _generate_single_category(
             if isinstance(results[1], Exception):
                 logger.warning(f"[BatchInsights] Image fetch failed for {country_iso}/{category.value}: {results[1]}")
 
-            # Update insight record
-            insight.what_is_analysis = content.get("what_is_analysis")
-            insight.oh_implications = content.get("oh_implications")
-            try:
-                setattr(insight, "key_stats", content.get("key_stats", []))
-            except Exception:
-                pass
-            insight.images = images if not isinstance(images, Exception) else []
-            insight.status = InsightStatus.completed
-            insight.generated_at = datetime.utcnow()
-            insight.generated_by = user_id
-            insight.ai_provider = content.get("ai_provider")
-            insight.ai_model = content.get("ai_model")
-            db.commit()
+            logger.info(f"[BatchInsights] Phase B done: AI content received for {country_iso}/{category.value}")
+        except Exception as e:
+            last_error = f"{type(e).__name__}: {e}" if str(e) else f"{type(e).__name__}: {repr(e)}"
+            logger.error(f"[BatchInsights] Phase B FAILED for {country_iso}/{category.value}: {last_error}", exc_info=True)
+            _save_error_status(session_factory, country_iso, category, last_error)
+            continue  # retry
 
-            logger.info(f"[BatchInsights] SUCCESS {country_iso}/{category.value}")
+        # ══════════════════════════════════════════════════════════════
+        # PHASE C: Short-lived DB write — save results, commit
+        # ══════════════════════════════════════════════════════════════
+        try:
+            db_write = session_factory()
+            try:
+                insight = db_write.query(CountryInsight).filter(
+                    CountryInsight.country_iso == country_iso,
+                    CountryInsight.category == category,
+                ).first()
+
+                if not insight:
+                    # Shouldn't happen, but handle gracefully
+                    insight = CountryInsight(country_iso=country_iso, category=category)
+                    db_write.add(insight)
+
+                insight.what_is_analysis = content.get("what_is_analysis")
+                insight.oh_implications = content.get("oh_implications")
+                try:
+                    setattr(insight, "key_stats", content.get("key_stats", []))
+                except Exception:
+                    logger.warning(f"[BatchInsights] Could not set key_stats for {country_iso}/{category.value}")
+                insight.images = images if not isinstance(images, Exception) else []
+                insight.status = InsightStatus.completed
+                insight.generated_at = datetime.utcnow()
+                insight.generated_by = user_id
+                insight.ai_provider = content.get("ai_provider")
+                insight.ai_model = content.get("ai_model")
+
+                db_write.commit()
+                logger.info(f"[BatchInsights] Phase C done: SAVED {country_iso}/{category.value}")
+            finally:
+                db_write.close()
+
             # Update real-time per-category progress for status polling
             done_cats = _batch_generation_status.get("_done_categories", set())
             done_cats.add(category.value)
@@ -2026,28 +2150,35 @@ async def _generate_single_category(
             return {"success": True, "category": category.value}
 
         except Exception as e:
-            last_error = e.detail if hasattr(e, "detail") else str(e)
-            logger.error(
-                f"[BatchInsights] Attempt {attempt + 1}/{1 + BATCH_MAX_RETRIES} FAILED "
-                f"for {country_iso}/{category.value}: {last_error}",
-                exc_info=True,
-            )
-            try:
-                db.rollback()
-                insight_rec = db.query(CountryInsight).filter(
-                    CountryInsight.country_iso == country_iso,
-                    CountryInsight.category == category,
-                ).first()
-                if insight_rec and attempt == BATCH_MAX_RETRIES:
-                    insight_rec.status = InsightStatus.error
-                    insight_rec.error_message = last_error
-                    db.commit()
-            except Exception:
-                db.rollback()
-        finally:
-            db.close()
+            last_error = f"{type(e).__name__}: {e}" if str(e) else f"{type(e).__name__}: {repr(e)}"
+            logger.error(f"[BatchInsights] Phase C COMMIT FAILED for {country_iso}/{category.value}: {last_error}", exc_info=True)
+            _save_error_status(session_factory, country_iso, category, f"DB commit failed: {last_error}")
+            continue  # retry
 
     return {"success": False, "category": category.value, "error": last_error or "Unknown error"}
+
+
+def _save_error_status(session_factory, country_iso: str, category, error_msg: str):
+    """
+    Persist error status to the database in a dedicated short-lived session.
+    Called on EVERY failure attempt (not just the last retry).
+    """
+    try:
+        db_err = session_factory()
+        try:
+            insight = db_err.query(CountryInsight).filter(
+                CountryInsight.country_iso == country_iso,
+                CountryInsight.category == category,
+            ).first()
+            if insight:
+                insight.status = InsightStatus.error
+                insight.error_message = (error_msg or "Unknown error")[:500]
+                db_err.commit()
+                logger.info(f"[BatchInsights] Error status saved for {country_iso}/{category.value}")
+        finally:
+            db_err.close()
+    except Exception as save_err:
+        logger.error(f"[BatchInsights] Could not save error status for {country_iso}/{category.value}: {save_err}")
 
 
 async def _process_single_country(
@@ -2199,7 +2330,7 @@ async def run_batch_insight_generation(
     global _batch_generation_status, _batch_stop_requested
 
     # Create a SINGLE shared engine for the entire batch run
-    engine = create_engine(db_url, pool_size=10, max_overflow=20, pool_pre_ping=True)
+    engine = create_engine(db_url, pool_size=10, max_overflow=20, pool_pre_ping=True, pool_recycle=300)
     SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     # Verify AI config is accessible before starting
