@@ -158,6 +158,7 @@ class AgentRunner:
         variables: dict,
         update_stats: bool = True,
         enable_web_search: bool = False,
+        override_model: str = None,
     ) -> dict:
         """
         Run an agent with the provided variables.
@@ -167,6 +168,7 @@ class AgentRunner:
             variables: Dict of template variables (e.g., {"ISO_CODE": "DEU", "TOPIC": "Governance"})
             update_stats: Whether to update execution count and last_run_at
             enable_web_search: Whether to perform web search for additional context
+            override_model: Optional model name override (e.g., "gpt-4o-mini" for cheaper batch runs)
             
         Returns:
             Dict with 'success', 'output', and 'error' keys
@@ -217,7 +219,7 @@ class AgentRunner:
             
             # 6. Get LLM and invoke
             try:
-                llm = get_llm_from_config(self.ai_config)
+                llm = get_llm_from_config(self.ai_config, override_model=override_model)
             except ValueError as e:
                 return {
                     "success": False,

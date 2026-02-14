@@ -352,6 +352,10 @@ def _apply_filled_fields(
 # AI FILL ORCHESTRATION
 # =============================================================================
 
+# Cheaper model for batch operations (~15x cheaper, 2-3x faster than gpt-4o)
+BATCH_FILL_MODEL = "gpt-4o-mini"
+
+
 async def fill_country(
     db: Session,
     country_iso: str,
@@ -360,127 +364,163 @@ async def fill_country(
 ) -> Dict[str, Any]:
     """
     Fill NULL pillar fields for a single country using the AI agent.
-    
-    Args:
-        force_regenerate: If True, regenerate ALL fields even if they already have values.
-    
-    Returns a result dict with status and counts.
+    Single-endpoint version that uses a provided DB session.
+    For batch operations, use fill_country_batch() instead.
     """
     country = db.query(Country).filter(Country.iso_code == country_iso).first()
     if not country:
-        return {
-            "country_iso": country_iso,
-            "success": False,
-            "error": f"Country not found: {country_iso}",
-        }
+        return {"country_iso": country_iso, "success": False, "error": f"Country not found: {country_iso}"}
 
     if force_regenerate:
-        # Treat ALL fields as needing generation
         null_fields = list(FIELD_DEFINITIONS.keys())
         _, existing_data = _get_null_fields(db, country_iso)
-        logger.info(f"[DatabaseFill] {country_iso}: force_regenerate=True, targeting all {len(null_fields)} fields")
     else:
         null_fields, existing_data = _get_null_fields(db, country_iso)
-        logger.info(f"[DatabaseFill] {country_iso}: {len(null_fields)} NULL fields, {len(existing_data)} existing fields")
 
     if not null_fields:
-        logger.info(f"[DatabaseFill] {country_iso}: SKIPPING - all {len(FIELD_DEFINITIONS)} fields already have values")
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": True,
-            "status": "already_complete",
-            "null_fields": 0,
-            "written": 0,
-        }
+        return {"country_iso": country_iso, "country_name": country.name, "success": True, "status": "already_complete", "null_fields": 0, "written": 0}
 
-    # Build context strings
     existing_str = json.dumps(existing_data, indent=2, default=str) if existing_data else "No existing data."
     null_fields_str = "\n".join(f"- {f}" for f in null_fields)
 
-    # Run the AI agent
     runner = AgentRunner(db, ai_config)
     try:
         result = await asyncio.wait_for(
-            runner.run(
-                agent_id="database-fill-agent",
-                variables={
-                    "COUNTRY_NAME": country.name,
-                    "COUNTRY_ISO": country_iso,
-                    "ISO_CODE": country_iso,
-                    "EXISTING_DATA": existing_str,
-                    "NULL_FIELDS": null_fields_str,
-                },
-                enable_web_search=True,
-            ),
-            timeout=300,  # 5 minute timeout per country
+            runner.run(agent_id="database-fill-agent", variables={"COUNTRY_NAME": country.name, "COUNTRY_ISO": country_iso, "ISO_CODE": country_iso, "EXISTING_DATA": existing_str, "NULL_FIELDS": null_fields_str}, enable_web_search=True),
+            timeout=300,
         )
     except asyncio.TimeoutError:
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": False,
-            "error": "AI agent timed out after 300 seconds",
-        }
+        return {"country_iso": country_iso, "country_name": country.name, "success": False, "error": "AI agent timed out after 300 seconds"}
     except Exception as e:
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": False,
-            "error": f"AI agent error: {str(e)}",
-        }
+        return {"country_iso": country_iso, "country_name": country.name, "success": False, "error": f"AI agent error: {type(e).__name__}: {e}"}
+
+    if not result.get("success"):
+        return {"country_iso": country_iso, "country_name": country.name, "success": False, "error": result.get("error", "AI agent returned failure")}
+
+    output = result.get("output", "")
+    try:
+        parsed = _parse_agent_output(output)
+    except Exception as e:
+        return {"country_iso": country_iso, "country_name": country.name, "success": False, "error": f"Failed to parse AI output: {e}", "raw_output_preview": str(output)[:500]}
+
+    filled_fields = parsed.get("filled_fields", {})
+    if not filled_fields:
+        return {"country_iso": country_iso, "country_name": country.name, "success": True, "status": "no_data_found", "null_fields": len(null_fields), "written": 0, "unfilled": parsed.get("unfilled_fields", null_fields)}
+
+    counts = _apply_filled_fields(db, country_iso, filled_fields, force_overwrite=force_regenerate)
+    return {"country_iso": country_iso, "country_name": country.name, "success": True, "status": "filled", "null_fields": len(null_fields), **counts, "unfilled": parsed.get("unfilled_fields", [])}
+
+
+async def fill_country_batch(
+    session_factory,
+    country_iso: str,
+    force_regenerate: bool = False,
+) -> Dict[str, Any]:
+    """
+    Fill NULL pillar fields for a single country — batch-safe version.
+
+    Uses 3-phase short-lived sessions to avoid session expiration during long AI calls:
+      Phase A: Read data + build context (short-lived session, closed before AI call)
+      Phase B: AI call (dedicated session for AgentRunner, closed after AI returns)
+      Phase C: Write results to DB (short-lived session, closed after commit)
+    """
+    country_name = None
+
+    # ══════════════════════════════════════════════════════════════════════
+    # PHASE A: Short-lived DB read — extract data, close session
+    # ══════════════════════════════════════════════════════════════════════
+    try:
+        db_read = session_factory()
+        try:
+            country = db_read.query(Country).filter(Country.iso_code == country_iso).first()
+            if not country:
+                return {"country_iso": country_iso, "success": False, "error": f"Country not found: {country_iso}"}
+            country_name = country.name
+
+            if force_regenerate:
+                null_fields = list(FIELD_DEFINITIONS.keys())
+                _, existing_data = _get_null_fields(db_read, country_iso)
+                logger.info(f"[DatabaseFill] {country_iso}: force_regenerate=True, targeting all {len(null_fields)} fields")
+            else:
+                null_fields, existing_data = _get_null_fields(db_read, country_iso)
+                logger.info(f"[DatabaseFill] {country_iso}: {len(null_fields)} NULL fields, {len(existing_data)} existing fields")
+
+            if not null_fields:
+                logger.info(f"[DatabaseFill] {country_iso}: SKIPPING - all fields have values")
+                return {"country_iso": country_iso, "country_name": country_name, "success": True, "status": "already_complete", "null_fields": 0, "written": 0}
+
+            # Snapshot data into plain Python strings before closing session
+            existing_str = json.dumps(existing_data, indent=2, default=str) if existing_data else "No existing data."
+            null_fields_str = "\n".join(f"- {f}" for f in null_fields)
+            logger.info(f"[DatabaseFill] Phase A done: {country_iso} ({len(null_fields)} fields to fill)")
+        finally:
+            db_read.close()
+    except Exception as e:
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": f"Phase A error: {type(e).__name__}: {e}"}
+
+    # ══════════════════════════════════════════════════════════════════════
+    # PHASE B: AI call — dedicated session for AgentRunner, closed after
+    # ══════════════════════════════════════════════════════════════════════
+    try:
+        db_ai = session_factory()
+        try:
+            runner = AgentRunner(db_ai)
+            result = await asyncio.wait_for(
+                runner.run(
+                    agent_id="database-fill-agent",
+                    variables={
+                        "COUNTRY_NAME": country_name,
+                        "COUNTRY_ISO": country_iso,
+                        "ISO_CODE": country_iso,
+                        "EXISTING_DATA": existing_str,
+                        "NULL_FIELDS": null_fields_str,
+                    },
+                    enable_web_search=True,
+                    override_model=BATCH_FILL_MODEL,
+                ),
+                timeout=300,
+            )
+        finally:
+            db_ai.close()  # Close AI session immediately — do NOT reuse for writes
+    except asyncio.TimeoutError:
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": "AI agent timed out after 300 seconds"}
+    except Exception as e:
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": f"AI agent error: {type(e).__name__}: {e}"}
 
     if not result.get("success"):
         logger.error(f"[DatabaseFill] {country_iso}: AI agent returned failure: {result.get('error')}")
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": False,
-            "error": result.get("error", "AI agent returned failure"),
-        }
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": result.get("error", "AI agent returned failure")}
 
-    # Parse the AI output
+    # Parse the AI output (no DB needed)
     output = result.get("output", "")
     logger.info(f"[DatabaseFill] {country_iso}: AI returned {len(output)} chars of output")
     try:
         parsed = _parse_agent_output(output)
     except Exception as e:
         logger.error(f"[DatabaseFill] {country_iso}: Failed to parse AI output: {e}. Preview: {str(output)[:300]}")
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": False,
-            "error": f"Failed to parse AI output: {str(e)}",
-            "raw_output_preview": str(output)[:500],
-        }
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": f"Failed to parse AI output: {e}", "raw_output_preview": str(output)[:500]}
 
     filled_fields = parsed.get("filled_fields", {})
     if not filled_fields:
-        logger.warning(f"[DatabaseFill] {country_iso}: AI returned no filled_fields. Parsed keys: {list(parsed.keys())}. Preview: {str(output)[:300]}")
-        return {
-            "country_iso": country_iso,
-            "country_name": country.name,
-            "success": True,
-            "status": "no_data_found",
-            "null_fields": len(null_fields),
-            "written": 0,
-            "unfilled": parsed.get("unfilled_fields", null_fields),
-        }
+        logger.warning(f"[DatabaseFill] {country_iso}: AI returned no filled_fields. Preview: {str(output)[:300]}")
+        return {"country_iso": country_iso, "country_name": country_name, "success": True, "status": "no_data_found", "null_fields": len(null_fields), "written": 0, "unfilled": parsed.get("unfilled_fields", null_fields)}
 
-    logger.info(f"[DatabaseFill] {country_iso}: AI returned {len(filled_fields)} filled fields, applying to DB (force_overwrite={force_regenerate})")
+    # ══════════════════════════════════════════════════════════════════════
+    # PHASE C: Short-lived DB write — apply results, commit, close
+    # ══════════════════════════════════════════════════════════════════════
+    try:
+        db_write = session_factory()
+        try:
+            logger.info(f"[DatabaseFill] {country_iso}: Applying {len(filled_fields)} fields to DB (force_overwrite={force_regenerate})")
+            counts = _apply_filled_fields(db_write, country_iso, filled_fields, force_overwrite=force_regenerate)
+            logger.info(f"[DatabaseFill] Phase C done: {country_iso} — written={counts['written']}, skipped={counts['skipped']}")
+        finally:
+            db_write.close()
+    except Exception as e:
+        logger.error(f"[DatabaseFill] {country_iso}: Phase C COMMIT FAILED: {type(e).__name__}: {e}", exc_info=True)
+        return {"country_iso": country_iso, "country_name": country_name, "success": False, "error": f"DB commit failed: {type(e).__name__}: {e}"}
 
-    # Apply to database
-    counts = _apply_filled_fields(db, country_iso, filled_fields, force_overwrite=force_regenerate)
-
-    return {
-        "country_iso": country_iso,
-        "country_name": country.name,
-        "success": True,
-        "status": "filled",
-        "null_fields": len(null_fields),
-        **counts,
-        "unfilled": parsed.get("unfilled_fields", []),
-    }
+    return {"country_iso": country_iso, "country_name": country_name, "success": True, "status": "filled", "null_fields": len(null_fields), **counts, "unfilled": parsed.get("unfilled_fields", [])}
 
 
 def _parse_agent_output(output: str) -> Dict[str, Any]:
@@ -516,19 +556,17 @@ async def run_batch_fill(
     """
     Run the database fill agent for multiple countries sequentially.
     Updates _fill_status for progress tracking.
-    
-    Args:
-        force_regenerate: If True, regenerate ALL fields even if they already have values.
-    
-    Uses its own DB session since this runs as a background task.
+
+    Uses 3-phase short-lived sessions per country (via fill_country_batch)
+    to avoid session expiration during long AI calls.
     """
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
     global _fill_status
 
-    engine = create_engine(db_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    engine = create_engine(db_url, pool_pre_ping=True, pool_recycle=300)
+    SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     total = len(country_isos)
     _fill_status = {
@@ -547,17 +585,19 @@ async def run_batch_fill(
 
     for i, country_iso in enumerate(country_isos):
         _fill_status["current_country"] = country_iso
-        db = SessionLocal()
 
         try:
-            result = await fill_country(db, country_iso, force_regenerate=force_regenerate)
+            result = await fill_country_batch(
+                session_factory=SessionFactory,
+                country_iso=country_iso,
+                force_regenerate=force_regenerate,
+            )
             _fill_status["results"].append(result)
 
             if result.get("success"):
                 if result.get("status") == "already_complete":
                     _fill_status["skipped"] += 1
                 elif result.get("status") == "no_data_found":
-                    # AI ran but returned no usable data — count as skipped
                     _fill_status["skipped"] += 1
                 else:
                     _fill_status["completed"] += 1
@@ -570,14 +610,12 @@ async def run_batch_fill(
                 })
 
         except Exception as e:
-            logger.error(f"[DatabaseFill] Unexpected error for {country_iso}: {e}")
+            logger.error(f"[DatabaseFill] Unexpected error for {country_iso}: {type(e).__name__}: {e}", exc_info=True)
             _fill_status["failed"] += 1
             _fill_status["errors"].append({
                 "country_iso": country_iso,
-                "error": str(e),
+                "error": f"{type(e).__name__}: {e}",
             })
-        finally:
-            db.close()
 
         # Rate limiting delay (skip after last country)
         if i < total - 1:
@@ -595,7 +633,7 @@ async def run_batch_fill(
     if _fill_status["fields_written"] > 0:
         _fill_status["status"] = "recalculating_scores"
         try:
-            recalc_db = SessionLocal()
+            recalc_db = SessionFactory()
             recalc_count = recalculate_all_scores_standalone(recalc_db)
             recalc_db.close()
             _fill_status["scores_recalculated"] = recalc_count
@@ -606,6 +644,11 @@ async def run_batch_fill(
 
     _fill_status["status"] = "completed"
     _fill_status["completed_at"] = datetime.utcnow().isoformat()
+
+    try:
+        engine.dispose()
+    except Exception:
+        pass
 
 
 def recalculate_all_scores_standalone(db: Session) -> int:
