@@ -490,11 +490,12 @@ async def generate_insight_content(
 # Helper: extract plain-dict snapshots from SQLAlchemy objects (session-safe)
 # ---------------------------------------------------------------------------
 
-def _extract_ai_config(ai_config) -> Dict[str, Any]:
-    """Extract AI config into a plain dict so it can be used without a session."""
+def _extract_ai_config(ai_config, model_override: Optional[str] = None) -> Dict[str, Any]:
+    """Extract AI config into a plain dict so it can be used without a session.
+    If model_override is set, use that model instead of the configured one."""
     return {
         "provider": ai_config.provider,
-        "model_name": ai_config.model_name,
+        "model_name": model_override or ai_config.model_name,
         "api_key_encrypted": ai_config.api_key_encrypted,
         "temperature": ai_config.temperature if ai_config.temperature is not None else 0.7,
         "max_tokens": ai_config.max_tokens if ai_config.max_tokens is not None else 4096,
@@ -902,6 +903,7 @@ BATCH_DELAY_BETWEEN_COUNTRIES = 1.0  # seconds between countries (reduced for pa
 BATCH_MAX_RETRIES = 2  # retry failed categories up to N times
 BATCH_RETRY_DELAY = 5.0  # seconds between retries
 BATCH_CONCURRENCY = 2  # number of countries processed concurrently
+BATCH_INSIGHT_MODEL = "gpt-4o-mini"  # cheaper & faster model for batch insight generation
 
 
 class BatchGenerateRequest(BaseModel):
@@ -2049,7 +2051,8 @@ async def _generate_single_category(
                     return {"success": False, "category": category.value, "error": f"AI API key not set for {ai_config.provider.value if ai_config.provider else 'Unknown'}."}
 
                 # Snapshot all SQLAlchemy objects into plain dicts
-                ai_config_data = _extract_ai_config(ai_config)
+                # Use cheaper model for batch to reduce cost and increase speed
+                ai_config_data = _extract_ai_config(ai_config, model_override=BATCH_INSIGHT_MODEL)
                 country_scores = _extract_country_scores(country_data) if country_data else {"name": country_name, "iso_code": country_iso}
                 intelligence_data = _extract_intelligence(intelligence)
 
