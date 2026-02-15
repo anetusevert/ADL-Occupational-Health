@@ -150,6 +150,119 @@ FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "min": 0.0,
         "max": 100.0,
     },
+    # --- CountryIntelligence: Economic Context ---
+    "gdp_per_capita_ppp": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 500000.0,
+    },
+    "gdp_growth_rate": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": -50.0,
+        "max": 50.0,
+    },
+    "industry_pct_gdp": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "manufacturing_pct_gdp": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "agriculture_pct_gdp": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "services_pct_gdp": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    # --- CountryIntelligence: Population & Demographics ---
+    "population_total": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 2000000000.0,
+    },
+    "population_working_age": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 1500000000.0,
+    },
+    "urban_population_pct": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "median_age": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 10.0,
+        "max": 60.0,
+    },
+    # --- CountryIntelligence: Labor Market ---
+    "labor_force_participation": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "unemployment_rate": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "youth_unemployment_rate": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    "informal_employment_pct": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
+    # --- CountryIntelligence: Health System ---
+    "health_expenditure_gdp_pct": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 30.0,
+    },
+    "health_expenditure_per_capita": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 20000.0,
+    },
+    "life_expectancy_at_birth": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 30.0,
+        "max": 100.0,
+    },
+    # --- CountryIntelligence: Social Protection ---
+    "social_security_coverage_pct": {
+        "model": "CountryIntelligence",
+        "type": "float",
+        "min": 0.0,
+        "max": 100.0,
+    },
 }
 
 MODEL_CLASSES = {
@@ -157,6 +270,7 @@ MODEL_CLASSES = {
     "Pillar1Hazard": Pillar1Hazard,
     "Pillar2Vigilance": Pillar2Vigilance,
     "Pillar3Restoration": Pillar3Restoration,
+    "CountryIntelligence": CountryIntelligence,
 }
 
 
@@ -337,12 +451,13 @@ def _apply_filled_fields(
             setattr(record, field_name, value)
             counts["written"] += 1
 
-        # Update source_urls JSONB
+        # Update source_urls JSONB (CountryIntelligence uses 'data_sources' instead)
         sources = model_sources.get(model_name, {})
         if sources:
-            existing_sources = record.source_urls or {}
+            source_attr = "data_sources" if model_name == "CountryIntelligence" else "source_urls"
+            existing_sources = getattr(record, source_attr, None) or {}
             existing_sources.update(sources)
-            record.source_urls = existing_sources
+            setattr(record, source_attr, existing_sources)
 
     db.commit()
     return counts

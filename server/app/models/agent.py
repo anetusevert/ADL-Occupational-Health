@@ -1556,6 +1556,32 @@ Fill in specific NULL database fields for a country with accurate, sourced data.
 - `avg_claim_settlement_days` (float, 0.0-1000.0): Average days to settle a workers' compensation claim
 - `rehab_participation_rate` (float, 0.0-100.0): Rehabilitation program participation rate (%)
 
+### Country Intelligence - Economic Context Fields:
+- `gdp_per_capita_ppp` (float, 0-500000): GDP per capita at PPP in current USD. Source: World Bank, IMF.
+- `gdp_growth_rate` (float, -50 to 50): Annual GDP growth rate (%). Source: World Bank, IMF.
+- `industry_pct_gdp` (float, 0-100): Industry (incl. construction) value added as % of GDP. Source: World Bank.
+- `manufacturing_pct_gdp` (float, 0-100): Manufacturing value added as % of GDP. Source: World Bank.
+- `agriculture_pct_gdp` (float, 0-100): Agriculture value added as % of GDP. Source: World Bank.
+- `services_pct_gdp` (float, 0-100): Services value added as % of GDP. Source: World Bank.
+
+### Country Intelligence - Population & Demographics Fields:
+- `population_total` (float, 0-2000000000): Total population. Source: World Bank, UN.
+- `population_working_age` (float, 0-1500000000): Working-age population (15-64). Source: World Bank, ILO.
+- `urban_population_pct` (float, 0-100): Urban population as % of total. Source: World Bank.
+- `median_age` (float, 10-60): Median age in years. Source: UN Population Division.
+
+### Country Intelligence - Labor Market Fields:
+- `labor_force_participation` (float, 0-100): Labor force participation rate (%). Source: World Bank, ILO.
+- `unemployment_rate` (float, 0-100): Unemployment rate (%). Source: World Bank, ILO.
+- `youth_unemployment_rate` (float, 0-100): Youth unemployment rate (%). Source: World Bank, ILO.
+- `informal_employment_pct` (float, 0-100): Informal employment as % of total. Source: ILO.
+
+### Country Intelligence - Health & Social Protection Fields:
+- `health_expenditure_gdp_pct` (float, 0-30): Health expenditure as % of GDP. Source: World Bank, WHO.
+- `health_expenditure_per_capita` (float, 0-20000): Health expenditure per capita in USD. Source: World Bank, WHO.
+- `life_expectancy_at_birth` (float, 30-100): Life expectancy at birth in years. Source: World Bank, WHO.
+- `social_security_coverage_pct` (float, 0-100): % of workforce with social security coverage. Source: ILO, ISSA.
+
 ## OUTPUT FORMAT (STRICT JSON ONLY):
 {
   "country_iso": "XXX",
@@ -1577,10 +1603,14 @@ Fill in specific NULL database fields for a country with accurate, sourced data.
 }
 
 ## QUALITY STANDARDS:
-- Prefer official sources: ILO, WHO, national labor ministries, EU-OSHA, OECD
+- Prefer official sources: ILO, WHO, World Bank, IMF, UN, national labor ministries, EU-OSHA, OECD
 - For boolean fields (convention ratification), check ILO NORMLEX database
 - For inspector density, check ILO inspection statistics or national labor inspection reports
 - For compensation mechanisms, check ISSA (International Social Security Association) country profiles
+- For GDP and economic data, use World Bank Open Data (data.worldbank.org) or IMF World Economic Outlook
+- For population data, use World Bank or UN Population Division (population.un.org)
+- For labor market data, use ILO ILOSTAT (ilostat.ilo.org) or World Bank
+- For health expenditure, use WHO Global Health Expenditure Database or World Bank
 - Cross-reference multiple sources when possible
 - If a value seems anomalous, note it in the "notes" field""",
         "user_prompt_template": """Fill the missing database fields for {COUNTRY_NAME} ({COUNTRY_ISO}).
@@ -1596,7 +1626,11 @@ Fill in specific NULL database fields for a country with accurate, sourced data.
 2. Check ILO NORMLEX for convention ratification status
 3. Check national labor ministry websites for inspection and regulation data
 4. Check ISSA/ILO for compensation and rehabilitation data
-5. Return strict JSON with source URLs for every value
+5. For economic fields (gdp_*, industry_*, manufacturing_*, agriculture_*, services_*), use World Bank Open Data or IMF World Economic Outlook
+6. For population/demographics, use World Bank or UN Population Division data
+7. For labor market fields, use ILO ILOSTAT or World Bank data
+8. For health expenditure fields, use WHO Global Health Expenditure Database or World Bank
+9. Return strict JSON with source URLs for every value
 
 RESPOND WITH VALID JSON ONLY.""",
     },
