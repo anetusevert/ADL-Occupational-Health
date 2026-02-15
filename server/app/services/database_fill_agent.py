@@ -16,6 +16,7 @@ Features:
 """
 
 import json
+import re
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional, Tuple
@@ -639,7 +640,7 @@ async def fill_country_batch(
 
 
 def _parse_agent_output(output: str) -> Dict[str, Any]:
-    """Parse the AI agent's JSON output, handling potential markdown wrapping."""
+    """Parse the AI agent's JSON output, handling potential markdown wrapping and common AI JSON quirks."""
     if not output:
         return {}
 
@@ -655,6 +656,51 @@ def _parse_agent_output(output: str) -> Dict[str, Any]:
             lines = lines[1:]
         text = "\n".join(lines).strip()
 
+    # First attempt: strict parse
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # ── Repair pass: fix common AI JSON mistakes ──
+
+    repaired = text
+
+    # 1. Remove trailing commas before } or ] (e.g.  "key": "val",  })
+    repaired = re.sub(r',\s*([\]}])', r'\1', repaired)
+
+    # 2. Fix unquoted property names:  { key: "val" } → { "key": "val" }
+    repaired = re.sub(r'(?<=[\{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r' "\1":', repaired)
+
+    # 3. Replace single-quoted strings with double-quoted strings
+    # Only outside of already-double-quoted strings — simple heuristic
+    repaired = re.sub(r"(?<!\\)'([^']*?)'", r'"\1"', repaired)
+
+    # 4. Remove JavaScript-style comments (// ... )
+    repaired = re.sub(r'//[^\n]*', '', repaired)
+
+    # 5. Remove block comments (/* ... */)
+    repaired = re.sub(r'/\*.*?\*/', '', repaired, flags=re.DOTALL)
+
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        pass
+
+    # ── Last resort: extract the largest JSON object from the text ──
+    # Find the outermost { ... }
+    brace_start = repaired.find('{')
+    brace_end = repaired.rfind('}')
+    if brace_start != -1 and brace_end > brace_start:
+        candidate = repaired[brace_start:brace_end + 1]
+        # One more trailing-comma cleanup on the candidate
+        candidate = re.sub(r',\s*([\]}])', r'\1', candidate)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    # If nothing works, raise with original text for debugging
     return json.loads(text)
 
 
