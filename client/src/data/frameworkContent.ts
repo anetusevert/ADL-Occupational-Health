@@ -895,108 +895,7 @@ export const guideSlides: GuideSlide[] = [
     color: "emerald"
   },
   // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 6: THE EVIDENCE BASE
-  // Data sources — what powers the platform.
-  // ══════════════════════════════════════════════════════════════════════════
-  {
-    id: "evidence-base",
-    type: "data-sources",
-    title: "The Evidence Base",
-    actionTitle: "Nine Authoritative Sources. Zero Guesswork.",
-    subtitle: "Where Every Score Comes From",
-    content: "No opinion. No estimation. Every metric in this platform traces back to the world's most authoritative institutions. Data is harmonized, cross-validated, and continuously updated. The Data Engine page shows you exactly which source feeds which metric — full transparency, full traceability.",
-    highlights: [
-      "ILO — labor statistics, conventions, inspector density",
-      "WHO — disease burden, health system capacity",
-      "World Bank — economic indicators, governance metrics",
-      "OECD — policy benchmarks, social protection",
-      "UNDP, Transparency International, Yale EPI, IHME, WJP"
-    ],
-    stats: [
-      { value: "9", label: "Global Sources", color: "cyan" },
-      { value: "195", label: "Nations Covered", color: "emerald" },
-      { value: "100%", label: "Traceable", color: "purple" }
-    ],
-    navTarget: "/data-engine",
-    color: "cyan"
-  },
-  // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 6: COUNTRY DEEP DIVE
-  // What you see when you click on a country.
-  // ══════════════════════════════════════════════════════════════════════════
-  {
-    id: "country-dive",
-    type: "app-country",
-    title: "Country Deep Dive",
-    actionTitle: "Click Any Nation. Get the Full Intelligence Picture.",
-    subtitle: "From Score to Strategy in One Click",
-    content: "Every country has a dedicated intelligence dashboard. Economic context, framework scores, strategic insights, and global positioning — all in one view. Drill into any pillar for detailed analysis. Compare against peers. Export to PDF. Each country profile is a complete strategic briefing.",
-    highlights: [
-      "Economic overview: GDP, labor force, demographics at a glance",
-      "All 4 pillar scores with visual benchmarking",
-      "6 expert insight categories per country",
-      "Pillar deep-dive with strategic questions and best practice leaders"
-    ],
-    stats: [
-      { value: "4", label: "Dashboard Quadrants", color: "cyan" },
-      { value: "6", label: "Insight Categories", color: "emerald" },
-      { value: "195", label: "Nations Covered", color: "purple" }
-    ],
-    color: "blue"
-  },
-  // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 7: FOCUS — KSA
-  // Saudi Arabia benchmarked against the world.
-  // ══════════════════════════════════════════════════════════════════════════
-  {
-    id: "focus-ksa",
-    type: "ksa-position",
-    title: "Focus: KSA",
-    actionTitle: "Where the Kingdom Stands — and Where It Can Lead",
-    subtitle: "Saudi Arabia Benchmarked Against 195 Nations",
-    content: "A dedicated strategic view for Saudi Arabia. Each pillar is benchmarked against GCC neighbors, G20 peers, and global leaders. Click any strategic question to unlock deep analysis — written at McKinsey Partner depth — with specific recommendations, global best practices, and an actionable path to top-quartile performance.",
-    highlights: [
-      "4-quadrant view: one per framework element",
-      "Percentile positioning against GCC, G20, and global averages",
-      "Strategic questions with in-depth expert analysis",
-      "Best practice leaders identified for each dimension"
-    ],
-    stats: [
-      { value: "4", label: "Pillars Assessed", color: "cyan" },
-      { value: "GCC", label: "Regional Benchmark", color: "emerald" },
-      { value: "G20", label: "Peer Benchmark", color: "purple" }
-    ],
-    navTarget: "/focus-ksa",
-    color: "emerald"
-  },
-  // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 8: THE WORKFORCE — Personas
-  // KSA's 5 workforce personas.
-  // ══════════════════════════════════════════════════════════════════════════
-  {
-    id: "the-workforce",
-    type: "workforce",
-    title: "The Workforce",
-    actionTitle: "Five Personas. Five Realities. One System.",
-    subtitle: "The People Behind the Policy",
-    content: "Saudi Arabia's 13 million workers are not a monolith. A Saudi professional in Riyadh, a migrant construction worker in NEOM, a domestic worker with zero coverage — each faces distinct risks and different realities. This page maps five workforce personas: their hazard exposure, coverage status, and complete journey through the occupational health system.",
-    highlights: [
-      "Saudi Male Professional — full GOSI coverage, office-based risks",
-      "Saudi Female Professional — emerging workforce, gender-specific protections",
-      "Migrant Construction Worker — partial coverage, extreme heat exposure",
-      "Domestic Worker — zero formal protection",
-      "Young Saudi Worker — high-risk sector entry, gig economy gaps"
-    ],
-    stats: [
-      { value: "5", label: "Personas", color: "cyan" },
-      { value: "13M", label: "Workers", color: "emerald" },
-      { value: "3", label: "Coverage Levels", color: "amber" }
-    ],
-    navTarget: "/personas",
-    color: "purple"
-  },
-  // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 9: BEST PRACTICES
+  // SLIDE 6: BEST PRACTICES (was 9)
   // What the world's leaders do differently.
   // ══════════════════════════════════════════════════════════════════════════
   {
@@ -1022,7 +921,7 @@ export const guideSlides: GuideSlide[] = [
     color: "emerald"
   },
   // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 10: GLOBAL LEADERBOARD
+  // SLIDE 7: GLOBAL LEADERBOARD
   // Rankings across all 195 nations.
   // ══════════════════════════════════════════════════════════════════════════
   {
@@ -1047,7 +946,7 @@ export const guideSlides: GuideSlide[] = [
     color: "blue"
   },
   // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 11: COMPARE & ANALYZE
+  // SLIDE 8: COMPARE & ANALYZE
   // AI-powered country comparison tool.
   // ══════════════════════════════════════════════════════════════════════════
   {
@@ -1071,25 +970,6 @@ export const guideSlides: GuideSlide[] = [
     navTarget: "/compare",
     color: "cyan"
   },
-  // ══════════════════════════════════════════════════════════════════════════
-  // SLIDE 12: BEGIN EXPLORING
-  // The final CTA. Enter the platform.
-  // ══════════════════════════════════════════════════════════════════════════
-  {
-    id: "conclusion",
-    type: "cta",
-    title: "Begin Exploring",
-    actionTitle: "The Intelligence Is Ready. The Platform Is Yours.",
-    subtitle: "Arthur D. Little + GOSI",
-    content: "195 nations assessed. 25 metrics scored. 5 workforce personas mapped. Expert analysis at every level. This platform is a living intelligence system — continuously updated, always evolving. The data is here. The insights are waiting. Start exploring.",
-    highlights: [
-      "Navigate the global map to explore any nation",
-      "Deep-dive into KSA's strategic positioning",
-      "Discover what the world's best do differently",
-      "Compare any country against Saudi Arabia"
-    ],
-    color: "cyan"
-  }
 ];
 
 /**
